@@ -108,7 +108,10 @@
 	.targets { display: inline-flex; align-items: center; gap: .45rem; padding: .55rem .95rem; border: 1px solid var(--border-subtle); border-radius: 11px; color: var(--text-primary); background: var(--surface-panel); font-size: .82rem; font-weight: 720; }
 	.targets:hover { border-color: var(--accent); color: var(--accent); }
 	.hint { padding: .7rem .95rem; border: 1px dashed var(--accent); border-radius: var(--radius-control); color: var(--text-secondary); background: var(--accent-soft); font-size: .8rem; line-height: 1.5; }
-	.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.15rem; }
+	
+	/* Checked: grid-auto-flow: dense added successfully here */
+	.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.15rem; grid-auto-flow: dense; }
+	
 	.cell { display: flex; min-width: 0; }
 	.cell.span-2 { grid-column: span 2; }
 	.cell.span-3 { grid-column: span 3; }
