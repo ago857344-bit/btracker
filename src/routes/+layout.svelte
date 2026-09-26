@@ -12,23 +12,24 @@
 	import { hydrateTracker } from '$lib/services/hydrate';
 	import { startSync } from '$lib/services/sync';
 	import { isDarkTheme } from '$lib/state/themes';
-	import { authReady, authConfigured, currentUser } from '$lib/stores/auth';
+	import { authReady, authConfigured, currentUser, hasSkippedLogin } from '$lib/stores/auth';
 	import { saveStatus, tracker } from '$lib/stores/tracker';
 
 	let collapsed = false;
 	let mobileOpen = false;
+
 	const titles: Record<string, string> = {
-		'/': 'Home', '/log': 'Question Log', '/plan': 'Plan', '/focus': 'Focus', '/todo': 'To Do', '/revise': 'Revise',
+		'/': 'Home', '/log': 'Question Log', '/review': 'Review', '/plan': 'Plan', '/focus': 'Focus', '/todo': 'To Do', '/revise': 'Revise',
 		'/stats': 'Stats', '/reminders': 'Reminders', '/settings': 'Settings'
 	};
-	$: isAuthRoute = $page.url.pathname === '/login';
+	$: isAuthRoute = $page.url.pathname === '/login' || $page.url.pathname.startsWith('/auth/');
 	$: currentTitle = titles[$page.url.pathname] ?? 'BTracker';
 	$: saveLabel = $saveStatus === 'saving' ? 'Saving' : $saveStatus === 'error' ? 'Save failed' : 'Saved';
 	$: if (browser && $authReady) {
 		const hasAuth = $authConfigured;
 		if (hasAuth) {
 			if (isAuthRoute && $currentUser) void goto('/', { replaceState: true });
-			else if (!isAuthRoute && !$currentUser) void goto('/login', { replaceState: true });
+			else if (!isAuthRoute && !$currentUser && !$hasSkippedLogin) void goto('/login', { replaceState: true });
 		} else {
 			// No auth configured, allow access to all routes
 			if (isAuthRoute) void goto('/', { replaceState: true });
@@ -53,7 +54,7 @@
 
 {#if isAuthRoute}
 	<slot />
-{:else if $authReady && $currentUser}
+{:else if $authReady}
 	<div class:sidebar-collapsed={collapsed} class="app-shell">
 		{#if mobileOpen}<button class="scrim" aria-label="Close navigation" on:click={() => mobileOpen = false}></button>{/if}
 		<AppSidebar bind:collapsed bind:mobileOpen />

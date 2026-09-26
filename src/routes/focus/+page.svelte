@@ -529,12 +529,12 @@
 
 <style>
 	.focus { display: grid; gap: 1.2rem; }
-	.page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+	.page-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 	.titles h1 { display: flex; align-items: center; gap: .55rem; margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -.04em; }
 	.palette { display: grid; place-items: center; width: 30px; height: 30px; border: 1px solid var(--border-subtle); border-radius: 10px; color: var(--accent); background: var(--accent-soft); }
 	.titles p { margin: .3rem 0 0; color: var(--text-secondary); font-size: .82rem; }
-	.clockbox { text-align: right; }
-	.clockbox b { display: block; font-size: 1.25rem; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+	.clockbox { display: flex; flex-direction: column; align-items: flex-end; gap: .2rem; }
+	.clockbox b { font-size: 1.25rem; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 	.clockbox span { color: var(--text-secondary); font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
 
 	.toolbar { display: flex; align-items: center; gap: .45rem; flex-wrap: wrap; }
@@ -614,7 +614,7 @@
 
 	.side { display: grid; gap: .8rem; }
 	.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .8rem; }
-	.stat { display: grid; gap: .25rem; padding: .95rem 1rem; }
+	.stat { display: grid; gap: .25rem; padding: 1.1rem 1.2rem; }
 	.k { display: flex; align-items: center; gap: .35rem; color: var(--text-secondary); font-size: .6rem; font-weight: 800; letter-spacing: .09em; }
 	.stat b { font-size: 1.45rem; font-weight: 800; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
 	.stat b small { margin-left: .25rem; font-size: .68rem; font-weight: 750; color: var(--text-secondary); }
@@ -622,16 +622,17 @@
 	.goal-edit { display: flex; gap: .35rem; }
 	.goal-edit button { width: 26px; height: 24px; border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-secondary); background: var(--surface-panel); font-weight: 800; }
 	.goal-edit button:hover { color: var(--accent); border-color: var(--accent); }
-	.peak { display: flex; gap: .8rem; align-items: center; }
+	.peak { display: flex; gap: .8rem; align-items: center; padding: 1.1rem 1.2rem; }
 	.picon { display: grid; place-items: center; width: 38px; height: 38px; flex: 0 0 38px; border-radius: 12px; color: #d99a2b; background: color-mix(in srgb, #d99a2b, transparent 86%); }
 	.peak b { display: block; font-size: 1.05rem; letter-spacing: -.03em; }
+	.health { padding: 1.1rem 1.2rem; }
 	.health ul { display: grid; gap: .45rem; margin: .6rem 0 0; padding: 0; list-style: none; }
 	.health li { display: flex; align-items: center; gap: .5rem; font-size: .78rem; }
 	.health .dot { width: 9px; height: 9px; border-radius: 99px; }
 	.health .badge { margin-left: auto; padding: .18rem .5rem; border-radius: 999px; background: var(--surface-subtle); color: var(--text-secondary); font-size: .56rem; font-weight: 800; letter-spacing: .06em; }
 	.health .badge.fresh { background: color-mix(in srgb, #2f9e6e, transparent 86%); color: #2f9e6e; }
 	.health .badge.stale { background: color-mix(in srgb, #e0455a, transparent 88%); color: #e0455a; }
-	.goal { background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent), #b44df0 55%)); border: 0; color: #fff; }
+	.goal { background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent), #b44df0 55%)); border: 0; color: #fff; padding: 1.1rem 1.2rem; }
 	.goal-head { display: flex; justify-content: space-between; gap: .5rem; font-size: .66rem; font-weight: 800; letter-spacing: .08em; }
 	.goal-head b { font-size: .8rem; }
 	.bar { height: 8px; margin: .7rem 0; border-radius: 99px; background: rgb(255 255 255 / 26%); overflow: hidden; }
@@ -640,6 +641,7 @@
 	.sliders-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .35rem .7rem; border: 1px solid rgb(255 255 255 / 45%); border-radius: 9px; color: #fff; background: rgb(255 255 255 / 12%); font-size: .66rem; font-weight: 800; }
 
 	.analytics { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.2rem; align-items: start; }
+	.analytics > :global(*) { padding: 1.3rem 1.4rem; }
 
 	.report-list { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
 	.report-list li { display: flex; align-items: center; gap: .6rem; padding: .6rem .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; }

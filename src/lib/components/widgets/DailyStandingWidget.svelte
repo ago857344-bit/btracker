@@ -39,10 +39,10 @@
 
 <style>
 	.standing { display: grid; gap: .4rem; height: 100%; align-content: start; }
-	.cols { display: grid; grid-template-columns: 74px 1fr 1fr; align-items: center; gap: .5rem; padding: .5rem .6rem; border-radius: 11px; }
-	.cols small { color: var(--text-secondary); font-size: .6rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+	.cols { display: grid; grid-template-columns: 80px 1fr 1fr; align-items: center; gap: .5rem; padding: .5rem .6rem; border-radius: 11px; }
+	.cols small { color: var(--text-secondary); font-size: .6rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; text-align: center; }
 	.row { background: var(--surface-subtle); }
 	.row b { font-size: .78rem; letter-spacing: -.01em; }
-	.qs { font-size: 1.05rem; font-weight: 800; letter-spacing: -.03em; color: var(--accent); }
-	.time { color: var(--text-secondary); font-size: .82rem; font-weight: 700; }
+	.qs { font-size: 1.05rem; font-weight: 800; letter-spacing: -.03em; color: var(--accent); text-align: center; }
+	.time { color: var(--text-secondary); font-size: .82rem; font-weight: 700; text-align: center; }
 </style>

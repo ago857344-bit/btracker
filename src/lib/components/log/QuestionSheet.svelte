@@ -28,6 +28,8 @@
 	let startX = 0;
 	let startY = 0;
 	let rowRects: { i: number; top: number; bottom: number }[] = [];
+	let paintAction: 'flag' | 'cant' | null = null;
+	let painted = new Set<number>();
 
 	$: n = questionCount($tracker, loc.sc, loc.ch, loc.ex);
 	$: cells = $tracker.d[cellKey(loc.sc, loc.ch, loc.ex)] ?? [];
@@ -89,7 +91,39 @@
 		cacheRects();
 		if (event.shiftKey && lastClicked !== null) selectRange(lastClicked, i);
 	}
+	function beginMarkPaint(event: PointerEvent, i: number, action: 'flag' | 'cant') {
+		if (event.button !== 0) return;
+		event.preventDefault();
+		event.stopPropagation();
+		paintAction = action;
+		painted = new Set([i]);
+	}
+	function paintAt(event: PointerEvent) {
+		const target = document.elementFromPoint(event.clientX, event.clientY);
+		const row = target?.closest('.qrow[data-i]') as HTMLElement | null;
+		const i = Number(row?.dataset.i);
+		if (!Number.isInteger(i) || painted.has(i)) return;
+		painted = new Set([...painted, i]);
+	}
+	function finishMarkPaint() {
+		if (!paintAction) return;
+		const indices = [...painted];
+		if (indices.length === 1) {
+			if (paintAction === 'flag') toggleQuestionFlag(loc, indices[0]);
+			else setQuestionResult(loc, indices[0], 3);
+		} else {
+			applyQuestionAction(loc, indices, paintAction);
+		}
+		paintAction = null;
+		painted = new Set();
+	}
+	function onMarkClick(event: MouseEvent, i: number, action: 'flag' | 'cant') {
+		if (event.detail !== 0) return;
+		if (action === 'flag') toggleQuestionFlag(loc, i);
+		else setQuestionResult(loc, i, 3);
+	}
 	function onMove(event: PointerEvent) {
+		if (paintAction) { paintAt(event); return; }
 		if (anchor === null) return;
 		if (!dragging) {
 			if (Math.abs(event.clientX - startX) + Math.abs(event.clientY - startY) < 5) return;
@@ -101,6 +135,7 @@
 		if (target !== null) selectRange(anchor, target);
 	}
 	function onUp(event: PointerEvent) {
+		if (paintAction) { finishMarkPaint(); return; }
 		if (anchor === null) return;
 		if (!dragging && !event.shiftKey) {
 			const next = new Set(sel);
@@ -216,7 +251,7 @@
 	{#if rangeMsg}<span class="msg" class:ok={rangeMsg.ok}>{rangeMsg.text}</span>{/if}
 </div>
 
-<div class="sheet" class:dragging>
+<div class="sheet" class:dragging={dragging || paintAction !== null}>
 	<div class="qrow head">
 		<span class="qn-head">
 			<button type="button" class="selall" aria-label={allSelected ? 'Clear selection' : 'Select all visible'} aria-pressed={allSelected} on:click={toggleSelectAll}><NavIcon name="check" size={12} /></button>

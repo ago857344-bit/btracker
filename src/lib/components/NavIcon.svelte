@@ -18,7 +18,7 @@
 	{:else if name === 'focus'}
 		<circle cx="12" cy="12" r="8" /><path d="M12 7v5l3 2" />
 	{:else if name === 'revise'}
-		<path d="M20 11a8 8 0 1 0 2 5" /><path d="M20 4v7h-7" /><path d="M12 8v4l2.5 2.5" />
+		<path d="M20 11a8 8 0 1 0 2 5" /><path d="M20 4v7h-7" />
 	{:else if name === 'tests'}
 		<path d="M7 3h10v18H7z" /><path d="M9 7h6M9 11h6M9 15h3" />
 	{:else if name === 'mastery'}
