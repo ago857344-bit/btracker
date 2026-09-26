@@ -37,11 +37,16 @@ export const createAnalysis = (): AnalysisState => ({
 export const createRevision = (): RevisionState => ({ items: {}, decayDays: 14 });
 export const createMeta = (): MetaState => ({ name: '', exam: null, weekGoalH: 40, streakGoalH: 1 });
 export const DEFAULT_WIDGETS: WidgetLayout[] = [
-	{ id: 'daily-progress', enabled: true, order: 0, span: 2 }, { id: 'quote', enabled: true, order: 1, span: 1 },
-	{ id: 'weekly-standing', enabled: true, order: 2, span: 1 }, { id: 'new-target', enabled: true, order: 3, span: 2 },
-	{ id: 'standing', enabled: true, order: 4, span: 1 }, { id: 'subjects', enabled: true, order: 5, span: 3 },
-	{ id: 'up-next', enabled: true, order: 6, span: 1 }, { id: 'activity', enabled: true, order: 7, span: 2 },
-	{ id: 'due-homework', enabled: true, order: 8, span: 2 }, { id: 'recommendation', enabled: true, order: 9, span: 2 }
+	{ id: 'daily-progress', enabled: true, order: 0, span: 2 },
+	{ id: 'quote', enabled: true, order: 1, span: 1 },
+	{ id: 'weekly-standing', enabled: true, order: 2, span: 1 },
+	{ id: 'new-target', enabled: true, order: 3, span: 2 },
+	{ id: 'subjects', enabled: true, order: 4, span: 3 },
+	{ id: 'up-next', enabled: true, order: 5, span: 1 },
+	{ id: 'due-homework', enabled: true, order: 6, span: 1 },
+	{ id: 'standing', enabled: true, order: 7, span: 1 },
+	{ id: 'activity', enabled: true, order: 8, span: 3 },
+	{ id: 'recommendation', enabled: true, order: 9, span: 3 }
 ];
 export const createUiPreferences = (): UiPreferences => ({ accent: '#6d5dfc', widgets: DEFAULT_WIDGETS, reducedMotion: false });
 export const createInitialTrackerState = (): TrackerState => ({
