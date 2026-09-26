@@ -1,0 +1,7 @@
+/Users/atharv/Documents/Codex/2026-09-21/act-as-an-expert-full-stack/src-tauri/target/debug/deps/bitflags-d2c661a847efd3cf.d: /Users/atharv/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-1.3.2/src/lib.rs
+
+/Users/atharv/Documents/Codex/2026-09-21/act-as-an-expert-full-stack/src-tauri/target/debug/deps/libbitflags-d2c661a847efd3cf.rlib: /Users/atharv/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-1.3.2/src/lib.rs
+
+/Users/atharv/Documents/Codex/2026-09-21/act-as-an-expert-full-stack/src-tauri/target/debug/deps/libbitflags-d2c661a847efd3cf.rmeta: /Users/atharv/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-1.3.2/src/lib.rs
+
+/Users/atharv/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bitflags-1.3.2/src/lib.rs:
