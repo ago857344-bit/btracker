@@ -86,8 +86,8 @@
 	.nav-icon { display: grid; flex: 0 0 20px; place-items: center; }
 	.due-badge { margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center; background: var(--danger, #e0455a); color: white; font-size: .62rem; font-weight: 800; }
 	.nav-divider { height: 1px; margin: 1rem .65rem .2rem; background: var(--border-subtle); }
-	.sidebar-bottom { display: grid; gap: .2rem; margin-top: auto; }
-	.profile-container { padding: .4rem .75rem; display: flex; align-items: center; gap: .85rem; border-radius: 12px; }
+	.sidebar-bottom { display: grid; gap: .55rem; margin-top: auto; }
+	.profile-container { padding: .65rem .55rem .15rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; gap: .7rem; }
 	.profile-copy { display: grid; gap: .08rem; min-width: 0; font-size: .77rem; }
 	.profile-copy small { color: var(--text-secondary); font-size: .67rem; text-overflow: ellipsis; overflow: hidden; }
 	
