@@ -31,3 +31,4 @@ BTracker works fully offline: your data stays in this device (IndexedDB in the b
 
 On first sign-in from a device, any existing local data is migrated up to the cloud account so nothing is lost; afterwards, saves mirror to Supabase automatically. Leave the env values blank to keep running in local-only mode.
 # btracker
+# btracker
