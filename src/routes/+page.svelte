@@ -109,13 +109,20 @@
 	.targets:hover { border-color: var(--accent); color: var(--accent); }
 	.hint { padding: .7rem .95rem; border: 1px dashed var(--accent); border-radius: var(--radius-control); color: var(--text-secondary); background: var(--accent-soft); font-size: .8rem; line-height: 1.5; }
 	
-	/* Checked: grid-auto-flow: dense added successfully here */
-	.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.15rem; grid-auto-flow: dense; }
-	
+	/* Restored 3-column grid */
+	.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.15rem; }
 	.cell { display: flex; min-width: 0; }
 	.cell.span-2 { grid-column: span 2; }
 	.cell.span-3 { grid-column: span 3; }
 	.cell :global(.widget) { flex: 1; }
-	@media (max-width: 1100px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cell.span-3 { grid-column: span 2; } }
-	@media (max-width: 720px) { .grid { grid-template-columns: minmax(0, 1fr); } .cell.span-2, .cell.span-3 { grid-column: span 1; } .hero-tools { width: 100%; justify-content: space-between; } }
+	
+	@media (max-width: 1100px) { 
+		.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } 
+		.cell.span-3 { grid-column: span 2; } 
+	}
+	@media (max-width: 720px) { 
+		.grid { grid-template-columns: minmax(0, 1fr); } 
+		.cell.span-2, .cell.span-3 { grid-column: span 1; } 
+		.hero-tools { width: 100%; justify-content: space-between; } 
+	}
 </style>
