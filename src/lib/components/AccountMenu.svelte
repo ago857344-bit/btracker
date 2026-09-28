@@ -1,6 +1,7 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import NavIcon from '$lib/components/NavIcon.svelte';
-	import { currentUser, initials, signOut, syncStatus } from '$lib/stores/auth';
+	import { currentUser, initials, signOut, syncStatus, hasSkippedLogin } from '$lib/stores/auth';
 
 	let open = false;
 	let root: HTMLDivElement;
@@ -19,6 +20,10 @@
 	async function doSignOut() {
 		open = false;
 		await signOut();
+	}
+	function goToLogin() {
+		hasSkippedLogin.set(false);
+		void goto('/login');
 	}
 </script>
 
@@ -47,7 +52,7 @@
 			</div>
 		{/if}
 	{:else}
-		<a class="signin" href="/login"><NavIcon name="shield" size={16} /><span>Sign in</span></a>
+		<button type="button" class="signin" on:click={goToLogin}><NavIcon name="shield" size={16} /><span>Sign in</span></button>
 	{/if}
 </div>
 
@@ -57,7 +62,7 @@
 	.avatar-btn:hover { border-color: var(--accent); }
 	.avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
 	.initials { color: var(--accent); font-size: .76rem; font-weight: 800; letter-spacing: .02em; }
-	.signin { display: inline-flex; align-items: center; gap: .42rem; height: 36px; padding: 0 .8rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-panel); color: var(--text-secondary); font-size: .78rem; font-weight: 700; text-decoration: none; cursor: pointer; font-family: inherit; }
+	.signin { display: inline-flex; align-items: center; gap: .42rem; height: 36px; padding: 0 .8rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-panel); color: var(--text-secondary); font-size: .78rem; font-weight: 700; cursor: pointer; font-family: inherit; }
 	.signin:hover { color: var(--accent); border-color: var(--accent); }
 	.menu { position: absolute; z-index: 70; top: calc(100% + .5rem); right: 0; width: 230px; padding: .5rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-panel); box-shadow: var(--shadow-card); }
 	.who { display: grid; gap: .12rem; padding: .5rem .6rem .6rem; border-bottom: 1px solid var(--border-subtle); }

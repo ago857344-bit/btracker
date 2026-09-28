@@ -10,7 +10,8 @@ const fingerprint = (value: string) => {
 
 /** Reads BTracker v1–v3 save codes without executing the legacy HTML. */
 export function importLegacyCode(raw: string): TrackerState {
-	let encoded = raw.trim().replaceAll(/\s+/g, '');
+	// NUL bytes appear when a UTF-16–saved .txt is read as UTF-8 text.
+	let encoded = raw.trim().replaceAll(/[\s\u0000]+/g, '');
 	if (encoded.startsWith('JEE-')) encoded = encoded.slice(4);
 	let decoded: string;
 	try { decoded = atob(encoded); } catch { throw new Error('This is not a valid BTracker save code.'); }

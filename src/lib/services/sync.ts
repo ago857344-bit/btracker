@@ -2,7 +2,7 @@ import { get } from 'svelte/store';
 import { pullState, pushState } from '$lib/services/cloud';
 import { normalizeState } from '$lib/services/hydrate';
 import { supabaseConfigured } from '$lib/services/supabase';
-import { authReady, authConfigured, initAuth, syncStatus, teardownAuth, currentUserId } from '$lib/stores/auth';
+import { authReady, initAuth, syncStatus, teardownAuth } from '$lib/stores/auth';
 import { replaceTracker, setCloudSink, tracker } from '$lib/stores/tracker';
 import type { TrackerState } from '$lib/types/tracker';
 
@@ -49,16 +49,12 @@ function onSignOut() {
 /** Wire auth + cloud mirroring. Safe to call once from the root layout. */
 export function startSync() {
 	if (started) return;
-	
-	// Check if either Supabase or Google OAuth is configured
-	const hasAuth = $authConfigured || supabaseConfigured;
-	
-	if (!hasAuth) { 
-		authReady.set(true); 
+	authReady.set(true);
+	// Identity comes from Google OAuth; cloud sync additionally needs Supabase.
+	if (!supabaseConfigured) {
 		syncStatus.set('off');
-		return; 
+		return;
 	}
-	
 	started = true;
 	setCloudSink(schedulePush);
 	initAuth(onSignIn, onSignOut);

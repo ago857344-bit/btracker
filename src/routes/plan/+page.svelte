@@ -268,23 +268,23 @@
 <style>
 	.plan { display: grid; gap: 1.1rem; }
 	.tabs { display: inline-flex; gap: .3rem; justify-self: start; padding: .28rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-panel); }
-	.tabs button { height: 34px; padding: 0 1rem; border: 0; border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: .78rem; font-weight: 750; letter-spacing: .02em; cursor: pointer; font-family: inherit; }
+	.tabs button { width: 140px; height: 34px; padding: 0 1rem; border: 0; border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: .78rem; font-weight: 750; letter-spacing: .02em; cursor: pointer; font-family: inherit; }
 	.tabs button.selected { color: white; background: var(--accent); box-shadow: 0 6px 14px color-mix(in srgb, var(--accent), transparent 68%); }
 
 	.toolbar { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; }
 	.legend { display: inline-flex; align-items: center; gap: .4rem; color: var(--text-secondary); font-size: .64rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
 	.missed-dot { width: 9px; height: 9px; border: 1.6px solid var(--text-secondary); border-radius: 99px; background: transparent; }
-	.tool { display: inline-flex; align-items: center; gap: .35rem; height: 32px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-panel); color: var(--text-secondary); font-size: .72rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+	.tool { display: inline-flex; align-items: center; gap: .35rem; height: 34px; padding: 0 .75rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-panel); color: var(--text-secondary); font-size: .72rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .16s ease; }
 	.tool:hover { color: var(--text-primary); border-color: var(--accent); }
-	.tool.icon { width: 32px; justify-content: center; padding: 0; }
+	.tool.icon { width: 34px; justify-content: center; padding: 0; }
 	.flip { display: grid; transform: rotate(180deg); }
 	.cursor-label { font-size: .86rem; letter-spacing: -.02em; }
-	.view-toggle { display: inline-flex; margin-left: auto; padding: .2rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-panel); }
-	.view-toggle button { height: 26px; padding: 0 .75rem; border: 0; border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: .7rem; font-weight: 750; cursor: pointer; font-family: inherit; }
+	.view-toggle { display: inline-flex; margin-left: auto; padding: .25rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-panel); }
+	.view-toggle button { height: 28px; padding: 0 .8rem; border: 0; border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: .7rem; font-weight: 750; cursor: pointer; font-family: inherit; transition: all .16s ease; }
 	.view-toggle button.selected { color: var(--accent); background: var(--accent-soft); }
 
 	.week-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: .5rem; }
-	.day-cell { position: relative; display: grid; gap: .3rem; justify-items: center; padding: .7rem .3rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-panel); color: var(--text-primary); cursor: pointer; font-family: inherit; transition: border-color .14s ease, transform .14s ease; }
+	.day-cell { position: relative; display: grid; gap: .3rem; justify-items: center; padding: .8rem .4rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-panel); color: var(--text-primary); cursor: pointer; font-family: inherit; transition: border-color .14s ease, transform .14s ease; min-height: 90px; }
 	.day-cell:hover { transform: translateY(-2px); }
 	.day-cell.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
 	.day-cell small { color: var(--text-secondary); font-size: .62rem; font-weight: 800; letter-spacing: .08em; }
@@ -292,7 +292,7 @@
 	.day-cell.today .num { color: white; background: var(--accent); }
 	.day-cell.selected:not(.today) .num { border: 2px solid var(--accent); }
 	.count { padding: .12rem .5rem; border-radius: 99px; background: var(--surface-subtle); color: var(--text-secondary); font-size: .6rem; font-style: normal; font-weight: 800; }
-	.plan-day { position: absolute; bottom: -9px; padding: .14rem .55rem; border-radius: 99px; background: var(--accent); color: white; font-size: .54rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; }
+	.plan-day { position: absolute; bottom: .4rem; left: 50%; transform: translateX(-50%); padding: .12rem .5rem; border-radius: 99px; background: var(--accent); color: white; font-size: .54rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; }
 
 	.month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: .35rem; }
 	.month-grid > small { color: var(--text-secondary); font-size: .6rem; font-weight: 800; letter-spacing: .08em; text-align: center; padding: .2rem 0; }
@@ -313,13 +313,14 @@
 	.day-head { display: grid; }
 	.day-head b { font-size: 1.05rem; line-height: 1.1; letter-spacing: -.02em; }
 	.day-head small { color: var(--text-secondary); font-size: .68rem; }
-	.day-actions { display: flex; gap: .4rem; margin-left: auto; }
+	.day-actions { display: flex; gap: .45rem; margin-left: auto; }
+	.day-actions .tool { height: 32px; padding: 0 .65rem; font-size: .7rem; }
 
 	.list-tools { display: flex; gap: .5rem; flex-wrap: wrap; }
-	.search { display: flex; align-items: center; gap: .5rem; flex: 1; min-width: 170px; height: 36px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-subtle); color: var(--text-secondary); }
+	.search { display: flex; align-items: center; gap: .5rem; flex: 1; min-width: 170px; height: 34px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-subtle); color: var(--text-secondary); }
 	.search input { flex: 1; border: 0; background: transparent; color: var(--text-primary); font-size: .78rem; font-family: inherit; }
 	.search input:focus { outline: none; }
-	.funnel { display: inline-flex; align-items: center; gap: .4rem; height: 36px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-subtle); color: var(--text-secondary); }
+	.funnel { display: inline-flex; align-items: center; gap: .4rem; height: 34px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-subtle); color: var(--text-secondary); }
 	.funnel select { border: 0; background: transparent; color: var(--text-primary); font-size: .76rem; font-weight: 650; font-family: inherit; cursor: pointer; }
 	.funnel select:focus { outline: none; }
 

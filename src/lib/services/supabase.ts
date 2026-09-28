@@ -1,9 +1,8 @@
 import { browser } from '$app/environment';
-import { PUBLIC_SUPABASE_ANON_KEY, PUBLIC_SUPABASE_URL } from '$env/static/public';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
-const url = (PUBLIC_SUPABASE_URL ?? '').trim();
-const anonKey = (PUBLIC_SUPABASE_ANON_KEY ?? '').trim();
+const url = (import.meta.env.PUBLIC_SUPABASE_URL ?? '').trim();
+const anonKey = (import.meta.env.PUBLIC_SUPABASE_ANON_KEY ?? '').trim();
 
 /** True when both Supabase env vars are present, i.e. cloud auth/sync is enabled. */
 export const supabaseConfigured = Boolean(url && anonKey);

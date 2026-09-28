@@ -81,23 +81,26 @@
 </form>
 
 <style>
-	.task-form { display: grid; gap: .7rem; padding: 1rem; border: 1px solid var(--border-subtle); border-radius: 16px; background: var(--surface-panel); }
+	.task-form { display: grid; gap: .75rem; padding: 1.1rem; border: 1px solid var(--border-subtle); border-radius: 16px; background: var(--surface-panel); }
 	.form-title { margin: 0; color: var(--text-secondary); font-size: .66rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 	.name-row { display: flex; gap: .5rem; }
-	input[type="text"], input[type="time"], select { width: 100%; height: 38px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-subtle); color: var(--text-primary); font-size: .82rem; font-family: inherit; }
+	input[type="text"], input[type="time"], select { width: 100%; height: 36px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-subtle); color: var(--text-primary); font-size: .82rem; font-family: inherit; }
 	input:focus, select:focus { outline: none; border-color: var(--accent); }
-	.add-btn { display: grid; flex: 0 0 38px; place-items: center; border: 0; border-radius: 11px; color: white; background: var(--accent); cursor: pointer; }
+	.add-btn { display: grid; flex: 0 0 36px; place-items: center; border: 0; border-radius: 10px; color: white; background: var(--accent); cursor: pointer; transition: opacity .16s ease; }
 	.add-btn:disabled { opacity: .4; cursor: default; }
-	.swatches { display: flex; gap: .5rem; }
-	.swatch { width: 24px; height: 24px; border: 2px solid transparent; border-radius: 99px; cursor: pointer; transition: transform .12s ease; }
+	.swatches { display: flex; gap: .6rem; justify-content: flex-start; }
+	.swatch { width: 26px; height: 26px; border: 2px solid transparent; border-radius: 99px; cursor: pointer; transition: transform .12s ease, border-color .12s ease; }
+	.swatch:hover { transform: scale(1.08); }
 	.swatch.selected { border-color: var(--text-primary); transform: scale(1.12); }
-	.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }
-	.grid2 label, .hrs-row { display: grid; gap: .3rem; }
+	.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+	.grid2 label, .hrs-row { display: grid; gap: .35rem; }
 	.grid2 small, .hrs-row small { color: var(--text-secondary); font-size: .64rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
-	.hrs-chips { display: flex; gap: .4rem; }
-	.chip { height: 30px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 9px; background: transparent; color: var(--text-secondary); font-size: .74rem; font-weight: 700; cursor: pointer; }
+	.hrs-chips { display: flex; gap: .5rem; }
+	.chip { height: 32px; padding: 0 .8rem; border: 1px solid var(--border-subtle); border-radius: 9px; background: transparent; color: var(--text-secondary); font-size: .74rem; font-weight: 700; cursor: pointer; transition: all .16s ease; }
+	.chip:hover { border-color: var(--accent); }
 	.chip.selected { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
-	.test-tag { display: flex; align-items: center; gap: .5rem; height: 36px; padding: 0 .7rem; border: 1px dashed var(--border-subtle); border-radius: 11px; background: transparent; color: var(--text-secondary); font-size: .74rem; font-weight: 700; letter-spacing: .03em; cursor: pointer; }
+	.test-tag { display: flex; align-items: center; gap: .5rem; height: 36px; padding: 0 .75rem; border: 1px dashed var(--border-subtle); border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: .74rem; font-weight: 700; letter-spacing: .03em; cursor: pointer; transition: all .16s ease; }
+	.test-tag:hover { border-color: var(--accent); }
 	.test-tag .ring { width: 13px; height: 13px; border: 1.6px solid currentColor; border-radius: 99px; }
 	.test-tag.selected { color: var(--accent); border-color: var(--accent); border-style: solid; background: var(--accent-soft); }
 </style>

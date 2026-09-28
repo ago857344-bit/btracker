@@ -9,6 +9,9 @@
 		setProfileName, setExamDate, setWeeklyGoalHours, setStreakGoalHours
 	} from '$lib/stores/tracker';
 	import { createInitialTrackerState } from '$lib/state/defaults';
+	import { mergeImportedProgress } from '$lib/state/legacy-progress';
+	import { importLegacyCode } from '$lib/state/legacy-code';
+	import { parseImportedProgress } from '$lib/services/progressImport';
 	import { longDateKey } from '$lib/state/dates';
 	import { THEME_PRESETS, presetOf } from '$lib/state/themes';
 	import type { ThemeId, TrackerState } from '$lib/types/tracker';
@@ -45,17 +48,69 @@
 	function importData(event: Event) {
 		const input = event.currentTarget as HTMLInputElement;
 		const file = input.files?.[0];
-		input.value = '';
 		if (!file) return;
 		const reader = new FileReader();
 		reader.onload = () => {
+			input.value = '';
 			try {
 				const parsed = JSON.parse(String(reader.result)) as Partial<TrackerState>;
 				replaceTracker({ ...createInitialTrackerState(), ...parsed });
 				celebration.set('Backup restored!');
 			} catch { celebration.set('Invalid backup file'); }
 		};
+		reader.onerror = () => { input.value = ''; celebration.set('Could not read that file'); };
 		reader.readAsText(file);
+	}
+
+	let legacyCode = '';
+	let legacyError = '';
+
+	async function loadCodeFile(event: Event) {
+		const input = event.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		if (!file) return;
+		legacyError = '';
+		try {
+			legacyCode = await file.text();
+		} catch {
+			input.value = '';
+			legacyError = 'Could not read that file — pick it again, or paste the code instead.';
+			return;
+		}
+		input.value = '';
+		if (!legacyCode.trim()) {
+			legacyError = 'That file is empty — pick the .txt the old tracker downloaded.';
+			return;
+		}
+		importCode();
+	}
+
+	function importCode() {
+		legacyError = '';
+		try {
+			const input = legacyCode.trim();
+			// Saved .txt files can carry wrapper text or NUL bytes (UTF-16 re-saves),
+			// so find the "JEE-" marker instead of trusting the first characters.
+			const compact = input.replaceAll(/[\s\u0000]+/g, '');
+			const jeeAt = compact.startsWith('{') ? -1 : compact.indexOf('JEE-');
+			let next: TrackerState;
+			if (jeeAt >= 0) {
+				// Old save codes predate the library, todos, reflections, sessions and
+				// profile — keep whatever this app already holds in those sections.
+				next = {
+					...importLegacyCode(compact.slice(jeeAt)),
+					ui: $tracker.ui, meta: $tracker.meta, lib: $tracker.lib,
+					gt: $tracker.gt, todos: $tracker.todos, refl: $tracker.refl, sess: $tracker.sess
+				};
+			} else {
+				next = mergeImportedProgress(parseImportedProgress<Partial<TrackerState>>(input), $tracker);
+			}
+			replaceTracker(next);
+			legacyCode = '';
+			celebration.set('Progress imported from old tracker!');
+		} catch (error) {
+			legacyError = error instanceof Error ? error.message : 'Import failed.';
+		}
 	}
 
 	function clearAll() {
@@ -131,6 +186,21 @@
 				<label class="btn"><NavIcon name="save" size={14} /> Import backup<input type="file" accept="application/json,.json" hidden on:change={importData} /></label>
 				<button type="button" class="btn danger" on:click={() => (confirmClear = true)}><NavIcon name="trash" size={14} /> Clear all data</button>
 			</div>
+
+			<p class="label legacy-label">IMPORT FROM OLD TRACKER</p>
+			<p class="muted">Paste the export code from the old site (or open the .txt file it downloaded), then import. Matching sections — syllabus progress, homework, tests, notes, goals — replace the current ones; your profile, to-dos, reflections and sessions stay untouched.</p>
+			<textarea
+				class="code-area"
+				rows="4"
+				placeholder="Paste the old tracker's export code here…"
+				bind:value={legacyCode}
+				on:input={() => (legacyError = '')}
+			></textarea>
+			{#if legacyError}<p class="warn legacy-error">{legacyError}</p>{/if}
+			<div class="legacy-actions">
+				<label class="btn"><NavIcon name="save" size={14} /> Open a .txt file<input type="file" accept=".txt,text/plain" hidden on:change={loadCodeFile} /></label>
+				<button type="button" class="btn accent" on:click={importCode}><NavIcon name="download" size={14} /> Import code</button>
+			</div>
 		</div>
 	</div>
 </section>
@@ -174,9 +244,17 @@
 	.check small { grid-column: 2; color: var(--text-secondary); font-size: .7rem; }
 
 	.muted { margin: 0 0 1rem; color: var(--text-secondary); font-size: .78rem; line-height: 1.55; }
-	.data-actions { display: grid; gap: .55rem; }
+	.data-actions { display: grid; gap: .55rem; margin-bottom: 1.2rem; }
 	.btn { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; padding: .65rem 1rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-panel); color: var(--text-primary); font-size: .82rem; font-weight: 750; cursor: pointer; }
 	.btn:hover { border-color: var(--accent); color: var(--accent); }
 	.btn.danger:hover { border-color: var(--danger, #e0455a); color: var(--danger, #e0455a); }
+	.btn.accent { border-color: var(--accent); background: var(--accent); color: #fff; }
+	.btn.accent:hover { color: #fff; filter: brightness(1.08); }
 	.warn { margin: 0; color: var(--text-secondary); font-size: .84rem; line-height: 1.6; }
+
+	.legacy-label { margin: 0 0 .5rem; padding-top: 1.1rem; border-top: 1px solid var(--border-subtle); }
+	.code-area { width: 100%; box-sizing: border-box; margin: 0 0 .7rem; padding: .65rem .75rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-canvas); color: var(--text-primary); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .74rem; line-height: 1.5; resize: vertical; }
+	.code-area:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+	.legacy-error { margin: -.2rem 0 .7rem; color: var(--danger, #e0455a); font-size: .76rem; }
+	.legacy-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }
 </style>

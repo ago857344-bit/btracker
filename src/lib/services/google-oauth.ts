@@ -1,9 +1,10 @@
 import { browser } from '$app/environment';
-import { VITE_GOOGLE_CLIENT_ID, VITE_GOOGLE_CLIENT_SECRET } from '$env/static/public';
+
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '';
 
 const GOOGLE_AUTH_URL = 'https://accounts.google.com/o/oauth2/v2/auth';
-const GOOGLE_TOKEN_URL = 'https://oauth2.googleapis.com/token';
-const GOOGLE_USERINFO_URL = 'https://www.googleapis.com/oauth2/v2/userinfo';
+const STATE_KEY = 'google_oauth_state';
+const STATE_MAX_AGE_MS = 10 * 60 * 1000;
 
 export interface GoogleUser {
 	id: string;
@@ -14,115 +15,75 @@ export interface GoogleUser {
 	family_name: string;
 }
 
-export interface GoogleTokens {
-	access_token: string;
-	refresh_token: string;
-	expires_in: number;
-	token_type: string;
-	scope: string;
-}
-
-interface OAuthState {
-	nonce: string;
+interface StoredState {
+	state: string;
 	timestamp: number;
 }
 
-let currentOAuthState: OAuthState | null = null;
-
+/** True when the public client id is present. The client secret never reaches the browser. */
 export function googleOAuthConfigured(): boolean {
-	const clientId = typeof VITE_GOOGLE_CLIENT_ID === 'string' ? VITE_GOOGLE_CLIENT_ID : '';
-	const clientSecret = typeof VITE_GOOGLE_CLIENT_SECRET === 'string' ? VITE_GOOGLE_CLIENT_SECRET : '';
-	return Boolean(clientId && clientSecret);
+	return GOOGLE_CLIENT_ID.length > 0;
 }
 
 export function initiateGoogleOAuth() {
 	if (!browser || !googleOAuthConfigured()) {
-		throw new Error('Google OAuth is not configured');
+		throw new Error('Google sign-in is not configured');
 	}
 
-	const clientId = typeof VITE_GOOGLE_CLIENT_ID === 'string' ? VITE_GOOGLE_CLIENT_ID : '';
-
-	// Generate a random state for security
 	const state = generateRandomString();
-	const nonce = generateRandomString();
-	
-	currentOAuthState = {
-		nonce,
-		timestamp: Date.now()
-	};
-
-	// Store state in sessionStorage for callback verification
-	sessionStorage.setItem('google_oauth_state', JSON.stringify(currentOAuthState));
+	const stored: StoredState = { state, timestamp: Date.now() };
+	sessionStorage.setItem(STATE_KEY, JSON.stringify(stored));
 
 	const params = new URLSearchParams({
-		client_id: clientId,
+		client_id: GOOGLE_CLIENT_ID,
 		redirect_uri: `${window.location.origin}/auth/callback`,
 		response_type: 'code',
 		scope: 'openid email profile',
-		state: state,
-		access_type: 'offline',
-		prompt: 'consent'
+		state
 	});
 
-	// Redirect to Google OAuth
 	window.location.href = `${GOOGLE_AUTH_URL}?${params.toString()}`;
 }
 
-export async function handleGoogleCallback(code: string, state: string): Promise<{ user: GoogleUser; tokens: GoogleTokens }> {
-	// Verify state to prevent CSRF attacks
-	const storedStateStr = sessionStorage.getItem('google_oauth_state');
-	if (!storedStateStr) {
-		throw new Error('OAuth state not found');
+/** Verify the OAuth state, then let the server exchange the code for the signed-in profile. */
+export async function handleGoogleCallback(code: string, state: string): Promise<GoogleUser> {
+	const storedRaw = sessionStorage.getItem(STATE_KEY);
+	sessionStorage.removeItem(STATE_KEY);
+	if (!storedRaw) throw new Error('Sign-in session not found. Please try signing in again.');
+
+	let stored: StoredState;
+	try {
+		stored = JSON.parse(storedRaw) as StoredState;
+	} catch {
+		throw new Error('Sign-in session was corrupted. Please try signing in again.');
+	}
+	if (state !== stored.state || Date.now() - stored.timestamp > STATE_MAX_AGE_MS) {
+		throw new Error('Sign-in verification failed. Please try signing in again.');
 	}
 
-	const storedState = JSON.parse(storedStateStr) as OAuthState;
-	
-	// Verify state matches (simplified - in production you'd want more robust verification)
-	if (Math.abs(Date.now() - storedState.timestamp) > 10 * 60 * 1000) { // 10 minutes
-		throw new Error('OAuth state expired');
-	}
-
-	// Exchange authorization code for tokens
-	const clientId = typeof VITE_GOOGLE_CLIENT_ID === 'string' ? VITE_GOOGLE_CLIENT_ID : '';
-	const clientSecret = typeof VITE_GOOGLE_CLIENT_SECRET === 'string' ? VITE_GOOGLE_CLIENT_SECRET : '';
-	
-	const tokenResponse = await fetch(GOOGLE_TOKEN_URL, {
+	const response = await fetch('/auth/google/exchange', {
 		method: 'POST',
-		headers: {
-			'Content-Type': 'application/x-www-form-urlencoded',
-		},
-		body: new URLSearchParams({
-			code,
-			client_id: clientId,
-			client_secret: clientSecret,
-			redirect_uri: `${window.location.origin}/auth/callback`,
-			grant_type: 'authorization_code',
-		}),
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ code, redirect_uri: `${window.location.origin}/auth/callback` })
 	});
-
-	if (!tokenResponse.ok) {
-		const error = await tokenResponse.text();
-		throw new Error(`Failed to exchange token: ${error}`);
+	const payload: unknown = await response.json().catch(() => null);
+	if (!response.ok) {
+		const detail = typeof payload === 'object' && payload !== null
+			? (payload as { error?: unknown; message?: unknown })
+			: null;
+		const message = typeof detail?.error === 'string' ? detail.error
+			: typeof detail?.message === 'string' ? detail.message
+			: 'Sign-in failed. Please try again.';
+		throw new Error(message);
 	}
-
-	const tokens = await tokenResponse.json() as GoogleTokens;
-
-	// Get user info with the access token
-	const userResponse = await fetch(`${GOOGLE_USERINFO_URL}?access_token=${tokens.access_token}`);
-	if (!userResponse.ok) {
-		throw new Error('Failed to fetch user info');
+	if (typeof payload !== 'object' || payload === null || !('user' in payload)) {
+		throw new Error('Sign-in failed. Please try again.');
 	}
-
-	const user = await userResponse.json() as GoogleUser;
-
-	// Clean up stored state
-	sessionStorage.removeItem('google_oauth_state');
-
-	return { user, tokens };
+	return (payload as { user: GoogleUser }).user;
 }
 
 function generateRandomString(): string {
-	const array = new Uint32Array(1);
+	const array = new Uint32Array(2);
 	crypto.getRandomValues(array);
-	return array[0].toString(36);
+	return array.join('');
 }

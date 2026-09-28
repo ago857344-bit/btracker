@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import NavIcon from '$lib/components/NavIcon.svelte';
-	import { dueRevision } from '$lib/stores/tracker';
+	import AccountMenu from '$lib/components/AccountMenu.svelte';
+	import { dueRevision, tracker } from '$lib/stores/tracker';
+	import { currentUser } from '$lib/stores/auth';
 
 	export let collapsed = false;
 	export let mobileOpen = false;
@@ -9,6 +11,7 @@
 	const primary = [
 		{ href: '/', label: 'Home', icon: 'home' },
 		{ href: '/log', label: 'Log', icon: 'grid' },
+		{ href: '/review', label: 'Review', icon: 'target' },
 		{ href: '/plan', label: 'Plan', icon: 'plan' },
 		{ href: '/todo', label: 'To Do', icon: 'list' },
 		{ href: '/focus', label: 'Focus', icon: 'focus' },
@@ -57,8 +60,12 @@
 		<a class="settings-link" href="/settings" on:click={closeMobile}>
 			<span class="nav-icon"><NavIcon name="settings" size={19} /></span><span class="nav-text">Settings</span>
 		</a>
-		<div class="profile">
-			<span class="avatar">Y</span><span class="profile-copy"><b>Your space</b><small>JEE journey</small></span>
+		<div class="profile-container">
+			<AccountMenu />
+			<span class="profile-copy">
+				<b>{$tracker.meta.name || 'My Account'}</b>
+				<small>{$currentUser?.email || 'Local workspace'}</small>
+			</span>
 		</div>
 	</div>
 </aside>
@@ -68,7 +75,7 @@
 	.brand-row { display: flex; align-items: center; gap: .45rem; min-height: 42px; padding: 0 .25rem .8rem; }
 	.brand { display: inline-flex; align-items: center; gap: .65rem; min-width: 0; color: var(--text-primary); text-decoration: none; font-weight: 800; letter-spacing: -.055em; font-size: 1.24rem; }
 	.brand-mark { display: grid; place-items: center; flex: 0 0 31px; width: 31px; height: 31px; border-radius: 10px; background: var(--accent); color: white; font-size: 1rem; letter-spacing: -.07em; box-shadow: 0 6px 14px color-mix(in srgb, var(--accent), transparent 65%); }
-	.brand-name, .nav-text, .profile-copy, .nav-label { white-space: nowrap; overflow: hidden; transition: opacity .18s ease; }
+	.brand-name, .nav-text, .nav-label, .profile-copy { white-space: nowrap; overflow: hidden; transition: opacity .18s ease; }
 	.collapse { display: grid; place-items: center; margin-left: auto; width: 30px; height: 30px; border: 0; border-radius: 9px; color: var(--text-secondary); background: transparent; }
 	.collapse:hover { color: var(--accent); background: var(--accent-soft); }
 	nav { display: grid; gap: .2rem; margin-top: 1.15rem; }
@@ -80,23 +87,24 @@
 	.due-badge { margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center; background: var(--danger, #e0455a); color: white; font-size: .62rem; font-weight: 800; }
 	.nav-divider { height: 1px; margin: 1rem .65rem .2rem; background: var(--border-subtle); }
 	.sidebar-bottom { display: grid; gap: .55rem; margin-top: auto; }
-	.profile { display: flex; align-items: center; gap: .7rem; padding: .65rem .55rem .15rem; border-top: 1px solid var(--border-subtle); }
-	.avatar { display: grid; flex: 0 0 30px; place-items: center; width: 30px; height: 30px; border-radius: 10px; color: #5d52be; background: #e6e2ff; font-size: .78rem; font-weight: 800; }
+	.profile-container { padding: .65rem .55rem .15rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; gap: .7rem; }
 	.profile-copy { display: grid; gap: .08rem; min-width: 0; font-size: .77rem; }
-	.profile-copy small { color: var(--text-secondary); font-size: .67rem; }
+	.profile-copy small { color: var(--text-secondary); font-size: .67rem; text-overflow: ellipsis; overflow: hidden; }
+	
 	aside.collapsed { width: 76px; }
-	aside.collapsed .brand-name, aside.collapsed .nav-text, aside.collapsed .profile-copy, aside.collapsed .nav-label { width: 0; opacity: 0; }
+	aside.collapsed .brand-name, aside.collapsed .nav-text, aside.collapsed .nav-label, aside.collapsed .profile-copy { width: 0; opacity: 0; }
 	aside.collapsed .brand-row { justify-content: center; padding-inline: 0; }
 	aside.collapsed .collapse { position: absolute; right: -12px; top: 24px; width: 24px; height: 24px; border: 1px solid var(--border-subtle); background: var(--surface-panel); transform: rotate(180deg); }
 	aside.collapsed nav a, aside.collapsed .settings-link { justify-content: center; padding-inline: 0; }
 	aside.collapsed .nav-divider { margin-inline: .3rem; }
-	aside.collapsed .profile { justify-content: center; padding-inline: 0; }
+	aside.collapsed .profile-container { justify-content: center; padding-inline: 0; }
+	
 	@media (max-width: 760px) {
 		aside { width: 270px; transform: translateX(-102%); box-shadow: var(--shadow-card); }
 		aside.mobile-open { transform: translateX(0); }
 		aside.collapsed { width: 270px; }
-		aside.collapsed .brand-name, aside.collapsed .nav-text, aside.collapsed .profile-copy, aside.collapsed .nav-label { width: auto; opacity: 1; }
+		aside.collapsed .brand-name, aside.collapsed .nav-text, aside.collapsed .nav-label, aside.collapsed .profile-copy { width: auto; opacity: 1; }
 		aside.collapsed .collapse { position: static; transform: none; border: 0; background: transparent; }
-		aside.collapsed nav a, aside.collapsed .settings-link, aside.collapsed .profile { justify-content: flex-start; padding-inline: .75rem; }
+		aside.collapsed nav a, aside.collapsed .settings-link, aside.collapsed .profile-container { justify-content: flex-start; padding-inline: .75rem; }
 	}
 </style>
