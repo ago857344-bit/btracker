@@ -1,9 +1,7 @@
 import { browser } from '$app/environment';
-import {
-	googleOAuthConfigured, initiateGoogleOAuth, handleGoogleCallback, type GoogleUser
-} from '$lib/services/google-oauth';
-import { clearSession, getCurrentUser, setSession } from '$lib/services/session';
-import { derived, writable } from 'svelte/store';
+import { getSupabase, supabaseConfigured } from '$lib/services/supabase';
+import type { Session } from '@supabase/supabase-js';
+import { derived, get, writable } from 'svelte/store';
 
 export interface AuthUser { id: string; email: string; name: string; avatar: string | null }
 export type SyncStatus = 'off' | 'idle' | 'pulling' | 'pushing' | 'synced' | 'error';
@@ -18,17 +16,29 @@ type SignInHandler = (userId: string) => Promise<void> | void;
 
 let onSignIn: SignInHandler | null = null;
 let onSignOut: (() => void) | null = null;
+let unsubscribeAuthState: (() => void) | null = null;
 
-function adoptUser(user: GoogleUser) {
-	currentUser.set({ id: user.id, email: user.email, name: user.name, avatar: user.picture });
+/** Map a Supabase session onto the app's user shape (profile lives in user_metadata for Google). */
+function userFromSession(session: Session | null): AuthUser | null {
+	const user = session?.user;
+	if (!user) return null;
+	const meta = (user.user_metadata ?? {}) as Record<string, unknown>;
+	const email = typeof user.email === 'string' ? user.email : '';
+	const name =
+		(typeof meta.full_name === 'string' && meta.full_name) ||
+		(typeof meta.name === 'string' && meta.name) ||
+		email.split('@')[0] ||
+		'Student';
+	const avatar =
+		(typeof meta.avatar_url === 'string' && meta.avatar_url) ||
+		(typeof meta.picture === 'string' && meta.picture) ||
+		null;
+	return { id: user.id, email, name, avatar };
 }
 
 if (browser) {
-	const configured = googleOAuthConfigured();
-	authConfigured.set(configured);
-	syncStatus.set(configured ? 'idle' : 'off');
-	const sessionUser = getCurrentUser();
-	if (sessionUser) adoptUser(sessionUser);
+	authConfigured.set(supabaseConfigured);
+	syncStatus.set(supabaseConfigured ? 'idle' : 'off');
 	authReady.set(true);
 }
 
@@ -36,42 +46,72 @@ export const initials = derived(currentUser, ($user) =>
 	$user ? $user.name.split(/\s+/).map((part) => part[0]).join('').slice(0, 2).toUpperCase() : ''
 );
 
-/**
- * Register the sync hooks. `signIn` runs for a session restored at boot so cloud
- * data can be pulled; it also runs after a fresh Google callback.
- */
 export function initAuth(signIn: SignInHandler, signOut: () => void) {
 	if (!browser) return;
+	const sb = getSupabase();
+	if (!sb) return;
 	onSignIn = signIn;
 	onSignOut = signOut;
-	const sessionUser = getCurrentUser();
-	if (sessionUser) void signIn(sessionUser.id);
+
+	// Restore a persisted session (supabase-js keeps it in localStorage).
+	void sb.auth.getSession().then(({ data }) => {
+		const user = userFromSession(data.session);
+		if (user) {
+			currentUser.set(user);
+			void signIn(user.id);
+		}
+	});
+
+	if (!unsubscribeAuthState) {
+		const { data } = sb.auth.onAuthStateChange((event, session) => {
+			if (event === 'SIGNED_OUT') {
+				currentUser.set(null);
+				signOut();
+				return;
+			}
+			if (!session) return;
+			const user = userFromSession(session);
+			if (!user) return;
+			const isNewUser = get(currentUser)?.id !== user.id;
+			currentUser.set(user);
+			// Only notify the sync layer for genuine sign-ins, not background token refreshes.
+			if (isNewUser && event !== 'TOKEN_REFRESHED') void signIn(user.id);
+		});
+		unsubscribeAuthState = () => data.subscription.unsubscribe();
+	}
 }
 
 export function teardownAuth() {
 	onSignIn = null;
 	onSignOut = null;
+	unsubscribeAuthState?.();
+	unsubscribeAuthState = null;
 }
 
 export async function signInWithGoogle() {
-	if (!browser || !googleOAuthConfigured()) {
-		throw new Error('Google sign-in is not configured');
-	}
-	initiateGoogleOAuth();
+	const sb = getSupabase();
+	if (!sb) throw new Error('Google sign-in is not configured');
+	const { error } = await sb.auth.signInWithOAuth({
+		provider: 'google',
+		options: { redirectTo: `${window.location.origin}/auth/callback` }
+	});
+	if (error) throw new Error(error.message);
 }
 
-/** Runs on /auth/callback after Google redirects back with a valid code + state. */
-export async function handleAuthCallback(code: string, state: string): Promise<void> {
+/** Runs on /auth/callback: exchanges the PKCE code for a Supabase session. */
+export async function handleAuthCallback(code: string): Promise<void> {
 	if (!browser) return;
-	const user = await handleGoogleCallback(code, state);
-	setSession(user);
-	adoptUser(user);
-	void onSignIn?.(user.id);
+	const sb = getSupabase();
+	if (!sb) throw new Error('Sign-in is not configured');
+	const { data, error } = await sb.auth.exchangeCodeForSession(code);
+	if (error) throw new Error(error.message);
+	currentUser.set(userFromSession(data.session));
 }
 
 export async function signOut() {
 	if (!browser) return;
-	clearSession();
+	const sb = getSupabase();
+	if (sb) await sb.auth.signOut();
 	currentUser.set(null);
 	onSignOut?.();
 }

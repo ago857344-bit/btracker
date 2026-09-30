@@ -1,37 +1,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
-	import { page } from '$app/stores';
 	import { handleAuthCallback } from '$lib/stores/auth';
 
 	let error = '';
 	let loading = true;
 
 	onMount(async () => {
+		const url = new URL(window.location.href);
+		const code = url.searchParams.get('code');
+		const errorParam = url.searchParams.get('error_description') ?? url.searchParams.get('error');
 		try {
-			// Parse URL parameters for OAuth callback
-			const urlParams = new URLSearchParams($page.url.search);
-			const code = urlParams.get('code');
-			const state = urlParams.get('state');
-			const errorParam = urlParams.get('error');
-
-			if (errorParam) {
-				error = `Authentication error: ${errorParam}`;
-				loading = false;
-				return;
-			}
-
-			if (!code || !state) {
-				error = 'Invalid OAuth callback: missing code or state';
-				loading = false;
-				return;
-			}
-
-			// Handle the OAuth callback
-			await handleAuthCallback(code, state);
-			
-			// Redirect to home after successful authentication
-			await goto('/');
+			if (errorParam) throw new Error(errorParam);
+			if (!code) throw new Error('Invalid sign-in link: missing authorization code.');
+			await handleAuthCallback(code);
+			await goto('/', { replaceState: true });
 		} catch (err) {
 			console.error('Auth callback error:', err);
 			error = err instanceof Error ? err.message : 'Authentication failed';

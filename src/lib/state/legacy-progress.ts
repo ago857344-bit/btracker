@@ -7,7 +7,7 @@ import type { TrackerState } from '$lib/types/tracker';
 const IMPORTABLE_KEYS = [
 	'd', 'n', 'r', 'x', 'h', 'hd', 'log', 'stat', 'marks', 'dl', 'norec', 'hwSort',
 	'goals', 'col', 'bm', 'notes', 'an', 'rev', 'meta', 'lib', 'gt', 'todos', 'refl',
-	'sess', 'theme', 'pom'
+	'sess', 'theme', 'pom', 'chapterGrids'
 ] as const satisfies readonly (keyof TrackerState)[];
 
 type ImportableKey = (typeof IMPORTABLE_KEYS)[number];

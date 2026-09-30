@@ -2,12 +2,14 @@
 	import { fade } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { subjectColor } from '$lib/state/subjects';
+	import { allChapters, SYLLABUS } from '$lib/state/syllabus';
 	import { extractPdfText, matchChapters, type ChapterMatch } from '$lib/services/btest';
 	import {
-		addTodo, addTodos, celebration, clearDoneTodos, deleteTodo, reorderTodo, toggleTodo, tracker
+		addChecklistColumn, addTodo, addTodos, celebration, CHECKLIST_DEFAULT_COLS, clearDoneTodos, deleteTodo,
+		removeChecklistColumn, reorderTodo, toggleChecklistCell, toggleTodo, tracker
 	} from '$lib/stores/tracker';
 
-	let tab: 'tasks' | 'btest' = 'tasks';
+	let tab: 'tasks' | 'checklist' | 'btest' = 'tasks';
 	let draft = '';
 	let dragId: string | null = null;
 
@@ -24,6 +26,34 @@
 
 	function onToggle(id: string) {
 		toggleTodo(id);
+	}
+
+	/* checklist -------------------------------------------------------- */
+	let clSub = SYLLABUS[0]?.code ?? 'P';
+
+	$: grids = $tracker.chapterGrids;
+	$: clGrid = grids?.[clSub];
+	$: clCols = clGrid?.cols ?? CHECKLIST_DEFAULT_COLS;
+	$: clChapters = allChapters(clSub);
+
+	const checklistPct = (subCode: string, source: typeof grids) => {
+		const chapters = allChapters(subCode);
+		const grid = source?.[subCode];
+		const cols = grid?.cols ?? CHECKLIST_DEFAULT_COLS;
+		const total = chapters.length * cols.length;
+		if (!total) return 0;
+		let done = 0;
+		for (const ch of chapters) for (let i = 0; i < cols.length; i += 1) if (grid?.data[ch.no]?.[i] === '✓') done += 1;
+		return Math.round((done / total) * 100);
+	};
+
+	function addColumn() {
+		const name = prompt('Column name', '');
+		if (name) addChecklistColumn(clSub, name);
+	}
+
+	function removeColumn(i: number) {
+		if (clGrid && confirm(`Remove column "${clGrid.cols[i]}"? Its checkmarks will be deleted.`)) removeChecklistColumn(clSub, i);
 	}
 
 	/* btest ---------------------------------------------------------- */
@@ -80,6 +110,7 @@
 		</div>
 		<div class="tabs" role="tablist">
 			<button type="button" role="tab" aria-selected={tab === 'tasks'} class:selected={tab === 'tasks'} on:click={() => tab = 'tasks'}>Tasks</button>
+			<button type="button" role="tab" aria-selected={tab === 'checklist'} class:selected={tab === 'checklist'} on:click={() => tab = 'checklist'}>Checklist</button>
 			<button type="button" role="tab" aria-selected={tab === 'btest'} class:selected={tab === 'btest'} on:click={() => tab = 'btest'}>btest</button>
 		</div>
 	</header>
@@ -123,6 +154,62 @@
 				<p>Add one above, or use the <button type="button" class="linkish" on:click={() => (tab = 'btest')}>btest</button> tab to turn a syllabus PDF into chapter tasks.</p>
 			</div>
 		{/if}
+	{:else if tab === 'checklist'}
+		<div class="checklist">
+			<div class="pbars">
+				{#each SYLLABUS as sub (sub.code)}
+					<div class="pbar">
+						<div class="pbar-top">
+							<span class="pdot" style="background: {sub.accent}"></span>
+							<b>{sub.short}</b>
+							<span class="ppct">{checklistPct(sub.code, grids)}%</span>
+						</div>
+						<div class="pbar-track"><div class="pbar-fill" style="width: {checklistPct(sub.code, grids)}%; background: {sub.accent}"></div></div>
+					</div>
+				{/each}
+			</div>
+
+			<div class="tabs subtabs" role="tablist">
+				{#each SYLLABUS as sub (sub.code)}
+					<button type="button" role="tab" aria-selected={clSub === sub.code} class:selected={clSub === sub.code} on:click={() => (clSub = sub.code)}>
+						<i style="background: {sub.accent}"></i>{sub.name}
+					</button>
+				{/each}
+			</div>
+
+			<div class="tblwrap">
+				<table class="sheet">
+					<thead>
+						<tr>
+							<th class="chcol">Chapter</th>
+							{#each clCols as col, i (i)}
+								<th>{col}<button type="button" class="coldel" aria-label="Remove column {col}" on:click={() => removeColumn(i)}>×</button></th>
+							{/each}
+							<th class="addcol"><button type="button" class="coladd" aria-label="Add column" on:click={addColumn}>+</button></th>
+						</tr>
+					</thead>
+					<tbody>
+						{#each clChapters as ch (ch.no)}
+							<tr>
+								<td class="chcol">{ch.no}. {ch.name}</td>
+								{#each clCols as _, i (i)}
+									<td>
+										<button
+											type="button"
+											class="tick"
+											class:on={clGrid?.data[ch.no]?.[i] === '✓'}
+											aria-label="{clCols[i]} — {ch.name}"
+											on:click={() => toggleChecklistCell(clSub, ch.no, i)}
+										>✓</button>
+									</td>
+								{/each}
+								<td></td>
+							</tr>
+						{/each}
+					</tbody>
+				</table>
+			</div>
+		</div>
 	{:else}
 		<div class="btest">
 			<label class="drop">
@@ -226,4 +313,34 @@
 	.mtext b { font-size: .82rem; letter-spacing: -.01em; }
 	.mtext small { color: var(--text-secondary); font-size: .66rem; }
 	.none { margin: 0; color: var(--text-secondary); font-size: .82rem; line-height: 1.55; }
+
+	.checklist { display: grid; gap: 1rem; }
+	.pbars { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .6rem; }
+	.pbar { display: grid; gap: .4rem; padding: .65rem .8rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-panel); }
+	.pbar-top { display: flex; align-items: center; gap: .45rem; font-size: .76rem; }
+	.pbar-top b { font-weight: 800; letter-spacing: -.01em; }
+	.pdot { width: 8px; height: 8px; border-radius: 3px; }
+	.ppct { margin-left: auto; color: var(--text-secondary); font-weight: 750; font-variant-numeric: tabular-nums; }
+	.pbar-track { height: 7px; border-radius: 99px; background: var(--surface-subtle); overflow: hidden; }
+	.pbar-fill { height: 100%; border-radius: inherit; transition: width .3s ease; }
+
+	.subtabs button { display: inline-flex; align-items: center; gap: .45rem; }
+	.subtabs i { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
+
+	.tblwrap { max-height: 62vh; overflow: auto; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-panel); }
+	.sheet { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .8rem; }
+	.sheet th, .sheet td { padding: .5rem .65rem; border-bottom: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle); text-align: center; white-space: nowrap; }
+	.sheet th:last-child, .sheet td:last-child { border-right: 0; }
+	.sheet tbody tr:last-child td { border-bottom: 0; }
+	.sheet thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-panel); font-size: .72rem; font-weight: 800; letter-spacing: .02em; color: var(--text-secondary); text-transform: uppercase; }
+	.chcol { position: sticky; left: 0; z-index: 2; background: var(--surface-panel); text-align: left !important; min-width: 210px; font-weight: 600; color: var(--text-primary); box-shadow: 1px 0 0 var(--border-subtle); }
+	thead .chcol { z-index: 3; text-transform: none !important; font-size: .78rem !important; color: var(--text-primary) !important; }
+	.coldel { margin-left: .4rem; padding: 0 .25rem; border: 0; background: transparent; color: var(--text-secondary); font-size: .85rem; line-height: 1; cursor: pointer; border-radius: 6px; }
+	.coldel:hover { color: var(--danger, #e0455a); background: var(--surface-subtle); }
+	.addcol { width: 44px; }
+	.coladd { width: 26px; height: 26px; border: 1px dashed var(--border-subtle); border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: 1rem; line-height: 1; cursor: pointer; }
+	.coladd:hover { color: var(--accent); border-color: var(--accent); }
+	.tick { display: inline-grid; place-items: center; width: 24px; height: 24px; border: 2px solid var(--border-subtle); border-radius: 8px; background: transparent; color: transparent; font-size: .8rem; cursor: pointer; transition: all .12s ease; }
+	.tick:hover { border-color: var(--accent); }
+	.tick.on { border-color: #2f9e6e; background: #2f9e6e; color: #fff; }
 </style>

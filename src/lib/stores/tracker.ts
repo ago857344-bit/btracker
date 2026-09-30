@@ -309,6 +309,37 @@ export function clearDoneTodos() {
 	updateTracker((s) => { s.todos = s.todos.filter((t) => !t.done); });
 }
 
+/* chapter checklist -------------------------------------------------- */
+export const CHECKLIST_DEFAULT_COLS = ['Read Theory', 'Solved PYQs', 'Short Notes'];
+
+const checklistGrid = (s: TrackerState, sub: string) => {
+	s.chapterGrids ??= {};
+	s.chapterGrids[sub] ??= { cols: [...CHECKLIST_DEFAULT_COLS], data: {} };
+	return s.chapterGrids[sub];
+};
+
+export function toggleChecklistCell(sub: string, chNo: number, colIdx: number) {
+	updateTracker((s) => {
+		const grid = checklistGrid(s, sub);
+		const row = (grid.data[chNo] ??= []);
+		row[colIdx] = row[colIdx] === '✓' ? '' : '✓';
+	});
+}
+
+export function addChecklistColumn(sub: string, name: string) {
+	const label = name.trim();
+	if (!label) return;
+	updateTracker((s) => { checklistGrid(s, sub).cols.push(label); });
+}
+
+export function removeChecklistColumn(sub: string, colIdx: number) {
+	updateTracker((s) => {
+		const grid = checklistGrid(s, sub);
+		grid.cols.splice(colIdx, 1);
+		for (const row of Object.values(grid.data)) row.splice(colIdx, 1);
+	});
+}
+
 export function saveRoutine(name: string, day: string) {
 	updateTracker((s) => {
 		const tasks = s.h.filter((item) => item.due === day).map((item) => ({ t: item.title ?? '', col: item.col ?? 0, s: item.s ?? '', hrs: item.hrs ?? 0 }));

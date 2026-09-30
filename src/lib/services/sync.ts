@@ -33,8 +33,11 @@ async function onSignIn(userId: string) {
 			replaceTracker(normalizeState(cloud), true);
 			syncStatus.set('synced');
 		} else {
-			// First login on this device: migrate the existing local data up so nothing is lost.
-			await pushState(userId, get(tracker));
+			// First login on this account: migrate the existing local data up so nothing is lost.
+			// Never seed the cloud with a never-saved (empty) state — the cloud-wins pull on the
+			// device holding real data would otherwise wipe it.
+			const local = get(tracker);
+			if (local.savedAt) await pushState(userId, local);
 			syncStatus.set('synced');
 		}
 	} catch { syncStatus.set('error'); }

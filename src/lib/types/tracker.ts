@@ -65,6 +65,9 @@ export interface TodoItem {
 	created: number;
 }
 
+/** Per-subject chapter checklist grid: custom columns, ✓ marks keyed by chapter no. */
+export interface ChapterGrid { cols: string[]; data: Record<string, string[]> }
+
 export interface GoalMilestone { id: string; t: string; done: boolean }
 export interface TrackerGoal {
 	id: string;
@@ -163,6 +166,7 @@ export interface TrackerState {
 	lib: TaskRoutine[];
 	gt: TrackerGoal[];
 	todos: TodoItem[];
+	chapterGrids: Record<string, ChapterGrid>;
 	refl: Record<DayKey, ReflectionEntry>;
 	sess: SubjectSession[];
 	theme: ThemeId;
