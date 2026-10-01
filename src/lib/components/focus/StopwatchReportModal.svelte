@@ -32,7 +32,7 @@
 			<div>
 				<p class="sub-row">
 					<span class="dot" style="background: {subjectColor(report.sub)}"></span>
-					{subjectName(report.sub)} · {report.kind === 'questions' ? 'Questions' : 'Theory'}
+					{subjectName(report.sub)} · {report.kind === 'questions' ? 'Questions' : report.kind === 'revision' ? 'Revision' : 'Theory'}
 				</p>
 				<b>{dateLabel}</b>
 			</div>
@@ -71,7 +71,7 @@
 		</div>
 
 		<button type="button" class="save" class:saved on:click={save}>{saved ? 'Saved!' : 'Save Report'}</button>
-		<p class="brand">TRACKLY.APP</p>
+		<p class="brand">BTRACKER.APP</p>
 	{/if}
 </Modal>
 

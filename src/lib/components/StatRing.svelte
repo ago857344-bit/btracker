@@ -6,11 +6,14 @@
 	export let color = 'var(--accent)';
 	export let trackColor = 'var(--surface-subtle)';
 	export let rounded = true;
+	import { tweened } from 'svelte/motion';
+	import { cubicOut } from 'svelte/easing';
+	const tValue = tweened(0, { duration: 1200, easing: cubicOut });
+	$: tValue.set(Math.max(0, Math.min(1, value)));
 
 	$: radius = (size - stroke) / 2;
 	$: circumference = 2 * Math.PI * radius;
-	$: clamped = Math.max(0, Math.min(1, value));
-	$: dashOffset = circumference * (1 - clamped);
+	$: dashOffset = circumference * (1 - $tValue);
 	$: center = size / 2;
 </script>
 
@@ -33,6 +36,6 @@
 <style>
 	.ring { position: relative; display: grid; place-items: center; }
 	svg { position: absolute; inset: 0; }
-	.progress { transition: stroke-dashoffset .5s cubic-bezier(.4, 0, .2, 1); }
+	.progress {  }
 	.content { position: relative; display: grid; place-items: center; text-align: center; }
 </style>

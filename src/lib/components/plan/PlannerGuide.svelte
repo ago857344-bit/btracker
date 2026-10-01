@@ -7,7 +7,7 @@
 	const cards = [
 		{ icon: 'palette' as const, title: 'Visual Focus Journal', text: 'Every task gets a color and a subject. Your day becomes a visual map of where your effort went.' },
 		{ icon: 'shield' as const, title: 'Cloud Resilience', text: 'Tasks are saved locally in real time. Close the tab, lose power — your plan survives.' },
-		{ icon: 'sunrise' as const, title: 'The 4 AM Rule', text: 'Days that slip away are marked as missed, not deleted. Trackly never hides your history.' },
+		{ icon: 'sunrise' as const, title: 'The 4 AM Rule', text: 'Days that slip away are marked as missed, not deleted. BTracker never hides your history.' },
 		{ icon: 'library' as const, title: 'The Routine Library', text: 'Save any day as a reusable routine and re-apply it to future days in one click.' },
 		{ icon: 'calendar-check' as const, title: 'Seamless Rescheduling', text: 'Drag a task to another day, or open its detail card and reschedule instantly.' },
 		{ icon: 'brain' as const, title: 'Mistake DNA Log', text: 'The daily reflection journal captures what went right and the mistakes to avoid tomorrow.' }

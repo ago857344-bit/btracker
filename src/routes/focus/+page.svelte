@@ -10,7 +10,11 @@
 	import DailyActivity from '$lib/components/focus/DailyActivity.svelte';
 	import ActivityMap from '$lib/components/focus/ActivityMap.svelte';
 	import StudyAnalysis from '$lib/components/focus/StudyAnalysis.svelte';
+	import SubjectLeaderboard from '$lib/components/focus/SubjectLeaderboard.svelte';
+	import WeeklyReportCard from '$lib/components/focus/WeeklyReportCard.svelte';
 	import StopwatchReportModal from '$lib/components/focus/StopwatchReportModal.svelte';
+	import DeepWorkMode from '$lib/components/focus/DeepWorkMode.svelte';
+	import AnimatedNumber from '$lib/components/ui/AnimatedNumber.svelte';
 	import {
 		tracker, updateTracker, recordFocus, logManualMinutes, addSubjectSession, stopwatchReports,
 		weeklyFocusMinutes, peakProductivity, subjectHealth, setWeeklyGoalHours, setStreakGoalHours,
@@ -30,6 +34,7 @@
 	let subject: string | null = null;
 	let focusLen = 25; let shortLen = 5; let longLen = 15;
 	let customOpen = false; let customValue = 25;
+	let deepWorkMode = false;
 
 	let running = false;
 	let phase: 'focus' | 'break' = 'focus';
@@ -40,13 +45,16 @@
 	let sessionStartedEpochMin = 0;
 	let interval: ReturnType<typeof setInterval> | undefined;
 
-	let swKind: 'questions' | 'theory' = 'questions';
+	let swKind: 'questions' | 'theory' | 'revision' = 'questions';
+	let focusKind: 'questions' | 'theory' | 'revision' = 'questions';
 	let swChapter = '';
 	let report: StopwatchReport | null = null;
 	let reportOpen = false;
 	let reportsOpen = false;
 
 	let logOpen = false; let logMinutes = 30; let logSubject: string | null = null;
+	let focusChapter = '';
+	import { boostChapterFromPractice } from '$lib/stores/recall-actions'; let logChapter = '';
 	let milestoneOpen = false; let milestoneHours = $tracker.meta.weekGoalH;
 
 	let locked = false; let showSettings = false; let ambientOn = false;
@@ -61,6 +69,9 @@
 	$: dialTime = tab === 'stopwatch' ? formatClock(elapsed) : formatClock(remaining);
 	$: accent = tab === 'short' ? '#2f9e6e' : tab === 'long' ? '#2b8ba6' : 'var(--accent)';
 	$: chapters = chaptersOf(subject);
+	$: logChapters = chaptersOf(logSubject);
+	$: if (focusChapter && !chapters.includes(focusChapter)) focusChapter = '';
+	$: if (logChapter && !logChapters.includes(logChapter)) logChapter = '';
 	$: swValid = Boolean(subject) && (swKind === 'theory' || Boolean(swChapter));
 	$: weekKeys = new Set(lastNDays(7));
 	$: weekSessions = $tracker.log.filter((session) => weekKeys.has(sessionDayKey(session))).length;
@@ -103,9 +114,12 @@
 	}
 
 	function logSession(minutes: number, activity: string) {
+		if (focusKind === 'revision' && subject && focusChapter) {
+			boostChapterFromPractice(`${subject}-${focusChapter}`);
+		}
 		recordFocus({
 			startedEpochMinutes: sessionStartedEpochMin || Math.floor(Date.now() / 60000) - minutes,
-			durationMinutes: minutes, activity, deadlineId: null, subject
+			durationMinutes: minutes, activity, deadlineId: null, subject, chapter: focusChapter || undefined
 		});
 		celebration.set(`${minutes} min focus logged!`);
 	}
@@ -113,7 +127,7 @@
 	function onCountdownComplete() {
 		clearInterval(interval); running = false; countdownEndsAt = null;
 		if (tab === 'focus' && phase === 'focus') {
-			logSession(focusLen, 'Focus');
+			logSession(focusLen, focusKind === 'questions' ? 'Focus · Questions' : focusKind === 'revision' ? 'Focus · Revision' : 'Focus · Theory');
 			if (shouldChime('focus')) playChime('up');
 			phase = 'break'; remaining = shortLen * 60;
 			if (pom.autoBrk) beginCountdown(shortLen * 60);
@@ -156,7 +170,7 @@
 			return;
 		}
 		const doneMinutes = Math.round(((activeLen * 60) - remaining) / 60);
-		if (tab === 'focus' && phase === 'focus' && doneMinutes >= 1) logSession(doneMinutes, 'Focus');
+		if (tab === 'focus' && phase === 'focus' && doneMinutes >= 1) logSession(doneMinutes, focusKind === 'questions' ? 'Focus · Questions' : focusKind === 'revision' ? 'Focus · Revision' : 'Focus · Theory');
 		reset();
 	}
 
@@ -193,11 +207,14 @@
 	function onSaveReport(event: CustomEvent<StopwatchReport>) {
 		const savedReport = event.detail;
 		stopwatchReports.update((list) => [savedReport, ...list]);
+		if (savedReport.kind === 'revision' && savedReport.sub && swChapter) {
+			boostChapterFromPractice(`${savedReport.sub}-${swChapter}`);
+		}
 		recordFocus({
 			startedEpochMinutes: sessionStartedEpochMin || Math.floor(savedReport.at / 60000),
 			durationMinutes: Math.max(1, Math.round(savedReport.seconds / 60)),
-			activity: savedReport.kind === 'questions' ? 'Stopwatch · Questions' : 'Stopwatch · Theory',
-			deadlineId: null, subject: savedReport.sub
+			activity: savedReport.kind === 'questions' ? 'Stopwatch · Questions' : savedReport.kind === 'revision' ? 'Stopwatch · Revision' : 'Stopwatch · Theory',
+			deadlineId: null, subject: savedReport.sub, chapter: swChapter || undefined
 		});
 		if (savedReport.kind === 'questions' && savedReport.done > 0 && savedReport.sub !== 'X') {
 			addSubjectSession({ sub: savedReport.sub, ch: swChapter || 'General', att: savedReport.done, cor: Math.min(savedReport.correct, savedReport.done) });
@@ -207,19 +224,147 @@
 
 	function submitLog() {
 		const minutes = Math.max(1, Math.round(Number(logMinutes) || 0));
-		logManualMinutes(minutes, logSubject);
+		logManualMinutes(minutes, logSubject, logChapter || undefined);
 		celebration.set(`${minutes} min logged!`);
 		logOpen = false;
 	}
 
 	async function share() {
-		const url = typeof location !== 'undefined' ? location.origin : 'https://trackly.app';
-		try {
-			if (navigator.share) await navigator.share({ title: 'Trackly Focus', url });
-			else { await navigator.clipboard.writeText(url); celebration.set('Link copied!'); }
-		} catch { /* dismissed */ }
-	}
+		const weekHours = $weeklyFocusMinutes / 60;
+		const totalQ = (() => {
+			let n = 0;
+			for (const day of Object.values($tracker.stat)) for (const v of Object.values(day ?? {})) n += Number(v) || 0;
+			return n;
+		})();
 
+		// 500×625 portrait widget, 2x retina
+		const W = 500, H = 625;
+		const canvas = document.createElement('canvas');
+		canvas.width = W * 2; canvas.height = H * 2;
+		const ctx = canvas.getContext('2d')!;
+		ctx.scale(2, 2);
+
+		// ── Background ──────────────────────────────────────────────
+		const bg = ctx.createLinearGradient(0, 0, 0, H);
+		bg.addColorStop(0, '#0f0f1a'); bg.addColorStop(1, '#080810');
+		ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
+
+		// Rounded clip
+		ctx.save(); ctx.beginPath(); (ctx as any).roundRect(0, 0, W, H, 28); ctx.clip();
+
+		// Glow orbs
+		const glow = (x: number, y: number, r: number, c: string) => {
+			const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+			g.addColorStop(0, c); g.addColorStop(1, 'transparent');
+			ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+		};
+		glow(W / 2, 200, 260, 'rgba(109,93,252,0.14)');
+		glow(W / 2, 480, 200, 'rgba(16,185,129,0.12)');
+
+		// Top accent bar
+		const al = ctx.createLinearGradient(0, 0, W, 0);
+		al.addColorStop(0, 'transparent'); al.addColorStop(0.35, '#6d5dfc');
+		al.addColorStop(0.65, '#f59e0b'); al.addColorStop(1, 'transparent');
+		ctx.fillStyle = al; ctx.fillRect(0, 0, W, 3);
+
+		// ── Brand header ─────────────────────────────────────────────
+		ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+		ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.font = 'bold 13px system-ui,sans-serif';
+		ctx.fillText('B T R A C K E R', W / 2, 38);
+		ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.font = '10px system-ui';
+		ctx.fillText('WEEKLY SNAPSHOT', W / 2, 56);
+
+		// ── TOP: Speedometer ─────────────────────────────────────────
+		const cx = W / 2, cy = 210, R = 130;
+		const startAngle = Math.PI * 0.75;   // 225°
+		const endAngle   = Math.PI * 2.25;   // 405° (45°)
+		const maxH = 10;
+		const pct = Math.min(1, weekHours / maxH);
+		const needleAngle = startAngle + pct * (endAngle - startAngle);
+
+		// Track bg
+		ctx.beginPath(); ctx.arc(cx, cy, R, startAngle, endAngle);
+		ctx.strokeStyle = 'rgba(255,255,255,0.07)'; ctx.lineWidth = 16; ctx.lineCap = 'round'; ctx.stroke();
+
+		// Filled arc purple → amber
+		if (pct > 0) {
+			ctx.beginPath(); ctx.arc(cx, cy, R, startAngle, needleAngle);
+			const fg = ctx.createLinearGradient(cx - R, cy, cx + R, cy);
+			fg.addColorStop(0, '#6d5dfc'); fg.addColorStop(0.5, '#a855f7'); fg.addColorStop(1, '#f59e0b');
+			ctx.strokeStyle = fg; ctx.lineWidth = 16; ctx.lineCap = 'round'; ctx.stroke();
+			// Tip glow
+			const tx = cx + R * Math.cos(needleAngle), ty = cy + R * Math.sin(needleAngle);
+			const tg = ctx.createRadialGradient(tx, ty, 0, tx, ty, 22);
+			tg.addColorStop(0, 'rgba(245,158,11,0.6)'); tg.addColorStop(1, 'transparent');
+			ctx.fillStyle = tg; ctx.beginPath(); ctx.arc(tx, ty, 22, 0, Math.PI * 2); ctx.fill();
+		}
+
+		// Centre hub
+		ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI * 2);
+		ctx.fillStyle = '#1a1a2e'; ctx.fill();
+		ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+		// Value inside arc
+		ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+		ctx.fillStyle = '#ffffff'; ctx.font = 'bold 52px ui-monospace,monospace';
+		ctx.fillText(weekHours.toFixed(1), cx, cy - 8);
+		ctx.fillStyle = 'rgba(255,255,255,0.38)'; ctx.font = 'bold 11px system-ui';
+		ctx.fillText('HOURS THIS WEEK', cx, cy + 18);
+
+		// ── Horizontal divider ────────────────────────────────────────
+		const divY = 348;
+		const div = ctx.createLinearGradient(0, 0, W, 0);
+		div.addColorStop(0, 'transparent'); div.addColorStop(0.5, 'rgba(255,255,255,0.1)'); div.addColorStop(1, 'transparent');
+		ctx.strokeStyle = div; ctx.lineWidth = 1;
+		ctx.beginPath(); ctx.moveTo(40, divY); ctx.lineTo(W - 40, divY); ctx.stroke();
+
+		// ── BOTTOM: Questions ring ────────────────────────────────────
+		const qcx = W / 2, qcy = 490, qR = 100;
+
+		// Section label
+		ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+		ctx.fillStyle = 'rgba(255,255,255,0.18)'; ctx.font = '700 10px system-ui';
+		ctx.fillText('QUESTIONS SOLVED', qcx, 376);
+
+		// Track
+		ctx.beginPath(); ctx.arc(qcx, qcy, qR, 0, Math.PI * 2);
+		ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 14; ctx.lineCap = 'butt'; ctx.stroke();
+
+		// Fill ring
+		const milestone = Math.max(100, Math.ceil((totalQ + 1) / 100) * 100);
+		const qPct = Math.min(1, totalQ / milestone);
+		if (qPct > 0) {
+			ctx.beginPath(); ctx.arc(qcx, qcy, qR, -Math.PI / 2, -Math.PI / 2 + qPct * Math.PI * 2);
+			const qg = ctx.createLinearGradient(qcx - qR, qcy, qcx + qR, qcy);
+			qg.addColorStop(0, '#10b981'); qg.addColorStop(1, '#34d399');
+			ctx.strokeStyle = qg; ctx.lineWidth = 14; ctx.lineCap = 'round'; ctx.stroke();
+			// Tip glow
+			const qa = -Math.PI / 2 + qPct * Math.PI * 2;
+			const qgx = qcx + qR * Math.cos(qa), qgy = qcy + qR * Math.sin(qa);
+			const qtgl = ctx.createRadialGradient(qgx, qgy, 0, qgx, qgy, 18);
+			qtgl.addColorStop(0, 'rgba(52,211,153,0.65)'); qtgl.addColorStop(1, 'transparent');
+			ctx.fillStyle = qtgl; ctx.beginPath(); ctx.arc(qgx, qgy, 18, 0, Math.PI * 2); ctx.fill();
+		}
+
+		// Number + label inside ring
+		ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+		ctx.fillStyle = '#ffffff'; ctx.font = `bold ${totalQ > 9999 ? '34' : '44'}px ui-monospace,monospace`;
+		ctx.fillText(totalQ.toLocaleString(), qcx, qcy + 16);
+		ctx.fillStyle = 'rgba(255,255,255,0.35)'; ctx.font = 'bold 10px system-ui';
+		ctx.fillText('QUESTIONS', qcx, qcy + 36);
+		ctx.fillStyle = 'rgba(52,211,153,0.65)'; ctx.font = '9px system-ui';
+		ctx.fillText(`${Math.round(qPct * 100)}% to ${milestone.toLocaleString()}`, qcx, qcy + 54);
+
+		// ── Footer ───────────────────────────────────────────────────
+		ctx.fillStyle = 'rgba(255,255,255,0.1)'; ctx.font = '9px system-ui';
+		ctx.textAlign = 'center'; ctx.fillText('BTRACKER · Your JEE Study OS', W / 2, H - 16);
+
+		ctx.restore();
+
+		const a = document.createElement('a');
+		a.download = 'btracker-widget.png'; a.href = canvas.toDataURL('image/png'); a.click();
+		celebration.set('Widget exported! 🎉');
+	}
 	function toggleAmbient() {
 		if (ambientOn) {
 			try { ambient?.src.stop(); ambient?.ctx.close(); } catch { /* already stopped */ }
@@ -265,6 +410,7 @@
 	<div class="toolbar">
 		<button type="button" class="tb" on:click={share}><NavIcon name="share" size={14} /> SHARE</button>
 		<button type="button" class="tb accent" on:click={() => (logOpen = true)}><NavIcon name="plus" size={14} /> LOG</button>
+		<button type="button" class="tb" class:on={deepWorkMode} on:click={() => (deepWorkMode = !deepWorkMode)}><NavIcon name="expand" size={14} /> DEEP WORK</button>
 		{#if tab === 'stopwatch'}
 			<button type="button" class="tb" on:click={() => (reportsOpen = true)}><NavIcon name="history" size={14} /> REPORTS</button>
 		{/if}
@@ -302,6 +448,7 @@
 					<div class="kinds">
 						<button type="button" class="kind amber" class:on={swKind === 'questions'} disabled={locked} on:click={() => (swKind = 'questions')}>QUESTIONS</button>
 						<button type="button" class="kind" class:on={swKind === 'theory'} disabled={locked} on:click={() => (swKind = 'theory')}>THEORY</button>
+							<button type="button" class="kind green" class:on={swKind === 'revision'} disabled={locked} style="background: var(--success); color: white;" on:click={() => (swKind = 'revision')}>REVISION</button>
 					</div>
 					<p class="label">SELECT SUBJECT</p>
 					<div class="chips">
@@ -345,6 +492,11 @@
 								</button>
 							{/each}
 						</div>
+						<p class="label">CHAPTER</p>
+						<select class="chapter" bind:value={focusChapter} disabled={!subject}>
+							<option value="">{subject ? 'Select a chapter…' : 'Select a subject first'}</option>
+							{#each chapters as ch}<option value={ch}>{ch}</option>{/each}
+						</select>
 					{/if}
 				</div>
 			{/if}
@@ -404,7 +556,7 @@
 			<div class="stat-grid">
 				<div class="stat card">
 					<span class="k">WEEKLY TOTAL <InfoTip text="TOTAL TIME SPENT IN FOCUS SESSIONS FOR THE SELECTED PERIOD." /></span>
-					<b>{formatMinutes($weeklyFocusMinutes)}</b>
+					<b><AnimatedNumber value={$weeklyFocusMinutes} format={formatMinutes} /></b>
 				</div>
 				<div class="stat card">
 					<span class="k">COMPLETED SESSIONS <InfoTip text="FOCUS SESSIONS COMPLETED IN THE LAST 7 DAYS." /></span>
@@ -473,6 +625,8 @@
 		<DailyActivity />
 		<ActivityMap />
 		<StudyAnalysis />
+		<SubjectLeaderboard />
+		<WeeklyReportCard />
 	</div>
 </section>
 
@@ -508,6 +662,14 @@
 			{#each SUBJECTS as s}<option value={s.code}>{s.name}</option>{/each}
 		</select>
 	</label>
+	{#if logSubject}
+		<label class="field"><span>Chapter</span>
+			<select bind:value={logChapter}>
+				<option value="">Optional…</option>
+				{#each logChapters as ch}<option value={ch}>{ch}</option>{/each}
+			</select>
+		</label>
+	{/if}
 	<svelte:fragment slot="footer">
 		<button type="button" class="btn ghost" on:click={() => (logOpen = false)}>Cancel</button>
 		<button type="button" class="btn solid" on:click={submitLog}>Log time</button>
@@ -527,6 +689,22 @@
 	</svelte:fragment>
 </Modal>
 
+{#if deepWorkMode}
+	<DeepWorkMode
+		{running}
+		{dialTime}
+		{ringProgress}
+		{phase}
+		subject={subject ? subjectName(subject) : null}
+		chapter={tab === 'stopwatch' ? swChapter : focusChapter}
+		focusKind={tab === 'stopwatch' ? swKind : focusKind}
+		{accent}
+		on:start={primary}
+		on:pause={primary}
+		on:exit={() => (deepWorkMode = false)}
+	/>
+{/if}
+
 <style>
 	.focus { display: grid; gap: 1.2rem; }
 	.page-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
@@ -541,6 +719,7 @@
 	.tb { display: inline-flex; align-items: center; gap: .4rem; padding: .5rem .85rem; border: 1px solid var(--border-subtle); border-radius: 10px; color: var(--text-secondary); background: var(--surface-panel); font-size: .7rem; font-weight: 800; letter-spacing: .06em; }
 	.tb:hover { color: var(--accent); border-color: var(--accent); }
 	.tb.accent { color: var(--accent); border-color: color-mix(in srgb, var(--accent), transparent 60%); background: var(--accent-soft); }
+	.tb.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
 	.spacer { flex: 1; }
 	.ic { display: grid; place-items: center; width: 34px; height: 34px; border: 1px solid var(--border-subtle); border-radius: 10px; color: var(--text-secondary); background: var(--surface-panel); }
 	.ic:hover, .ic.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
@@ -640,8 +819,8 @@
 	.goal-foot { display: flex; align-items: center; justify-content: space-between; font-size: .68rem; font-weight: 750; }
 	.sliders-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .35rem .7rem; border: 1px solid rgb(255 255 255 / 45%); border-radius: 9px; color: #fff; background: rgb(255 255 255 / 12%); font-size: .66rem; font-weight: 800; }
 
-	.analytics { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.2rem; align-items: start; }
-	.analytics > :global(*) { padding: 1.3rem 1.4rem; }
+	.analytics { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.2rem; align-items: stretch; }
+	.analytics > :global(*) { padding: 1.3rem 1.4rem; height: 100%; box-sizing: border-box; }
 
 	.report-list { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
 	.report-list li { display: flex; align-items: center; gap: .6rem; padding: .6rem .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; }

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
 	import { fade } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { subjectColor } from '$lib/state/subjects';
@@ -25,7 +26,13 @@
 	}
 
 	function onToggle(id: string) {
+		const item = $tracker.todos.find(t => t.id === id);
+		const wasDone = item?.done;
 		toggleTodo(id);
+		if (!wasDone && item && item.sub && item.ch) {
+			boostChapterFromPractice(`${item.sub}-${item.ch}`);
+			celebration.set('Sent to Active Recall Hub!');
+		}
 	}
 
 	/* checklist -------------------------------------------------------- */

@@ -2,6 +2,7 @@
 	import { fly } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
+	import RevisionDueModal from '$lib/components/RevisionDueModal.svelte';
 	import { addPlannerTask, celebration, plannerPrompt } from '$lib/stores/tracker';
 	import { todayKey } from '$lib/state/dates';
 
@@ -27,6 +28,8 @@
 		<div><b>{$celebration}</b><small>Great work — streak secured.</small></div>
 	</div>
 {/if}
+
+<RevisionDueModal />
 
 <Modal open={promptOpen} title="Add to Planner?" width="420px" on:close={() => plannerPrompt.set(null)}>
 	<p class="prompt-copy">Add <b>{$plannerPrompt}</b> to today's planner?</p>

@@ -1,27 +1,34 @@
 <script lang="ts">
+	import { createEventDispatcher } from 'svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
-	import { addRevisionPlan, celebration } from '$lib/stores/tracker';
+	import { celebration } from '$lib/stores/tracker';
+	import { addChapterToRecall } from '$lib/stores/recall-actions';
 	import { SUBJECTS, chaptersOf, SPACING_METHODS } from '$lib/state/subjects';
+	
+	const dispatch = createEventDispatcher<{ close: void }>();
 
 	export let open = false;
 
 	let sub = 'P';
 	let ch = '';
 	let method: 'steady' | 'fast' | 'smart' = 'steady';
+	let weightage: 1 | 2 | 3 = 2;
 
 	$: chapters = chaptersOf(sub);
 	$: if (sub && !chapters.includes(ch)) ch = '';
 
+
 	function submit() {
 		if (!sub || !ch) return;
-		addRevisionPlan({ sub, ch, method });
-		celebration.set('Chapter added to revision plan!');
-		open = false;
+		
+		addChapterToRecall(`${sub}-${ch}`, weightage);
+		celebration.set('Chapter added to active recall!');
+		dispatch('close');
 		ch = '';
 	}
 </script>
 
-<Modal bind:open title="ADD CHAPTER TO PLANNER" width="760px">
+<Modal open={open} title="ADD CHAPTER TO PLANNER" width="760px" on:close={() => dispatch('close')}>
 	<div class="cols">
 		<div class="form">
 			<label class="field">
@@ -38,6 +45,15 @@
 				</select>
 			</label>
 
+			<label class="field">
+				<span>HIGH-YIELD WEIGHTAGE</span>
+				<select bind:value={weightage}>
+					<option value={3}>★★★ High Yield (Core JEE Topic)</option>
+					<option value={2}>★★☆ Medium Yield (Standard Topic)</option>
+					<option value={1}>★☆☆ Low Yield (Quick Review)</option>
+				</select>
+			</label>
+
 			<p class="label">SPACING METHOD</p>
 			<div class="methods">
 				{#each SPACING_METHODS as m}
@@ -49,8 +65,8 @@
 			</div>
 
 			<div class="actions">
-				<button type="button" class="btn ghost" on:click={() => (open = false)}>Cancel</button>
-				<button type="button" class="btn solid" disabled={!ch} on:click={submit}>Add to Planner</button>
+				<button type="button" class="btn ghost" on:click={() => dispatch('close')}>Cancel</button>
+				<button type="button" class="btn solid" disabled={!ch} on:click={submit}>Add to Active Recall</button>
 			</div>
 		</div>
 
@@ -88,7 +104,7 @@
 	.label { display: block; margin: 0 0 .5rem; }
 	.methods { display: grid; gap: .5rem; margin-bottom: 1.1rem; }
 	.method { display: grid; gap: .2rem; padding: .7rem .85rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-panel); text-align: left; transition: border-color .16s ease, box-shadow .16s ease; }
-	.method.selected { border-color: var(--m); box-shadow: 0 0 0 3px color-mix(in srgb, var(--m), transparent 82%); }
+	.method.selected { border-color: var(--m); outline: 3px solid color-mix(in srgb, var(--m), transparent 75%) !important; outline-offset: 1px; }
 	.m-head { display: flex; align-items: center; gap: .4rem; font-size: .84rem; font-weight: 750; }
 	.sel { margin-left: auto; color: var(--m); font-size: .66rem; font-weight: 800; letter-spacing: .05em; }
 	.m-preview { color: var(--text-secondary); font-size: .7rem; }

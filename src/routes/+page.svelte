@@ -76,6 +76,7 @@
 					title={registry[widget.id].title}
 					eyebrow={registry[widget.id].eyebrow}
 					icon={registry[widget.id].icon}
+					height={widget.height ?? 'md'}
 					enabled={widget.enabled}
 					editing={$customizingHome}
 					on:move={(e) => reorderWidget(widget.id, e.detail)}

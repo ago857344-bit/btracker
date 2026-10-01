@@ -2,7 +2,8 @@
 	import { page } from '$app/stores';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
-	import { dueRevision, tracker } from '$lib/stores/tracker';
+	import { tracker } from '$lib/stores/tracker';
+	import { chaptersDueToday } from '$lib/stores/recall-selectors';
 	import { currentUser } from '$lib/stores/auth';
 
 	export let collapsed = false;
@@ -26,7 +27,7 @@
 	const closeMobile = () => mobileOpen = false;
 </script>
 
-<aside class:collapsed class:mobile-open={mobileOpen} aria-label="Primary navigation">
+<aside class="glass" class:collapsed class:mobile-open={mobileOpen} aria-label="Primary navigation">
 	<div class="brand-row">
 		<a class="brand" href="/" aria-label="BTracker home" on:click={closeMobile}>
 			<span class="brand-mark">B</span>
@@ -42,6 +43,9 @@
 		{#each primary as item}
 			<a class:active={isActive(item.href)} href={item.href} on:click={closeMobile}>
 				<span class="nav-icon"><NavIcon name={item.icon} size={19} /></span><span class="nav-text">{item.label}</span>
+				{#if item.href === '/revise' && $chaptersDueToday.length}
+					<span class="due-badge" title="{$chaptersDueToday.length} chapter(s) due">{$chaptersDueToday.length}</span>
+				{/if}
 			</a>
 		{/each}
 		<div class="nav-divider"></div>
@@ -49,8 +53,8 @@
 		{#each secondary as item}
 			<a class:active={isActive(item.href)} href={item.href} on:click={closeMobile}>
 				<span class="nav-icon"><NavIcon name={item.icon} size={19} /></span><span class="nav-text">{item.label}</span>
-				{#if item.href === '/reminders' && $dueRevision.length}
-					<span class="due-badge" title="{$dueRevision.length} revision(s) due">{$dueRevision.length}</span>
+				{#if item.href === '/reminders' && $chaptersDueToday.length}
+					<span class="due-badge" title="{$chaptersDueToday.length} revision(s) due">{$chaptersDueToday.length}</span>
 				{/if}
 			</a>
 		{/each}
@@ -84,7 +88,7 @@
 	nav a:hover, .settings-link:hover { color: var(--text-primary); background: var(--surface-subtle); }
 	nav a.active { color: var(--accent); background: var(--accent-soft); }
 	.nav-icon { display: grid; flex: 0 0 20px; place-items: center; }
-	.due-badge { margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center; background: var(--danger, #e0455a); color: white; font-size: .62rem; font-weight: 800; }
+	.due-badge { margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center; background: var(--accent); color: white; font-size: .62rem; font-weight: 800; }
 	.nav-divider { height: 1px; margin: 1rem .65rem .2rem; background: var(--border-subtle); }
 	.sidebar-bottom { display: grid; gap: .55rem; margin-top: auto; }
 	.profile-container { padding: .65rem .55rem .15rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; gap: .7rem; }

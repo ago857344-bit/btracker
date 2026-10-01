@@ -42,7 +42,7 @@ export interface HomeworkItem {
 	done?: boolean;
 	keep?: boolean;
 	fin?: number;
-	/** Planner-only extras (Trackly day tasks). */
+	/** Planner-only extras (BTracker day tasks). */
 	col?: number;
 	st?: string;
 	en?: string;
@@ -88,8 +88,8 @@ export interface SubjectSession { id: string; day: DayKey; sub: string; ch: stri
 
 export interface MetaState { name: string; exam: DayKey | null; weekGoalH: number; streakGoalH: number }
 
-/** [started-at in epoch minutes, duration minutes, activity, deadline id, speedrun flag?, target?, completed?, subject?] */
-export type StudySession = [number, number, string, string | null, number?, number?, number?, string?];
+/** [started-at in epoch minutes, duration minutes, activity/topic, deadline id, speedrun flag?, target?, completed?, subject?, chapter?] */
+export type StudySession = [number, number, string, string | null, number?, number?, number?, string?, string?];
 export interface QuestionReview { d: DayKey; t: string[] }
 
 export interface MarkColumn { id: string; n: string; calc?: string }
@@ -120,12 +120,102 @@ export interface AnalysisFolder {
 }
 export interface AnalysisState { folders: AnalysisFolder[] }
 
+export type ModalityTag = 'theory-skim' | 'formula-sheet' | 'error-log' | 'timed-pyqs' | 'blank-page' | 'notes' | 'examples' | 'derivations';
+
+export type ConfidenceRating = 'again' | 'hard' | 'good' | 'easy';
+
+export interface DecayMetrics {
+	/** Initial memory score (r0) - set after each revision based on confidence rating */
+	r0: number;
+	/** Half-life in days (τ) - determines decay rate: r(t) = r0 * 2^(-t/τ) */
+	halfLife: number;
+	/** Current decayed score (r(t)) - calculated dynamically as r0 * 2^(-t/τ) */
+	currentScore: number;
+	/** Timestamp when r0 was last set (epoch ms) */
+	lastRevisionAt: number | null;
+	/** Historical memory scores for sparkline visualization */
+	history: Array<{ date: DayKey; score: number }>;
+}
+
+export interface SubtopicProgress {
+	id: string;
+	name: string;
+	/** Last revision timestamp for this specific subtopic (epoch ms) */
+	lastRevisedAt: number | null;
+	/** Modalities used for this subtopic across revisions */
+	modalities: ModalityTag[];
+	/** Decay metrics specific to this subtopic */
+	decay: DecayMetrics;
+}
+
+export interface ChapterRecallData {
+	/** Chapter identifier (e.g., "P-1" for Physics Chapter 1) */
+	chapterKey: string;
+	/** High-yield weightage (1=low, 2=medium, 3=high) for priority matrix */
+	weightage: 1 | 2 | 3;
+	/** Overall decay metrics for the chapter */
+	decay: DecayMetrics;
+	/** Subtopic-level granularity tracking */
+	subtopics: Record<string, SubtopicProgress>;
+	/** All modalities used across revisions for this chapter */
+	modalities: ModalityTag[];
+	/** Scheduled revision slots for timeline visualization */
+	scheduledSlots: Array<{
+		id: string;
+		start: string; // ISO datetime string
+		end: string; // ISO datetime string
+		parentBlockId?: string; // If nested inside a larger study block
+	}>;
+}
+
+export interface StudyBlock {
+	id: string;
+	subject: SubjectCode;
+	start: string; // ISO datetime string
+	end: string; // ISO datetime string
+	title?: string;
+	/** Nested revision chapters within this block */
+	nestedRevisions: Array<{
+		chapterKey: string;
+		start: string;
+		end: string;
+	}>;
+}
+
+export interface FocusSession {
+	id: string;
+	chapterKey: string;
+	subtopicIds: string[];
+	startedAt: number;
+	timerDuration: number; // seconds
+	elapsedSeconds: number;
+	isRunning: boolean;
+	/** Phase of the focus session */
+	phase: 'timer' | 'evaluation' | 'complete';
+	/** Confidence rating after timer ends (resets r0 in decay formula) */
+	confidenceRating?: ConfidenceRating;
+	/** Notes recorded during the session */
+	notes?: string;
+}
+
 export interface RevisionItem {
 	weight: number; last: number | null; remindDate?: DayKey; remindDone?: boolean;
 	remindEvery?: 'week' | 'month'; note?: string;
 	method?: 'steady' | 'fast' | 'smart'; step?: number; sub?: string; ch?: string; ef?: number;
 }
-export interface RevisionState { items: Record<string, RevisionItem>; decayDays: number }
+
+export interface RevisionState {
+	items: Record<string, RevisionItem>;
+	decayDays: number;
+	/** Active Recall Hub: Chapter-level memory decay and recall data */
+	chapters: Record<string, ChapterRecallData>;
+	/** Active Recall Hub: Daily consistency heatmap for GitHub-style grid */
+	dailyHeatmap: Record<DayKey, { revisedCount: number; totalTimeMinutes: number }>;
+	/** Active Recall Hub: Study blocks for timeline scheduling */
+	studyBlocks: StudyBlock[];
+	/** Active Recall Hub: Active focus sessions (brain dump mode) */
+	focusSessions: FocusSession[];
+}
 
 export interface PomodoroSettings {
 	focus: number; brk: number; chime: 'both' | 'focus' | 'break' | 'none' | string;
@@ -141,7 +231,7 @@ export interface WidgetLayout {
 export interface UiPreferences { accent: string; widgets: WidgetLayout[]; reducedMotion: boolean }
 
 export interface TrackerState {
-	stateVersion: 4;
+	stateVersion: 5;
 	/** BTracker question bitmasks, keyed as subject + permanent chapter no + exercise code. */
 	d: Record<string, number[]>;
 	/** Per-question note, keyed as subject + permanent chapter no + exercise code + index. */
@@ -180,4 +270,19 @@ export interface TimerState {
 	secondsRemaining: number; elapsedSeconds: number; totalSeconds: number;
 	activityId: string | null; deadlineId: string | null;
 	speedrun: { phase: 'setup' | 'run' | 'result'; target: number; minutes: number; done: number };
+	/** Reference to active focus session for brain dump mode */
+	focusSessionId: string | null;
+}
+
+/** Priority matrix calculation result for sorting chapters */
+export interface ChapterPriority {
+	chapterKey: string;
+	/** Priority score: weightage * (maxScore - currentDecayScore) */
+	priorityScore: number;
+	/** Current decayed memory score (0-100) */
+	currentScore: number;
+	/** Weightage (1-3) */
+	weightage: 1 | 2 | 3;
+	/** Health status for color-coded UI */
+	health: 'fresh' | 'fading' | 'critical';
 }

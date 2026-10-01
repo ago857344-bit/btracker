@@ -14,7 +14,8 @@ export const hydration = writable<'idle' | 'loading' | 'ready' | 'error'>('idle'
 export const saveStatus = writable<'saved' | 'saving' | 'error'>('saved');
 export const timer = writable<TimerState>({
 	running: false, mode: 'focus', kind: 'pomo', secondsRemaining: 25 * 60, elapsedSeconds: 0, totalSeconds: 25 * 60,
-	activityId: null, deadlineId: null, speedrun: { phase: 'setup', target: 10, minutes: 15, done: 0 }
+	activityId: null, deadlineId: null, speedrun: { phase: 'setup', target: 10, minutes: 15, done: 0 },
+	focusSessionId: null
 });
 
 let pendingSave: ReturnType<typeof setTimeout> | undefined;
@@ -39,7 +40,7 @@ export function scheduleSave() {
 
 export const activeHomework = derived(tracker, ($tracker) => $tracker.h.filter((item) => !item.done));
 export const dueRevision = derived(tracker, ($tracker) => {
-	const today = new Date().toISOString().slice(0, 10);
+	const today = todayKey();
 	return Object.entries($tracker.rev.items).filter(([, item]) => item.remindDate && item.remindDate <= today && !item.remindDone);
 });
 export const dashboardWidgets = derived(tracker, ($tracker) => $tracker.ui.widgets.filter((widget) => widget.enabled).sort((a, b) => a.order - b.order));
@@ -167,14 +168,14 @@ export function logStudySession(session: StudySession) {
 }
 
 /** Convenience wrapper that builds a StudySession tuple from timer results. */
-export function recordFocus(opts: { startedEpochMinutes: number; durationMinutes: number; activity: string; deadlineId: string | null; speedrun?: number; target?: number; completed?: number; subject?: string | null }) {
-	logStudySession([opts.startedEpochMinutes, Math.max(1, Math.round(opts.durationMinutes)), opts.activity, opts.deadlineId, opts.speedrun, opts.target, opts.completed, opts.subject ?? undefined]);
+export function recordFocus(opts: { startedEpochMinutes: number; durationMinutes: number; activity: string; deadlineId: string | null; speedrun?: number; target?: number; completed?: number; subject?: string | null; chapter?: string | null }) {
+	logStudySession([opts.startedEpochMinutes, Math.max(1, Math.round(opts.durationMinutes)), opts.activity, opts.deadlineId, opts.speedrun, opts.target, opts.completed, opts.subject ?? undefined, opts.chapter ?? undefined]);
 }
 
 export const sessionsToday = derived(tracker, ($tracker) => $tracker.log.filter((session) => sessionDayKey(session) === todayKey()));
 
 /* ------------------------------------------------------------------ *
- * Trackly feature set — profile, planner, goals, reflection, sessions,
+ * BTracker feature set — profile, planner, goals, reflection, sessions,
  * spaced revision and the analytics selectors that feed them.
  * ------------------------------------------------------------------ */
 
@@ -406,9 +407,9 @@ export function addSubjectSession(input: { sub: string; ch: string; att: number;
 	});
 }
 
-export function logManualMinutes(minutes: number, subject: string | null) {
+export function logManualMinutes(minutes: number, subject: string | null, chapter?: string | null) {
 	const start = Math.floor(Date.now() / 60000) - minutes;
-	logStudySession([start, minutes, 'Manual', null, undefined, undefined, undefined, subject ?? undefined]);
+	logStudySession([start, minutes, 'Manual', null, undefined, undefined, undefined, subject ?? undefined, chapter ?? undefined]);
 }
 
 /* Spaced revision ----------------------------------------------------- */
@@ -443,6 +444,14 @@ export function completeRevision(key: string, rating?: number) {
 }
 
 export function deleteRevision(key: string) { updateTracker((s) => { delete s.rev.items[key]; }); }
+
+/** Postpone a due revision by one day without advancing its spacing step. */
+export function snoozeRevision(key: string) {
+	updateTracker((s) => {
+		const item = s.rev.items[key];
+		if (item) item.remindDate = addDaysKey(todayKey(), 1);
+	});
+}
 
 export const revisedToday = derived(tracker, ($t) => Object.values($t.rev.items).filter((item) => item.last && dayKeyOf(new Date(item.last)) === todayKey()).length);
 
@@ -698,7 +707,7 @@ export const intelligence = derived(tracker, ($t) => {
 /* Stopwatch reports (session-only) ------------------------------------- */
 
 export interface StopwatchReport {
-	sub: string; kind: 'questions' | 'theory'; at: number; seconds: number;
+	sub: string; kind: 'questions' | 'theory' | 'revision'; at: number; seconds: number;
 	done: number; correct: number; mistakes: number;
 }
 export const stopwatchReports = writable<StopwatchReport[]>([]);

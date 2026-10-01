@@ -8,6 +8,7 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import GlobalOverlays from '$lib/components/GlobalOverlays.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
+	import StreakButton from '$lib/components/StreakButton.svelte';
 	import ThemeMenu from '$lib/components/ThemeMenu.svelte';
 	import { hydrateTracker } from '$lib/services/hydrate';
 	import { startSync } from '$lib/services/sync';
@@ -66,6 +67,7 @@
 				</div>
 				<div class="topbar-actions">
 					<span class:error={$saveStatus === 'error'} class="save-state"><i></i>{saveLabel}</span>
+					<StreakButton />
 					<ThemeMenu />
 					<a class="quick-add" href="/plan?new=task"><NavIcon name="plus" size={17} /><span>New task</span></a>
 					<AccountMenu />

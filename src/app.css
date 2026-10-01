@@ -17,7 +17,9 @@
   --danger: #ef6c7b;
   --radius-card: 24px;
   --radius-control: 14px;
-  --shadow-card: 0 14px 40px rgb(0 0 0 / 24%);
+  --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 14px 40px -4px rgb(0 0 0 / 30%);
+  --shadow-modal: 0 24px 60px -8px rgb(0 0 0 / 60%), 0 12px 24px rgb(0 0 0 / 40%);
+  --shadow-hover: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 24px 50px -8px rgb(0 0 0 / 40%);
 }
 
 :root[data-theme='light'] {
@@ -28,7 +30,9 @@
   --text-secondary: #716e86;
   --border-subtle: #e7e5f1;
   --accent-soft: #ebe9ff;
-  --shadow-card: 0 14px 40px rgb(44 37 92 / 8%);
+  --shadow-card: 0 4px 6px -1px rgb(44 37 92 / 5%), 0 14px 40px -4px rgb(44 37 92 / 12%);
+  --shadow-modal: 0 24px 60px -10px rgb(44 37 92 / 25%), 0 12px 24px rgb(44 37 92 / 15%);
+  --shadow-hover: 0 10px 15px -3px rgb(44 37 92 / 6%), 0 24px 50px -8px rgb(44 37 92 / 18%);
 }
 
 :root[data-theme='dark'] {
@@ -142,3 +146,123 @@ html, body { min-height: 100%; margin: 0; }
 body { min-width: 320px; }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
+
+body[data-deep-work="true"] aside { display: none !important; }
+body[data-deep-work="true"] .layout-shell { grid-template-columns: 1fr !important; }
+
+
+/* Premium Polish */
+@keyframes slideUpFade {
+	from { opacity: 0; transform: translateY(20px) scale(0.98); }
+	to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.card, .panel, .r-card, .sec, .goals, .reflection, .chapter-card, .question, .day-detail, .your-goals, .widget, .auth-card {
+	animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) both !important;
+	transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease, border-color 0.3s ease !important;
+}
+
+.card:nth-child(1), .panel:nth-child(1), .r-card:nth-child(1), .sec:nth-child(1), .goals:nth-child(1), .reflection:nth-child(1), .chapter-card:nth-child(1), .question:nth-child(1), .day-detail:nth-child(1), .your-goals:nth-child(1) { animation-delay: 0.02s; }\n.card:nth-child(2), .panel:nth-child(2), .r-card:nth-child(2), .sec:nth-child(2), .goals:nth-child(2), .reflection:nth-child(2), .chapter-card:nth-child(2), .question:nth-child(2), .day-detail:nth-child(2), .your-goals:nth-child(2) { animation-delay: 0.06s; }\n.card:nth-child(3), .panel:nth-child(3), .r-card:nth-child(3), .sec:nth-child(3), .goals:nth-child(3), .reflection:nth-child(3), .chapter-card:nth-child(3), .question:nth-child(3), .day-detail:nth-child(3), .your-goals:nth-child(3) { animation-delay: 0.1s; }\n.card:nth-child(4), .panel:nth-child(4), .r-card:nth-child(4), .sec:nth-child(4), .goals:nth-child(4), .reflection:nth-child(4), .chapter-card:nth-child(4), .question:nth-child(4), .day-detail:nth-child(4), .your-goals:nth-child(4) { animation-delay: 0.13999999999999999s; }\n.card:nth-child(5), .panel:nth-child(5), .r-card:nth-child(5), .sec:nth-child(5), .goals:nth-child(5), .reflection:nth-child(5), .chapter-card:nth-child(5), .question:nth-child(5), .day-detail:nth-child(5), .your-goals:nth-child(5) { animation-delay: 0.18s; }\n.card:nth-child(6), .panel:nth-child(6), .r-card:nth-child(6), .sec:nth-child(6), .goals:nth-child(6), .reflection:nth-child(6), .chapter-card:nth-child(6), .question:nth-child(6), .day-detail:nth-child(6), .your-goals:nth-child(6) { animation-delay: 0.22s; }\n.card:nth-child(7), .panel:nth-child(7), .r-card:nth-child(7), .sec:nth-child(7), .goals:nth-child(7), .reflection:nth-child(7), .chapter-card:nth-child(7), .question:nth-child(7), .day-detail:nth-child(7), .your-goals:nth-child(7) { animation-delay: 0.26s; }\n.card:nth-child(8), .panel:nth-child(8), .r-card:nth-child(8), .sec:nth-child(8), .goals:nth-child(8), .reflection:nth-child(8), .chapter-card:nth-child(8), .question:nth-child(8), .day-detail:nth-child(8), .your-goals:nth-child(8) { animation-delay: 0.30000000000000004s; }\n.card:nth-child(9), .panel:nth-child(9), .r-card:nth-child(9), .sec:nth-child(9), .goals:nth-child(9), .reflection:nth-child(9), .chapter-card:nth-child(9), .question:nth-child(9), .day-detail:nth-child(9), .your-goals:nth-child(9) { animation-delay: 0.34s; }\n.card:nth-child(10), .panel:nth-child(10), .r-card:nth-child(10), .sec:nth-child(10), .goals:nth-child(10), .reflection:nth-child(10), .chapter-card:nth-child(10), .question:nth-child(10), .day-detail:nth-child(10), .your-goals:nth-child(10) { animation-delay: 0.38s; }\n.card:nth-child(11), .panel:nth-child(11), .r-card:nth-child(11), .sec:nth-child(11), .goals:nth-child(11), .reflection:nth-child(11), .chapter-card:nth-child(11), .question:nth-child(11), .day-detail:nth-child(11), .your-goals:nth-child(11) { animation-delay: 0.42000000000000004s; }\n.card:nth-child(12), .panel:nth-child(12), .r-card:nth-child(12), .sec:nth-child(12), .goals:nth-child(12), .reflection:nth-child(12), .chapter-card:nth-child(12), .question:nth-child(12), .day-detail:nth-child(12), .your-goals:nth-child(12) { animation-delay: 0.46s; }\n.card:nth-child(13), .panel:nth-child(13), .r-card:nth-child(13), .sec:nth-child(13), .goals:nth-child(13), .reflection:nth-child(13), .chapter-card:nth-child(13), .question:nth-child(13), .day-detail:nth-child(13), .your-goals:nth-child(13) { animation-delay: 0.5s; }\n.card:nth-child(14), .panel:nth-child(14), .r-card:nth-child(14), .sec:nth-child(14), .goals:nth-child(14), .reflection:nth-child(14), .chapter-card:nth-child(14), .question:nth-child(14), .day-detail:nth-child(14), .your-goals:nth-child(14) { animation-delay: 0.54s; }\n.card:nth-child(15), .panel:nth-child(15), .r-card:nth-child(15), .sec:nth-child(15), .goals:nth-child(15), .reflection:nth-child(15), .chapter-card:nth-child(15), .question:nth-child(15), .day-detail:nth-child(15), .your-goals:nth-child(15) { animation-delay: 0.5800000000000001s; }\n.card:nth-child(16), .panel:nth-child(16), .r-card:nth-child(16), .sec:nth-child(16), .goals:nth-child(16), .reflection:nth-child(16), .chapter-card:nth-child(16), .question:nth-child(16), .day-detail:nth-child(16), .your-goals:nth-child(16) { animation-delay: 0.62s; }\n.card:nth-child(17), .panel:nth-child(17), .r-card:nth-child(17), .sec:nth-child(17), .goals:nth-child(17), .reflection:nth-child(17), .chapter-card:nth-child(17), .question:nth-child(17), .day-detail:nth-child(17), .your-goals:nth-child(17) { animation-delay: 0.66s; }\n.card:nth-child(18), .panel:nth-child(18), .r-card:nth-child(18), .sec:nth-child(18), .goals:nth-child(18), .reflection:nth-child(18), .chapter-card:nth-child(18), .question:nth-child(18), .day-detail:nth-child(18), .your-goals:nth-child(18) { animation-delay: 0.7000000000000001s; }\n.card:nth-child(19), .panel:nth-child(19), .r-card:nth-child(19), .sec:nth-child(19), .goals:nth-child(19), .reflection:nth-child(19), .chapter-card:nth-child(19), .question:nth-child(19), .day-detail:nth-child(19), .your-goals:nth-child(19) { animation-delay: 0.74s; }\n.card:nth-child(20), .panel:nth-child(20), .r-card:nth-child(20), .sec:nth-child(20), .goals:nth-child(20), .reflection:nth-child(20), .chapter-card:nth-child(20), .question:nth-child(20), .day-detail:nth-child(20), .your-goals:nth-child(20) { animation-delay: 0.78s; }
+
+.card:hover, .panel:hover, .r-card:hover, .sec:hover, .goals:hover, .reflection:hover, .chapter-card:hover, .question:hover, .day-detail:hover, .your-goals:hover, .widget:hover, .auth-card:hover {
+	transform: translateY(-3px) scale(1.005) !important;
+	box-shadow: var(--shadow-hover) !important;
+	border-color: color-mix(in srgb, var(--accent), transparent 70%) !important;
+	z-index: 2 !important;
+	position: relative !important;
+}
+
+/* Global generic glass */
+.glass {
+	background: color-mix(in srgb, var(--surface-panel), transparent 15%) !important;
+	backdrop-filter: blur(20px) saturate(180%);
+	-webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+:root[data-theme='light'] .glass {
+	background: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* Glass inputs and inner elements */
+select, input[type="text"], input[type="number"], .method, .glass-element {
+	background: color-mix(in srgb, var(--surface-panel), transparent 40%) !important;
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	border: 1px solid color-mix(in srgb, var(--border-subtle), transparent 30%);
+	box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);
+	transition: transform 0.2s, box-shadow 0.2s, background 0.2s !important;
+}
+
+select:hover, input[type="text"]:hover, input[type="number"]:hover, .method:hover, .glass-element:hover {
+	background: color-mix(in srgb, var(--surface-panel), transparent 25%) !important;
+	box-shadow: 0 4px 12px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.1);
+}
+
+:root[data-theme='light'] select,
+:root[data-theme='light'] input[type="text"],
+:root[data-theme='light'] input[type="number"],
+:root[data-theme='light'] .method,
+:root[data-theme='light'] .glass-element {
+	background: rgba(255, 255, 255, 0.5) !important;
+	border-color: rgba(0, 0, 0, 0.05);
+	box-shadow: inset 0 1px 4px rgba(255, 255, 255, 0.5);
+}
+
+:root[data-theme='light'] select:hover,
+:root[data-theme='light'] input[type="text"]:hover,
+:root[data-theme='light'] input[type="number"]:hover,
+:root[data-theme='light'] .method:hover,
+:root[data-theme='light'] .glass-element:hover {
+	background: rgba(255, 255, 255, 0.7) !important;
+	box-shadow: 0 4px 12px rgba(0,0,0,0.05), inset 0 1px 4px rgba(255, 255, 255, 0.6);
+}
+
+body {
+	
+body::before {
+	content: "";
+	position: fixed;
+	inset: 0;
+	pointer-events: none;
+	z-index: -1;
+	background-image: 
+		radial-gradient(circle at 15% 50%, rgba(109, 93, 252, 0.05), transparent 40%),
+		radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.04), transparent 40%);
+}
+:root[data-theme='light'] body::before {
+	background-image: 
+		radial-gradient(circle at 15% 50%, rgba(109, 93, 252, 0.03), transparent 40%),
+		radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.02), transparent 40%);
+}
+
+}
+
+
+select:focus, input[type="text"]:focus, input[type="number"]:focus, .method:focus-visible {
+	outline: 2px solid color-mix(in srgb, var(--accent), transparent 20%);
+	outline-offset: 2px;
+	border-color: var(--accent) !important;
+}
+
+/* Global interactive micro-lifts for literally every feature */
+button, .tb, .ic, aside a, .row, .item, .chip, .m-head, .btn, .nav-item {
+	transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, background 0.25s ease !important;
+}
+
+button:hover:not(:disabled), .tb:hover, .ic:hover, aside a:hover, .row:hover, .item:hover, .chip:hover, .btn:hover:not(:disabled), .nav-item:hover {
+	transform: translateY(-2px) !important;
+	box-shadow: 0 6px 16px -4px rgba(0,0,0,0.2), 0 4px 8px -2px rgba(0,0,0,0.1) !important;
+	z-index: 10 !important;
+	position: relative;
+}
+
+:root[data-theme='light'] button:hover:not(:disabled), 
+:root[data-theme='light'] .tb:hover, 
+:root[data-theme='light'] .ic:hover, 
+:root[data-theme='light'] aside a:hover, 
+:root[data-theme='light'] .row:hover, 
+:root[data-theme='light'] .item:hover, 
+:root[data-theme='light'] .chip:hover,
+:root[data-theme='light'] .btn:hover:not(:disabled),
+:root[data-theme='light'] .nav-item:hover {
+	box-shadow: 0 6px 16px -4px rgba(44, 37, 92, 0.15), 0 4px 8px -2px rgba(44, 37, 92, 0.08) !important;
+}

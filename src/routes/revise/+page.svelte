@@ -4,17 +4,29 @@
 	import { fade, fly } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import AddChapterModal from '$lib/components/revise/AddChapterModal.svelte';
+	import ReviseModal from '$lib/components/revise/ReviseModal.svelte';
+	import ReviseManualModal from '$lib/components/revise/ReviseManualModal.svelte';
+	import Heatmap from '$lib/components/recall/Heatmap.svelte';
+	import ChapterCard from '$lib/components/recall/ChapterCard.svelte';
 	import { tracker, revisedToday, completeRevision, deleteRevision, celebration } from '$lib/stores/tracker';
 	import { addDaysKey, dayKeyOf, shortDateKey, todayKey } from '$lib/state/dates';
 	import { SUBJECTS, SPACING_METHODS, subjectColor, subjectName } from '$lib/state/subjects';
+	import { chaptersByPriority, chaptersDueToday, criticalChapters, heatmapData } from '$lib/stores/recall-selectors';
+	import { removeChapterFromRecall } from '$lib/stores/recall-actions';
+	import { createRevision } from '$lib/state/defaults';
+	import { calculateCurrentScore, calculatePriorityScore } from '$lib/state/decay';
+	import type { ChapterRecallData } from '$lib/types/tracker';
 
-	type RevTab = 'due' | 'next7' | 'all';
+	type RevTab = 'due' | 'critical' | 'all';
 	const RATINGS: [number, string][] = [[1, 'Again'], [3, 'Hard'], [4, 'Good'], [5, 'Easy']];
 	let tab: RevTab = 'due';
 	let query = '';
 	let subFilter = '';
 	let methodFilter = '';
 	let addOpen = false;
+	let manualOpen = false;
+	let reviseOpen = false;
+	let activeChapterKey = '';
 	let ratingFor: string | null = null;
 
 	$: today = todayKey();
@@ -35,17 +47,44 @@
 	$: next7Count = entries.filter(isNext7).length;
 	$: methodMeta = (id: string) => SPACING_METHODS.find((m) => m.id === id);
 	$: filtered = entries
-		.filter((e) => (tab === 'due' ? isDue(e) : tab === 'next7' ? isNext7(e) : true))
+		.filter((e) => (tab === 'due' ? isDue(e) : true))
 		.filter((e) => !subFilter || e.sub === subFilter)
 		.filter((e) => !methodFilter || e.method === methodFilter)
 		.filter((e) => !query.trim() || e.ch.toLowerCase().includes(query.trim().toLowerCase()))
 		.sort((a, b) => (a.remindDate || '9999').localeCompare(b.remindDate || '9999'));
+
+	// Active Recall Hub data
+	$: recallChapters = Object.values($tracker.rev.chapters);
+	$: dueChapters = $chaptersDueToday;
+	$: criticalChaptersList = $criticalChapters;
+	$: heatmap = $heatmapData;
+
+	$: displayedRecallChapters = recallChapters
+		.filter((chapter) => {
+			const [subCode, ...restParts] = chapter.chapterKey.split(/[-:]/);
+			const chTitle = restParts.join(' ').trim() || chapter.chapterKey;
+			if (subFilter && subCode !== subFilter) return false;
+			if (query.trim() && !chTitle.toLowerCase().includes(query.trim().toLowerCase())) return false;
+			if (tab === 'due') return dueChapters.some((c) => c.chapterKey === chapter.chapterKey);
+			if (tab === 'critical') return criticalChaptersList.some((c) => c.chapterKey === chapter.chapterKey);
+			return true;
+		})
+		.sort((a, b) => {
+			const prioA = calculatePriorityScore(a.weightage, calculateCurrentScore(a.decay));
+			const prioB = calculatePriorityScore(b.weightage, calculateCurrentScore(b.decay));
+			return prioB - prioA;
+		});
 
 	function dueLabel(e: { remindDate: string }) {
 		if (!e.remindDate) return 'No schedule';
 		if (e.remindDate < today) return 'Overdue';
 		if (e.remindDate === today) return 'Due today';
 		return `Due ${shortDateKey(e.remindDate)}`;
+	}
+
+	function formatLastRevised(last: number | null): string {
+		if (!last) return 'Never revised';
+		return `Last ${shortDateKey(dayKeyOf(new Date(last)))}`;
 	}
 
 	function markDone(key: string, method: string) {
@@ -63,6 +102,23 @@
 	function remove(key: string) {
 		deleteRevision(key);
 	}
+
+	let activeChapter: ChapterRecallData | null = null;
+
+	function handleRevise(chapterKey: string) {
+		console.log('Revise clicked for', chapterKey);
+		activeChapterKey = chapterKey;
+		activeChapter = $tracker.rev.chapters[chapterKey] ?? recallChapters.find((c) => c.chapterKey === chapterKey) ?? null;
+		reviseOpen = true;
+		console.log('reviseOpen set to', reviseOpen);
+	}
+
+	function handleDeleteChapter(chapterKey: string) {
+		if (confirm('Remove this chapter from recall tracking?')) {
+			removeChapterFromRecall(chapterKey);
+		}
+	}
+
 </script>
 
 <section class="revise" in:fade={{ duration: 260 }}>
@@ -71,19 +127,28 @@
 			<h1>ACTIVE RECALL HUB</h1>
 			<p>Spaced repetition planner.</p>
 		</div>
-		<button type="button" class="add" on:click={() => (addOpen = true)}><NavIcon name="plus" size={15} /> Add Chapter</button>
+		<div class="actions" style="display: flex; gap: 0.8rem; align-items: center;"><button type="button" class="btn-icon" on:click={() => (manualOpen = true)} title="How this works" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-subtle); background: var(--surface-panel); color: var(--text-secondary); cursor: pointer; transition: all 0.2s;"><NavIcon name="info" size={16} /></button><button type="button" class="add" on:click={() => (addOpen = true)}><NavIcon name="plus" size={15} /> Add Chapter</button></div>
 	</header>
 
+	<!-- Consistency Heatmap -->
+	<div class="heatmap-section">
+		<div class="heatmap-header">
+			<span class="heatmap-title">Consistency Heatmap</span>
+			<span class="heatmap-subtitle">Last 90 days</span>
+		</div>
+		<Heatmap data={heatmap} days={90} cellSize={11} />
+	</div>
+
 	<div class="kpis">
-		<div class="kpi"><b>{entries.length}</b><span>CHAPTERS TRACKED</span></div>
-		<div class="kpi due"><b>{dueCount}</b><span>DUE TODAY</span></div>
+		<div class="kpi"><b>{Object.keys(recallChapters).length}</b><span>CHAPTERS TRACKED</span></div>
+		<div class="kpi due"><b>{dueChapters.length}</b><span>DUE TODAY</span></div>
 		<div class="kpi"><b>{$revisedToday}</b><span>REVISED TODAY</span></div>
 	</div>
 
 	<div class="tabs" role="tablist">
-		<button type="button" role="tab" class:active={tab === 'due'} on:click={() => (tab = 'due')}>Due ({dueCount})</button>
-		<button type="button" role="tab" class:active={tab === 'next7'} on:click={() => (tab = 'next7')}>Next 7 Days ({next7Count})</button>
-		<button type="button" role="tab" class:active={tab === 'all'} on:click={() => (tab = 'all')}>All ({entries.length})</button>
+		<button type="button" role="tab" class:active={tab === 'due'} on:click={() => (tab = 'due')}>Due ({dueChapters.length})</button>
+		<button type="button" role="tab" class:active={tab === 'critical'} on:click={() => (tab = 'critical')}>Critical ({criticalChaptersList.length})</button>
+		<button type="button" role="tab" class:active={tab === 'all'} on:click={() => (tab = 'all')}>All ({Object.keys(recallChapters).length})</button>
 	</div>
 
 	<div class="filters">
@@ -99,53 +164,51 @@
 		</div>
 	</div>
 
-	{#if filtered.length}
+	<!-- Active Recall Hub Chapter Cards -->
+	{#if displayedRecallChapters.length > 0}
 		<div class="cards">
-			{#each filtered as entry (entry.key)}
-				<article class="rcard" in:fly={{ y: 8, duration: 220 }} style="--c: {subjectColor(entry.sub)}; --m: {methodMeta(entry.method)?.color ?? 'var(--accent)'}">
-					<div class="top">
-						<span class="badge sub">{subjectName(entry.sub).toUpperCase()}</span>
-						<span class="badge method">{methodMeta(entry.method)?.emoji} {methodMeta(entry.method)?.name}</span>
-						{#if isDue(entry)}<span class="badge now">Due now</span>{/if}
-					</div>
-					<h3>{entry.ch}</h3>
-					<div class="meta">
-						<span><NavIcon name="clock" size={12} /> {dueLabel(entry)}</span>
-						<span><NavIcon name="check" size={12} /> Rev #{Math.max(0, entry.step - 1)}</span>
-						<span><NavIcon name="trend" size={12} /> {entry.last ? `Last ${shortDateKey(dayKeyOf(new Date(entry.last)))}` : 'Never revised'}</span>
-					</div>
-					{#if ratingFor === entry.key}
-						<div class="ratings" in:fly={{ y: 4, duration: 180 }}>
-							<span>Rate your recall:</span>
-							{#each RATINGS as [value, label]}
-								<button type="button" class="rate" on:click={() => rate(entry.key, value)}>{label}</button>
-							{/each}
-						</div>
-					{/if}
-					<div class="actions">
-						<button type="button" class="done" on:click={() => markDone(entry.key, entry.method)}><NavIcon name="check" size={14} /> Done</button>
-						<button type="button" class="trash" title="Remove from planner" on:click={() => remove(entry.key)}><NavIcon name="trash" size={14} /></button>
-					</div>
-				</article>
+			{#each displayedRecallChapters as chapter (chapter.chapterKey)}
+				<ChapterCard
+					{chapter}
+					on:revise={(e) => handleRevise(e.detail)}
+					on:delete={(e) => handleDeleteChapter(e.detail)}
+				/>
 			{/each}
 		</div>
 	{:else}
 		<div class="empty">
 			{#if tab === 'due'}
-				<b>Nothing due today 🎉</b>
-				<span>Switch to "All" to see all your chapters.</span>
-			{:else if entries.length === 0}
-				<b>No chapters tracked yet</b>
-				<span>Add a chapter to start your spaced repetition plan.</span>
+				<b>No chapters due today 🎉</b>
+				<span>All your scheduled revisions are currently above fading threshold.</span>
+			{:else if tab === 'critical'}
+				<b>No critical chapters 🎉</b>
+				<span>Your memory retention is healthy across all tracked topics!</span>
+			{:else if recallChapters.length === 0}
+				<b>No chapters in Active Recall Hub yet</b>
+				<span>Add a chapter to start tracking memory decay, or load sample JEE topics.</span>
 			{:else}
-				<b>No matches</b>
-				<span>Try clearing the search or filters.</span>
+				<b>No matching chapters</b>
+				<span>Try clearing the subject filter or search query.</span>
 			{/if}
+
+			<div class="empty-actions">
+				{#if subFilter || query.trim()}
+					<button type="button" class="sample-btn" on:click={() => { subFilter = ''; query = ''; }}>
+						<span>Clear Filters</span>
+					</button>
+				{/if}
+				<button type="button" class="sample-btn primary" on:click={() => (addOpen = true)}>
+					<NavIcon name="plus" size={14} />
+					<span>Add Chapter</span>
+				</button>
+			</div>
 		</div>
 	{/if}
 </section>
 
-<AddChapterModal bind:open={addOpen} />
+<ReviseModal open={reviseOpen} chapter={activeChapter} chapterKey={activeChapterKey} on:close={() => (reviseOpen = false)} />
+<AddChapterModal open={addOpen} on:close={() => (addOpen = false)} />
+	<ReviseManualModal open={manualOpen} on:close={() => (manualOpen = false)} />
 
 <style>
 	.revise { display: grid; gap: 1.2rem; }
@@ -153,6 +216,33 @@
 	h1 { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -.04em; }
 	header p { margin: .3rem 0 0; color: var(--text-secondary); font-size: .82rem; }
 	.add { display: inline-flex; align-items: center; gap: .45rem; padding: .65rem 1.15rem; border: 0; border-radius: 12px; color: #fff; background: var(--accent); font-size: .84rem; font-weight: 750; box-shadow: 0 8px 18px color-mix(in srgb, var(--accent), transparent 66%); }
+
+	.heatmap-section {
+		padding: 1rem 1.1rem;
+		border: 1px solid var(--border-subtle);
+		border-radius: var(--radius-card);
+		background: var(--surface-panel);
+		box-shadow: var(--shadow-card);
+	}
+
+	.heatmap-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 0.8rem;
+	}
+
+	.heatmap-title {
+		font-size: 0.85rem;
+		font-weight: 750;
+		color: var(--text-primary);
+	}
+
+	.heatmap-subtitle {
+		font-size: 0.7rem;
+		color: var(--text-secondary);
+		font-weight: 600;
+	}
 
 	.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; }
 	.kpi { display: grid; gap: .2rem; padding: 1rem 1.1rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-card); background: var(--surface-panel); box-shadow: var(--shadow-card); }
@@ -173,27 +263,17 @@
 	.mchip.on { color: #fff; border-color: var(--m); background: var(--m); }
 
 	.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: .9rem; }
-	.rcard { position: relative; display: grid; gap: .6rem; padding: 1rem 1.15rem 1rem 1.3rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-card); background: var(--surface-panel); box-shadow: var(--shadow-card); overflow: hidden; }
-	.rcard::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: var(--c); }
-	.top { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; }
-	.badge { padding: .2rem .55rem; border-radius: 999px; font-size: .58rem; font-weight: 800; letter-spacing: .07em; }
-	.badge.sub { color: var(--c); background: color-mix(in srgb, var(--c), transparent 88%); }
-	.badge.method { color: var(--m); background: color-mix(in srgb, var(--m), transparent 88%); }
-	.badge.now { margin-left: auto; color: #fff; background: var(--danger, #e0455a); }
-	.rcard h3 { margin: 0; font-size: 1rem; font-weight: 800; letter-spacing: -.03em; }
-	.meta { display: grid; gap: .3rem; }
-	.meta span { display: inline-flex; align-items: center; gap: .4rem; color: var(--text-secondary); font-size: .72rem; font-weight: 650; }
-	.ratings { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; padding: .5rem .6rem; border: 1px dashed var(--m); border-radius: 11px; }
-	.ratings span { color: var(--text-secondary); font-size: .68rem; font-weight: 750; margin-right: .2rem; }
-	.rate { padding: .32rem .65rem; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--surface-panel); color: var(--text-primary); font-size: .68rem; font-weight: 750; }
-	.rate:hover { border-color: var(--m); color: var(--m); }
-	.actions { display: flex; gap: .5rem; }
-	.done { display: inline-flex; align-items: center; gap: .4rem; flex: 1; justify-content: center; padding: .55rem; border: 0; border-radius: 11px; color: #fff; background: var(--success, #2f9e6e); font-size: .8rem; font-weight: 750; }
-	.trash { display: grid; place-items: center; width: 38px; border: 1px solid var(--border-subtle); border-radius: 11px; color: var(--text-secondary); background: var(--surface-panel); }
-	.trash:hover { color: var(--danger, #e0455a); border-color: var(--danger, #e0455a); }
 
-	.empty { display: grid; gap: .3rem; justify-items: center; padding: 2.4rem 1rem; border: 1px dashed var(--border-subtle); border-radius: var(--radius-card); text-align: center; }
+	.empty { display: grid; gap: .6rem; justify-items: center; padding: 2.4rem 1rem; border: 1px dashed var(--border-subtle); border-radius: var(--radius-card); text-align: center; }
 	.empty b { font-size: 1rem; }
-	.empty span { color: var(--text-secondary); font-size: .8rem; }
+	.empty > span { color: var(--text-secondary); font-size: .8rem; }
+	.empty-actions { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.5rem; flex-wrap: wrap; justify-content: center; }
+	.sample-btn {
+		display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.9rem;
+		border-radius: 9px; border: 1px solid var(--border-subtle); background: var(--surface-panel);
+		color: var(--text-primary); font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease;
+	}
+	.sample-btn:hover { border-color: var(--accent); color: var(--accent); }
+	.sample-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 	@media (max-width: 640px) { .kpis { grid-template-columns: 1fr; } }
 </style>

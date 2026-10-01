@@ -6,7 +6,8 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import { subjectColor, subjectName, SUBJECTS } from '$lib/state/subjects';
 	import { addDaysKey, dayKeyOf, parseKey, todayKey } from '$lib/state/dates';
-	import { dueRevision, tracker, updateTracker } from '$lib/stores/tracker';
+	import { tracker, updateTracker } from '$lib/stores/tracker';
+	import { chaptersDueToday } from '$lib/stores/recall-selectors';
 
 	type IconKind = 'reminders' | 'clock' | 'calendar-check' | 'brain' | 'target' | 'flame';
 
@@ -52,25 +53,24 @@
 	let week: ReminderCard[] = [];
 
 	$: {
-		revCards = $dueRevision.map(([key, item]) => {
-			const parts = key.split(':');
-			const s = parts[0] ?? '';
-			const ch = parts[1] ?? '';
-			const overdue_ = (item.remindDate ?? today) < today;
-			const sameDay = (item.remindDate ?? today) === today;
-			return {
-				id: `rev-${key}`,
-				group: overdue_ ? 'overdue' : sameDay ? 'today' : 'week',
-				icon: 'brain' as IconKind,
-				tone: overdue_ ? 'danger' : sameDay ? 'accent' : 'warning',
-				title: `Revise ${subjectName(s) || s} · Ch. ${ch}`,
-				blurb: `Spaced repetition nudge — method ${item.method ?? 'smart'}, step ${item.step ?? 1}${item.note ? ` · ${item.note}` : ''}`,
-				when: item.remindDate ?? today,
-				sub: s,
-				source: 'revision',
-				linkId: key
-			} as ReminderCard;
-		});
+		revCards = $chaptersDueToday.map((item) => {
+				const chParts = item.chapterKey.split('-');
+				const s = chParts[0] ?? '';
+				const ch = chParts[1] ?? '';
+				const overdue_ = item.currentScore < 30;
+				return {
+					id: `rev-${item.chapterKey}`,
+					group: overdue_ ? 'overdue' : 'today',
+					icon: 'brain' as IconKind,
+					tone: overdue_ ? 'danger' : 'warning',
+					title: `Revise ${subjectName(s) || s} · Ch. ${ch}`,
+					blurb: `Spaced repetition nudge — Score is at ${Math.round(item.currentScore)}% (Health: ${overdue_ ? 'Critical' : 'Fading'})`,
+					when: today,
+					sub: s,
+					source: 'revision',
+					linkId: item.chapterKey
+				} as ReminderCard;
+			});
 
 		hwCards = [...$tracker.h, ...$tracker.hd]
 			.filter((t) => !t.done && t.due)
@@ -298,7 +298,12 @@
 										</div>
 									{/if}
 								</div>
-								<button type="button" class="link dismiss" on:click={() => dismiss(card.id)}>
+								{#if card.source === 'revision'}
+										<a href="/revise" class="link snooze-btn" style="color: var(--accent); font-weight: 700; text-decoration: none;">
+											<NavIcon name="arrow-right" size={13} /> Open Hub
+										</a>
+									{/if}
+									<button type="button" class="link dismiss" on:click={() => dismiss(card.id)}>
 									<NavIcon name="x" size={13} />
 									Dismiss
 								</button>

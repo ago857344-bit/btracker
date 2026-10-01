@@ -12,6 +12,16 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 	const merged: TrackerState = {
 		...base,
 		...saved,
+		rev: {
+			...base.rev,
+			...saved.rev,
+			chapters: saved.rev?.chapters && Object.keys(saved.rev.chapters).length > 0
+				? { ...base.rev.chapters, ...saved.rev.chapters }
+				: base.rev.chapters,
+			dailyHeatmap: saved.rev?.dailyHeatmap && Object.keys(saved.rev.dailyHeatmap).length > 0
+				? { ...base.rev.dailyHeatmap, ...saved.rev.dailyHeatmap }
+				: base.rev.dailyHeatmap
+		},
 		ui: {
 			...base.ui,
 			...saved.ui,
