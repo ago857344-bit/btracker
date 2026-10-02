@@ -250,8 +250,21 @@
 		</div>
 
 		
+		
 		<div class="panel">
-			<h2><NavIcon name="monitor" size={15} /> Wallpaper & Glass</h2>
+			<h2><NavIcon name="bolt" size={15} /> Feedback & Feel</h2>
+			<p class="sub">Native app interactions and feedback.</p>
+			<label class="check">
+				<input type="checkbox" checked={$tracker.ui.haptics ?? true} on:change={(e) => updateTracker(s => { s.ui.haptics = e.currentTarget.checked; })} />
+				<span><strong>Haptic Feedback</strong><br/>Physical vibrations on mobile devices</span>
+			</label>
+			<label class="check">
+				<input type="checkbox" checked={$tracker.ui.sounds ?? true} on:change={(e) => updateTracker(s => { s.ui.sounds = e.currentTarget.checked; })} />
+				<span><strong>Micro-Sounds</strong><br/>Subtle UI audio pops and clicks</span>
+			</label>
+		</div>
+		<div class="panel">
+			<h2><NavIcon name="tv" size={15} /> Wallpaper & Glass</h2>
 
 			<p class="muted">Add a background image URL, or upload one from your computer. Works best with abstract or aesthetic backgrounds.</p>
 			

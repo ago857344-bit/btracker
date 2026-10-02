@@ -17,6 +17,7 @@
 	<div class="modal-backdrop" transition:fade={{ duration: 160 }} role="presentation" on:click={close} on:keydown={() => {}}>
 		<div class="modal-card glass" style="max-width: {width}" transition:fly={{ y: 14, duration: 200 }} role="dialog" aria-modal="true" aria-label={title} on:click|stopPropagation on:keydown={() => {}}>
 			<header>
+				<div class="bottom-sheet-handle"></div>
 				<h3>{title}</h3>
 				<button type="button" class="modal-x" aria-label="Close" on:click={close}><NavIcon name="x" size={16} /></button>
 			</header>
@@ -35,4 +36,28 @@
 	.modal-x:hover { color: var(--text-primary); background: var(--surface-subtle); }
 	.modal-body { padding: 1.2rem 1.3rem; }
 	footer { display: flex; justify-content: flex-end; gap: .6rem; padding: 1rem 1.3rem; border-top: 1px solid var(--border-subtle); }
+
+	@media (max-width: 760px) {
+		.modal-backdrop { padding: 0; align-items: flex-end; }
+		.modal-card { 
+			width: 100% !important; 
+			max-width: 100% !important; 
+			margin: 0; 
+			border-radius: 28px 28px 0 0; 
+			border-bottom: none; 
+			max-height: calc(100vh - 40px); 
+		}
+		header { padding-top: 1.4rem; position: relative; border-radius: 28px 28px 0 0; }
+		.bottom-sheet-handle {
+			position: absolute;
+			top: 8px;
+			left: 50%;
+			transform: translateX(-50%);
+			width: 36px;
+			height: 4.5px;
+			border-radius: 99px;
+			background: var(--text-secondary);
+			opacity: 0.3;
+		}
+	}
 </style>

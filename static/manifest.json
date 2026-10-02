@@ -1,0 +1,21 @@
+{
+  "name": "BTracker",
+  "short_name": "BTracker",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#11101b",
+  "theme_color": "#11101b",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

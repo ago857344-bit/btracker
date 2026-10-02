@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { browser } from '$app/environment';
-	import { goto, beforeNavigate } from '$app/navigation';
+	import { goto, beforeNavigate, onNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import AppSidebar from '$lib/components/AppSidebar.svelte';
@@ -19,6 +19,16 @@
 
 	let collapsed = false;
 	let mobileOpen = false;
+
+	onNavigate((navigation) => {
+		if (!document.startViewTransition) return;
+		return new Promise((resolve) => {
+			document.startViewTransition(async () => {
+				resolve();
+				await navigation.complete;
+			});
+		});
+	});
 
 	beforeNavigate(({ cancel }) => {
 		if (mobileOpen) {
@@ -56,6 +66,7 @@
 			root.style.setProperty('--user-wallpaper', `url(${state.ui.wallpaper})`);
 			
 			// Inject dynamic glass opacity based on user preference
+			// @ts-ignore
 			const opacity = state.ui.glassStrength ?? 45; // Default to 45% opacity (heavy glassmorphism)
 			const t = 100 - opacity; // Transparency percentage
 			const st = Math.min(100, t + 7);
@@ -74,6 +85,7 @@
 			root.style.removeProperty('--user-wallpaper');
 		}
 		
+		// @ts-ignore
 		if (state.ui.reducedMotion) {
 			root.setAttribute('data-reduced-motion', 'true');
 		} else {

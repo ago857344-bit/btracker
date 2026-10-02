@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { uiSuccess, uiPop } from '$lib/utils/feedback';
 	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
 	import { fade } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
@@ -29,6 +30,7 @@
 		const item = $tracker.todos.find(t => t.id === id);
 		const wasDone = item?.done;
 		toggleTodo(id);
+		if (wasDone) uiPop(); else uiSuccess();
 		if (!wasDone && item && item.sub && item.ch) {
 			const chName = CHAPTERS[item.sub]?.[item.ch - 1];
 			if (chName) boostChapterFromPractice(`${item.sub}-${chName}`);

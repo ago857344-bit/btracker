@@ -57,7 +57,35 @@
 	import { boostChapterFromPractice } from '$lib/stores/recall-actions'; let logChapter = '';
 	let milestoneOpen = false; let milestoneHours = $tracker.meta.weekGoalH;
 
-	let locked = false; let showSettings = false; let ambientOn = false;
+	let locked = false; 
+	let touchStartX = 0;
+	let touchEndX = 0;
+
+	function handleTouchStart(e: TouchEvent) {
+		touchStartX = e.changedTouches[0].screenX;
+	}
+
+	function handleTouchEnd(e: TouchEvent) {
+		touchEndX = e.changedTouches[0].screenX;
+		handleSwipe();
+	}
+
+	function handleSwipe() {
+		const threshold = 50;
+		const diff = touchEndX - touchStartX;
+		if (Math.abs(diff) < threshold) return;
+		
+		const currentIndex = TABS.findIndex(t => t.id === tab);
+		if (diff < 0 && currentIndex < TABS.length - 1) {
+			// Swipe left -> next tab
+			switchTab(TABS[currentIndex + 1].id);
+		} else if (diff > 0 && currentIndex > 0) {
+			// Swipe right -> prev tab
+			switchTab(TABS[currentIndex - 1].id);
+		}
+	}
+  
+	let showSettings = false; let ambientOn = false;
 	let ambient: { ctx: AudioContext; src: AudioBufferSourceNode } | null = null;
 	let clock = new Date();
 	const clockTimer = setInterval(() => (clock = new Date()), 1000);
@@ -430,7 +458,7 @@
 		{/each}
 	</div>
 
-	<div class="layout">
+	<div class="layout" on:touchstart={handleTouchStart} on:touchend={handleTouchEnd}>
 		<div class="stage card" in:fly={{ y: 10, duration: 260 }}>
 			{#if showSettings}
 				<div class="settings" in:fly={{ y: -6, duration: 200 }}>

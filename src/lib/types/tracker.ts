@@ -228,7 +228,7 @@ export interface WidgetLayout {
 		| 'subjects' | 'standing' | 'up-next' | 'activity';
 	enabled: boolean; order: number; span: 1 | 2 | 3; height?: 'sm' | 'md' | 'lg';
 }
-export interface UiPreferences { accent: string; widgets: WidgetLayout[]; reducedMotion: boolean; wallpaper?: string | null; glassStrength?: number; }
+export interface UiPreferences { accent: string; widgets: WidgetLayout[]; reducedMotion: boolean; wallpaper?: string | null; glassStrength?: number; haptics?: boolean; sounds?: boolean; }
 
 export interface TrackerState {
 	stateVersion: 5;

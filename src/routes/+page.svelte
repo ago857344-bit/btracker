@@ -35,7 +35,7 @@
 
 	// In customize mode show every widget (even hidden) so it can be re-enabled.
 	$: visible = ($customizingHome ? [...$tracker.ui.widgets] : $dashboardWidgets)
-		.filter(w => w.id !== 'recommendation')
+		.filter(w => !!registry[w.id])
 		.sort((a, b) => a.order - b.order);
 	$: hiddenCount = $tracker.ui.widgets.filter((w) => !w.enabled).length;
 	
