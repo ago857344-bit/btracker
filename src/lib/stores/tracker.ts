@@ -306,6 +306,50 @@ export function reorderTodo(dragId: string, overId: string) {
 	});
 }
 
+
+export function addSubtask(todoId: string, title: string) {
+	title = title.trim();
+	if (!title) return;
+	updateTracker((s) => {
+		const todo = s.todos.find(t => t.id === todoId);
+		if (todo) {
+			if (!todo.subtasks) todo.subtasks = [];
+			todo.subtasks.push({ id: uid(), title, done: false });
+			todo.done = false; // automatically uncheck parent if a new subtask is added
+		}
+	});
+}
+
+export function toggleSubtask(todoId: string, subtaskId: string) {
+	let parentCompleted = false;
+	updateTracker((s) => {
+		const todo = s.todos.find(t => t.id === todoId);
+		if (todo && todo.subtasks) {
+			const sub = todo.subtasks.find(st => st.id === subtaskId);
+			if (sub) {
+				sub.done = !sub.done;
+			}
+			// Auto-complete parent if all subtasks are done
+			if (todo.subtasks.length > 0 && todo.subtasks.every(st => st.done)) {
+				todo.done = true;
+				parentCompleted = true;
+			} else {
+				todo.done = false;
+			}
+		}
+	});
+	return parentCompleted;
+}
+
+export function deleteSubtask(todoId: string, subtaskId: string) {
+	updateTracker((s) => {
+		const todo = s.todos.find(t => t.id === todoId);
+		if (todo && todo.subtasks) {
+			todo.subtasks = todo.subtasks.filter(st => st.id !== subtaskId);
+		}
+	});
+}
+
 export function clearDoneTodos() {
 	updateTracker((s) => { s.todos = s.todos.filter((t) => !t.done); });
 }

@@ -55,6 +55,12 @@ export interface HomeworkItem {
 
 export interface TaskRoutine { id: string; n: string; tasks: { t: string; col: number; s: string; hrs: number }[] }
 
+export interface TodoSubtask {
+	id: string;
+	title: string;
+	done: boolean;
+}
+
 export interface TodoItem {
 	id: string;
 	title: string;
@@ -63,6 +69,7 @@ export interface TodoItem {
 	ch?: number;
 	source?: 'manual' | 'btest';
 	created: number;
+	subtasks?: TodoSubtask[];
 }
 
 /** Per-subject chapter checklist grid: custom columns, ✓ marks keyed by chapter no. */

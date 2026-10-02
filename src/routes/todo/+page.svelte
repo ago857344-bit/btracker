@@ -1,19 +1,21 @@
 <script lang="ts">
 	import { uiSuccess, uiPop } from '$lib/utils/feedback';
 	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
-	import { fade } from 'svelte/transition';
+	import { fade, slide } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { subjectColor, CHAPTERS } from '$lib/state/subjects';
 	import { allChapters, SYLLABUS } from '$lib/state/syllabus';
 	import { extractPdfText, matchChapters, type ChapterMatch } from '$lib/services/btest';
 	import {
 		addChecklistColumn, addTodo, addTodos, celebration, CHECKLIST_DEFAULT_COLS, clearDoneTodos, deleteTodo,
-		removeChecklistColumn, reorderTodo, toggleChecklistCell, toggleTodo, tracker
+		removeChecklistColumn, reorderTodo, toggleChecklistCell, toggleTodo, tracker, addSubtask, toggleSubtask, deleteSubtask
 	} from '$lib/stores/tracker';
 
 	let tab: 'tasks' | 'checklist' | 'btest' = 'tasks';
 	let draft = '';
 	let dragId: string | null = null;
+	let expandedTodo: string | null = null;
+	let subtaskDraft = '';
 
 	$: todos = $tracker.todos;
 	$: open = todos.filter((t) => !t.done);
@@ -24,6 +26,28 @@
 		if (!title) return;
 		addTodo({ title });
 		draft = '';
+	}
+
+	
+	function onSubToggle(todoId: string, subtaskId: string) {
+		const item = $tracker.todos.find(t => t.id === todoId);
+		const sub = item?.subtasks?.find(s => s.id === subtaskId);
+		const wasDone = sub?.done;
+		
+		const parentCompleted = toggleSubtask(todoId, subtaskId);
+		
+		if (wasDone) {
+			uiPop();
+		} else {
+			uiSuccess();
+			if (parentCompleted) celebration.set(Date.now().toString());
+		}
+	}
+
+	function handleSubtaskSubmit(todoId: string) {
+		if (!subtaskDraft.trim()) return;
+		addSubtask(todoId, subtaskDraft);
+		subtaskDraft = '';
 	}
 
 	function onToggle(id: string) {
@@ -149,10 +173,40 @@
 							{#if item.done}<NavIcon name="check" size={12} />{/if}
 						</button>
 						{#if item.sub}<span class="dot" style="background: {subjectColor(item.sub)}" title={item.sub}></span>{/if}
-						<span class="title">{item.title}</span>
+						<div class="title-wrap" style="flex: 1; cursor: pointer; display: flex; flex-direction: column;" on:click={() => expandedTodo = expandedTodo === item.id ? null : item.id} on:keydown={(e) => e.key === 'Enter' && (expandedTodo = expandedTodo === item.id ? null : item.id)} tabindex="0" role="button">
+							<span class="title">{item.title}</span>
+							{#if item.subtasks && item.subtasks.length > 0}
+								<div class="sub-progress">
+									<div class="bar"><div class="fill" style="width: {(item.subtasks.filter(s => s.done).length / item.subtasks.length) * 100}%"></div></div>
+									<span class="pct">{item.subtasks.filter(s => s.done).length}/{item.subtasks.length}</span>
+								</div>
+							{/if}
+						</div>
 						{#if item.source === 'btest'}<span class="tag">btest</span>{/if}
+						<button type="button" class="expand-btn" on:click={() => expandedTodo = expandedTodo === item.id ? null : item.id}>
+							<NavIcon name={expandedTodo === item.id ? 'chevron-down' : 'chevron'} size={14} />
+						</button>
 						<button type="button" class="del" aria-label="Delete task" on:click={() => deleteTodo(item.id)}><NavIcon name="trash" size={14} /></button>
 					</li>
+					{#if expandedTodo === item.id}
+						<div class="subtasks-container" transition:slide={{ duration: 200 }}>
+							{#if item.subtasks}
+								{#each item.subtasks as sub (sub.id)}
+									<div class="sub-row" class:done={sub.done}>
+										<button type="button" class="check" class:checked={sub.done} on:click={() => onSubToggle(item.id, sub.id)}>
+											{#if sub.done}<NavIcon name="check" size={10} />{/if}
+										</button>
+										<span class="sub-title">{sub.title}</span>
+										<button type="button" class="del" on:click={() => deleteSubtask(item.id, sub.id)}><NavIcon name="x" size={12} /></button>
+									</div>
+								{/each}
+							{/if}
+							<form on:submit|preventDefault={() => handleSubtaskSubmit(item.id)} class="subtask-form">
+								<NavIcon name="plus" size={12} />
+								<input type="text" bind:value={subtaskDraft} placeholder="Add subtask..." />
+							</form>
+						</div>
+					{/if}
 				{/each}
 			</ul>
 			{#if done.length}
@@ -358,4 +412,25 @@
 		.tblwrap { max-height: none; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 		.chcol { position: sticky; left: 0; min-width: 140px; }
 	}
+
+	.sub-progress { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+	.sub-progress .bar { flex: 1; height: 3px; background: var(--surface-subtle); border-radius: 4px; overflow: hidden; }
+	.sub-progress .fill { height: 100%; background: var(--accent); transition: width 0.2s ease; }
+	.sub-progress .pct { font-size: 0.65rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+	.expand-btn { background: none; border: none; padding: 4px; color: var(--text-secondary); cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+	.expand-btn:hover { background: var(--surface-subtle); color: var(--text-primary); }
+	
+	.subtasks-container { padding: 8px 12px 8px 48px; background: var(--surface-panel); border-bottom: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 6px; }
+	.sub-row { display: flex; align-items: center; gap: 12px; padding: 4px 0; }
+	.sub-row .check { width: 16px; height: 16px; border: 1.5px solid var(--text-secondary); border-radius: 4px; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--surface-panel); padding: 0; flex-shrink: 0; }
+	.sub-row .check.checked { background: var(--accent); border-color: var(--accent); }
+	.sub-row .sub-title { font-size: 0.85rem; color: var(--text-primary); flex: 1; }
+	.sub-row.done .sub-title { color: var(--text-secondary); text-decoration: line-through; }
+	.sub-row .del { opacity: 0; background: none; border: none; color: var(--danger); cursor: pointer; padding: 2px; }
+	.sub-row:hover .del { opacity: 1; }
+	
+	.subtask-form { display: flex; align-items: center; gap: 12px; margin-top: 4px; padding: 4px 0; color: var(--text-secondary); }
+	.subtask-form input { background: none; border: none; font-size: 0.85rem; color: var(--text-primary); outline: none; flex: 1; }
+	.subtask-form input::placeholder { color: var(--text-secondary); }
+
 </style>
