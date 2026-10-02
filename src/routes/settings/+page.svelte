@@ -51,7 +51,13 @@
 				
 				// Export as compressed JPEG
 				const compressed = canvas.toDataURL('image/jpeg', 0.85);
-				updateTracker(s => { s.ui.wallpaper = compressed; });
+				updateTracker(s => { 
+					s.ui.wallpaper = compressed; 
+					if (!s.ui.wallpaperHistory) s.ui.wallpaperHistory = [];
+					if (!s.ui.wallpaperHistory.includes(compressed)) {
+						s.ui.wallpaperHistory = [compressed, ...s.ui.wallpaperHistory].slice(0, 10);
+					}
+				});
 				celebration.set('Wallpaper uploaded and compressed successfully!');
 			};
 			img.src = data;
@@ -71,6 +77,34 @@
 		});
 	}
 	function setAccent(color: string) { updateTracker((s) => { s.ui.accent = color; }); }
+	function setWallpaper(url: string | null) {
+		updateTracker(s => {
+			s.ui.wallpaper = url;
+			if (url && !url.startsWith('data:')) {
+				if (!s.ui.wallpaperHistory) s.ui.wallpaperHistory = [];
+				if (!s.ui.wallpaperHistory.includes(url)) {
+						s.ui.wallpaperHistory = [url, ...s.ui.wallpaperHistory].slice(0, 10);
+				}
+			}
+		});
+	}
+	
+	function removeWallpaperFromHistory(url: string) {
+		updateTracker(s => {
+			if (s.ui.wallpaperHistory) {
+				s.ui.wallpaperHistory = s.ui.wallpaperHistory.filter(u => u !== url);
+			}
+			if (s.ui.wallpaper === url) {
+				s.ui.wallpaper = null;
+			}
+		});
+	}
+	
+	let urlDraft = '';
+	$: if (typeof document !== 'undefined' && $tracker.ui.wallpaper && !$tracker.ui.wallpaper.startsWith('data:')) {
+		urlDraft = $tracker.ui.wallpaper;
+	}
+
 
 	let analysisTimer: ReturnType<typeof setTimeout>;
 	function analyzeWallpaper(url: string | null) {
@@ -85,7 +119,7 @@
 			// Using corsproxy.io because it handles almost all image headers perfectly
 			// Since this is a Tauri app (static build), local SvelteKit API routes don't exist at runtime!
 			// We MUST use a reliable public image proxy that guarantees CORS headers for canvas manipulation.
-			img.src = `https://wsrv.nl/?url=${encodeURIComponent(url)}&output=jpg&w=128&h=128&fit=cover`;
+			img.src = url.startsWith("data:") ? url : `https://wsrv.nl/?url=${encodeURIComponent(url)}&output=jpg&w=128&h=128&fit=cover`;
 			
 			img.onload = () => {
 				console.log('Image loaded successfully');
@@ -269,7 +303,7 @@
 			<p class="muted">Add a background image URL, or upload one from your computer. Works best with abstract or aesthetic backgrounds.</p>
 			
 			<div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-				<input type="url" placeholder="https://example.com/wallpaper.jpg" class="input" style="margin-bottom: 0;" value={$tracker.ui.wallpaper && !$tracker.ui.wallpaper.startsWith('data:') ? $tracker.ui.wallpaper : ''} on:input={(e) => { const v = e.currentTarget.value; updateTracker((s) => { s.ui.wallpaper = v || null; }); }} />
+				<input type="url" placeholder="https://example.com/wallpaper.jpg" class="input" style="margin-bottom: 0;" bind:value={urlDraft} on:change={() => setWallpaper(urlDraft || null)} />
 				
 				<label class="btn solid" style="white-space: nowrap; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; gap: 0.4rem;">
 					<NavIcon name="plus" size={15} /> Upload
@@ -282,8 +316,20 @@
 				{/if}
 			</div>
 
+			{#if $tracker.ui.wallpaperHistory && $tracker.ui.wallpaperHistory.length > 0}
+				<div class="wallpaper-history">
+					{#each $tracker.ui.wallpaperHistory as wp}
+						<div class="hist-item" class:active={$tracker.ui.wallpaper === wp} on:click={() => updateTracker(s => { s.ui.wallpaper = wp; })} on:keydown={(e) => e.key === 'Enter' && updateTracker(s => { s.ui.wallpaper = wp; })} tabindex="0" role="button">
+							<div class="thumb" style="background-image: url({wp})"></div>
+							<button type="button" class="del-btn" on:click|stopPropagation={() => removeWallpaperFromHistory(wp)}>
+								<NavIcon name="x" size={10} />
+							</button>
+						</div>
+					{/each}
+				</div>
+			{/if}
+
 			{#if $tracker.ui.wallpaper}
-				<div class="wallpaper-preview" style="background-image: url({$tracker.ui.wallpaper})"></div>
 				
 				<div style="margin-top: 1.2rem;">
 					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
@@ -424,4 +470,14 @@
 	.code-area:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 	.legacy-error { margin: -.2rem 0 .7rem; color: var(--danger, #e0455a); font-size: .76rem; }
 	.legacy-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }
+
+	.wallpaper-history { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px; scrollbar-width: thin; }
+	.hist-item { position: relative; width: 80px; height: 50px; flex-shrink: 0; border-radius: 6px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; }
+	.hist-item.active { border-color: var(--accent); transform: scale(1.05); }
+	.hist-item .thumb { width: 100%; height: 100%; background-size: cover; background-position: center; opacity: 0.6; transition: opacity 0.2s ease; }
+	.hist-item:hover .thumb, .hist-item.active .thumb { opacity: 1; }
+	.hist-item .del-btn { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 4px; padding: 2px; cursor: pointer; opacity: 0; transition: opacity 0.2s ease; display: flex; align-items: center; justify-content: center; }
+	.hist-item:hover .del-btn { opacity: 1; }
+	.hist-item .del-btn:hover { background: var(--danger); }
+
 </style>
