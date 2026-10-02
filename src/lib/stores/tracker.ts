@@ -307,7 +307,7 @@ export function reorderTodo(dragId: string, overId: string) {
 }
 
 
-export function addSubtask(todoId: string, title: string) {
+export function addTodoSubtask(todoId: string, title: string) {
 	title = title.trim();
 	if (!title) return;
 	updateTracker((s) => {
@@ -320,7 +320,7 @@ export function addSubtask(todoId: string, title: string) {
 	});
 }
 
-export function toggleSubtask(todoId: string, subtaskId: string) {
+export function toggleTodoSubtask(todoId: string, subtaskId: string) {
 	let parentCompleted = false;
 	updateTracker((s) => {
 		const todo = s.todos.find(t => t.id === todoId);
@@ -341,7 +341,7 @@ export function toggleSubtask(todoId: string, subtaskId: string) {
 	return parentCompleted;
 }
 
-export function deleteSubtask(todoId: string, subtaskId: string) {
+export function deleteTodoSubtask(todoId: string, subtaskId: string) {
 	updateTracker((s) => {
 		const todo = s.todos.find(t => t.id === todoId);
 		if (todo && todo.subtasks) {

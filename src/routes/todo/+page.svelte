@@ -8,7 +8,7 @@
 	import { extractPdfText, matchChapters, type ChapterMatch } from '$lib/services/btest';
 	import {
 		addChecklistColumn, addTodo, addTodos, celebration, CHECKLIST_DEFAULT_COLS, clearDoneTodos, deleteTodo,
-		removeChecklistColumn, reorderTodo, toggleChecklistCell, toggleTodo, tracker, addSubtask, toggleSubtask, deleteSubtask
+		removeChecklistColumn, reorderTodo, toggleChecklistCell, toggleTodo, tracker, addTodoSubtask, toggleTodoSubtask, deleteTodoSubtask
 	} from '$lib/stores/tracker';
 
 	let tab: 'tasks' | 'checklist' | 'btest' = 'tasks';
@@ -34,7 +34,7 @@
 		const sub = item?.subtasks?.find(s => s.id === subtaskId);
 		const wasDone = sub?.done;
 		
-		const parentCompleted = toggleSubtask(todoId, subtaskId);
+		const parentCompleted = toggleTodoSubtask(todoId, subtaskId);
 		
 		if (wasDone) {
 			uiPop();
@@ -46,7 +46,7 @@
 
 	function handleSubtaskSubmit(todoId: string) {
 		if (!subtaskDraft.trim()) return;
-		addSubtask(todoId, subtaskDraft);
+		addTodoSubtask(todoId, subtaskDraft);
 		subtaskDraft = '';
 	}
 
@@ -197,7 +197,7 @@
 											{#if sub.done}<NavIcon name="check" size={10} />{/if}
 										</button>
 										<span class="sub-title">{sub.title}</span>
-										<button type="button" class="del" on:click={() => deleteSubtask(item.id, sub.id)}><NavIcon name="x" size={12} /></button>
+										<button type="button" class="del" on:click={() => deleteTodoSubtask(item.id, sub.id)}><NavIcon name="x" size={12} /></button>
 									</div>
 								{/each}
 							{/if}
