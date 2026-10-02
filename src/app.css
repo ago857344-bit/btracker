@@ -178,9 +178,7 @@ body[data-deep-work="true"] .layout-shell { grid-template-columns: 1fr !importan
 	backdrop-filter: blur(20px) saturate(180%);
 	-webkit-backdrop-filter: blur(20px) saturate(180%);
 }
-:root[data-theme='light'] .glass {
-	background: rgba(255, 255, 255, 0.85) !important;
-}
+/* Let --surface-panel handle light mode opacity instead of hardcoding */
 
 /* Glass inputs and inner elements */
 select, input[type="text"], input[type="number"], .method, .glass-element {
