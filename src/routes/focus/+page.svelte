@@ -60,6 +60,7 @@
 	let locked = false; 
 	let touchStartX = 0;
 	let touchEndX = 0;
+	let slideDirection = 1;
 
 	function handleTouchStart(e: TouchEvent) {
 		touchStartX = e.changedTouches[0].screenX;
@@ -459,7 +460,9 @@
 	</div>
 
 	<div class="layout" on:touchstart={handleTouchStart} on:touchend={handleTouchEnd}>
-		<div class="stage card" in:fly={{ y: 10, duration: 260 }}>
+		<div class="stage-wrapper">
+		{#key tab}
+			<div class="stage card" in:fly={{ x: slideDirection * 60, duration: 300, delay: 0 }} out:fly={{ x: -slideDirection * 60, duration: 300 }}>
 			{#if showSettings}
 				<div class="settings" in:fly={{ y: -6, duration: 200 }}>
 					<label class="field"><span>Chime</span>
@@ -582,6 +585,8 @@
 				{/if}
 			</div>
 		</div>
+		{/key}
+	</div>
 
 		<div class="side">
 			<div class="stat-grid">
@@ -890,5 +895,17 @@
 		.analytics { grid-template-columns: 1fr !important; }
 		.stat-grid { grid-template-columns: 1fr 1fr; }
 		.stage { width: 100% !important; box-sizing: border-box; }
+	}
+
+	.stage-wrapper {
+		display: grid;
+		grid-template-columns: 1fr;
+		grid-template-rows: 1fr;
+		width: 100%;
+		overflow: hidden; /* prevent horizontal scrollbars during animation */
+	}
+	.stage-wrapper > * {
+		grid-column: 1;
+		grid-row: 1;
 	}
 </style>
