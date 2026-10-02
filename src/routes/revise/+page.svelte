@@ -275,5 +275,5 @@
 	}
 	.sample-btn:hover { border-color: var(--accent); color: var(--accent); }
 	.sample-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-	@media (max-width: 640px) { .kpis { grid-template-columns: 1fr; } }
+	@media (max-width: 760px) { .kpis { grid-template-columns: 1fr; } }
 </style>

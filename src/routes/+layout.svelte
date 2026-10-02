@@ -1,10 +1,11 @@
 <script lang="ts">
 	import '../app.css';
 	import { browser } from '$app/environment';
-	import { goto } from '$app/navigation';
+	import { goto, beforeNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import AppSidebar from '$lib/components/AppSidebar.svelte';
+	import MobileBottomNav from '$lib/components/MobileBottomNav.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import GlobalOverlays from '$lib/components/GlobalOverlays.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
@@ -18,6 +19,13 @@
 
 	let collapsed = false;
 	let mobileOpen = false;
+
+	beforeNavigate(({ cancel }) => {
+		if (mobileOpen) {
+			mobileOpen = false;
+			cancel();
+		}
+	});
 
 	const titles: Record<string, string> = {
 		'/': 'Home', '/log': 'Question Log', '/review': 'Review', '/plan': 'Plan', '/focus': 'Focus', '/todo': 'To Do', '/revise': 'Revise',
@@ -37,12 +45,40 @@
 		}
 	}
 
-	function applyTheme(state: { theme: string; ui: { accent: string } }) {
+	function applyTheme(state: { theme: string; ui: { accent: string, wallpaper?: string | null } }) {
 		const root = document.documentElement;
 		root.setAttribute('data-theme', state.theme);
 		root.style.setProperty('--accent', state.ui.accent);
 		root.style.setProperty('--accent-strong', `color-mix(in srgb, ${state.ui.accent}, black 14%)`);
 		root.style.setProperty('--accent-soft', `color-mix(in srgb, ${state.ui.accent}, transparent ${isDarkTheme(state.theme) ? '82%' : '88%'})`);
+		if (state.ui.wallpaper) {
+			root.setAttribute('data-wallpaper', 'true');
+			root.style.setProperty('--user-wallpaper', `url(${state.ui.wallpaper})`);
+			
+			// Inject dynamic glass opacity based on user preference
+			const opacity = state.ui.glassStrength ?? 45; // Default to 45% opacity (heavy glassmorphism)
+			const t = 100 - opacity; // Transparency percentage
+			const st = Math.min(100, t + 7);
+			
+			if (isDarkTheme(state.theme)) {
+				root.style.setProperty('--surface-panel', `color-mix(in srgb, #0a0a10, transparent ${t}%)`);
+				root.style.setProperty('--surface-subtle', `color-mix(in srgb, #0a0a10, transparent ${st}%)`);
+			} else {
+				root.style.setProperty('--surface-panel', `color-mix(in srgb, #ffffff, transparent ${t}%)`);
+				root.style.setProperty('--surface-subtle', `color-mix(in srgb, #ffffff, transparent ${st}%)`);
+			}
+		} else {
+			root.style.removeProperty('--surface-panel');
+			root.style.removeProperty('--surface-subtle');
+			root.removeAttribute('data-wallpaper');
+			root.style.removeProperty('--user-wallpaper');
+		}
+		
+		if (state.ui.reducedMotion) {
+			root.setAttribute('data-reduced-motion', 'true');
+		} else {
+			root.removeAttribute('data-reduced-motion');
+		}
 	}
 
 	onMount(() => {
@@ -75,6 +111,7 @@
 			</header>
 			<main><slot /></main>
 		</div>
+		<MobileBottomNav />
 		<GlobalOverlays />
 	</div>
 {:else}
@@ -107,7 +144,7 @@
 		.save-state { display: none; }
 		.quick-add span { display: none; }
 		.quick-add { width: 36px; justify-content: center; padding: 0; }
-		main { padding: 1.4rem 1.15rem 3rem; }
+		main { padding: 1rem .75rem 100px; }
 		.scrim { display: block; position: fixed; z-index: 10; inset: 0; border: 0; background: rgb(16 14 30 / 34%); backdrop-filter: blur(2px); }
 	}
 </style>

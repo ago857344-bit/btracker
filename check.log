@@ -1,0 +1,257 @@
+
+> btracker-next@0.1.0 check
+> svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+
+Loading svelte-check in workspace: /Users/atharv/Desktop/act-as-an-expert-full-stack
+Getting Svelte diagnostics...
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/lib/stores/recall-actions.ts:503:41
+Error: No overload matches this call.
+  Overload 1 of 4, '(value: string | number | Date): Date', gave the following error.
+    Argument of type 'number | null' is not assignable to parameter of type 'string | number | Date'.
+      Type 'null' is not assignable to type 'string | number | Date'.
+  Overload 2 of 4, '(value: string | number): Date', gave the following error.
+    Argument of type 'number | null' is not assignable to parameter of type 'string | number'.
+      Type 'null' is not assignable to type 'string | number'. 
+		const today = todayKey();
+		const lastRevDate = dayKeyOf(new Date(chapter.decay.lastRevisionAt));
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/lib/components/ui/Modal.svelte:18:3
+Warn: Elements with the 'dialog' interactive role must have a tabindex value
+https://svelte.dev/e/a11y_interactive_supports_focus (svelte)
+	<div class="modal-backdrop" transition:fade={{ duration: 160 }} role="presentation" on:click={close} on:keydown={() => {}}>
+		<div class="modal-card glass" style="max-width: {width}" transition:fly={{ y: 14, duration: 200 }} role="dialog" aria-modal="true" aria-label={title} on:click|stopPropagation on:keydown={() => {}}>
+			<header>
+				<h3>{title}</h3>
+				<button type="button" class="modal-x" aria-label="Close" on:click={close}><NavIcon name="x" size={16} /></button>
+			</header>
+			<div class="modal-body"><slot /></div>
+			{#if $$slots.footer}<footer><slot name="footer" /></footer>{/if}
+		</div>
+	</div>
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/lib/components/StatRing.svelte:39:2
+Warn: Do not use empty rulesets (css)
+	svg { position: absolute; inset: 0; }
+	.progress {  }
+	.content { position: relative; display: grid; place-items: center; text-align: center; }
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/lib/components/focus/WeeklyReportCard.svelte:38:12
+Error: Object is possibly 'undefined'. (ts)
+			if (dayStat) {
+				sum += Object.values(dayStat).reduce((acc, v) => acc + (v || 0), 0);
+			}
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/lib/components/focus/WeeklyReportCard.svelte:38:54
+Error: 'acc' is possibly 'undefined'. (ts)
+			if (dayStat) {
+				sum += Object.values(dayStat).reduce((acc, v) => acc + (v || 0), 0);
+			}
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/lib/components/revise/TimelineStrip.svelte:39:3
+Warn: Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+	<div class="timeline-scroll">
+		<div class="timeline-track" on:click={handleEmptyClick}>
+			{#each hours as h}
+				<div class="hour-marker" style="left: {(h - 6) * 80}px">
+					<span>{h > 12 ? h - 12 : (h === 12 ? 12 : h)} {h >= 12 && h < 24 ? 'PM' : 'AM'}</span>
+				</div>
+			{/each}
+
+			{#each blocks as block}
+				<button 
+					type="button"
+					class="block" 
+					style="left: {getOffset(block.start)}px; width: {getWidth(block.start, block.end)}px"
+					on:click|stopPropagation={() => dispatch('nest', { blockId: block.id })}
+					title="Click to nest revision inside {block.title || 'Study Block'}"
+				>
+					<div class="block-title">{block.title || 'Study Block'}</div>
+				</button>
+			{/each}
+		</div>
+	</div>
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/lib/components/revise/TimelineStrip.svelte:39:3
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+	<div class="timeline-scroll">
+		<div class="timeline-track" on:click={handleEmptyClick}>
+			{#each hours as h}
+				<div class="hour-marker" style="left: {(h - 6) * 80}px">
+					<span>{h > 12 ? h - 12 : (h === 12 ? 12 : h)} {h >= 12 && h < 24 ? 'PM' : 'AM'}</span>
+				</div>
+			{/each}
+
+			{#each blocks as block}
+				<button 
+					type="button"
+					class="block" 
+					style="left: {getOffset(block.start)}px; width: {getWidth(block.start, block.end)}px"
+					on:click|stopPropagation={() => dispatch('nest', { blockId: block.id })}
+					title="Click to nest revision inside {block.title || 'Study Block'}"
+				>
+					<div class="block-title">{block.title || 'Study Block'}</div>
+				</button>
+			{/each}
+		</div>
+	</div>
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/lib/components/ui/InfoTip.svelte:5:1
+Warn: noninteractive element cannot have nonnegative tabIndex value
+https://svelte.dev/e/a11y_no_noninteractive_tabindex (svelte)
+
+<span class="tip" tabindex="0" aria-label={text}>
+	<i>i</i>
+	<span class="tip-bubble" role="tooltip">{text}</span>
+</span>
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/+layout.svelte:59:29
+Error: Property 'glassStrength' does not exist on type '{ accent: string; wallpaper?: string | null | undefined; }'. (ts)
+			// Inject dynamic glass opacity based on user preference
+			const opacity = state.ui.glassStrength ?? 45; // Default to 45% opacity (heavy glassmorphism)
+			const t = 100 - opacity; // Transparency percentage
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/+layout.svelte:77:16
+Error: Property 'reducedMotion' does not exist on type '{ accent: string; wallpaper?: string | null | undefined; }'. (ts)
+		
+		if (state.ui.reducedMotion) {
+			root.setAttribute('data-reduced-motion', 'true');
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/+page.svelte:22:8
+Error: Property 'recommendation' is missing in type '{ 'daily-progress': { title: string; eyebrow: string; icon: "focus"; comp: __sveltets_2_IsomorphicComponent<Record<string, never>, { [evt: string]: CustomEvent<any>; }, {}, {}, string>; }; ... 7 more ...; activity: { ...; }; }' but required in type 'Record<"quote" | "weekly-standing" | "recommendation" | "new-target" | "daily-progress" | "due-homework" | "subjects" | "standing" | "up-next" | "activity", { title: string; eyebrow: string; icon: "target" | ... 66 more ... | undefined; comp: any; }>'. (ts)
+
+	const registry: Record<WidgetLayout['id'], { title: string; eyebrow: string; icon: ComponentProps<NavIcon>['name']; comp: any }> = {
+		'daily-progress': { title: 'Daily progress', eyebrow: 'Today', icon: 'focus', comp: DailyProgressWidget },
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/focus/+page.svelte:851:3
+Warn: Unused CSS selector ".ring-wrapper"
+https://svelte.dev/e/css_unused_selector (svelte)
+		.dial .time { font-size: 2.4rem; }
+		.ring-wrapper { transform: scale(0.95); transform-origin: center; }
+		.toolbar { flex-wrap: wrap; width: 100% !important; }
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/reminders/+page.svelte:287:9
+Warn: Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+							<div class="r-actions">
+								<div class="snooze-wrap" on:click|stopPropagation={() => {}}>
+									<button type="button" class="link snooze-btn" on:click={() => (snoozeMenu = snoozeMenu === card.id ? null : card.id)}>
+										<NavIcon name="clock" size={13} />
+										Snooze
+										<NavIcon name="chevron-down" size={12} />
+									</button>
+									{#if snoozeMenu === card.id}
+										<div class="snooze-pop" role="menu" on:click|stopPropagation={() => {}}>
+											{#each snoozeOptions as opt}
+												<button type="button" role="menuitem" on:click={() => { snooze(card.id, opt); snoozeMenu = null; }}>{opt}</button>
+											{/each}
+										</div>
+									{/if}
+								</div>
+								{#if card.source === 'revision'}
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/reminders/+page.svelte:287:9
+Warn: `<div>` with a click handler must have an ARIA role
+https://svelte.dev/e/a11y_no_static_element_interactions (svelte)
+							<div class="r-actions">
+								<div class="snooze-wrap" on:click|stopPropagation={() => {}}>
+									<button type="button" class="link snooze-btn" on:click={() => (snoozeMenu = snoozeMenu === card.id ? null : card.id)}>
+										<NavIcon name="clock" size={13} />
+										Snooze
+										<NavIcon name="chevron-down" size={12} />
+									</button>
+									{#if snoozeMenu === card.id}
+										<div class="snooze-pop" role="menu" on:click|stopPropagation={() => {}}>
+											{#each snoozeOptions as opt}
+												<button type="button" role="menuitem" on:click={() => { snooze(card.id, opt); snoozeMenu = null; }}>{opt}</button>
+											{/each}
+										</div>
+									{/if}
+								</div>
+								{#if card.source === 'revision'}
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/reminders/+page.svelte:294:11
+Warn: Elements with the 'menu' interactive role must have a tabindex value
+https://svelte.dev/e/a11y_interactive_supports_focus (svelte)
+									{#if snoozeMenu === card.id}
+										<div class="snooze-pop" role="menu" on:click|stopPropagation={() => {}}>
+											{#each snoozeOptions as opt}
+												<button type="button" role="menuitem" on:click={() => { snooze(card.id, opt); snoozeMenu = null; }}>{opt}</button>
+											{/each}
+										</div>
+									{/if}
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/reminders/+page.svelte:294:11
+Warn: Visible, non-interactive element `<div>` with a click event must be accompanied by a keyboard event handler. Consider whether an interactive element such as `<button type="button">` or `<a>` might be more appropriate
+https://svelte.dev/e/a11y_click_events_have_key_events (svelte)
+									{#if snoozeMenu === card.id}
+										<div class="snooze-pop" role="menu" on:click|stopPropagation={() => {}}>
+											{#each snoozeOptions as opt}
+												<button type="button" role="menuitem" on:click={() => { snooze(card.id, opt); snoozeMenu = null; }}>{opt}</button>
+											{/each}
+										</div>
+									{/if}
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/settings/+page.svelte:26:33
+Error: Parameter 'e' implicitly has an 'any' type. (ts)
+
+	function handleWallpaperUpload(e) {
+		const file = e.currentTarget.files?.[0];
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/settings/+page.svelte:32:17
+Error: 'event.target' is possibly 'null'. (ts)
+		reader.onload = (event) => {
+			const data = event.target.result;
+			const img = new Image();
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/settings/+page.svelte:49:5
+Error: 'ctx' is possibly 'null'. (ts)
+				const ctx = canvas.getContext('2d');
+				ctx.drawImage(img, 0, 0, width, height);
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/settings/+page.svelte:56:4
+Error: Type 'string | ArrayBuffer | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'. (ts)
+			};
+			img.src = data;
+		};
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/settings/+page.svelte:74:6
+Error: Variable 'analysisTimer' implicitly has type 'any' in some locations where its type cannot be determined. (ts)
+
+	let analysisTimer;
+	function analyzeWallpaper(url) {
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/settings/+page.svelte:75:28
+Error: Parameter 'url' implicitly has an 'any' type. (ts)
+	let analysisTimer;
+	function analyzeWallpaper(url) {
+		if (!url) return;
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/settings/+page.svelte:77:16
+Error: Variable 'analysisTimer' implicitly has an 'any' type. (ts)
+		if (!url) return;
+		clearTimeout(analysisTimer);
+		analysisTimer = setTimeout(() => {
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/settings/+page.svelte:95:6
+Error: 'ctx' is possibly 'null'. (ts)
+					canvas.width = 64; canvas.height = 64;
+					ctx.drawImage(img, 0, 0, 64, 64);
+					const data = ctx.getImageData(0, 0, 64, 64).data;
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/settings/+page.svelte:96:19
+Error: 'ctx' is possibly 'null'. (ts)
+					ctx.drawImage(img, 0, 0, 64, 64);
+					const data = ctx.getImageData(0, 0, 64, 64).data;
+					let r = 0, g = 0, b = 0, count = 0;
+
+/Users/atharv/Desktop/act-as-an-expert-full-stack/src/routes/settings/+page.svelte:252:17
+Error: Type '"image"' is not assignable to type '"target" | "list" | "focus" | "quote" | "search" | "x" | "atom" | "bolt" | "calculator" | "revise" | "home" | "plan" | "tests" | "mastery" | "friends" | "stats" | "reminders" | "menu" | ... 49 more ... | undefined'. (ts)
+		<div class="panel">
+			<h2><NavIcon name="image" size={15} /> Wallpaper & Glass</h2>
+
+====================================
+svelte-check found 16 errors and 10 warnings in 11 files

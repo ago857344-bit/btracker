@@ -455,7 +455,7 @@
 	.solid { border: 0; background: var(--accent); color: #fff; box-shadow: 0 8px 18px color-mix(in srgb, var(--accent), transparent 65%); }
 	.solid:disabled { opacity: .45; cursor: default; box-shadow: none; }
 
-	@media (max-width: 720px) {
+	@media (max-width: 760px) {
 		.r-card { grid-template-columns: 38px 1fr; }
 		.r-card::before { width: 2.5px; }
 		.icon-wrap { width: 38px; height: 38px; border-radius: 12px; flex: 0 0 38px; }

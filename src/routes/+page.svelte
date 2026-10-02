@@ -9,7 +9,6 @@
 	import QuoteWidget from '$lib/components/widgets/QuoteWidget.svelte';
 	import DailyProgressWidget from '$lib/components/widgets/DailyProgressWidget.svelte';
 	import WeeklyStandingWidget from '$lib/components/widgets/WeeklyStandingWidget.svelte';
-	import RecommendationWidget from '$lib/components/widgets/RecommendationWidget.svelte';
 	import NewTargetWidget from '$lib/components/widgets/NewTargetWidget.svelte';
 	import DueHomeworkWidget from '$lib/components/widgets/DueHomeworkWidget.svelte';
 	import SubjectCardsWidget from '$lib/components/widgets/SubjectCardsWidget.svelte';
@@ -24,7 +23,6 @@
 		'daily-progress': { title: 'Daily progress', eyebrow: 'Today', icon: 'focus', comp: DailyProgressWidget },
 		quote: { title: 'Daily quote', eyebrow: 'Motivation', icon: 'quote', comp: QuoteWidget },
 		'weekly-standing': { title: 'Last 7 days', eyebrow: 'Consistency', icon: 'stats', comp: WeeklyStandingWidget },
-		recommendation: { title: 'Smart recommendation', eyebrow: 'For you', icon: 'bulb', comp: RecommendationWidget },
 		'new-target': { title: 'New target', eyebrow: 'Exam countdown', icon: 'target', comp: NewTargetWidget },
 		'due-homework': { title: 'Due homework', eyebrow: 'Deadlines', icon: 'plan', comp: DueHomeworkWidget },
 		subjects: { title: 'Subject hubs', eyebrow: 'Questions solved', icon: 'layers', comp: SubjectCardsWidget },
@@ -36,12 +34,11 @@
 	let targetsOpen = false;
 
 	// In customize mode show every widget (even hidden) so it can be re-enabled.
-	$: visible = $customizingHome
-		? [...$tracker.ui.widgets].sort((a, b) => a.order - b.order)
-		: $dashboardWidgets.filter((widget) => widget.id !== 'recommendation');
+	$: visible = ($customizingHome ? [...$tracker.ui.widgets] : $dashboardWidgets)
+		.filter(w => w.id !== 'recommendation')
+		.sort((a, b) => a.order - b.order);
 	$: hiddenCount = $tracker.ui.widgets.filter((w) => !w.enabled).length;
-	$: recEnabled = $tracker.ui.widgets.find((w) => w.id === 'recommendation')?.enabled ?? true;
-	$: showFloatingRec = !$customizingHome && recEnabled && !$tracker.norec;
+	
 
 	$: name = $tracker.meta.name.trim();
 	const hour = new Date().getHours();
@@ -83,17 +80,13 @@
 					on:toggle={() => updateWidget(widget.id, { enabled: !widget.enabled })}
 					on:resize={() => cycleWidgetSpan(widget.id)}
 				>
-					{#if widget.id === 'recommendation'}
-						<RecommendationWidget embedded />
-					{:else}
-						<svelte:component this={registry[widget.id].comp} />
-					{/if}
+					<svelte:component this={registry[widget.id].comp} />
 				</WidgetShell>
 			</div>
 		{/each}
 	</div>
 
-	{#if showFloatingRec}<RecommendationWidget />{/if}
+	
 </section>
 
 <TargetsModal bind:open={targetsOpen} />
@@ -121,7 +114,7 @@
 		.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } 
 		.cell.span-3 { grid-column: span 2; } 
 	}
-	@media (max-width: 720px) { 
+	@media (max-width: 760px) { 
 		.grid { grid-template-columns: minmax(0, 1fr); } 
 		.cell.span-2, .cell.span-3 { grid-column: span 1; } 
 		.hero-tools { width: 100%; justify-content: space-between; } 

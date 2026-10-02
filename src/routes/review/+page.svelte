@@ -123,7 +123,7 @@
 	.summary .retry, .marks .retry { color: var(--accent); border-color: color-mix(in srgb, var(--accent), transparent 55%); background: var(--accent-soft); }
 	.summary .stuck, .marks .stuck { color: var(--warning); border-color: color-mix(in srgb, var(--warning), transparent 55%); background: color-mix(in srgb, var(--warning), transparent 87%); }
 	.tabs { display: flex; gap: .35rem; padding: .35rem; width: fit-content; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-panel); }
-	.tabs button { display: inline-flex; align-items: center; gap: .45rem; min-height: 34px; padding: 0 .75rem; border: 0; border-radius: 9px; color: var(--text-secondary); background: transparent; font-size: .76rem; font-weight: 750; }
+	.tabs button { display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; padding: 0 .75rem; border: 0; border-radius: 9px; color: var(--text-secondary); background: transparent; font-size: .76rem; font-weight: 750; }
 	.tabs button:hover { color: var(--text-primary); background: var(--surface-subtle); }
 	.tabs button.active { color: var(--accent); background: var(--accent-soft); }
 	.tabs button span { display: grid; min-width: 18px; height: 18px; place-items: center; padding: 0 .25rem; border-radius: 99px; color: inherit; background: color-mix(in srgb, currentColor, transparent 88%); font-size: .62rem; font-variant-numeric: tabular-nums; }
@@ -139,7 +139,7 @@
 	.empty { padding: 3.5rem 1.25rem; border: 1px dashed var(--border-subtle); border-radius: 18px; color: var(--text-secondary); text-align: center; }
 	.empty h2 { margin: 0 0 .45rem; color: var(--text-primary); font-size: 1.05rem; }
 	.empty p { margin: 0; font-size: .82rem; }
-	@media (max-width: 640px) {
+	@media (max-width: 760px) {
 		.hero { align-items: start; flex-direction: column; }
 		.summary { justify-content: flex-start; }
 		.question { grid-template-columns: 58px 1fr; gap: .7rem; }

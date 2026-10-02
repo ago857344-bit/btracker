@@ -118,7 +118,7 @@ export const DEFAULT_WIDGETS: WidgetLayout[] = [
 	{ id: 'standing', enabled: false, order: 8, span: 1 },
 	{ id: 'recommendation', enabled: true, order: 9, span: 3 }
 ];
-export const createUiPreferences = (): UiPreferences => ({ accent: '#6d5dfc', widgets: DEFAULT_WIDGETS, reducedMotion: false });
+export const createUiPreferences = (): UiPreferences => ({ accent: '#6d5dfc', widgets: DEFAULT_WIDGETS, reducedMotion: false, wallpaper: null, glassStrength: 100 });
 export const createInitialTrackerState = (): TrackerState => ({
 	stateVersion: 5, d: {}, n: {}, r: {}, x: createCustomization(), h: [], hd: [], log: [], stat: {}, marks: createMarks(), dl: [],
 	norec: false, hwSort: 'loc', goals: createGoals(), col: [], bm: {}, notes: [], an: createAnalysis(), rev: createRevision(),

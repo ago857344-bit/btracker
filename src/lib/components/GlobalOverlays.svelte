@@ -47,7 +47,7 @@
 
 	.prompt-copy { margin: 0; color: var(--text-secondary); font-size: .85rem; }
 	.prompt-copy b { color: var(--text-primary); }
-	.btn { height: 36px; padding: 0 .95rem; border-radius: 11px; font-size: .78rem; font-weight: 750; border: 1px solid transparent; cursor: pointer; }
+	.btn { height: 44px; padding: 0 .95rem; border-radius: 11px; font-size: .78rem; font-weight: 750; border: 1px solid transparent; cursor: pointer; }
 	.btn.ghost { color: var(--text-secondary); border-color: var(--border-subtle); background: transparent; }
 	.btn.ghost:hover { color: var(--text-primary); }
 	.btn.solid { color: white; background: var(--accent); }

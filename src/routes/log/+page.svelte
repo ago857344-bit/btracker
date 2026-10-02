@@ -229,8 +229,8 @@
 	.panel { max-width: 460px; padding: 1.1rem 1.2rem; border: 1px solid var(--border-subtle); border-radius: 18px; background: var(--surface-panel); }
 	.blabel { margin: 0 0 .6rem; color: var(--text-secondary); font-size: .72rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
 	.row { display: flex; gap: .55rem; }
-	.row input { width: 140px; height: 38px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-subtle); color: var(--text-primary); font-size: .9rem; }
-	.primary { height: 38px; padding: 0 1rem; border: 0; border-radius: 11px; background: var(--accent); color: white; font-size: .82rem; font-weight: 750; }
+	.row input { width: 140px; height: 44px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-subtle); color: var(--text-primary); font-size: .9rem; }
+	.primary { height: 44px; padding: 0 1rem; border: 0; border-radius: 11px; background: var(--accent); color: white; font-size: .82rem; font-weight: 750; }
 	.msg { margin: .6rem 0 0; color: var(--danger); font-size: .78rem; font-weight: 650; }
 	.emptywide { color: var(--text-secondary); font-size: .86rem; }
 </style>

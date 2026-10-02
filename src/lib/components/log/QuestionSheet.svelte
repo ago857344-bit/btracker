@@ -6,6 +6,7 @@
 		applyQuestionAction, bulkExercise, setQuestionNote, setQuestionReasons, setQuestionResult,
 		setQuestionStars, toggleQuestionDone, toggleQuestionFlag, tracker, type QuestionAction, type QuestionLoc
 	} from '$lib/stores/tracker';
+	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
 	import { cellKey, questionCount, questionKey } from '$lib/state/syllabus';
 	import { accuracyOf, exerciseStats, isDone, isFlag, parseRange, pctOf, resultOf, starsOf } from '$lib/state/questions';
 
@@ -394,7 +395,7 @@
 	.flag.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 	.stuck.on { border-color: var(--warning); background: color-mix(in srgb, var(--warning), transparent 84%); color: var(--warning); }
 	.c-stars { display: flex; gap: .1rem; }
-	.star { border: 0; background: transparent; color: var(--border-subtle); font-size: 1rem; line-height: 1; padding: .1rem; }
+	.star { border: 0; background: transparent; color: var(--border-subtle); font-size: 1.15rem; line-height: 1; padding: .2rem; min-width: 20px; min-height: 20px; }
 	.star.on { color: var(--warning); }
 	.empty { padding: 2rem 1rem; text-align: center; color: var(--text-secondary); font-size: .84rem; }
 	.hint { margin: .7rem 0 0; color: var(--text-secondary); font-size: .74rem; }
@@ -404,8 +405,15 @@
 	.ghostbtn { height: 36px; padding: 0 .9rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: .8rem; font-weight: 700; }
 	.dangerbtn { height: 36px; padding: 0 1rem; border: 0; border-radius: 10px; background: var(--danger); color: white; font-size: .8rem; font-weight: 750; }
 	@media (max-width: 860px) {
-		.qrow { grid-template-columns: 48px 40px 96px 108px 70px; padding-inline: .45rem; }
+		.qrow { grid-template-columns: 42px 36px 80px 1fr 84px 72px; padding-inline: .35rem; gap: .25rem; }
 		.c-note { display: none; }
 		.qrow.head span:nth-child(4) { display: none; }
+	}
+	@media (max-width: 480px) {
+		.qrow { grid-template-columns: 36px 32px 72px 1fr 70px; padding-inline: .25rem; gap: .2rem; }
+		.c-note { display: none; }
+		.c-stars { display: none; }
+		.qrow.head span:nth-child(4) { display: none; }
+		.qrow.head span:nth-child(6) { display: none; }
 	}
 </style>

@@ -84,7 +84,9 @@
 		position: fixed;
 		inset: 0;
 		z-index: 9999;
-		background: var(--surface-canvas, #000);
+		background: #050510 !important;
+		backdrop-filter: none !important;
+		-webkit-backdrop-filter: none !important;
 		display: flex;
 		flex-direction: column;
 		transition: background-color 0.5s ease;

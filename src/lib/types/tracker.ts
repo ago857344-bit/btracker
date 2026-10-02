@@ -224,11 +224,11 @@ export interface PomodoroSettings {
 }
 
 export interface WidgetLayout {
-	id: 'quote' | 'weekly-standing' | 'recommendation' | 'new-target' | 'daily-progress' | 'due-homework'
+	id: 'quote' | 'weekly-standing' | 'new-target' | 'daily-progress' | 'due-homework'
 		| 'subjects' | 'standing' | 'up-next' | 'activity';
 	enabled: boolean; order: number; span: 1 | 2 | 3; height?: 'sm' | 'md' | 'lg';
 }
-export interface UiPreferences { accent: string; widgets: WidgetLayout[]; reducedMotion: boolean }
+export interface UiPreferences { accent: string; widgets: WidgetLayout[]; reducedMotion: boolean; wallpaper?: string | null; glassStrength?: number; }
 
 export interface TrackerState {
 	stateVersion: 5;

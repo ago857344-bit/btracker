@@ -500,7 +500,7 @@ export function boostChapterFromPractice(chapterKey: string) {
 
 		// Already exists. Did they already boost it today?
 		const today = todayKey();
-		const lastRevDate = dayKeyOf(new Date(chapter.decay.lastRevisionAt));
+		const lastRevDate = chapter.decay.lastRevisionAt ? dayKeyOf(new Date(chapter.decay.lastRevisionAt)) : 0;
 		
 		if (lastRevDate === today) {
 			return $tracker; // Already boosted today, prevent half-life explosion from logging 50 questions

@@ -25,6 +25,14 @@
 
 	const isActive = (href: string) => href === '/' ? $page.url.pathname === '/' : $page.url.pathname.startsWith(href);
 	const closeMobile = () => mobileOpen = false;
+
+	function handleToggle() {
+		if (typeof window !== 'undefined' && window.innerWidth <= 760) {
+			mobileOpen = false;
+		} else {
+			collapsed = !collapsed;
+		}
+	}
 </script>
 
 <aside class="glass" class:collapsed class:mobile-open={mobileOpen} aria-label="Primary navigation">
@@ -33,7 +41,7 @@
 			<span class="brand-mark">B</span>
 			<span class="brand-name">btracker</span>
 		</a>
-		<button class="collapse" type="button" on:click={() => collapsed = !collapsed} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+		<button class="collapse" type="button" on:click={handleToggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
 			<NavIcon name="chevron" size={18} />
 		</button>
 	</div>
@@ -80,7 +88,7 @@
 	.brand { display: inline-flex; align-items: center; gap: .65rem; min-width: 0; color: var(--text-primary); text-decoration: none; font-weight: 800; letter-spacing: -.055em; font-size: 1.24rem; }
 	.brand-mark { display: grid; place-items: center; flex: 0 0 31px; width: 31px; height: 31px; border-radius: 10px; background: var(--accent); color: white; font-size: 1rem; letter-spacing: -.07em; box-shadow: 0 6px 14px color-mix(in srgb, var(--accent), transparent 65%); }
 	.brand-name, .nav-text, .nav-label, .profile-copy { white-space: nowrap; overflow: hidden; transition: opacity .18s ease; }
-	.collapse { display: grid; place-items: center; margin-left: auto; width: 30px; height: 30px; border: 0; border-radius: 9px; color: var(--text-secondary); background: transparent; }
+	.collapse { display: grid; place-items: center; margin-left: auto; width: 30px; height: 30px; border: 0; border-radius: 9px; color: var(--text-secondary); background: transparent; transform: rotate(180deg); } /* Points Left (<) when open */
 	.collapse:hover { color: var(--accent); background: var(--accent-soft); }
 	nav { display: grid; gap: .2rem; margin-top: 1.15rem; }
 	.nav-label { margin: .8rem .65rem .45rem; color: var(--text-secondary); font-size: .67rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
@@ -98,10 +106,15 @@
 	aside.collapsed { width: 76px; }
 	aside.collapsed .brand-name, aside.collapsed .nav-text, aside.collapsed .nav-label, aside.collapsed .profile-copy { width: 0; opacity: 0; }
 	aside.collapsed .brand-row { justify-content: center; padding-inline: 0; }
-	aside.collapsed .collapse { position: absolute; right: -12px; top: 24px; width: 24px; height: 24px; border: 1px solid var(--border-subtle); background: var(--surface-panel); transform: rotate(180deg); }
-	aside.collapsed nav a, aside.collapsed .settings-link { justify-content: center; padding-inline: 0; }
+	aside.collapsed .brand { gap: 0; }
+	aside.collapsed .collapse { position: absolute; right: -12px; top: 24px; width: 24px; height: 24px; border: 1px solid var(--border-subtle); background: var(--surface-panel); transform: rotate(0deg); } /* Points Right (>) when closed */
+	aside.collapsed nav a, aside.collapsed .settings-link { justify-content: center; padding-inline: 0; gap: 0; }
 	aside.collapsed .nav-divider { margin-inline: .3rem; }
 	aside.collapsed .profile-container { justify-content: center; padding-inline: 0; }
+	aside.collapsed :global(.signin span) { width: 0; opacity: 0; overflow: hidden; display: none; }
+	aside.collapsed :global(.signin) { justify-content: center; width: 36px; height: 36px; padding: 0; }
+	aside.collapsed :global(.signin svg) { margin: 0; }
+
 	
 	@media (max-width: 760px) {
 		aside { width: 270px; transform: translateX(-102%); box-shadow: var(--shadow-card); }

@@ -268,19 +268,19 @@
 <style>
 	.plan { display: grid; gap: 1.1rem; }
 	.tabs { display: inline-flex; gap: .3rem; justify-self: start; padding: .28rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-panel); }
-	.tabs button { width: 140px; height: 34px; padding: 0 1rem; border: 0; border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: .78rem; font-weight: 750; letter-spacing: .02em; cursor: pointer; font-family: inherit; }
+	.tabs button { width: 140px; height: 44px; padding: 0 1rem; border: 0; border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: .78rem; font-weight: 750; letter-spacing: .02em; cursor: pointer; font-family: inherit; }
 	.tabs button.selected { color: white; background: var(--accent); box-shadow: 0 6px 14px color-mix(in srgb, var(--accent), transparent 68%); }
 
 	.toolbar { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; }
 	.legend { display: inline-flex; align-items: center; gap: .4rem; color: var(--text-secondary); font-size: .64rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
 	.missed-dot { width: 9px; height: 9px; border: 1.6px solid var(--text-secondary); border-radius: 99px; background: transparent; }
-	.tool { display: inline-flex; align-items: center; gap: .35rem; height: 34px; padding: 0 .75rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-panel); color: var(--text-secondary); font-size: .72rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .16s ease; }
+	.tool { display: inline-flex; align-items: center; gap: .35rem; height: 44px; padding: 0 .75rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-panel); color: var(--text-secondary); font-size: .72rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .16s ease; }
 	.tool:hover { color: var(--text-primary); border-color: var(--accent); }
 	.tool.icon { width: 34px; justify-content: center; padding: 0; }
 	.flip { display: grid; transform: rotate(180deg); }
 	.cursor-label { font-size: .86rem; letter-spacing: -.02em; }
 	.view-toggle { display: inline-flex; margin-left: auto; padding: .25rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-panel); }
-	.view-toggle button { height: 28px; padding: 0 .8rem; border: 0; border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: .7rem; font-weight: 750; cursor: pointer; font-family: inherit; transition: all .16s ease; }
+	.view-toggle button { height: 44px; padding: 0 .8rem; border: 0; border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: .7rem; font-weight: 750; cursor: pointer; font-family: inherit; transition: all .16s ease; }
 	.view-toggle button.selected { color: var(--accent); background: var(--accent-soft); }
 
 	.week-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: .5rem; }
@@ -317,7 +317,7 @@
 	.day-actions .tool { height: 32px; padding: 0 .65rem; font-size: .7rem; }
 
 	.list-tools { display: flex; gap: .5rem; flex-wrap: wrap; }
-	.search { display: flex; align-items: center; gap: .5rem; flex: 1; min-width: 170px; height: 34px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-subtle); color: var(--text-secondary); }
+	.search { display: flex; align-items: center; gap: .5rem; flex: 1; min-width: 170px; height: 44px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-subtle); color: var(--text-secondary); }
 	.search input { flex: 1; border: 0; background: transparent; color: var(--text-primary); font-size: .78rem; font-family: inherit; }
 	.search input:focus { outline: none; }
 	.funnel { display: inline-flex; align-items: center; gap: .4rem; height: 34px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-subtle); color: var(--text-secondary); }
@@ -358,6 +358,6 @@
 	.lib-list li { display: flex; align-items: center; gap: .7rem; padding: .7rem .8rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); }
 	.lib-list b { display: block; font-size: .8rem; }
 	.lib-list small { color: var(--text-secondary); font-size: .68rem; }
-	.apply { margin-left: auto; height: 30px; padding: 0 .75rem; border: 0; border-radius: 9px; background: var(--accent); color: white; font-size: .72rem; font-weight: 750; cursor: pointer; }
+	.apply { margin-left: auto; height: 44px; padding: 0 .75rem; border: 0; border-radius: 9px; background: var(--accent); color: white; font-size: .72rem; font-weight: 750; cursor: pointer; }
 	.lib-empty { margin: 0; color: var(--text-secondary); font-size: .8rem; line-height: 1.6; }
 </style>
