@@ -23,10 +23,14 @@
 	onNavigate((navigation) => {
 		if (!document.startViewTransition) return;
 		return new Promise((resolve) => {
-			document.startViewTransition(async () => {
+			const transition = document.startViewTransition(async () => {
 				resolve();
 				await navigation.complete;
 			});
+			// Catch rapid navigation aborts
+			transition.finished.catch(() => {});
+			transition.ready.catch(() => {});
+			transition.updateCallbackDone.catch(() => {});
 		});
 	});
 
