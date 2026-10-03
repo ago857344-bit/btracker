@@ -234,7 +234,14 @@ export function questionCount(state: TrackerState, sc: string, chNo: number, exC
 export function visibleExercises(state: TrackerState, sc: string, chNo: number): SyllabusExercise[] {
 	const chapter = syllabusChapter(sc, chNo);
 	if (!chapter) return [];
-	return chapter.exs.filter((ex) => {
+	
+	const all = [...chapter.exs];
+	const custom = state.x.exs[`${sc}${chNo}`] || [];
+	for (const ce of custom) {
+		all.push({ code: ce.code, name: ce.name, tag: 'Custom', base: 0 });
+	}
+
+	return all.filter((ex) => {
 		const override = state.x.cnt[cellKey(sc, chNo, ex.code)];
 		const count = override !== undefined ? override : ex.base;
 		return count > 0;

@@ -808,6 +808,19 @@ function applyAction(state: TrackerState, loc: QuestionLoc, i: number, action: Q
 	if (wasDone && !isDone(v)) bumpSolved(state, loc.sc, -1);
 }
 
+
+export function addCustomExercise(sc: string, chNo: number, name: string, count: number) {
+	name = name.trim();
+	if (!name) return;
+	updateTracker((s) => {
+		const key = `${sc}${chNo}`;
+		if (!s.x.exs[key]) s.x.exs[key] = [];
+		const code = `C${Date.now().toString(36).slice(-4)}`; // Ensure uniqueness
+		s.x.exs[key].push({ code, name });
+		s.x.cnt[cellKey(sc, chNo, code)] = Math.max(1, Math.round(count));
+	});
+}
+
 export function setQuestionCount(loc: QuestionLoc, count: number) {
 	updateTracker((s) => { s.x.cnt[cellKey(loc.sc, loc.ch, loc.ex)] = Math.min(2000, Math.max(0, Math.round(count))); });
 }

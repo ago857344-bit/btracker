@@ -2,7 +2,7 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { uiClick } from '$lib/utils/feedback';
 	import QuestionSheet from '$lib/components/log/QuestionSheet.svelte';
-	import EditExercisesModal from '$lib/components/log/EditExercisesModal.svelte';
+	import AddExerciseModal from '$lib/components/log/AddExerciseModal.svelte';
 	import { setQuestionCount, tracker } from '$lib/stores/tracker';
 	import {
 		allChapters, questionCount, syllabusChapter, syllabusModule, syllabusSubject, SYLLABUS, visibleExercises,
@@ -15,7 +15,7 @@
 
 	interface View { s: string | null; m: number | null; c: number | null; e: string | null }
 	let view: View = { s: null, m: null, c: null, e: null };
-	let showEditExercises = false;
+	let showAddExercise = false;
 	let newCount = '';
 	let countMsg = '';
 
@@ -138,8 +138,8 @@
 			<p class="eyebrow" style="color:{subject.accent}">{subject.name} · {module.name}</p>
 			<h1>{chapter.no}. {chapter.name}</h1>
 		</div>
-		<button type="button" class="btn-ghost" on:click={() => { uiClick(); showEditExercises = true; }} style="display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.75rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; background: var(--surface-subtle); border: 1px solid var(--border-subtle); color: var(--text-secondary); cursor: pointer;">
-			<NavIcon name="edit" size={13} /> Edit Exercises
+		<button type="button" class="btn-ghost" on:click={() => { uiClick(); showAddExercise = true; }} style="display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.75rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; background: var(--surface-subtle); border: 1px solid var(--border-subtle); color: var(--text-secondary); cursor: pointer;">
+			<NavIcon name="plus" size={13} /> Add Exercise
 		</button>
 	</header>
 	<div class="grid g2">
@@ -186,11 +186,11 @@
 	<QuestionSheet loc={{ sc: subject.code, ch: chapter.no, ex: exercise.code }} exName={exercise.name} exTag={`${chapter.no}. ${chapter.name} · ${exercise.tag}`} />
 {/if}
 
-{#if showEditExercises && chapter && subject}
-	<EditExercisesModal 
+{#if showAddExercise && chapter && subject}
+	<AddExerciseModal 
 		subject={subject} 
 		chapter={chapter} 
-		on:close={() => (showEditExercises = false)} 
+		on:close={() => (showAddExercise = false)} 
 	/>
 {/if}
 
