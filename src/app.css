@@ -298,6 +298,14 @@ button:hover:not(:disabled), .tb:hover, .ic:hover, aside a:hover, .row:hover, .i
 }
 
 /* Base Glass Effect */
+
+:root[data-wallpaper="true"] .heatmap-section,
+:root[data-wallpaper="true"] .kpi,
+:root[data-wallpaper="true"] .tabs,
+:root[data-wallpaper="true"] .search,
+:root[data-wallpaper="true"] .subsel,
+:root[data-wallpaper="true"] .mchip,
+:root[data-wallpaper="true"] .btn-icon,
 :root[data-wallpaper="true"] .card, 
 :root[data-wallpaper="true"] .panel, 
 :root[data-wallpaper="true"] .r-card, 
@@ -322,6 +330,14 @@ button:hover:not(:disabled), .tb:hover, .ic:hover, aside a:hover, .row:hover, .i
 }
 
 /* Light Theme Bright Edges */
+
+:root[data-theme="light"][data-wallpaper="true"] .heatmap-section,
+:root[data-theme="light"][data-wallpaper="true"] .kpi,
+:root[data-theme="light"][data-wallpaper="true"] .tabs,
+:root[data-theme="light"][data-wallpaper="true"] .search,
+:root[data-theme="light"][data-wallpaper="true"] .subsel,
+:root[data-theme="light"][data-wallpaper="true"] .mchip,
+:root[data-theme="light"][data-wallpaper="true"] .btn-icon,
 :root[data-theme="light"][data-wallpaper="true"] .card, 
 :root[data-theme="light"][data-wallpaper="true"] .panel, 
 :root[data-theme="light"][data-wallpaper="true"] .r-card, 
