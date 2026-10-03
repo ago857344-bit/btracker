@@ -278,13 +278,10 @@
 	.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
 	.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 	label { font-size: 0.875rem; font-weight: 600; color: var(--text-secondary); }
-	input { background: var(--surface-subtle); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: 0.75rem; border-radius: 8px; font-family: inherit; font-size: 1rem; }
-	input:focus { outline: none; border-color: var(--accent); }
 	.subjects-input { margin-top: 0.5rem; }
 	.subjects-input h3 { font-size: 1rem; margin-bottom: 1rem; color: var(--text-primary); }
 	.sub-row { display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; align-items: center; margin-bottom: 0.75rem; }
 	.sub-row strong { color: var(--text-secondary); font-size: 0.9rem; }
-	.sub-row input { padding: 0.5rem; }
 	
 	.text-btn { background: transparent; border: none; color: var(--text-secondary); font-weight: 600; cursor: pointer; padding: 0.5rem 1rem; border-radius: 8px; }
 	.text-btn:hover { background: var(--surface-subtle); color: var(--text-primary); }
