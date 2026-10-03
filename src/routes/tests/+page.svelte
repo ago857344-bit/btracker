@@ -1,11 +1,10 @@
 <script lang="ts">
-	import { getContext } from 'svelte';
-	import type { Writable } from 'svelte/store';
+	import { tracker } from '$lib/stores/tracker';
 	import type { TrackerState, MockTest } from '$lib/types/tracker';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { fade, fly } from 'svelte/transition';
 
-	const tracker = getContext<Writable<TrackerState>>('tracker');
+	
 
 	let tab: 'Btest' | 'Alt' | 'CET' = 'Btest';
 	let showModal = false;
