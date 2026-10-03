@@ -3,6 +3,7 @@
 	import type { TrackerState, MockTest } from '$lib/types/tracker';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { fade, fly } from 'svelte/transition';
+	import Modal from '$lib/components/ui/Modal.svelte';
 
 	
 
@@ -178,17 +179,9 @@
 	</div>
 </div>
 
-{#if showModal}
-	<div class="modal-backdrop" transition:fade={{ duration: 150 }}>
-		<div class="modal glass" transition:fly={{ y: 20, duration: 250 }}>
-			<div class="modal-header">
-				<h2>Log New {tab} Test</h2>
-				<button class="icon-btn" on:click={() => showModal = false}>
-					<NavIcon name="x" size={20} />
-				</button>
-			</div>
-			
-			<div class="modal-body">
+<Modal bind:open={showModal} title="Log New {tab} Test" width="500px">
+		<div class="modal-body-content">
+
 				<div class="form-group">
 					<label for="name">Test Name</label>
 					<input id="name" type="text" bind:value={name} placeholder="e.g. {tab} Mock 1" />
@@ -219,15 +212,15 @@
 						<input type="number" placeholder="Marks Scored" bind:value={m.score} />
 					</div>
 				</div>
-			</div>
 			
-			<div class="modal-footer">
+		</div>
+		<svelte:fragment slot="footer">
+
 				<button class="text-btn" on:click={() => showModal = false}>Cancel</button>
 				<button class="primary-btn" on:click={saveTest} disabled={!name}>Save Test</button>
-			</div>
-		</div>
-	</div>
-{/if}
+			
+		</svelte:fragment>
+	</Modal>
 
 <style>
 	.tests-container { padding: 1.5rem; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 2rem; }
@@ -280,12 +273,8 @@
 	
 	.empty-state { padding: 3rem; text-align: center; color: var(--text-secondary); }
 	
-	/* Modal Styles */
-	.modal-backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
-	.modal { width: 100%; max-width: 500px; display: flex; flex-direction: column; box-shadow: var(--shadow-card); overflow: hidden; }
-	.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border-subtle); }
-	.modal-header h2 { margin: 0; font-size: 1.25rem; }
-	.modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+	/* Form Styles */
+	.modal-body-content { display: flex; flex-direction: column; gap: 1.25rem; }
 	.form-group { display: flex; flex-direction: column; gap: 0.5rem; }
 	.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
 	label { font-size: 0.875rem; font-weight: 600; color: var(--text-secondary); }
@@ -296,7 +285,7 @@
 	.sub-row { display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; align-items: center; margin-bottom: 0.75rem; }
 	.sub-row strong { color: var(--text-secondary); font-size: 0.9rem; }
 	.sub-row input { padding: 0.5rem; }
-	.modal-footer { padding: 1.25rem 1.5rem; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 1rem; }
+	
 	.text-btn { background: transparent; border: none; color: var(--text-secondary); font-weight: 600; cursor: pointer; padding: 0.5rem 1rem; border-radius: 8px; }
 	.text-btn:hover { background: var(--surface-subtle); color: var(--text-primary); }
 </style>
