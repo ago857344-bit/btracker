@@ -35,7 +35,7 @@
 	}
 </script>
 
-<Modal title="Edit Exercises" on:close={close}>
+<Modal open={true} title="Edit Exercises" on:close={close}>
 	<div class="desc">
 		Set the number of questions for any exercise. Set to 0 to hide it.
 	</div>
