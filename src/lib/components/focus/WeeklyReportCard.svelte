@@ -35,7 +35,7 @@
 		for (const key of thisWeekKeys) {
 			const dayStat = $tracker.stat[key];
 			if (dayStat) {
-				sum += Object.values(dayStat).reduce((acc, v) => acc + (v || 0), 0);
+				sum += Object.values(dayStat).reduce((acc: number, v: number | undefined) => acc + (v || 0), 0);
 			}
 		}
 		return sum;

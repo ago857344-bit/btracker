@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
-	import { fade } from 'svelte/transition';
+	import { fade, fly, slide } from 'svelte/transition';
 	import StatRing from '$lib/components/StatRing.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 
@@ -29,6 +29,36 @@
 
 	let quoteIndex = 0;
 	
+	// Soundscapes State
+	const soundscapes = [
+		{ id: 'rain', name: 'Rain', url: 'https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg' },
+		{ id: 'fire', name: 'Fireplace', url: 'https://actions.google.com/sounds/v1/foley/fireplace_with_crackling_and_pops.ogg' },
+		{ id: 'cafe', name: 'Cafe', url: 'https://actions.google.com/sounds/v1/crowds/cafe_restaurant_medium_crowd.ogg' },
+		{ id: 'forest', name: 'Forest', url: 'https://actions.google.com/sounds/v1/ambiences/jungle_ambience_late_night.ogg' }
+	];
+	let activeSoundId = soundscapes[0].id;
+	let isSoundPlaying = false;
+	let soundVolume = 0.5;
+	let soundMenuOpen = false;
+	let audioElem: HTMLAudioElement;
+
+	$: activeSoundUrl = soundscapes.find(s => s.id === activeSoundId)?.url;
+
+	$: {
+		if (audioElem) {
+			audioElem.volume = soundVolume;
+			if (isSoundPlaying) {
+				audioElem.play().catch(e => console.error('Audio playback failed:', e));
+			} else {
+				audioElem.pause();
+			}
+		}
+	}
+	
+	function toggleSoundMenu() {
+		soundMenuOpen = !soundMenuOpen;
+	}
+
 	onMount(() => {
 		document.body.dataset.deepWork = 'true';
 		const interval = setInterval(() => {
@@ -76,6 +106,48 @@
 		{#key quoteIndex}
 			<p class="quote" in:fade={{ duration: 1000 }}>"{quotes[quoteIndex]}"</p>
 		{/key}
+	</div>
+
+	<!-- Soundscapes Component -->
+	<audio bind:this={audioElem} src={activeSoundUrl} loop preload="none"></audio>
+	
+	<div class="soundscapes-widget">
+		{#if soundMenuOpen}
+			<div class="sound-menu" transition:fly={{ y: 20, duration: 250 }}>
+				<div class="track-list">
+					{#each soundscapes as sound}
+						<button 
+							type="button" 
+							class="track-btn" 
+							class:active={activeSoundId === sound.id}
+							on:click={() => { activeSoundId = sound.id; isSoundPlaying = true; }}
+						>
+							{sound.name}
+						</button>
+					{/each}
+				</div>
+				<div class="volume-control">
+					<NavIcon name="minus" size={16} />
+					<input type="range" min="0" max="1" step="0.05" bind:value={soundVolume} class="vol-slider" />
+					<NavIcon name="plus" size={16} />
+				</div>
+			</div>
+		{/if}
+
+		<div class="sound-controls">
+			<button class="sound-toggle" class:active={soundMenuOpen} on:click={toggleSoundMenu} title="Soundscapes">
+				<NavIcon name="headphones" size={24} />
+			</button>
+			{#if isSoundPlaying}
+				<button class="play-btn active" on:click={() => isSoundPlaying = false} transition:fade={{ duration: 150 }}>
+					<NavIcon name="pause" size={20} />
+				</button>
+			{:else}
+				<button class="play-btn" on:click={() => isSoundPlaying = true} transition:fade={{ duration: 150 }}>
+					<NavIcon name="play" size={20} />
+				</button>
+			{/if}
+		</div>
 	</div>
 </div>
 
@@ -216,5 +288,115 @@
 		font-style: italic;
 		max-width: 600px;
 		line-height: 1.5;
+	}
+
+	/* Soundscapes Styles */
+	.soundscapes-widget {
+		position: absolute;
+		bottom: 2rem;
+		right: 2rem;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-end;
+		gap: 1rem;
+		z-index: 10;
+	}
+
+	.sound-menu {
+		background: var(--surface-panel, rgba(20, 20, 25, 0.7));
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		border: 1px solid color-mix(in srgb, var(--accent), transparent 80%);
+		border-radius: 16px;
+		padding: 1.25rem;
+		display: flex;
+		flex-direction: column;
+		gap: 1.25rem;
+		min-width: 200px;
+		box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+	}
+
+	.track-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.track-btn {
+		background: transparent;
+		border: none;
+		color: var(--text-secondary);
+		text-align: left;
+		padding: 0.5rem 1rem;
+		border-radius: 8px;
+		cursor: pointer;
+		font-weight: 500;
+		transition: all 0.2s;
+	}
+
+	.track-btn:hover {
+		background: color-mix(in srgb, var(--accent), transparent 90%);
+		color: var(--text-primary);
+	}
+
+	.track-btn.active {
+		background: color-mix(in srgb, var(--accent), transparent 85%);
+		color: var(--accent);
+		font-weight: 600;
+	}
+
+	.volume-control {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		color: var(--text-secondary);
+	}
+
+	.vol-slider {
+		flex: 1;
+		accent-color: var(--accent);
+		cursor: pointer;
+	}
+
+	.sound-controls {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		background: var(--surface-panel, rgba(20, 20, 25, 0.7));
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		padding: 0.5rem;
+		border-radius: 999px;
+		border: 1px solid color-mix(in srgb, var(--accent), transparent 80%);
+		box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+	}
+
+	.sound-toggle, .play-btn {
+		background: transparent;
+		border: none;
+		color: var(--text-secondary);
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		transition: all 0.2s;
+	}
+
+	.sound-toggle:hover, .play-btn:hover {
+		color: var(--text-primary);
+		background: color-mix(in srgb, var(--text-secondary), transparent 90%);
+	}
+
+	.sound-toggle.active {
+		color: var(--accent);
+		background: color-mix(in srgb, var(--accent), transparent 85%);
+	}
+
+	.play-btn.active {
+		color: var(--accent);
+		background: color-mix(in srgb, var(--accent), transparent 85%);
 	}
 </style>

@@ -121,6 +121,6 @@ export const createUiPreferences = (): UiPreferences => ({ accent: '#6d5dfc', wi
 export const createInitialTrackerState = (): TrackerState => ({
 	stateVersion: 5, d: {}, n: {}, r: {}, x: createCustomization(), h: [], hd: [], log: [], stat: {}, marks: createMarks(), dl: [],
 	norec: false, hwSort: 'loc', goals: createGoals(), col: [], bm: {}, notes: [], an: createAnalysis(), rev: createRevision(),
-	meta: createMeta(), lib: [], gt: [], refl: {}, sess: [], todos: [], chapterGrids: {},
+	meta: createMeta(), lib: [], gt: [], refl: {}, sess: [], todos: [], chapterGrids: {}, mocks: [],
 	theme: 'dark', pom: { ...DEFAULT_POMODORO }, ui: createUiPreferences(), savedAt: null
 });
