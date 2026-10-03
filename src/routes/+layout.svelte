@@ -3,6 +3,7 @@
 	import { browser } from '$app/environment';
 	import { goto, beforeNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
+	import { fade, fly } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import AppSidebar from '$lib/components/AppSidebar.svelte';
 	import MobileBottomNav from '$lib/components/MobileBottomNav.svelte';
@@ -112,7 +113,13 @@
 					<AccountMenu />
 				</div>
 			</header>
-			<main><slot /></main>
+			<main>
+				{#key $page.url.pathname}
+					<div in:fly={{ y: 8, duration: 250, delay: 0 }} style="height: 100%;">
+						<slot />
+					</div>
+				{/key}
+			</main>
 		</div>
 		<MobileBottomNav />
 		<GlobalOverlays />
