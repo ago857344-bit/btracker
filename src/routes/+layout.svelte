@@ -115,7 +115,7 @@
 			</header>
 			<main>
 				{#key $page.url.pathname}
-					<div in:fly={{ y: 8, duration: 250, delay: 0 }} style="height: 100%;">
+					<div in:fly={{ y: 8, duration: 200, delay: 0, opacity: 1 }} style="height: 100%;">
 						<slot />
 					</div>
 				{/key}
