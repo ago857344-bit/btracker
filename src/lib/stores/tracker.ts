@@ -809,7 +809,7 @@ function applyAction(state: TrackerState, loc: QuestionLoc, i: number, action: Q
 }
 
 export function setQuestionCount(loc: QuestionLoc, count: number) {
-	updateTracker((s) => { s.x.cnt[cellKey(loc.sc, loc.ch, loc.ex)] = Math.min(2000, Math.max(1, Math.round(count))); });
+	updateTracker((s) => { s.x.cnt[cellKey(loc.sc, loc.ch, loc.ex)] = Math.min(2000, Math.max(0, Math.round(count))); });
 }
 
 export function toggleQuestionDone(loc: QuestionLoc, i: number) {

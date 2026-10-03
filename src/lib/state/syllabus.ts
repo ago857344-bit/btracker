@@ -234,7 +234,11 @@ export function questionCount(state: TrackerState, sc: string, chNo: number, exC
 export function visibleExercises(state: TrackerState, sc: string, chNo: number): SyllabusExercise[] {
 	const chapter = syllabusChapter(sc, chNo);
 	if (!chapter) return [];
-	return chapter.exs.filter((ex) => ex.base > 0 || state.x.cnt[cellKey(sc, chNo, ex.code)] !== undefined);
+	return chapter.exs.filter((ex) => {
+		const override = state.x.cnt[cellKey(sc, chNo, ex.code)];
+		const count = override !== undefined ? override : ex.base;
+		return count > 0;
+	});
 }
 
 export const cellKey = (sc: string, chNo: number, exCode: string) => `${sc}${chNo}${exCode}`;
