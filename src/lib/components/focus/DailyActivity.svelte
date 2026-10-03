@@ -43,7 +43,7 @@
 
 	{#if daySessions.length}
 		<ul class="sessions">
-			{#each daySessions as session (session[0])}
+			{#each daySessions as session, i (session[0] + "-" + i)}
 				<li>
 					<span class="dot" style="background: {subjectColor(session[7] ?? null)}"></span>
 					<span class="who">{subjectName(session[7] ?? null)}</span>
