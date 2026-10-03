@@ -69,7 +69,7 @@
 				<NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.momentum}
-				<div class="sec-body" in:fly={{ y: -6, duration: 200 }}>
+				<div class="sec-body">
 					<b class="word" style="color: {$momentum.color}; text-shadow: 0 0 26px {$momentum.color}66;">{$momentum.word}</b>
 					<p class="sentence">{$momentum.sentence}</p>
 					<p class="guide-label">STATUS GUIDE</p>
@@ -90,7 +90,7 @@
 				<span class="dot acc"></span> QUICK STATS <NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.quick}
-				<div class="sec-body grid4" in:fly={{ y: -6, duration: 200 }}>
+				<div class="sec-body grid4">
 					<div class="cell">
 						<span class="k">THIS MONTH <InfoTip text="STUDY DAYS LOGGED THIS MONTH OUT OF TOTAL DAYS." /></span>
 						<b>{$intelligence.monthDays} <small>/ {$intelligence.daysInMonth}</small></b>
@@ -117,7 +117,7 @@
 				<span class="dot" style="background: {RANK_COLORS[$intelligence.rank] ?? 'var(--accent)'}"></span> IDENTITY &amp; MILESTONES <NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.identity}
-				<div class="sec-body" in:fly={{ y: -6, duration: 200 }}>
+				<div class="sec-body">
 					<span class="rank" style="--r: {RANK_COLORS[$intelligence.rank] ?? 'var(--accent)'}">● {$intelligence.rank}</span>
 					<div class="grid4">
 						<div class="cell"><span class="k">LIFETIME FOCUS</span><b>{$intelligence.lifetimeHours}<small>Hrs</small></b></div>
@@ -134,7 +134,7 @@
 				<span class="dot" style="background: #d99a2b"></span> DEEP WORK INSIGHTS <NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.deep}
-				<div class="sec-body" in:fly={{ y: -6, duration: 200 }}>
+				<div class="sec-body">
 					<div class="peakrow">
 						<span class="picon"><NavIcon name="sunrise" size={16} /></span>
 						<div>
@@ -160,7 +160,7 @@
 				<span class="dot" style="background: #2b8ba6"></span> SUBJECT PORTFOLIO <NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.portfolio}
-				<div class="sec-body" in:fly={{ y: -6, duration: 200 }}>
+				<div class="sec-body">
 					{#each portfolio as entry (entry.code)}
 						<div class="prow">
 							<span class="pdot" style="background: {entry.color}"></span>
@@ -179,7 +179,7 @@
 				<span class="dot" style="background: #2f9e6e"></span> ACADEMIC PERFORMANCE <NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.academic}
-				<div class="sec-body" in:fly={{ y: -6, duration: 200 }}>
+				<div class="sec-body">
 					{#if testRows.length}
 						<div class="grid4">
 							<div class="cell"><span class="k">TESTS LOGGED</span><b>{testRows.length}</b></div>
@@ -199,7 +199,7 @@
 				<span class="dot" style="background: #8b7bff"></span> BEHAVIORAL DNA <NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.dna}
-				<div class="sec-body" in:fly={{ y: -6, duration: 200 }}>
+				<div class="sec-body">
 					<div class="dna">
 						{#each ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as label, i}
 							<div class="dcol">
@@ -218,7 +218,7 @@
 				<span class="dot" style="background: #e0455a"></span> WEEKLY VELOCITY <NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.velocity}
-				<div class="sec-body" in:fly={{ y: -6, duration: 200 }}>
+				<div class="sec-body">
 					<div class="velocity">
 						<div class="vrow">
 							<span>LAST WEEK</span>

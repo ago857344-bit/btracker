@@ -244,7 +244,7 @@
 		{@const cards = key === 'overdue' ? overdue : key === 'today' ? todayGroup : week}
 		{@const head = key === 'overdue' ? 'Overdue' : key === 'today' ? 'Today' : 'Later this week'}
 		{@const count = cards.length}
-		<section class="group" in:fly={{ y: 8, duration: 240 + (key === 'overdue' ? 0 : key === 'today' ? 40 : 80) }}>
+		<section class="group">
 			<div class="group-head">
 				<h2 class:urgent={key === 'overdue'}>
 					{#if key === 'overdue'}<NavIcon name="flame" size={14} />

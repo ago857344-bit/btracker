@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { browser } from '$app/environment';
-	import { goto, beforeNavigate, onNavigate } from '$app/navigation';
+	import { goto, beforeNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import AppSidebar from '$lib/components/AppSidebar.svelte';
@@ -20,20 +20,7 @@
 	let collapsed = false;
 	let mobileOpen = false;
 
-	onNavigate((navigation) => {
-		if (!document.startViewTransition) return;
-		return new Promise((resolve) => {
-			const transition = document.startViewTransition(async () => {
-				resolve();
-				await navigation.complete;
-			});
-			// Catch rapid navigation aborts
-			transition.finished.catch(() => {});
-			transition.ready.catch(() => {});
-			transition.updateCallbackDone.catch(() => {});
-		});
-	});
-
+				
 	beforeNavigate(({ cancel }) => {
 		if (mobileOpen) {
 			mobileOpen = false;

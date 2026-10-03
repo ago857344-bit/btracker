@@ -61,14 +61,14 @@
 	</header>
 
 	{#if $customizingHome}
-		<div class="hint" in:fly={{ y: -6, duration: 200 }}>
+		<div class="hint">
 			Reorder with the arrows, resize with ↔, hide with −. Hidden widgets ({hiddenCount}) stay listed here so you can bring them back with +. Finish from the appearance menu in the top bar.
 		</div>
 	{/if}
 
 	<div class="grid">
 		{#each visible as widget (widget.id)}
-			<div class="cell" class:span-2={widget.span === 2} class:span-3={widget.span === 3} animate:flip={{ duration: 260 }} in:fly={{ y: 12, duration: 280 }}>
+			<div class="cell" class:span-2={widget.span === 2} class:span-3={widget.span === 3} animate:flip={{ duration: 260 }}>
 				<WidgetShell
 					title={registry[widget.id].title}
 					eyebrow={registry[widget.id].eyebrow}

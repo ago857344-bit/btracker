@@ -473,9 +473,3 @@ body[data-deep-work="true"] .overlay {
 	-webkit-backdrop-filter: none !important;
 }
 
-/* View Transitions API Native App Feel */
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation-duration: 0.3s;
-  animation-timing-function: cubic-bezier(0.2, 0.8, 0.2, 1);
-}

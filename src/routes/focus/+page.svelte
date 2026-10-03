@@ -462,9 +462,9 @@
 	<div class="layout" on:touchstart={handleTouchStart} on:touchend={handleTouchEnd}>
 		<div class="stage-wrapper">
 		{#key tab}
-			<div class="stage card" in:fly={{ x: slideDirection * 60, duration: 300, delay: 0 }} out:fly={{ x: -slideDirection * 60, duration: 300 }}>
+			<div class="stage card">
 			{#if showSettings}
-				<div class="settings" in:fly={{ y: -6, duration: 200 }}>
+				<div class="settings">
 					<label class="field"><span>Chime</span>
 						<select value={pom.chime} on:change={(e) => { const v = e.currentTarget.value as typeof pom.chime; updateTracker((s) => { s.pom.chime = v; }); }}>
 							<option value="both">Focus & break</option><option value="focus">Focus only</option>
