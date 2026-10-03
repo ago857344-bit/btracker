@@ -121,7 +121,7 @@
 
 </script>
 
-<section class="revise" in:fade={{ duration: 260 }}>
+<section class="revise">
 	<header>
 		<div>
 			<h1>ACTIVE RECALL HUB</h1>

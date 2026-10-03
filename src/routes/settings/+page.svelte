@@ -249,7 +249,7 @@
 	}
 </script>
 
-<section class="settings" in:fade={{ duration: 260 }}>
+<section class="settings">
 	<header>
 		<h1>Settings</h1>
 		<p>PROFILE, APPEARANCE &amp; DATA</p>

@@ -56,7 +56,7 @@
 	$: bestTest = testRows.length ? testRows.reduce((best, row) => ((row.pct ?? 0) > (best.pct ?? 0) ? row : best)) : null;
 </script>
 
-<section class="stats" in:fade={{ duration: 260 }}>
+<section class="stats">
 	<header>
 		<h1>Intelligence</h1>
 		<p>YOUR PERSONAL COGNITIVE DASHBOARD</p>

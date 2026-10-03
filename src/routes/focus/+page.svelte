@@ -427,7 +427,7 @@
 	onDestroy(() => { clearInterval(interval); clearInterval(clockTimer); try { ambient?.src.stop(); } catch { /* noop */ } });
 </script>
 
-<section class="focus" in:fade={{ duration: 260 }}>
+<section class="focus">
 	<header class="page-head">
 		<div class="titles">
 			<h1>Focus &amp; Analytics <a class="palette" href="/settings" title="Theme & colors"><NavIcon name="palette" size={15} /></a></h1>

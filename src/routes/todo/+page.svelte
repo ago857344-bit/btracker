@@ -136,7 +136,7 @@
 
 <svelte:head><title>To Do · BTracker</title></svelte:head>
 
-<section class="todo" in:fade={{ duration: 240 }}>
+<section class="todo">
 	<header>
 		<div>
 			<h1>To Do</h1>

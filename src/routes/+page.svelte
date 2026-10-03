@@ -47,7 +47,7 @@
 </script>
 
 <section class="home">
-	<header class="hero" in:fade={{ duration: 320 }}>
+	<header class="hero">
 		<div>
 			<p class="eyebrow">{dateLabel}</p>
 			<h1>{greeting}{name ? `, ${name}` : ''}. <span>Let’s make it count.</span></h1>

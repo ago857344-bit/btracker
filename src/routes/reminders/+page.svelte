@@ -221,7 +221,7 @@
 	}
 </script>
 
-<section class="reminders" in:fade={{ duration: 260 }}>
+<section class="reminders">
 	<header class="page-head">
 		<div class="titles">
 			<h1>Reminders</h1>
