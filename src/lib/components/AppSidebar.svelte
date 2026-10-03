@@ -14,6 +14,7 @@
 		{ href: '/log', label: 'Log', icon: 'grid' },
 		{ href: '/review', label: 'Review', icon: 'target' },
 		{ href: '/plan', label: 'Plan', icon: 'plan' },
+		{ href: '/tests', label: 'Tests', icon: 'tests' },
 		{ href: '/todo', label: 'To Do', icon: 'list' },
 		{ href: '/focus', label: 'Focus', icon: 'focus' },
 		{ href: '/revise', label: 'Revise', icon: 'revise' }

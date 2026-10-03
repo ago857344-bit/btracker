@@ -270,6 +270,14 @@ export interface TrackerState {
 	pom: PomodoroSettings;
 	ui: UiPreferences;
 	savedAt: string | null;
+	mocks: MockTest[];
+}
+
+export interface MockTest {
+	id: string; date: number; name: string; category?: "Btest" | "Alt" | "CET";
+	score: number; totalMarks: number;
+	correct: number; incorrect: number; unattempted: number;
+	subjects: Record<string, { score: number, correct: number, incorrect: number }>;
 }
 
 export interface TimerState {
