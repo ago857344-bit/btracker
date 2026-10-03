@@ -15,9 +15,9 @@
 	let totalMarks = 300;
 	
 	// Subject performance
-	let p = { correct: 0, incorrect: 0 };
-	let c = { correct: 0, incorrect: 0 };
-	let m = { correct: 0, incorrect: 0 };
+	let p = { score: 0 };
+	let c = { score: 0 };
+	let m = { score: 0 };
 
 	$: negativeMarks = tab === 'CET' ? 0 : 1;
 	
@@ -33,15 +33,7 @@
 	function saveTest() {
 		if (!name) return;
 		
-		const totalCorrectMarks = tab === 'CET' 
-			? (p.correct * 1 + c.correct * 1 + m.correct * 2) // CET scoring
-			: (p.correct + c.correct + m.correct) * 4;        // JEE scoring
-		
-		const totalNegativeMarks = tab === 'CET'
-			? 0
-			: (p.incorrect + c.incorrect + m.incorrect) * 1;
-		
-		const score = totalCorrectMarks - totalNegativeMarks;
+		const score = p.score + c.score + m.score;
 		
 		const newTest: MockTest = {
 			id: crypto.randomUUID(),
@@ -50,13 +42,13 @@
 			score,
 			totalMarks,
 			category: tab,
-			correct: p.correct + c.correct + m.correct,
-			incorrect: p.incorrect + c.incorrect + m.incorrect,
-			unattempted: 0, // We could derive this if we knew total questions
+			correct: 0,
+			incorrect: 0,
+			unattempted: 0,
 			subjects: {
-				P: { score: (tab === 'CET' ? p.correct * 1 : p.correct * 4) - (tab === 'CET' ? 0 : p.incorrect * 1), ...p },
-				C: { score: (tab === 'CET' ? c.correct * 1 : c.correct * 4) - (tab === 'CET' ? 0 : c.incorrect * 1), ...c },
-				M: { score: (tab === 'CET' ? m.correct * 2 : m.correct * 4) - (tab === 'CET' ? 0 : m.incorrect * 1), ...m }
+				P: { score: p.score, correct: 0, incorrect: 0 },
+				C: { score: c.score, correct: 0, incorrect: 0 },
+				M: { score: m.score, correct: 0, incorrect: 0 }
 			}
 		};
 		
@@ -64,7 +56,7 @@
 		showModal = false;
 		
 		// Reset
-		name = ''; p = {correct:0, incorrect:0}; c = {correct:0, incorrect:0}; m = {correct:0, incorrect:0};
+		name = ''; p = {score: 0}; c = {score: 0}; m = {score: 0};
 	}
 
 	function deleteTest(id: string) {
@@ -121,8 +113,9 @@
 			</span>
 		</div>
 		
+		{#if totalQuestionsAttempted > 0}
 		<div class="stat-card glass negative-analysis">
-			<span class="stat-label">Accuracy & Errors</span>
+			<span class="stat-label">Accuracy & Errors (Past Data)</span>
 			<div class="negative-stats">
 				<div class="n-stat">
 					<small>Accuracy</small>
@@ -136,6 +129,7 @@
 				{/if}
 			</div>
 		</div>
+		{/if}
 	</div>
 
 	<div class="tests-list">
@@ -157,16 +151,18 @@
 							<span class="score-badge">{test.score} / {test.totalMarks}</span>
 						</div>
 						
+						{#if test.correct > 0 || test.incorrect > 0}
 						<div class="test-stats">
 							<div class="stat"><span class="correct">✓ {test.correct}</span></div>
 							<div class="stat"><span class="incorrect">✗ {test.incorrect}</span></div>
 						</div>
+						{/if}
 						
 						<div class="subject-breakdown">
 							{#each Object.entries(test.subjects) as [sub, data]}
 								<div style="display: flex; justify-content: space-between;">
 									<span>{sub}</span>
-									<span>{data.score} marks ({data.correct}C, {data.incorrect}I)</span>
+									<span>{data.score} marks{#if data.correct || data.incorrect} ({data.correct}C, {data.incorrect}I){/if}</span>
 								</div>
 							{/each}
 						</div>
@@ -212,18 +208,15 @@
 					<h3>Subject Performance</h3>
 					<div class="sub-row">
 						<strong>Physics</strong>
-						<input type="number" placeholder="Correct" bind:value={p.correct} min="0" />
-						<input type="number" placeholder="Incorrect" bind:value={p.incorrect} min="0" />
+						<input type="number" placeholder="Marks Scored" bind:value={p.score} />
 					</div>
 					<div class="sub-row">
 						<strong>Chemistry</strong>
-						<input type="number" placeholder="Correct" bind:value={c.correct} min="0" />
-						<input type="number" placeholder="Incorrect" bind:value={c.incorrect} min="0" />
+						<input type="number" placeholder="Marks Scored" bind:value={c.score} />
 					</div>
 					<div class="sub-row">
 						<strong>Maths</strong>
-						<input type="number" placeholder="Correct" bind:value={m.correct} min="0" />
-						<input type="number" placeholder="Incorrect" bind:value={m.incorrect} min="0" />
+						<input type="number" placeholder="Marks Scored" bind:value={m.score} />
 					</div>
 				</div>
 			</div>
@@ -300,7 +293,7 @@
 	input:focus { outline: none; border-color: var(--accent); }
 	.subjects-input { margin-top: 0.5rem; }
 	.subjects-input h3 { font-size: 1rem; margin-bottom: 1rem; color: var(--text-primary); }
-	.sub-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; align-items: center; margin-bottom: 0.75rem; }
+	.sub-row { display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; align-items: center; margin-bottom: 0.75rem; }
 	.sub-row strong { color: var(--text-secondary); font-size: 0.9rem; }
 	.sub-row input { padding: 0.5rem; }
 	.modal-footer { padding: 1.25rem 1.5rem; border-top: 1px solid var(--border-subtle); display: flex; justify-content: flex-end; gap: 1rem; }
