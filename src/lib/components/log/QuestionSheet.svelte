@@ -1,9 +1,10 @@
 <script lang="ts">
 	import NavIcon from '$lib/components/NavIcon.svelte';
+	import { uiClick } from '$lib/utils/feedback';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import ReasonsModal from '$lib/components/log/ReasonsModal.svelte';
 	import {
-		applyQuestionAction, bulkExercise, setQuestionNote, setQuestionReasons, setQuestionResult,
+		applyQuestionAction, bulkExercise, setQuestionCount, setQuestionNote, setQuestionReasons, setQuestionResult,
 		setQuestionStars, toggleQuestionDone, toggleQuestionFlag, tracker, type QuestionAction, type QuestionLoc
 	} from '$lib/stores/tracker';
 	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
@@ -22,6 +23,8 @@
 	let rangeMsg: { text: string; ok: boolean } | null = null;
 	let reasonIndex: number | null = null;
 	let confirm: 'done' | 'correct' | 'clear' | null = null;
+	let showEditCount = false;
+	let editCountVal = 1;
 
 	let anchor: number | null = null;
 	let lastClicked: number | null = null;
@@ -60,6 +63,14 @@
 	const reasonsOf = (i: number) => $tracker.r[questionKey(loc.sc, loc.ch, loc.ex, i)]?.t ?? [];
 
 	$: allSelected = order.length > 0 && order.every((i) => sel.has(i));
+
+	function saveCount() {
+		const val = parseInt(editCountVal as any, 10);
+		if (!isNaN(val) && val >= 1) {
+			setQuestionCount(loc, val);
+		}
+		showEditCount = false;
+	}
 
 	function clearSel() { sel = new Set(); }
 	function toggleSelectAll() { sel = allSelected ? new Set() : new Set(order); }
@@ -185,7 +196,10 @@
 <div class="sheet-head">
 	<div>
 		<p class="eyebrow">{exTag}</p>
-		<h2>{exName}</h2>
+		<h2 style="display: flex; align-items: center; gap: 0.5rem;">
+			{exName}
+			<button type="button" class="btn-ghost" on:click={() => { editCountVal = n; showEditCount = true; }} style="display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border-subtle); background: var(--surface-subtle); color: var(--text-secondary); cursor: pointer;"><NavIcon name="edit" size={13} /></button>
+		</h2>
 	</div>
 	<div class="statline" aria-label="Exercise totals">
 		<span class="pct">{pctOf(stats)}%</span>
@@ -340,6 +354,20 @@
 			<button type="button" class="dangerbtn" on:click={() => runBulk(confirm!)}>{CONFIRM_COPY[confirm].cta}</button>
 		</svelte:fragment>
 	</Modal>
+{#if showEditCount}
+	<Modal open={true} title="Edit Question Count" width="360px" on:close={() => (showEditCount = false)}>
+		<p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">Change the number of questions in {exName}.</p>
+		<label style="display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1.5rem;">
+			<span style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Number of Questions</span>
+			<input type="number" min="1" max="2000" bind:value={editCountVal} style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-subtle); background: var(--surface-panel); color: var(--text-primary); font-size: 1rem;" />
+		</label>
+		<div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
+			<button type="button" on:click={() => (showEditCount = false)} style="padding: 0.5rem 1rem; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-weight: 600;">Cancel</button>
+			<button type="button" on:click={saveCount} style="padding: 0.5rem 1rem; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700;">Save</button>
+		</div>
+	</Modal>
+{/if}
+
 {/if}
 
 <style>
