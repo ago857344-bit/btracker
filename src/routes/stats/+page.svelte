@@ -2,7 +2,6 @@
 
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
-	import WeightageMatrix from '$lib/components/stats/WeightageMatrix.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import InfoTip from '$lib/components/ui/InfoTip.svelte';
 	import { tracker, intelligence, momentum, streakDays, peakProductivity, analysisSummary } from '$lib/stores/tracker';
@@ -238,7 +237,6 @@
 		</section>
 	</div>
 
-	<WeightageMatrix />
 </section>
 
 <style>
