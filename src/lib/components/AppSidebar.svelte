@@ -51,7 +51,7 @@
 		<p class="nav-label">Workspace</p>
 		{#each primary as item}
 			<a class:active={isActive(item.href)} href={item.href} on:click={closeMobile}>
-				<span class="nav-icon"><NavIcon name={item.icon} size={19} /></span><span class="nav-text">{item.label}</span>
+				<span class="nav-icon"><NavIcon name={item.icon} size={22} /></span><span class="nav-text">{item.label}</span>
 				{#if item.href === '/revise' && $chaptersDueToday.length}
 					<span class="due-badge" title="{$chaptersDueToday.length} chapter(s) due">{$chaptersDueToday.length}</span>
 				{/if}
@@ -61,7 +61,7 @@
 		<p class="nav-label">Insights</p>
 		{#each secondary as item}
 			<a class:active={isActive(item.href)} href={item.href} on:click={closeMobile}>
-				<span class="nav-icon"><NavIcon name={item.icon} size={19} /></span><span class="nav-text">{item.label}</span>
+				<span class="nav-icon"><NavIcon name={item.icon} size={22} /></span><span class="nav-text">{item.label}</span>
 				{#if item.href === '/reminders' && $chaptersDueToday.length}
 					<span class="due-badge" title="{$chaptersDueToday.length} revision(s) due">{$chaptersDueToday.length}</span>
 				{/if}
@@ -71,7 +71,7 @@
 
 	<div class="sidebar-bottom">
 		<a class="settings-link" href="/settings" on:click={closeMobile}>
-			<span class="nav-icon"><NavIcon name="settings" size={19} /></span><span class="nav-text">Settings</span>
+			<span class="nav-icon"><NavIcon name="settings" size={22} /></span><span class="nav-text">Settings</span>
 		</a>
 		<div class="profile-container">
 			<AccountMenu />
@@ -84,19 +84,19 @@
 </aside>
 
 <style>
-	aside { position: fixed; z-index: 20; inset: 0 auto 0 0; display: flex; flex-direction: column; width: 256px; padding: 1.2rem 1rem 1rem; background: var(--surface-panel); border-right: 1px solid var(--border-subtle); transition: width .24s ease, transform .24s ease; }
+	aside { position: fixed; z-index: 20; inset: 0 auto 0 0; display: flex; flex-direction: column; width: 300px; padding: 1.2rem 1rem 1rem; background: var(--surface-panel); border-right: 1px solid var(--border-subtle); transition: width .24s ease, transform .24s ease; }
 	.brand-row { display: flex; align-items: center; gap: .45rem; min-height: 42px; padding: 0 .25rem .8rem; }
 	.brand { display: inline-flex; align-items: center; gap: .65rem; min-width: 0; color: var(--text-primary); text-decoration: none; font-weight: 800; letter-spacing: -.055em; font-size: 1.24rem; }
 	.brand-mark { display: grid; place-items: center; flex: 0 0 31px; width: 31px; height: 31px; border-radius: 10px; background: var(--accent); color: white; font-size: 1rem; letter-spacing: -.07em; box-shadow: 0 6px 14px color-mix(in srgb, var(--accent), transparent 65%); }
 	.brand-name, .nav-text, .nav-label, .profile-copy { white-space: nowrap; overflow: hidden; transition: opacity .18s ease; }
 	.collapse { display: grid; place-items: center; margin-left: auto; width: 30px; height: 30px; border: 0; border-radius: 9px; color: var(--text-secondary); background: transparent; transform: rotate(180deg); } /* Points Left (<) when open */
 	.collapse:hover { color: var(--accent); background: var(--accent-soft); }
-	nav { display: grid; gap: .2rem; margin-top: 1.15rem; }
+	nav { display: grid; gap: .3rem; margin-top: 1.15rem; }
 	.nav-label { margin: .8rem .65rem .45rem; color: var(--text-secondary); font-size: .67rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
-	nav a, .settings-link { display: flex; align-items: center; gap: .85rem; height: 43px; padding: 0 .75rem; border-radius: 12px; color: var(--text-secondary); text-decoration: none; font-size: .9rem; font-weight: 650; transition: background .16s ease, color .16s ease; }
+	nav a, .settings-link { display: flex; align-items: center; gap: 1rem; height: 52px; padding: 0 .75rem; border-radius: 12px; color: var(--text-secondary); text-decoration: none; font-size: 1rem; font-weight: 650; transition: background .16s ease, color .16s ease; }
 	nav a:hover, .settings-link:hover { color: var(--text-primary); background: var(--surface-subtle); }
 	nav a.active { color: var(--accent); background: var(--accent-soft); }
-	.nav-icon { display: grid; flex: 0 0 20px; place-items: center; }
+	.nav-icon { display: grid; flex: 0 0 24px; place-items: center; }
 	.due-badge { margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center; background: var(--accent); color: white; font-size: .62rem; font-weight: 800; }
 	.nav-divider { height: 1px; margin: 1rem .65rem .2rem; background: var(--border-subtle); }
 	.sidebar-bottom { display: grid; gap: .55rem; margin-top: auto; }

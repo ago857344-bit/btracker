@@ -30,7 +30,7 @@
 <style>
 	.modal-backdrop { position: fixed; z-index: 120; inset: 0; display: grid; place-items: center; padding: 1.2rem; background: rgb(14 12 28 / 46%); backdrop-filter: blur(6px); }
 	.modal-card { width: 100%; max-height: 86vh; overflow: hidden auto; border: 1px solid var(--border-subtle); border-radius: 20px; background: var(--surface-panel); box-shadow: var(--shadow-modal); }
-	header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.05rem 1.3rem; border-bottom: 1px solid var(--border-subtle); background: var(--surface-panel); }
+	header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.05rem 1.3rem; border-bottom: 1px solid var(--border-subtle); background: var(--surface-panel); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
 	h3 { margin: 0; font-size: .98rem; font-weight: 800; letter-spacing: -.02em; }
 	.modal-x { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 9px; color: var(--text-secondary); background: transparent; }
 	.modal-x:hover { color: var(--text-primary); background: var(--surface-subtle); }

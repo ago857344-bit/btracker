@@ -1,9 +1,8 @@
+
+const CACHE_NAME = 'btracker-v1';
 self.addEventListener('install', (e) => {
-  self.skipWaiting();
-});
-self.addEventListener('activate', (e) => {
-  e.waitUntil(clients.claim());
+  e.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(['/'])));
 });
 self.addEventListener('fetch', (e) => {
-  // Pass-through fetch
+  e.respondWith(caches.match(e.request).then((response) => response || fetch(e.request)));
 });

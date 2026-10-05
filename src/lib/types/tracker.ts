@@ -237,6 +237,16 @@ export interface WidgetLayout {
 }
 export interface UiPreferences { accent: string; widgets: WidgetLayout[]; reducedMotion: boolean; wallpaper?: string | null; wallpaperHistory?: string[]; glassStrength?: number; haptics?: boolean; sounds?: boolean; }
 
+
+export interface MistakeLog {
+	id: string;
+	date: number;
+	subject: string;
+	errorType: 'Silly' | 'Formula' | 'Conceptual' | 'Time';
+	description: string;
+	testName?: string;
+}
+
 export interface TrackerState {
 	stateVersion: 5;
 	/** BTracker question bitmasks, keyed as subject + permanent chapter no + exercise code. */
@@ -271,6 +281,7 @@ export interface TrackerState {
 	ui: UiPreferences;
 	savedAt: string | null;
 	mocks: MockTest[];
+	mistakes: MistakeLog[];
 }
 
 export interface MockTest {

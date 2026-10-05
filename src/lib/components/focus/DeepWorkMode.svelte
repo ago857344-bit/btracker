@@ -14,10 +14,11 @@
 	export let accent: string = 'var(--accent)';
 
 	const dispatch = createEventDispatcher<{
-		start: void;
-		pause: void;
-		exit: void;
-	}>();
+  start: void;
+  pause: void;
+  exit: void;
+  penalty: void;
+}>();
 
 	const quotes = [
 		"Work hard in silence, let your success be your noise.",
@@ -28,6 +29,20 @@
 	];
 
 	let quoteIndex = 0;
+
+  onMount(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && running && phase === 'focus') {
+        dispatch('penalty');
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  });
+
 	
 	// Soundscapes State
 	const soundscapes = [
@@ -156,16 +171,16 @@
 		position: fixed;
 		inset: 0;
 		z-index: 9999;
-		background: #050510 !important;
-		backdrop-filter: none !important;
-		-webkit-backdrop-filter: none !important;
+		background: rgba(10, 10, 16, 0.3) !important;
+		backdrop-filter: blur(12px) saturate(180%) !important;
+		-webkit-backdrop-filter: blur(12px) saturate(180%) !important;
 		display: flex;
 		flex-direction: column;
 		transition: background-color 0.5s ease;
 	}
 
 	.overlay.break {
-		background: color-mix(in srgb, var(--success, #2f9e6e), var(--surface-canvas, #000) 85%);
+		background: color-mix(in srgb, var(--success, #2f9e6e), rgba(10, 10, 16, 0.3) 85%) !important;
 	}
 
 	.header {

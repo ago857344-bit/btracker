@@ -153,7 +153,7 @@
 	.header h3 { margin: 0 0 0.2rem; font-size: 1.3rem; font-weight: 800; }
 	.header p { margin: 0; color: var(--text-secondary); font-size: 0.85rem; font-weight: 500; }
 	
-	.error-log { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; background: var(--surface-panel); border: 1px dashed var(--border-subtle); padding: 1rem; border-radius: 12px; }
+	.error-log { display: grid; grid-template-columns: 1fr 1fr; gap: 0.8rem; background: transparent; border: 1px dashed var(--border-subtle); padding: 1rem; border-radius: 12px; }
 	.log-stat { display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; font-weight: 600; padding: 0.6rem; border-radius: 8px; }
 	.log-stat.flag { color: var(--warning); background: color-mix(in srgb, var(--warning), transparent 90%); }
 	.log-stat.error { color: var(--danger); background: color-mix(in srgb, var(--danger), transparent 90%); }

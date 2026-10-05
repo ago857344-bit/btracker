@@ -1,5 +1,10 @@
-import { tracker } from './tracker';
-import type {
+import { tracker, scheduleSave } from "./tracker";
+
+function _updateAndSave(updater: (state: TrackerState) => TrackerState) {
+    tracker.update(updater);
+    scheduleSave();
+}
+import type { TrackerState, 
 	ChapterRecallData,
 	ConfidenceRating,
 	ModalityTag,
@@ -22,7 +27,7 @@ import { todayKey, dayKeyOf } from '$lib/state/dates';
  * @param weightage - High-yield weightage (1-3)
  */
 export function addChapterToRecall(chapterKey: string, weightage: 1 | 2 | 3 = 2) {
-	tracker.update(($tracker) => {
+	_updateAndSave(($tracker) => {
 		if ($tracker.rev.chapters[chapterKey]) {
 			return $tracker; // Already exists
 		}
@@ -47,7 +52,7 @@ export function addChapterToRecall(chapterKey: string, weightage: 1 | 2 | 3 = 2)
  * @param weightage - New weightage (1-3)
  */
 export function updateChapterWeightage(chapterKey: string, weightage: 1 | 2 | 3) {
-	tracker.update(($tracker) => {
+	_updateAndSave(($tracker) => {
 		const chapter = $tracker.rev.chapters[chapterKey];
 		if (!chapter) return $tracker;
 
@@ -81,7 +86,7 @@ export function recordChapterRevision(
 	modalities: ModalityTag[],
 	timeSpentMinutes: number = 0
 ) {
-	tracker.update(($tracker) => {
+	_updateAndSave(($tracker) => {
 		const chapter = $tracker.rev.chapters[chapterKey];
 		if (!chapter) return $tracker;
 
@@ -133,7 +138,7 @@ export function recordSubtopicRevisionAction(
 	confidence: ConfidenceRating,
 	timeSpentMinutes: number = 0
 ) {
-	tracker.update(($tracker) => {
+	_updateAndSave(($tracker) => {
 		let chapter = $tracker.rev.chapters[chapterKey];
 		if (!chapter) {
 			chapter = createChapterRecallData(chapterKey, 2);
@@ -177,7 +182,7 @@ export function recordSubtopicRevisionAction(
  * @param block - Study block to add
  */
 export function addStudyBlock(block: StudyBlock) {
-	tracker.update(($tracker) => ({
+	_updateAndSave(($tracker) => ({
 		...$tracker,
 		rev: {
 			...$tracker.rev,
@@ -193,7 +198,7 @@ export function addStudyBlock(block: StudyBlock) {
  * @param updates - Partial updates to the block
  */
 export function updateStudyBlock(blockId: string, updates: Partial<StudyBlock>) {
-	tracker.update(($tracker) => ({
+	_updateAndSave(($tracker) => ({
 		...$tracker,
 		rev: {
 			...$tracker.rev,
@@ -210,7 +215,7 @@ export function updateStudyBlock(blockId: string, updates: Partial<StudyBlock>) 
  * @param blockId - Block identifier
  */
 export function removeStudyBlock(blockId: string) {
-	tracker.update(($tracker) => ({
+	_updateAndSave(($tracker) => ({
 		...$tracker,
 		rev: {
 			...$tracker.rev,
@@ -233,7 +238,7 @@ export function scheduleRevisionSlot(
 	end: string,
 	parentBlockId?: string
 ) {
-	tracker.update(($tracker) => {
+	_updateAndSave(($tracker) => {
 		const chapter = $tracker.rev.chapters[chapterKey];
 		if (!chapter) return $tracker;
 
@@ -265,7 +270,7 @@ export function scheduleRevisionSlot(
  * @param slotId - Slot identifier
  */
 export function removeRevisionSlot(chapterKey: string, slotId: string) {
-	tracker.update(($tracker) => {
+	_updateAndSave(($tracker) => {
 		const chapter = $tracker.rev.chapters[chapterKey];
 		if (!chapter) return $tracker;
 
@@ -310,7 +315,7 @@ export function createFocusSession(
 		phase: 'timer'
 	};
 
-	tracker.update(($tracker) => ({
+	_updateAndSave(($tracker) => ({
 		...$tracker,
 		rev: {
 			...$tracker.rev,
@@ -328,7 +333,7 @@ export function createFocusSession(
  * @param updates - Partial updates to the session
  */
 export function updateFocusSession(sessionId: string, updates: Partial<FocusSession>) {
-	tracker.update(($tracker) => ({
+	_updateAndSave(($tracker) => ({
 		...$tracker,
 		rev: {
 			...$tracker.rev,
@@ -351,7 +356,7 @@ export function completeFocusSession(
 	confidence: ConfidenceRating,
 	notes?: string
 ) {
-	tracker.update(($tracker) => {
+	_updateAndSave(($tracker) => {
 		const session = $tracker.rev.focusSessions.find((s) => s.id === sessionId);
 		if (!session) return $tracker;
 
@@ -420,7 +425,7 @@ export function completeFocusSession(
  * @param sessionId - Session identifier
  */
 export function deleteFocusSession(sessionId: string) {
-	tracker.update(($tracker) => ({
+	_updateAndSave(($tracker) => ({
 		...$tracker,
 		rev: {
 			...$tracker.rev,
@@ -435,7 +440,7 @@ export function deleteFocusSession(sessionId: string) {
  * @param chapterKey - Chapter identifier
  */
 export function removeChapterFromRecall(chapterKey: string) {
-	tracker.update(($tracker) => {
+	_updateAndSave(($tracker) => {
 		const { [chapterKey]: removed, ...remainingChapters } = $tracker.rev.chapters;
 
 		return {
@@ -455,7 +460,7 @@ export function removeChapterFromRecall(chapterKey: string) {
  * @param defaultWeightage - Default weightage for all chapters
  */
 export function bulkAddChaptersToRecall(chapterKeys: string[], defaultWeightage: 1 | 2 | 3 = 2) {
-	tracker.update(($tracker) => {
+	_updateAndSave(($tracker) => {
 		const newChapters: Record<string, ChapterRecallData> = {};
 
 		chapterKeys.forEach((key) => {
@@ -482,7 +487,7 @@ export function bulkAddChaptersToRecall(chapterKeys: string[], defaultWeightage:
 }
 
 export function boostChapterFromPractice(chapterKey: string) {
-	tracker.update(($tracker) => {
+	_updateAndSave(($tracker) => {
 		const chapter = $tracker.rev.chapters[chapterKey];
 		if (!chapter) {
 			// Doesn't exist, so add it fresh

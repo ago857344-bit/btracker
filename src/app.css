@@ -149,6 +149,14 @@ button { cursor: pointer; }
 
 body[data-deep-work="true"] aside { display: none !important; }
 body[data-deep-work="true"] .layout-shell { grid-template-columns: 1fr !important; }
+body[data-deep-work="true"] .page-head,
+body[data-deep-work="true"] .toolbar,
+body[data-deep-work="true"] .tabs,
+body[data-deep-work="true"] .layout {
+	opacity: 0 !important;
+	visibility: hidden !important;
+	pointer-events: none !important;
+}
 
 
 /* Premium Polish */
@@ -318,6 +326,7 @@ button:hover:not(:disabled), .tb:hover, .ic:hover, aside a:hover, .row:hover, .i
 :root[data-wallpaper="true"] .your-goals, 
 :root[data-wallpaper="true"] .widget,
 :root[data-wallpaper="true"] .auth-card,
+:root[data-wallpaper="true"] .question-list,
 :root[data-wallpaper="true"] aside,
 :root[data-wallpaper="true"] .celebration,
 :root[data-wallpaper="true"] .hint,
@@ -356,6 +365,7 @@ button:hover:not(:disabled), .tb:hover, .ic:hover, aside a:hover, .row:hover, .i
 :root[data-theme="light"][data-wallpaper="true"] .your-goals, 
 :root[data-theme="light"][data-wallpaper="true"] .widget,
 :root[data-theme="light"][data-wallpaper="true"] .auth-card,
+:root[data-theme="light"][data-wallpaper="true"] .question-list,
 :root[data-theme="light"][data-wallpaper="true"] aside,
 :root[data-theme="light"][data-wallpaper="true"] .celebration,
 :root[data-theme="light"][data-wallpaper="true"] .hint,
@@ -482,16 +492,9 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 :root[data-wallpaper="true"] .sheet,
 :root[data-wallpaper="true"] [role="menu"],
 :root[data-wallpaper="true"] [role="dialog"]:not(.modal-backdrop) {
-	--popup-boost: color-mix(in srgb, var(--surface-panel), var(--surface-canvas) 10%);
-	background: var(--popup-boost) !important;
+	background: var(--surface-panel) !important;
 	backdrop-filter: blur(50px) saturate(200%) !important;
 	-webkit-backdrop-filter: blur(50px) saturate(200%) !important;
 }
 
-/* Deep Work Mode: force fully opaque, no glass leak */
-body[data-deep-work="true"] .overlay {
-	background: #050510 !important;
-	backdrop-filter: none !important;
-	-webkit-backdrop-filter: none !important;
-}
 

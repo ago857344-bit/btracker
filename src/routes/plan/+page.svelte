@@ -19,6 +19,32 @@
 	let selectedDay = todayKey();
 	let guideOpen = false;
 	let libraryOpen = false;
+
+	let balancerOpen = false;
+	let balanceDays = 7;
+
+	function runAutoBalance() {
+		tracker.update(t => {
+			const today = todayKey();
+			let pendingTasks = [];
+			
+			for (const task of (t.h || [])) {
+				if (!task.done && task.due && task.due <= today) {
+					pendingTasks.push(task);
+				}
+			}
+
+			if (pendingTasks.length === 0) return t;
+
+			for (let i = 0; i < pendingTasks.length; i++) {
+				const targetDay = addDaysKey(today, i % balanceDays);
+				pendingTasks[i].due = targetDay;
+			}
+			return t;
+		});
+		balancerOpen = false;
+	}
+
 	let query = '';
 	let subjectFilter = '';
 	let detailTask: HomeworkItem | null = null;
@@ -106,6 +132,7 @@
 			<button type="button" class="tool icon" aria-label="Previous" on:click={() => step(-1)}><NavIcon name="chevron" size={14} /></button>
 			<button type="button" class="tool icon" aria-label="Next" on:click={() => step(1)}><span class="flip"><NavIcon name="chevron" size={14} /></span></button>
 			<b class="cursor-label">{monthLabelOf(cursor)}</b>
+			<button type="button" class="tool" on:click={() => balancerOpen = true}><NavIcon name="plan" size={13} /> Auto Balance</button>
 			<button type="button" class="tool" on:click={() => guideOpen = true}><NavIcon name="info" size={13} /> Guide</button>
 			<div class="view-toggle">
 				<button type="button" class:selected={view === 'week'} on:click={() => view = 'week'}>Week</button>
@@ -264,6 +291,23 @@
 		<p class="lib-empty">No routines saved yet. Plan a day, then hit <b>+ Save</b> to store it here for reuse.</p>
 	{/if}
 </Modal>
+
+<Modal bind:open={balancerOpen} title="Auto Schedule Balancer" width="400px">
+	<div style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
+		<p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0; line-height: 1.5;">
+			This will gather all your overdue and unfinished tasks from the past (and today) and evenly distribute them across the upcoming days.
+		</p>
+		<label style="display: flex; flex-direction: column; gap: 0.4rem; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary);">
+			Distribute across how many days?
+			<input type="number" bind:value={balanceDays} min="1" max="30" style="padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-subtle); background: var(--surface-subtle); color: var(--text-primary);" />
+		</label>
+	</div>
+	<svelte:fragment slot="footer">
+		<button type="button" class="text-btn" on:click={() => balancerOpen = false} style="padding: 0.6rem 1rem; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-weight: 600;">Cancel</button>
+		<button type="button" class="primary-btn" on:click={runAutoBalance} style="padding: 0.6rem 1.25rem; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Balance Now</button>
+	</svelte:fragment>
+</Modal>
+
 
 <style>
 	.plan { display: grid; gap: 1.1rem; }

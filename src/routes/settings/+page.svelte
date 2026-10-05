@@ -448,7 +448,6 @@
 	.swatch.custom { position: relative; display: grid; place-items: center; background: conic-gradient(#e0455a, #d99a2b, #2f9e6e, #2b8ba6, #6d5dfc, #e0455a); overflow: hidden; }
 	.swatch.custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 	.themes { display: flex; gap: .45rem; flex-wrap: wrap; margin-bottom: 1rem; }
-	.wallpaper-preview { margin-top: .8rem; width: 100%; height: 140px; border-radius: 12px; background-size: cover; background-position: center; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-card); }
 	.input { width: 100%; padding: .7rem; border-radius: 9px; border: 1px solid var(--border-subtle); background: var(--surface-subtle); color: var(--text-primary); font-size: .85rem; margin-bottom: 1rem; }
 	.theme { display: inline-flex; align-items: center; gap: .4rem; padding: .5rem .9rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-panel); color: var(--text-secondary); font-size: .76rem; font-weight: 750; }
 	.theme.on { color: #fff; border-color: var(--accent); background: var(--accent); }

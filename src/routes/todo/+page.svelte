@@ -318,24 +318,25 @@
 </section>
 
 <style>
-	.todo { display: grid; gap: 1.1rem; }
+	.todo { display: grid; gap: 1.1rem; background: transparent; }
 	header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 	h1 { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -.04em; }
 	header p { margin: .25rem 0 0; color: var(--text-secondary); font-size: .74rem; font-weight: 650; }
-	.tabs { display: inline-flex; gap: .3rem; padding: .28rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-panel); }
+	.tabs { display: inline-flex; gap: .3rem; padding: .28rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: transparent; }
 	.tabs button { height: 44px; padding: 0 1.1rem; border: 0; border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: .78rem; font-weight: 750; cursor: pointer; font-family: inherit; }
 	.tabs button.selected { color: #fff; background: var(--accent); }
 
-	.add { display: flex; align-items: center; gap: .6rem; height: 46px; padding: 0 .5rem 0 .9rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-panel); color: var(--text-secondary); }
-	.add:focus-within { border-color: var(--accent); }
+	.add { display: flex; align-items: center; gap: .6rem; height: 46px; padding: 0 .5rem 0 .9rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: color-mix(in srgb, var(--surface-panel), transparent 55%); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: var(--text-secondary); }
+	.add:focus-within { border-color: var(--accent); background: color-mix(in srgb, var(--surface-panel), transparent 35%); }
 	.add input { flex: 1; border: 0; background: transparent; color: var(--text-primary); font-size: .88rem; font-family: inherit; }
 	.add input:focus { outline: none; }
 	.add button { height: 44px; padding: 0 1.1rem; border: 0; border-radius: 10px; background: var(--accent); color: #fff; font-size: .8rem; font-weight: 750; font-family: inherit; }
 	.add button:disabled { opacity: .45; cursor: default; }
 
-	.list { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
-	.row { display: flex; align-items: center; gap: .6rem; padding: .6rem .7rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-panel); }
-	.row.done { opacity: .6; background: var(--surface-subtle); }
+	.list { list-style: none; margin: 0; padding: 0; display: grid; gap: .65rem; background: transparent; }
+	.row { display: flex; align-items: center; gap: .6rem; padding: .75rem .9rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-panel); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transition: transform 0.15s ease, box-shadow 0.15s ease; }
+	.row:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
+	.row.done { opacity: .55; background: transparent; box-shadow: none; }
 	.grip { color: var(--border-subtle); cursor: grab; }
 	.check { display: grid; flex: 0 0 20px; place-items: center; width: 20px; height: 20px; border: 2px solid var(--border-subtle); border-radius: 99px; background: transparent; color: #fff; cursor: pointer; }
 	.check.checked { border-color: #2f9e6e; background: #2f9e6e; }

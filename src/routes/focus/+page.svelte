@@ -55,6 +55,7 @@
 	let logOpen = false; let logMinutes = 30; let logSubject: string | null = null;
 	let focusChapter = '';
 	import { boostChapterFromPractice } from '$lib/stores/recall-actions'; let logChapter = '';
+	$: focusValid = Boolean(subject) && Boolean(focusChapter);
 	let milestoneOpen = false; let milestoneHours = $tracker.meta.weekGoalH;
 
 	let locked = false; 
@@ -101,7 +102,7 @@
 	$: logChapters = chaptersOf(logSubject);
 	$: if (focusChapter && !chapters.includes(focusChapter)) focusChapter = '';
 	$: if (logChapter && !logChapters.includes(logChapter)) logChapter = '';
-	$: swValid = Boolean(subject) && (swKind === 'theory' || Boolean(swChapter));
+	$: swValid = Boolean(subject) && Boolean(swChapter);
 	$: weekKeys = new Set(lastNDays(7));
 	$: weekSessions = $tracker.log.filter((session) => weekKeys.has(sessionDayKey(session))).length;
 	$: hourStreak = (() => {
@@ -143,7 +144,7 @@
 	}
 
 	function logSession(minutes: number, activity: string) {
-		if (focusKind === 'revision' && subject && focusChapter) {
+		if (subject && focusChapter) {
 			boostChapterFromPractice(`${subject}-${focusChapter}`);
 		}
 		recordFocus({
@@ -171,7 +172,30 @@
 		}
 	}
 
-	function primary() {
+	function handleTabSwitchPenalty() {
+  if (running) {
+    primary(); // pause timer
+    alert("🚨 TAB SWITCH DETECTED! 🚨\n\nDeep Work interrupted. Your timer has been paused. Stay on this tab to maintain your focus momentum!");
+    
+    // Play an alarm sound
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(150, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 1.5);
+      gain.gain.setValueAtTime(0.5, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 1.5);
+    } catch(e) {}
+  }
+}
+
+function primary() {
 		if (locked) return;
 		if (tab === 'stopwatch') {
 			if (running) { running = false; clearInterval(interval); countUpStartedAt = null; }
@@ -236,7 +260,7 @@
 	function onSaveReport(event: CustomEvent<StopwatchReport>) {
 		const savedReport = event.detail;
 		stopwatchReports.update((list) => [savedReport, ...list]);
-		if (savedReport.kind === 'revision' && savedReport.sub && swChapter) {
+		if (savedReport.sub && swChapter) {
 			boostChapterFromPractice(`${savedReport.sub}-${swChapter}`);
 		}
 		recordFocus({
@@ -442,7 +466,7 @@
 	<div class="toolbar">
 		<button type="button" class="tb" on:click={share}><NavIcon name="share" size={14} /> SHARE</button>
 		<button type="button" class="tb accent" on:click={() => (logOpen = true)}><NavIcon name="plus" size={14} /> LOG</button>
-		<button type="button" class="tb" class:on={deepWorkMode} on:click={() => (deepWorkMode = !deepWorkMode)}><NavIcon name="expand" size={14} /> DEEP WORK</button>
+		<button type="button" class="tb" class:on={deepWorkMode} disabled={tab === 'stopwatch' ? !swValid : !focusValid} title={tab === 'stopwatch' && !swValid ? 'Select subject and chapter to enter Deep Work' : !focusValid ? 'Select subject and chapter to enter Deep Work' : 'Deep Work Mode'} on:click={() => (deepWorkMode = !deepWorkMode)}><NavIcon name="expand" size={14} /> DEEP WORK</button>
 		{#if tab === 'stopwatch'}
 			<button type="button" class="tb" on:click={() => (reportsOpen = true)}><NavIcon name="history" size={14} /> REPORTS</button>
 		{/if}
@@ -573,7 +597,7 @@
 					<button type="button" class="stop" disabled={!running && elapsed === 0} on:click={stopSession}><NavIcon name="stop" size={14} /> Stop</button>
 					<button type="button" class="ghost" disabled={running} on:click={reset}>Reset</button>
 				{:else}
-					<button type="button" class="primary" style="--btn: {accent}" on:click={primary}>{running ? 'Pause' : 'Start'}</button>
+					<button type="button" class="primary" style="--btn: {accent}" disabled={tab === 'focus' && !running && !focusValid} on:click={primary}>{running ? 'Pause' : 'Start'}</button>
 					{#if running || remaining !== activeLen * 60}
 						<button type="button" class="stop" on:click={stopSession}><NavIcon name="stop" size={14} /> Stop</button>
 					{/if}
@@ -737,6 +761,7 @@
 		{accent}
 		on:start={primary}
 		on:pause={primary}
+		on:penalty={handleTabSwitchPenalty}
 		on:exit={() => (deepWorkMode = false)}
 	/>
 {/if}
@@ -881,7 +906,6 @@
 		.page-head { flex-direction: column; gap: .6rem; }
 		.clockbox { text-align: left; }
 		.dial .time { font-size: 2.4rem; }
-		.ring-wrapper { transform: scale(0.95); transform-origin: center; }
 		.toolbar { flex-wrap: wrap; width: 100% !important; }
 		.spacer { display: none !important; }
 		.toolbar .tb, .toolbar .ic { flex: 1 1 auto; justify-content: center; min-width: 0; }

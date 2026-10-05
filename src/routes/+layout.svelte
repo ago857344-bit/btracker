@@ -129,7 +129,7 @@
 {/if}
 
 <style>
-	.app-shell { min-height: 100vh; padding-left: 256px; background: var(--surface-canvas); transition: padding-left .24s ease; }
+	.app-shell { min-height: 100vh; padding-left: 300px; background: var(--surface-canvas); transition: padding-left .24s ease; }
 	.app-shell.sidebar-collapsed { padding-left: 76px; }
 	.app-main { min-height: 100vh; }
 	.topbar { display: flex; align-items: center; justify-content: space-between; min-height: 88px; padding: 1.25rem clamp(1.5rem, 4vw, 4rem); border-bottom: 1px solid color-mix(in srgb, var(--border-subtle), transparent 32%); }
