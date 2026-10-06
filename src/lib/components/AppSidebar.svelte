@@ -84,7 +84,9 @@
 </aside>
 
 <style>
-	aside { position: fixed; z-index: 20; inset: 0 auto 0 0; display: flex; flex-direction: column; width: 300px; padding: 1.2rem 1rem 1rem; background: var(--surface-panel); border-right: 1px solid var(--border-subtle); transition: width .24s ease, transform .24s ease; }
+	aside { position: fixed; z-index: 20; inset: 0 auto 0 0; display: flex; flex-direction: column; width: 300px; padding: 1.2rem 1rem 1rem; background: var(--surface-panel); border-right: 1px solid var(--border-subtle); transition: width .24s ease, transform .24s ease; overflow-y: auto; overflow-x: hidden; }
+	aside::-webkit-scrollbar { display: none; }
+	aside { -ms-overflow-style: none; scrollbar-width: none; }
 	.brand-row { display: flex; align-items: center; gap: .45rem; min-height: 42px; padding: 0 .25rem .8rem; }
 	.brand { display: inline-flex; align-items: center; gap: .65rem; min-width: 0; color: var(--text-primary); text-decoration: none; font-weight: 800; letter-spacing: -.055em; font-size: 1.24rem; }
 	.brand-mark { display: grid; place-items: center; flex: 0 0 31px; width: 31px; height: 31px; border-radius: 10px; background: var(--accent); color: white; font-size: 1rem; letter-spacing: -.07em; box-shadow: 0 6px 14px color-mix(in srgb, var(--accent), transparent 65%); }
