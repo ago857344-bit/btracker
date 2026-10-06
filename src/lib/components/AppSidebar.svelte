@@ -84,7 +84,7 @@
 </aside>
 
 <style>
-	aside { position: fixed; z-index: 20; inset: 0 auto 0 0; display: flex; flex-direction: column; width: 300px; padding: 1.2rem 1rem 1rem; background: var(--surface-panel); border-right: 1px solid var(--border-subtle); transition: width .24s ease, transform .24s ease; overflow-y: auto; overflow-x: hidden; }
+	aside { position: fixed; z-index: 20; inset: 0 auto 0 0; display: flex; flex-direction: column; width: clamp(250px, 22vw, 300px); padding: 1.2rem 1rem 1rem; background: var(--surface-panel); border-right: 1px solid var(--border-subtle); transition: width .24s ease, transform .24s ease; overflow-y: auto; overflow-x: hidden; }
 	aside::-webkit-scrollbar { display: none; }
 	aside { -ms-overflow-style: none; scrollbar-width: none; }
 	.brand-row { display: flex; align-items: center; gap: .45rem; min-height: 42px; padding: 0 .25rem .8rem; }
@@ -93,14 +93,14 @@
 	.brand-name, .nav-text, .nav-label, .profile-copy { white-space: nowrap; overflow: hidden; transition: opacity .18s ease; }
 	.collapse { display: grid; place-items: center; margin-left: auto; width: 30px; height: 30px; border: 0; border-radius: 9px; color: var(--text-secondary); background: transparent; transform: rotate(180deg); } /* Points Left (<) when open */
 	.collapse:hover { color: var(--accent); background: var(--accent-soft); }
-	nav { display: grid; gap: .3rem; margin-top: 1.15rem; }
-	.nav-label { margin: .8rem .65rem .45rem; color: var(--text-secondary); font-size: .67rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
-	nav a, .settings-link { display: flex; align-items: center; gap: 1rem; height: 52px; padding: 0 .75rem; border-radius: 12px; color: var(--text-secondary); text-decoration: none; font-size: 1rem; font-weight: 650; transition: background .16s ease, color .16s ease; }
+	nav { display: grid; gap: clamp(0.15rem, 0.4vh, 0.3rem); margin-top: clamp(0.5rem, 1.5vh, 1.15rem); }
+	.nav-label { margin: clamp(0.4rem, 1vh, 0.8rem) .65rem clamp(0.2rem, 0.5vh, 0.45rem); color: var(--text-secondary); font-size: .67rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+	nav a, .settings-link { display: flex; align-items: center; gap: clamp(0.6rem, 1vw, 1rem); height: clamp(40px, 6vh, 52px); padding: 0 .75rem; border-radius: 12px; color: var(--text-secondary); text-decoration: none; font-size: clamp(0.85rem, 1.2vh, 1rem); font-weight: 650; transition: background .16s ease, color .16s ease; }
 	nav a:hover, .settings-link:hover { color: var(--text-primary); background: var(--surface-subtle); }
 	nav a.active { color: var(--accent); background: var(--accent-soft); }
 	.nav-icon { display: grid; flex: 0 0 24px; place-items: center; }
 	.due-badge { margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center; background: var(--accent); color: white; font-size: .62rem; font-weight: 800; }
-	.nav-divider { height: 1px; margin: 1rem .65rem .2rem; background: var(--border-subtle); }
+	.nav-divider { height: 1px; margin: clamp(0.5rem, 1.5vh, 1rem) .65rem clamp(0.1rem, 0.3vh, 0.2rem); background: var(--border-subtle); }
 	.sidebar-bottom { display: grid; gap: .55rem; margin-top: auto; }
 	.profile-container { padding: .65rem .55rem .15rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; gap: .7rem; }
 	.profile-copy { display: grid; gap: .08rem; min-width: 0; font-size: .77rem; }
