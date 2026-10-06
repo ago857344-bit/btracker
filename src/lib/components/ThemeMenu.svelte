@@ -65,7 +65,7 @@
 
 			<p class="label">THEMES</p>
 			<div class="themes">
-				{#each THEME_PRESETS as preset (preset.id)}
+				{#each THEME_PRESETS as preset, i (preset.id + "-" + i)}
 					<button type="button" class="theme-card" class:on={current.id === preset.id} on:click={() => selectTheme(preset.id)}>
 						<span class="chip" style="background: {preset.accent}">
 							{#if current.id === preset.id}<NavIcon name="check" size={12} />{/if}
@@ -80,7 +80,7 @@
 
 			<p class="label">ACCENT</p>
 			<div class="accents">
-				{#each ACCENTS as color}
+				{#each ACCENTS as color, i (i)}
 					<button type="button" class="swatch" class:on={$tracker.ui.accent === color} style="background: {color}" aria-label="Accent {color}" on:click={() => setAccent(color)}></button>
 				{/each}
 			</div>

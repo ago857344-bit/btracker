@@ -49,7 +49,7 @@
 
 	<nav>
 		<p class="nav-label">Workspace</p>
-		{#each primary as item}
+		{#each primary as item, i (i)}
 			<a class:active={isActive(item.href)} href={item.href} on:click={closeMobile}>
 				<span class="nav-icon"><NavIcon name={item.icon} size={22} /></span><span class="nav-text">{item.label}</span>
 				{#if item.href === '/revise' && $chaptersDueToday.length}
@@ -59,7 +59,7 @@
 		{/each}
 		<div class="nav-divider"></div>
 		<p class="nav-label">Insights</p>
-		{#each secondary as item}
+		{#each secondary as item, i (i)}
 			<a class:active={isActive(item.href)} href={item.href} on:click={closeMobile}>
 				<span class="nav-icon"><NavIcon name={item.icon} size={22} /></span><span class="nav-text">{item.label}</span>
 				{#if item.href === '/reminders' && $chaptersDueToday.length}

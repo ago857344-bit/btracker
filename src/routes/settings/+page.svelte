@@ -318,7 +318,7 @@
 
 			{#if $tracker.ui.wallpaperHistory && $tracker.ui.wallpaperHistory.length > 0}
 				<div class="wallpaper-history">
-					{#each $tracker.ui.wallpaperHistory as wp}
+					{#each $tracker.ui.wallpaperHistory as wp, i (i)}
 						<div class="hist-item" class:active={$tracker.ui.wallpaper === wp} on:click={() => updateTracker(s => { s.ui.wallpaper = wp; })} on:keydown={(e) => e.key === 'Enter' && updateTracker(s => { s.ui.wallpaper = wp; })} tabindex="0" role="button">
 							<div class="thumb" style="background-image: url({wp})"></div>
 							<button type="button" class="del-btn" on:click|stopPropagation={() => removeWallpaperFromHistory(wp)}>
@@ -363,7 +363,7 @@
 			<h2><NavIcon name="palette" size={15} /> Appearance</h2>
 			<p class="label">ACCENT COLOR</p>
 			<div class="swatches">
-				{#each ACCENTS as color}
+				{#each ACCENTS as color, i (i)}
 					<button type="button" class="swatch" class:on={$tracker.ui.accent === color} style="background: {color}" aria-label="Accent {color}" on:click={() => setAccent(color)}></button>
 				{/each}
 				<label class="swatch custom" title="Custom color">
@@ -372,7 +372,7 @@
 			</div>
 			<p class="label">THEME</p>
 			<div class="themes">
-				{#each THEMES as t}
+				{#each THEMES as t, i (i)}
 					<button type="button" class="theme" class:on={$tracker.theme === t.id} on:click={() => setTheme(t.id)}>
 						<NavIcon name={t.dark ? 'moon' : 'sun'} size={14} /> {t.label}
 					</button>
