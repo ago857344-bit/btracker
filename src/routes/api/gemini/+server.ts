@@ -35,9 +35,26 @@ export async function POST({ request }) {
 			});
 		}
 
+		let errMessage = "Unknown error";
 		if (!res.ok) {
 			const err = await res.json().catch(() => ({}));
-			return json({ error: err.error?.message || "Failed to fetch from Gemini API." }, { status: res.status });
+			errMessage = err.error?.message || "Failed to fetch from Gemini API.";
+
+			// Fetch available models to debug what their key supports
+			try {
+				const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+				if (modelsRes.ok) {
+					const modelsData = await modelsRes.json();
+					const availableModels = modelsData.models?.map((m: any) => m.name.replace('models/', '')).join(', ') || 'None';
+					errMessage += `\n[DEBUG] Your API Key supports these models: ${availableModels}`;
+				} else {
+					errMessage += `\n[DEBUG] Also failed to list models. Is your API key valid for Generative Language API?`;
+				}
+			} catch (e) {
+				// ignore
+			}
+			
+			return json({ error: errMessage }, { status: res.status });
 		}
 
 		const data = await res.json();
