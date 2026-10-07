@@ -325,8 +325,8 @@
 			<div class="sub-row header-row">
 				<strong>Subject</strong>
 				<span class="col-label">Score</span>
-				<span class="col-label correct-label">Correct (Q)</span>
-				<span class="col-label incorrect-label">Wrong (Q)</span>
+				<span class="col-label correct-label">Correct</span>
+				<span class="col-label incorrect-label">Wrong</span>
 			</div>
 			<div class="sub-row">
 				<strong>Physics</strong>
@@ -455,9 +455,11 @@
 	label { font-size: 0.875rem; font-weight: 600; color: var(--text-secondary); }
 	.subjects-input { margin-top: 0.5rem; }
 	.subjects-input h3 { font-size: 1rem; margin-bottom: 1rem; color: var(--text-primary); }
-	.sub-row { display: grid; grid-template-columns: 75px 1fr 1fr 1fr; gap: 0.6rem; align-items: center; margin-bottom: 0.75rem; }
-	.sub-row strong { color: var(--text-secondary); font-size: 0.9rem; }
-	.col-label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+	.sub-row { display: grid; grid-template-columns: 70px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 0.4rem; align-items: center; margin-bottom: 0.75rem; width: 100%; }
+	.sub-row input { min-width: 0; width: 100%; padding: 0.4rem; font-size: 0.85rem; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--surface-subtle); color: var(--text-primary); }
+	.sub-row input:focus { border-color: var(--accent); outline: none; }
+	.sub-row strong { color: var(--text-secondary); font-size: 0.85rem; overflow: hidden; text-overflow: ellipsis; }
+	.col-label { font-size: 0.65rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
 	.correct-label { color: #10b981; }
 	.incorrect-label { color: #ef4444; }
 	
