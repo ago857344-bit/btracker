@@ -51,7 +51,6 @@
 	function dismissUpdateModal() {
 		localStorage.setItem('btracker_seen_v29_update', 'true');
 		showUpdateModal = false;
-		fireConfetti(); // Give them a little celebration for the update!
 	}
 
 	function fireConfetti() {
