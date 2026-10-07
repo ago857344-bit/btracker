@@ -80,6 +80,8 @@ export function updateChapterWeightage(chapterKey: string, weightage: 1 | 2 | 3)
  * @param modalities - Modalities used
  * @param timeSpentMinutes - Time spent in minutes
  */
+import { calculateEloChange } from '$lib/state/gamification';
+
 export function recordChapterRevision(
 	chapterKey: string,
 	confidence: ConfidenceRating,
@@ -100,8 +102,27 @@ export function recordChapterRevision(
 		const today = todayKey();
 		const todayData = $tracker.rev.dailyHeatmap[today] || { revisedCount: 0, totalTimeMinutes: 0 };
 
+		// Gamification Update
+		let xpGain = timeSpentMinutes > 0 ? timeSpentMinutes * 10 : 50; // baseline for quick revisions
+		const accMap: Record<ConfidenceRating, number> = { 'again': 40, 'hard': 70, 'good': 85, 'easy': 100 };
+		const accuracy = accMap[confidence] || 70;
+		const subCode = chapterKey.split(/[-:]/)[0] || 'P';
+		
+		let gamification = $tracker.gamification || { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } };
+		let currentElo = (gamification.elo as any)[subCode] ?? 300;
+		
+		gamification = {
+			...gamification,
+			xp: gamification.xp + xpGain,
+			elo: {
+				...gamification.elo,
+				[subCode]: Math.max(0, currentElo + calculateEloChange(currentElo, accuracy))
+			}
+		};
+
 		return {
 			...$tracker,
+			gamification,
 			rev: {
 				...$tracker.rev,
 				chapters: {
