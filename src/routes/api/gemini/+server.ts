@@ -24,14 +24,14 @@ export async function POST({ request }) {
 			'gemini-3.8-flash', 
 			'gemini-3.7-flash', 
 			'gemini-3.5-flash', 
-			'gemini-2.5-pro', 
-			'gemini-2.5-flash'
+			'gemini-flash-latest',
+			'gemini-pro-latest'
 		];
 
 		let res: Response | null = null;
 		
 		for (const model of MODELS_TO_TRY) {
-			res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+			res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(body)
@@ -51,7 +51,7 @@ export async function POST({ request }) {
 
 			// Fetch available models to debug what their key supports
 			try {
-				const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+				const modelsRes = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`);
 				if (modelsRes.ok) {
 					const modelsData = await modelsRes.json();
 					const availableModels = modelsData.models?.map((m: any) => m.name.replace('models/', '')).join(', ') || 'None';
