@@ -25,12 +25,12 @@
 
 	let currentLevel = 0;
 	let showLevelUp = false;
-	let levelUpData = { level: 1, title: '' };
+	let levelUpData = { level: 1, title: '', currentTierXp: 0, nextTierXp: 500, progress: 0 };
 
 	$: if ($tracker && $tracker.gamification) {
-		const { level, title } = getLevelData($tracker.gamification.xp);
+		const { level, title, currentTierXp, nextTierXp, progress } = getLevelData($tracker.gamification.xp);
 		if (currentLevel > 0 && level > currentLevel) {
-			levelUpData = { level, title };
+			levelUpData = { level, title, currentTierXp, nextTierXp, progress };
 			showLevelUp = true;
 			fireConfetti();
 		}
@@ -68,8 +68,18 @@
 	<div class="level-up-box">
 		<span class="lu-icon"><NavIcon name="trophy" size={48} /></span>
 		<h2>LEVEL UP!</h2>
-		<p>You've officially reached <b>Level {levelUpData.level}</b>!</p>
+		<p>Congratulations, <b>{$tracker?.meta?.name || 'My Account'}</b>!<br/>You've officially reached <b>Level {levelUpData.level}</b>!</p>
 		<p class="lu-rank">You are now a<br/><span>{levelUpData.title}</span></p>
+
+		<div class="lu-progress">
+			<div class="lu-labels">
+				<span><b>Lv {levelUpData.level}</b> ({levelUpData.currentTierXp} XP)</span>
+				<span><b>Lv {levelUpData.level + 1}</b> ({levelUpData.nextTierXp} XP)</span>
+			</div>
+			<div class="xp-bar">
+				<div class="xp-fill" style="width: {levelUpData.progress}%"></div>
+			</div>
+		</div>
 	</div>
 	<svelte:fragment slot="footer">
 		<button type="button" class="btn solid" style="width: 100%" on:click={() => showLevelUp = false}>Awesome!</button>
@@ -96,4 +106,10 @@
 	.level-up-box p b { color: var(--text-primary); }
 	.lu-rank { margin: 0 !important; font-size: .8rem !important; font-weight: 700; color: var(--text-secondary) !important; text-transform: uppercase; letter-spacing: .08em; }
 	.lu-rank span { display: block; font-size: 1.6rem; font-weight: 900; letter-spacing: -.04em; color: var(--accent); margin-top: .4rem; text-transform: none; }
+
+	.lu-progress { width: 100%; margin-top: 1.8rem; background: var(--surface-subtle); padding: 1.2rem; border-radius: 14px; border: 1px solid var(--border-subtle); text-align: left; }
+	.lu-labels { display: flex; justify-content: space-between; font-size: .72rem; color: var(--text-secondary); margin-bottom: .6rem; }
+	.lu-labels b { color: var(--text-primary); font-weight: 850; }
+	.xp-bar { height: 8px; background: color-mix(in srgb, var(--text-primary), transparent 90%); border-radius: 99px; overflow: hidden; }
+	.xp-fill { height: 100%; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 80%, white)); transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
 </style>
