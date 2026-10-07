@@ -14,7 +14,7 @@ export async function askGeminiChat(history: ChatMessage[], systemInstruction?: 
 	const data = await res.json();
 
 	if (!res.ok) {
-		throw new Error(data.error || "Failed to communicate with AI server.");
+		return data.error || "Failed to communicate with AI server.";
 	}
 
 	return data.text;
