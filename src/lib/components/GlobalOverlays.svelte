@@ -105,26 +105,27 @@
 <Modal open={showUpdateModal} title="" width="480px" on:close={dismissUpdateModal}>
 	<div class="update-box">
 		<span class="update-icon"><NavIcon name="sparkles" size={42} /></span>
+		<span class="update-date">OCTOBER 2026</span>
 		<h2>BTracker v3 is Here</h2>
 		<p class="update-sub">The Gamification Engine update has arrived.</p>
 		
 		<div class="update-features">
 			<div class="feat">
-				<span class="fic" style="color: #6d5dfc; background: #6d5dfc22"><NavIcon name="trend" size={18} /></span>
+				<span class="fic"><NavIcon name="trend" size={18} /></span>
 				<div class="ftext">
 					<b>RPG Leveling System</b>
 					<span>Earn XP automatically for every minute of Deep Work. Watch your rank grow from 'Initiate' to 'JEE Conqueror'.</span>
 				</div>
 			</div>
 			<div class="feat">
-				<span class="fic" style="color: #ff9d00; background: #ff9d0022"><NavIcon name="target" size={18} /></span>
+				<span class="fic"><NavIcon name="target" size={18} /></span>
 				<div class="ftext">
 					<b>Subject Elo Ratings</b>
 					<span>Your performance in Mock Tests and Questions now dynamically impacts your Subject Elo. Aim for Grandmaster!</span>
 				</div>
 			</div>
 			<div class="feat">
-				<span class="fic" style="color: #00d2ff; background: #00d2ff22"><NavIcon name="clock" size={18} /></span>
+				<span class="fic"><NavIcon name="history" size={18} /></span>
 				<div class="ftext">
 					<b>Retroactive Rewards</b>
 					<span>We already scanned your entire study history! You've been instantly credited your rightful XP and baseline Elo.</span>
@@ -166,11 +167,12 @@
 
 	.update-box { display: flex; flex-direction: column; align-items: center; padding: .5rem 0 1rem; }
 	.update-icon { color: var(--accent); margin-bottom: .8rem; }
+	.update-date { font-size: .65rem; font-weight: 800; letter-spacing: .1em; color: var(--accent); margin-bottom: .4rem; text-transform: uppercase; background: color-mix(in srgb, var(--accent) 15%, transparent); padding: .2rem .5rem; border-radius: 6px; }
 	.update-box h2 { font-size: 1.8rem; font-weight: 900; letter-spacing: -.03em; color: var(--text-primary); margin: 0 0 .3rem; line-height: 1; }
 	.update-sub { font-size: .85rem; color: var(--text-secondary); margin: 0 0 1.8rem; text-align: center; }
 	.update-features { display: grid; gap: 1rem; width: 100%; }
 	.feat { display: flex; gap: 1rem; align-items: flex-start; padding: 1rem; border-radius: 14px; background: var(--surface-subtle); border: 1px solid var(--border-subtle); }
-	.fic { flex: 0 0 36px; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; }
+	.fic { flex: 0 0 36px; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
 	.ftext { display: grid; gap: .25rem; }
 	.ftext b { color: var(--text-primary); font-size: .88rem; font-weight: 800; letter-spacing: -.01em; }
 	.ftext span { color: var(--text-secondary); font-size: .78rem; line-height: 1.4; }
