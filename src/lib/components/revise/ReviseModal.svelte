@@ -102,50 +102,48 @@
 	}
 </script>
 
-<Modal open={open} title="SCHEDULE REVISION" width="700px" on:close={handleClose}>
-	{#if evalOpen}
-		<EvaluationModal open={true} {chapterKey} {chapter} on:close={() => { evalOpen = false; handleClose(); }} />
-	{:else}
-		<div class="scheduler">
-			<!-- Header -->
-			<div class="header">
-				<h3 style="color: {color}">{chapterTitle}</h3>
-				<p>When would you like to review this chapter?</p>
-			</div>
+<Modal open={open && !evalOpen} title="SCHEDULE REVISION" width="700px" on:close={handleClose}>
+	<div class="scheduler">
+		<!-- Header -->
+		<div class="header">
+			<h3 style="color: {color}">{chapterTitle}</h3>
+			<p>When would you like to review this chapter?</p>
+		</div>
 
-			<!-- Error Log (Micro-Revisions) -->
-			<div class="error-log">
-				<div class="log-stat flag">
-					<NavIcon name="target" size={16} />
-					<span><b>{errorLog.flagged}</b> Flagged Questions</span>
-				</div>
-				<div class="log-stat error">
-					<NavIcon name="x" size={16} />
-					<span><b>{errorLog.mistakes}</b> Past Mistakes</span>
-				</div>
-				<div class="log-desc">
-					We recommend targeting these specific weaknesses during your focus session.
-				</div>
+		<!-- Error Log (Micro-Revisions) -->
+		<div class="error-log">
+			<div class="log-stat flag">
+				<NavIcon name="target" size={16} />
+				<span><b>{errorLog.flagged}</b> Flagged Questions</span>
 			</div>
-
-			<!-- Timeline Strip -->
-			<div class="timeline-section">
-				<div class="sec-label">TODAY'S PLAN (CARVING & SLOTTING)</div>
-				<p class="help">Click an empty space to schedule a new block, or click an existing study block to nest this revision inside it.</p>
-				<TimelineStrip blocks={todayBlocks} on:schedule={handleSchedule} on:nest={handleNest} />
+			<div class="log-stat error">
+				<NavIcon name="x" size={16} />
+				<span><b>{errorLog.mistakes}</b> Past Mistakes</span>
 			</div>
-
-			<!-- Actions -->
-			<div class="actions">
-				<button type="button" class="btn ghost" on:click={handleClose}>Cancel</button>
-				<button type="button" class="btn solid" on:click={startFocusMode}>
-					<NavIcon name="focus" size={14} />
-					<span>Start Session Now</span>
-				</button>
+			<div class="log-desc">
+				We recommend targeting these specific weaknesses during your focus session.
 			</div>
 		</div>
-	{/if}
+
+		<!-- Timeline Strip -->
+		<div class="timeline-section">
+			<div class="sec-label">TODAY'S PLAN (CARVING & SLOTTING)</div>
+			<p class="help">Click an empty space to schedule a new block, or click an existing study block to nest this revision inside it.</p>
+			<TimelineStrip blocks={todayBlocks} on:schedule={handleSchedule} on:nest={handleNest} />
+		</div>
+
+		<!-- Actions -->
+		<div class="actions">
+			<button type="button" class="btn ghost" on:click={handleClose}>Cancel</button>
+			<button type="button" class="btn solid" on:click={startFocusMode}>
+				<NavIcon name="focus" size={14} />
+				<span>Start Session Now</span>
+			</button>
+		</div>
+	</div>
 </Modal>
+
+<EvaluationModal open={evalOpen} {chapterKey} {chapter} on:close={() => { evalOpen = false; handleClose(); }} />
 
 <style>
 	.scheduler { display: grid; gap: 1.5rem; }

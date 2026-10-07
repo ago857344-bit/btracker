@@ -106,6 +106,9 @@
 			</div>
 
 			<div class="actions center">
+				<button type="button" class="btn ghost" on:click={finishTimer}>
+					<span>Skip Timer</span>
+				</button>
 				<button type="button" class="btn solid" on:click={finishTimer}>
 					<NavIcon name="check" size={14} />
 					<span>Finish & Evaluate</span>
