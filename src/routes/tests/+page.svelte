@@ -4,9 +4,12 @@
 	import { calculateEloChange } from '$lib/state/gamification';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
+	import GrillMeModal from '$lib/components/ui/GrillMeModal.svelte';
 
 	// VIEW MODE
 	let viewMode: 'mocks' | 'mistakes' = 'mocks';
+
+	let grillingMistake: MistakeLog | null = null;
 
 	// ======== MOCKS LOGIC ========
 	let tab: 'Btest' | 'Alt' | 'CET' = 'Btest';
@@ -277,6 +280,9 @@
 						<div class="card-header">
 							<span class="badge {mistake.subject.toLowerCase()}">{mistake.subject}</span>
 							<span class="badge type">{mistake.errorType}</span>
+							<button class="icon-btn" style="color: #e0455a;" title="Grill Me on this mistake" on:click={() => (grillingMistake = mistake)}>
+								<NavIcon name="flame" size={14} />
+							</button>
 							<button class="icon-btn danger" on:click={() => deleteMistake(mistake.id)}>
 								<NavIcon name="trash" size={14} />
 							</button>
@@ -371,6 +377,7 @@
 	</svelte:fragment>
 </Modal>
 
+<GrillMeModal mistake={grillingMistake} on:close={() => (grillingMistake = null)} />
 <style>
 	.tests-container { padding: 1.5rem; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 2rem; }
 	.glass { background: var(--surface-panel); border: 1px solid var(--border-subtle); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 16px; }

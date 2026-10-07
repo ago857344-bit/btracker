@@ -8,11 +8,30 @@
 	import { dayKeyOf, focusMinutesOn, formatMinutes, shortDateKey, startOfWeek } from '$lib/state/dates';
 	import { getLevelData, getEloRank } from '$lib/state/gamification';
 	import { SUBJECTS } from '$lib/state/subjects';
+	import { getWeaknessAnalysis } from '$lib/services/ai';
+	import { marked } from 'marked';
 
 	const RANK_COLORS: Record<string, string> = { ELITE: '#d99a2b', ADVANCED: '#8b7bff', INTERMEDIATE: '#2b8ba6', NOVICE: '#8b87a0' };
 
-	let open: Record<string, boolean> = { rank: true, momentum: false, quick: true, identity: true, deep: false, portfolio: false, academic: false, dna: false, velocity: false };
+	let open: Record<string, boolean> = { ai: true, rank: true, momentum: false, quick: true, identity: true, deep: false, portfolio: false, academic: false, dna: false, velocity: false };
 	const toggle = (key: string) => (open = { ...open, [key]: !open[key] });
+
+	let aiLoading = false;
+	let aiReportHtml = '';
+	let aiError = '';
+
+	async function handleGenerateAIReport() {
+		aiLoading = true;
+		aiError = '';
+		try {
+			const md = await getWeaknessAnalysis($tracker);
+			aiReportHtml = await marked.parse(md);
+		} catch (e: any) {
+			aiError = e.message || 'Failed to generate report.';
+		} finally {
+			aiLoading = false;
+		}
+	}
 
 	function weekMinutes(offset: number) {
 		const start = startOfWeek();
@@ -65,6 +84,40 @@
 	</header>
 
 	<div class="accordion">
+		<section class="sec">
+			<button type="button" class="sec-head" aria-expanded={open.ai} on:click={() => toggle('ai')}>
+				<span class="dot" style="background: var(--accent)"></span> AI WEAKNESS ANALYZER
+				<NavIcon name="chevron-down" size={15} />
+			</button>
+			{#if open.ai}
+				<div class="sec-body ai-body">
+					{#if !aiReportHtml && !aiLoading}
+						<div class="ai-empty">
+							<span class="ai-icon"><NavIcon name="sparkles" size={36} /></span>
+							<h3>Gemini Mentor</h3>
+							<p>Analyze your Elo and recent mistake logs to instantly discover your critical weak points and get a strategic gameplan for the week.</p>
+							{#if aiError}<p class="ai-error">{aiError}</p>{/if}
+							<button type="button" class="btn solid ai-btn" on:click={handleGenerateAIReport}>
+								<NavIcon name="bolt" size={14} /> Generate Insights
+							</button>
+						</div>
+					{:else if aiLoading}
+						<div class="ai-loading">
+							<div class="ai-pulse"></div>
+							<p>Gemini is analyzing your stats...</p>
+						</div>
+					{:else}
+						<div class="ai-report markdown-body">
+							{@html aiReportHtml}
+							<button type="button" class="btn ghost ai-refresh" on:click={handleGenerateAIReport}>
+								<NavIcon name="history" size={13} /> Regenerate Report
+							</button>
+						</div>
+					{/if}
+				</div>
+			{/if}
+		</section>
+
 		<section class="sec">
 			<button type="button" class="sec-head" aria-expanded={open.rank} on:click={() => toggle('rank')}>
 				<span class="dot" style="background: var(--accent)"></span> PLAYER RANK & ELO
@@ -333,6 +386,27 @@
 	.m-text span { font-size: .75rem; color: var(--text-secondary); line-height: 1.45; }
 	.m-text span b { color: var(--text-primary); font-size: inherit; font-weight: 750; }
 	.m-text span i { color: var(--accent); font-style: normal; font-weight: 700; }
+
+	.ai-body { padding: 1.5rem; background: var(--surface-subtle); border-radius: 16px; border: 1px dashed var(--border-subtle); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 200px; }
+	.ai-empty { text-align: center; max-width: 400px; display: flex; flex-direction: column; align-items: center; gap: .5rem; }
+	.ai-icon { color: var(--accent); margin-bottom: .5rem; }
+	.ai-empty h3 { font-size: 1.4rem; font-weight: 850; color: var(--text-primary); margin: 0; }
+	.ai-empty p { font-size: .85rem; color: var(--text-secondary); line-height: 1.5; margin: 0 0 1rem; }
+	.ai-error { color: var(--danger) !important; font-weight: 700; background: color-mix(in srgb, var(--danger) 15%, transparent); padding: .4rem .8rem; border-radius: 6px; }
+	.ai-btn { gap: .4rem; padding: .6rem 1.2rem; font-weight: 750; letter-spacing: .02em; }
+	
+	.ai-loading { display: flex; flex-direction: column; align-items: center; gap: 1rem; color: var(--text-secondary); font-weight: 700; font-size: .85rem; letter-spacing: .05em; text-transform: uppercase; }
+	.ai-pulse { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); animation: pulse 1.5s infinite; }
+	@keyframes pulse { 0% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.8); opacity: 0.5; } }
+
+	.ai-report { width: 100%; text-align: left; font-size: .9rem; line-height: 1.6; color: var(--text-secondary); }
+	.ai-report :global(h3) { font-size: 1.1rem; color: var(--text-primary); margin: 1.5rem 0 .5rem; font-weight: 800; text-transform: uppercase; letter-spacing: .02em; }
+	.ai-report :global(h3:first-child) { margin-top: 0; }
+	.ai-report :global(strong) { color: var(--text-primary); font-weight: 750; }
+	.ai-report :global(ul) { padding-left: 1.5rem; margin-bottom: 1rem; }
+	.ai-report :global(li) { margin-bottom: .4rem; }
+	.ai-refresh { margin-top: 1.5rem; display: inline-flex; align-items: center; gap: .4rem; font-size: .8rem; color: var(--text-secondary); }
+
 	.word { display: block; font-size: clamp(2.2rem, 7vw, 3.4rem); font-style: italic; font-weight: 900; letter-spacing: -.04em; line-height: 1.05; }
 	.sentence { margin: .5rem 0 1.2rem; color: var(--text-secondary); font-size: .88rem; }
 	.guide-label { margin: 0 0 .5rem; color: var(--text-secondary); font-size: .62rem; font-weight: 800; letter-spacing: .12em; }

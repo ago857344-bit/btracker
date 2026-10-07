@@ -14,6 +14,7 @@
 	import { importLegacyCode } from '$lib/state/legacy-code';
 	import { parseImportedProgress } from '$lib/services/progressImport';
 	import { longDateKey } from '$lib/state/dates';
+	import { onMount } from 'svelte';
 	import { THEME_PRESETS, presetOf, isDarkTheme } from '$lib/state/themes';
 	import type { ThemeId, TrackerState } from '$lib/types/tracker';
 
