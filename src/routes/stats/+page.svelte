@@ -95,6 +95,25 @@
 							{/each}
 						</div>
 					</div>
+					<div class="gamification-manual">
+						<p class="guide-label">GAMIFICATION MANUAL</p>
+						<div class="manual-grid">
+							<div class="manual-card">
+								<span class="m-icon"><NavIcon name="trend" size={16} /></span>
+								<div class="m-text">
+									<b>How to earn XP</b>
+									<span>XP is automatically earned during Focus Sessions. Every 1 minute of deep work = <b>10 XP</b>. The more consistent you are, the faster you'll reach <i>JEE Conqueror</i>.</span>
+								</div>
+							</div>
+							<div class="manual-card">
+								<span class="m-icon"><NavIcon name="target" size={16} /></span>
+								<div class="m-text">
+									<b>How Elo Works</b>
+									<span>Elo dynamically tracks your subject proficiency. When you score well in mock tests or questions, your Elo increases. Base Elo starts at 300 (Bronze). Reach 1600+ to become a Grandmaster!</span>
+								</div>
+							</div>
+						</div>
+					</div>
 				</div>
 			{/if}
 		</section>
@@ -304,7 +323,16 @@
 	.elo-rank { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .5rem; border-radius: 6px; background: color-mix(in srgb, var(--elo), transparent 85%); color: var(--elo); font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; margin-right: .8rem; }
 	.elo-score { font-size: 1.1rem; font-weight: 850; color: var(--elo); }
 
-
+	.gamification-manual { grid-column: 1 / -1; margin-top: .4rem; }
+	.manual-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+	@media (max-width: 600px) { .manual-grid { grid-template-columns: 1fr; } }
+	.manual-card { display: flex; gap: .8rem; padding: 1.2rem; border-radius: 14px; background: var(--surface-subtle); border: 1px dashed var(--border-subtle); }
+	.m-icon { flex: 0 0 32px; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
+	.m-text { display: flex; flex-direction: column; gap: .3rem; }
+	.m-text b { font-size: .85rem; font-weight: 800; color: var(--text-primary); letter-spacing: -.02em; }
+	.m-text span { font-size: .75rem; color: var(--text-secondary); line-height: 1.45; }
+	.m-text span b { color: var(--text-primary); font-size: inherit; font-weight: 750; }
+	.m-text span i { color: var(--accent); font-style: normal; font-weight: 700; }
 	.word { display: block; font-size: clamp(2.2rem, 7vw, 3.4rem); font-style: italic; font-weight: 900; letter-spacing: -.04em; line-height: 1.05; }
 	.sentence { margin: .5rem 0 1.2rem; color: var(--text-secondary); font-size: .88rem; }
 	.guide-label { margin: 0 0 .5rem; color: var(--text-secondary); font-size: .62rem; font-weight: 800; letter-spacing: .12em; }
