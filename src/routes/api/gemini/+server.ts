@@ -29,16 +29,33 @@ export async function POST({ request }) {
 
 		// ── 1. Try Groq first (fast, free) ──────────────────────────────────
 		if (groqKey) {
-			const GROQ_MODELS = [
-				'llama3-70b-8192',
-				'llama3-8b-8192',
-				'mixtral-8x7b-32768',
-				'gemma2-9b-it'
-			];
-			let groqRes: Response | null = null;
-			let groqErr = '';
+			// Dynamically fetch available models so we never use a stale/decommissioned ID
+			let groqModels: string[] = [];
+			try {
+				const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
+					headers: { Authorization: `Bearer ${groqKey}` }
+				});
+				if (modelsRes.ok) {
+					const modelsData = await modelsRes.json();
+					// Prefer larger/capable models; filter to chat-compatible ones only
+					const all: string[] = (modelsData.data ?? [])
+						.map((m: any) => m.id as string)
+						.filter((id: string) =>
+							!id.includes('whisper') &&
+							!id.includes('tts') &&
+							!id.includes('embed') &&
+							!id.includes('guard')
+						);
+					// Rank: prefer 70b/large models first, then smaller ones
+					groqModels = [
+						...all.filter(id => id.includes('70b') || id.includes('72b') || id.includes('90b') || id.includes('120b')),
+						...all.filter(id => !id.includes('70b') && !id.includes('72b') && !id.includes('90b') && !id.includes('120b'))
+					];
+				}
+			} catch { /* ignore, will fall through to Gemini */ }
 
-			for (const model of GROQ_MODELS) {
+			let groqErr = '';
+			for (const model of groqModels.slice(0, 4)) { // try at most 4 models
 				try {
 					const controller = new AbortController();
 					const timeout = setTimeout(() => controller.abort(), 25_000);
@@ -49,7 +66,7 @@ export async function POST({ request }) {
 					};
 					if (jsonMode) body.response_format = { type: 'json_object' };
 
-					groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+					const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
@@ -68,17 +85,14 @@ export async function POST({ request }) {
 
 					const errData = await groqRes.json().catch(() => ({}));
 					groqErr = errData?.error?.message ?? `Groq returned status ${groqRes.status}`;
-
-					// Only retry next model on rate limit
 					if (groqRes.status !== 429) break;
 				} catch (e: any) {
 					groqErr = e?.message ?? 'Groq request timed out or failed.';
 				}
 			}
 
-			// Groq key was set but failed — fall through to Gemini if available, else return error
 			if (!geminiKey) {
-				return json({ error: `Groq error: ${groqErr}` }, { status: 500 });
+				return json({ error: `Groq error: ${groqErr || 'No usable models found.'}` }, { status: 500 });
 			}
 		}
 
