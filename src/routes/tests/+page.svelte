@@ -322,17 +322,29 @@
 		</div>
 		<div class="subjects-input">
 			<h3>Subject Performance</h3>
+			<div class="sub-row header-row">
+				<strong>Subject</strong>
+				<span class="col-label">Score</span>
+				<span class="col-label correct-label">Correct (Q)</span>
+				<span class="col-label incorrect-label">Wrong (Q)</span>
+			</div>
 			<div class="sub-row">
 				<strong>Physics</strong>
-				<input type="number" placeholder="Marks Scored" bind:value={p.score} />
+				<input type="number" placeholder="Score" bind:value={p.score} />
+				<input type="number" placeholder="Correct" bind:value={p.correct} />
+				<input type="number" placeholder="Wrong" bind:value={p.incorrect} />
 			</div>
 			<div class="sub-row">
 				<strong>Chemistry</strong>
-				<input type="number" placeholder="Marks Scored" bind:value={c.score} />
+				<input type="number" placeholder="Score" bind:value={c.score} />
+				<input type="number" placeholder="Correct" bind:value={c.correct} />
+				<input type="number" placeholder="Wrong" bind:value={c.incorrect} />
 			</div>
 			<div class="sub-row">
 				<strong>Maths</strong>
-				<input type="number" placeholder="Marks Scored" bind:value={m.score} />
+				<input type="number" placeholder="Score" bind:value={m.score} />
+				<input type="number" placeholder="Correct" bind:value={m.correct} />
+				<input type="number" placeholder="Wrong" bind:value={m.incorrect} />
 			</div>
 		</div>
 	</div>
@@ -443,8 +455,11 @@
 	label { font-size: 0.875rem; font-weight: 600; color: var(--text-secondary); }
 	.subjects-input { margin-top: 0.5rem; }
 	.subjects-input h3 { font-size: 1rem; margin-bottom: 1rem; color: var(--text-primary); }
-	.sub-row { display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; align-items: center; margin-bottom: 0.75rem; }
+	.sub-row { display: grid; grid-template-columns: 75px 1fr 1fr 1fr; gap: 0.6rem; align-items: center; margin-bottom: 0.75rem; }
 	.sub-row strong { color: var(--text-secondary); font-size: 0.9rem; }
+	.col-label { font-size: 0.75rem; color: var(--text-secondary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+	.correct-label { color: #10b981; }
+	.incorrect-label { color: #ef4444; }
 	
 	.text-btn { background: transparent; border: none; color: var(--text-secondary); font-weight: 600; cursor: pointer; padding: 0.5rem 1rem; border-radius: 8px; }
 	.text-btn:hover { background: var(--surface-subtle); color: var(--text-primary); }
