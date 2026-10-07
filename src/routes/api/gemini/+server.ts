@@ -20,24 +20,33 @@ export async function POST({ request }) {
 			body.generationConfig = { responseMimeType: "application/json" };
 		}
 
-		let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(body)
-		});
+		const MODELS_TO_TRY = [
+			'gemini-3.8-flash', 
+			'gemini-3.7-flash', 
+			'gemini-3.5-flash', 
+			'gemini-2.5-pro', 
+			'gemini-2.5-flash'
+		];
 
-		// Fallback to 3.5-flash if 2.5 is overloaded (503) or not found (404)
-		if (!res.ok && (res.status === 404 || res.status === 503)) {
-			res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+		let res: Response | null = null;
+		
+		for (const model of MODELS_TO_TRY) {
+			res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(body)
 			});
+
+			// If success, or if it's a hard error (like 400 Bad Request), break the loop
+			// Only continue hunting if it's 503 (Overloaded), 429 (Rate Limit), or 404 (Not Found)
+			if (res && (res.ok || (res.status !== 503 && res.status !== 429 && res.status !== 404))) {
+				break;
+			}
 		}
 
 		let errMessage = "Unknown error";
-		if (!res.ok) {
-			const err = await res.json().catch(() => ({}));
+		if (!res || !res.ok) {
+			const err = res ? await res.json().catch(() => ({})) : {};
 			errMessage = err.error?.message || "Failed to fetch from Gemini API.";
 
 			// Fetch available models to debug what their key supports
@@ -54,7 +63,7 @@ export async function POST({ request }) {
 				// ignore
 			}
 			
-			return json({ error: errMessage }, { status: res.status });
+			return json({ error: errMessage }, { status: res ? res.status : 500 });
 		}
 
 		const data = await res.json();
