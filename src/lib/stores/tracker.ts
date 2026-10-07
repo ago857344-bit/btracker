@@ -480,15 +480,32 @@ export function completeRevision(key: string, rating?: number) {
 		const method = item.method ?? 'steady';
 		let step = (item.step ?? 1) + 1;
 		let ef = item.ef ?? 2.5;
+		let accuracy = 70; // default for non-smart
 		if (method === 'smart' && rating) {
 			ef = Math.min(2.8, Math.max(1.3, ef + (0.1 - (5 - rating) * (0.08 + 0.02 * rating))));
 			if (rating < 3) step = 1;
+			if (rating === 1) accuracy = 40;
+			else if (rating === 3) accuracy = 70;
+			else if (rating === 4) accuracy = 85;
+			else if (rating === 5) accuracy = 100;
 		}
 		item.last = Date.now();
 		item.step = step;
 		item.ef = ef;
 		item.remindDone = false;
 		item.remindDate = addDaysKey(todayKey(), intervalFor(method, step, ef));
+		
+		// Gamification Update
+		if (!s.gamification) s.gamification = { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } };
+		s.gamification.xp += 50; // Flat XP for quick inline revisions
+		
+		const subCode = item.sub || key.split(':')[0] || 'P';
+		// Simplified ELO calculation inline to avoid circular import if calculateEloChange is elsewhere
+		const currentElo = (s.gamification.elo as any)[subCode] ?? 300;
+		const expected = Math.max(20, Math.min(90, (currentElo / 2000) * 100));
+		const diff = accuracy - expected;
+		const change = Math.max(-20, Math.min(30, Math.round(diff * 0.4)));
+		(s.gamification.elo as any)[subCode] = Math.max(100, currentElo + change);
 	});
 }
 
