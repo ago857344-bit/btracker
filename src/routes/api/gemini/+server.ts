@@ -20,15 +20,15 @@ export async function POST({ request }) {
 			body.generationConfig = { responseMimeType: "application/json" };
 		}
 
-		let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
+		let res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: JSON.stringify(body)
 		});
 
-		// Fallback for regions/keys where flash-latest is not found
-		if (!res.ok && res.status === 404) {
-			res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro-latest:generateContent?key=${apiKey}`, {
+		// Fallback to 3.5-flash if 2.5 is overloaded (503) or not found (404)
+		if (!res.ok && (res.status === 404 || res.status === 503)) {
+			res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify(body)
