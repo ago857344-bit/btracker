@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tracker } from '$lib/stores/tracker';
+	import { tracker, updateTracker } from '$lib/stores/tracker';
 	import type { MockTest, MistakeLog } from '$lib/types/tracker';
 	import { calculateEloChange } from '$lib/state/gamification';
 	import Modal from '$lib/components/ui/Modal.svelte';
@@ -44,7 +44,7 @@
 			}
 		};
 		
-		tracker.update(t => {
+		updateTracker(t => {
 			if (!t.mocks) t.mocks = [];
 			t.mocks.push(newTest);
 			
@@ -73,7 +73,7 @@
 	}
 
 	function deleteTest(id: string) {
-		tracker.update(t => {
+		updateTracker(t => {
 			t.mocks = t.mocks.filter(m => m.id !== id);
 			return t;
 		});
@@ -116,7 +116,7 @@
 			testName: mistakeTestName || undefined
 		};
 
-		tracker.update(t => {
+		updateTracker(t => {
 			if (!t.mistakes) t.mistakes = [];
 			t.mistakes.push(newMistake);
 			return t;
@@ -128,7 +128,7 @@
 	}
 
 	function deleteMistake(id: string) {
-		tracker.update(t => {
+		updateTracker(t => {
 			t.mistakes = t.mistakes.filter(m => m.id !== id);
 			return t;
 		});

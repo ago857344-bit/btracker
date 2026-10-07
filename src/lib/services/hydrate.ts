@@ -20,18 +20,6 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 	}
 	if (saved.mocks && Array.isArray(saved.mocks)) {
 		minCalculatedXp += saved.mocks.length * 200;
-		// Retroactive Elo for old mocks that might have missed the trigger
-		saved.mocks.forEach((mock) => {
-			const subMap = { 'P': 'Physics', 'C': 'Chemistry', 'M': 'Maths' } as const;
-			['P', 'C', 'M'].forEach(code => {
-				const sData = (mock.subjects as any)?.[subMap[code as 'P'|'C'|'M']];
-				if (sData && (sData.correct + sData.incorrect) > 0) {
-					// Apply a small positive flat boost for old mock tests to simulate Elo growth
-					// Since we can't perfectly replay history, we just add 10 points per subject per old mock test
-					retroElo[code as 'P'|'C'|'M'] = Math.max(retroElo[code as 'P'|'C'|'M'], retroElo[code as 'P'|'C'|'M'] + 5);
-				}
-			});
-		});
 	}
 	if (saved.rev?.items) {
 		minCalculatedXp += Object.keys(saved.rev.items).length * 50;
@@ -39,7 +27,8 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 	
 	if (retroXp < minCalculatedXp) {
 		retroXp = minCalculatedXp;
-		if (retroXp > 5000) {
+		// Only bump base Elo if they literally just migrated and had 0 XP but tons of history
+		if (retroXp > 5000 && (!saved.gamification || saved.gamification.xp === 0)) {
 			retroElo.P = Math.max(retroElo.P, 350);
 			retroElo.C = Math.max(retroElo.C, 350);
 			retroElo.M = Math.max(retroElo.M, 350);
