@@ -31,11 +31,23 @@ export async function POST({ request }) {
 		let res: Response | null = null;
 		
 		for (const model of MODELS_TO_TRY) {
-			res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`, {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify(body)
-			});
+			try {
+				// Set a 30‑second timeout for each request to avoid hanging
+				const controller = new AbortController();
+				const timeout = setTimeout(() => controller.abort(), 30_000);
+				res = await fetch(`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(body),
+					signal: controller.signal
+				});
+				clearTimeout(timeout);
+			} catch (e) {
+				// If request aborts or fails, move to next model
+				res = null;
+			}
+
+
 
 			// If success, or if it's a hard error (like 400 Bad Request), break the loop
 			// Only continue hunting if it's 503 (Overloaded), 429 (Rate Limit), or 404 (Not Found)
