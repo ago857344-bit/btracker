@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { browser } from '$app/environment';
 	import { fly } from 'svelte/transition';
 	import confetti from 'canvas-confetti';
 	import NavIcon from '$lib/components/NavIcon.svelte';
@@ -35,6 +37,21 @@
 			fireConfetti();
 		}
 		currentLevel = level;
+	}
+
+	let showUpdateModal = false;
+	onMount(() => {
+		if (browser && !localStorage.getItem('btracker_seen_v29_update')) {
+			setTimeout(() => {
+				showUpdateModal = true;
+			}, 800);
+		}
+	});
+
+	function dismissUpdateModal() {
+		localStorage.setItem('btracker_seen_v29_update', 'true');
+		showUpdateModal = false;
+		fireConfetti(); // Give them a little celebration for the update!
 	}
 
 	function fireConfetti() {
@@ -86,6 +103,41 @@
 	</svelte:fragment>
 </Modal>
 
+<Modal open={showUpdateModal} title="" width="480px" on:close={dismissUpdateModal}>
+	<div class="update-box">
+		<span class="update-icon"><NavIcon name="sparkles" size={42} /></span>
+		<h2>BTracker v3 is Here</h2>
+		<p class="update-sub">The Gamification Engine update has arrived.</p>
+		
+		<div class="update-features">
+			<div class="feat">
+				<span class="fic" style="color: #6d5dfc; background: #6d5dfc22"><NavIcon name="trend" size={18} /></span>
+				<div class="ftext">
+					<b>RPG Leveling System</b>
+					<span>Earn XP automatically for every minute of Deep Work. Watch your rank grow from 'Initiate' to 'JEE Conqueror'.</span>
+				</div>
+			</div>
+			<div class="feat">
+				<span class="fic" style="color: #ff9d00; background: #ff9d0022"><NavIcon name="target" size={18} /></span>
+				<div class="ftext">
+					<b>Subject Elo Ratings</b>
+					<span>Your performance in Mock Tests and Questions now dynamically impacts your Subject Elo. Aim for Grandmaster!</span>
+				</div>
+			</div>
+			<div class="feat">
+				<span class="fic" style="color: #00d2ff; background: #00d2ff22"><NavIcon name="clock" size={18} /></span>
+				<div class="ftext">
+					<b>Retroactive Rewards</b>
+					<span>We already scanned your entire study history! You've been instantly credited your rightful XP and baseline Elo.</span>
+				</div>
+			</div>
+		</div>
+	</div>
+	<svelte:fragment slot="footer">
+		<button type="button" class="btn solid" style="width: 100%" on:click={dismissUpdateModal}>Let's go!</button>
+	</svelte:fragment>
+</Modal>
+
 <style>
 	.celebration { position: fixed; z-index: 150; top: 1.1rem; left: 50%; display: flex; align-items: center; gap: .7rem; padding: .75rem 1.15rem; border-radius: 16px; background: #0f2e1c; border: 1px solid #245c3a; color: #d8ffe7; box-shadow: 0 18px 44px rgb(4 20 10 / 45%); transform: translateX(-50%); }
 	.celebration .check { display: grid; place-items: center; color: #4ade80; }
@@ -112,4 +164,15 @@
 	.lu-labels b { color: var(--text-primary); font-weight: 850; }
 	.xp-bar { height: 8px; background: color-mix(in srgb, var(--text-primary), transparent 90%); border-radius: 99px; overflow: hidden; }
 	.xp-fill { height: 100%; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 80%, white)); transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+	.update-box { display: flex; flex-direction: column; align-items: center; padding: .5rem 0 1rem; }
+	.update-icon { color: var(--accent); margin-bottom: .8rem; }
+	.update-box h2 { font-size: 1.8rem; font-weight: 900; letter-spacing: -.03em; color: var(--text-primary); margin: 0 0 .3rem; line-height: 1; }
+	.update-sub { font-size: .85rem; color: var(--text-secondary); margin: 0 0 1.8rem; text-align: center; }
+	.update-features { display: grid; gap: 1rem; width: 100%; }
+	.feat { display: flex; gap: 1rem; align-items: flex-start; padding: 1rem; border-radius: 14px; background: var(--surface-subtle); border: 1px solid var(--border-subtle); }
+	.fic { flex: 0 0 36px; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 10px; }
+	.ftext { display: grid; gap: .25rem; }
+	.ftext b { color: var(--text-primary); font-size: .88rem; font-weight: 800; letter-spacing: -.01em; }
+	.ftext span { color: var(--text-secondary); font-size: .78rem; line-height: 1.4; }
 </style>
