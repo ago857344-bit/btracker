@@ -20,10 +20,19 @@ export async function POST({ request }) {
 	try {
 		const { history, systemInstruction, jsonMode } = await request.json();
 
-		// ── 1. Try Groq first (fast, free) ──────────────────────────────────
 		const groqKey = env.GROQ_API_KEY;
+		const geminiKey = env.GEMINI_API_KEY;
+
+		if (!groqKey && !geminiKey) {
+			return json({ error: 'No AI API key configured on the server. Set GROQ_API_KEY or GEMINI_API_KEY in your environment variables.' }, { status: 500 });
+		}
+
+		// ── 1. Try Groq first (fast, free) ──────────────────────────────────
 		if (groqKey) {
 			const GROQ_MODELS = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+			let groqRes: Response | null = null;
+			let groqErr = '';
+
 			for (const model of GROQ_MODELS) {
 				try {
 					const controller = new AbortController();
@@ -35,7 +44,7 @@ export async function POST({ request }) {
 					};
 					if (jsonMode) body.response_format = { type: 'json_object' };
 
-					const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+					groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
@@ -46,25 +55,29 @@ export async function POST({ request }) {
 					});
 					clearTimeout(timeout);
 
-					if (res.ok) {
-						const data = await res.json();
+					if (groqRes.ok) {
+						const data = await groqRes.json();
 						const text = data.choices?.[0]?.message?.content ?? '';
 						return json({ text });
 					}
-					// 429 rate limit → try next model; anything else → fall through to Gemini
-					if (res.status !== 429) break;
-				} catch {
-					// timeout or network error → fall through to Gemini
+
+					const errData = await groqRes.json().catch(() => ({}));
+					groqErr = errData?.error?.message ?? `Groq returned status ${groqRes.status}`;
+
+					// Only retry next model on rate limit
+					if (groqRes.status !== 429) break;
+				} catch (e: any) {
+					groqErr = e?.message ?? 'Groq request timed out or failed.';
 				}
+			}
+
+			// Groq key was set but failed — fall through to Gemini if available, else return error
+			if (!geminiKey) {
+				return json({ error: `Groq error: ${groqErr}` }, { status: 500 });
 			}
 		}
 
 		// ── 2. Fallback: Gemini ──────────────────────────────────────────────
-		const geminiKey = env.GEMINI_API_KEY;
-		if (!geminiKey) {
-			return json({ error: 'No AI API key configured. Set GROQ_API_KEY or GEMINI_API_KEY.' }, { status: 500 });
-		}
-
 		const geminiBody: any = { contents: history };
 		if (systemInstruction) geminiBody.systemInstruction = { parts: [{ text: systemInstruction }] };
 		if (jsonMode) geminiBody.generationConfig = { responseMimeType: 'application/json' };
@@ -96,7 +109,6 @@ export async function POST({ request }) {
 			} catch {
 				geminiRes = null;
 			}
-			// Continue to next model only on 503/429/404
 			if (geminiRes && (geminiRes.ok || (geminiRes.status !== 503 && geminiRes.status !== 429 && geminiRes.status !== 404))) {
 				break;
 			}
@@ -104,7 +116,7 @@ export async function POST({ request }) {
 
 		if (!geminiRes || !geminiRes.ok) {
 			const err = geminiRes ? await geminiRes.json().catch(() => ({})) : {};
-			const msg = err.error?.message ?? 'Failed to get a response from AI.';
+			const msg = err.error?.message ?? 'Failed to get a response from Gemini.';
 			return json({ error: msg }, { status: geminiRes?.status ?? 500 });
 		}
 
