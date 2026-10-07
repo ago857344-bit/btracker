@@ -52,15 +52,16 @@
 			t.gamification.xp += 200; // Mock test XP
 			
 			// Adjust Elo based on mock performance
-			['P', 'C', 'M'].forEach(sub => {
-				const sData = newTest.subjects[sub];
+			const subMap = { 'P': 'Physics', 'C': 'Chemistry', 'M': 'Maths' } as const;
+			['P', 'C', 'M'].forEach(code => {
+				const sData = (newTest.subjects as any)[subMap[code as 'P'|'C'|'M']];
 				if (sData) {
 					const attempted = sData.correct + sData.incorrect;
 					if (attempted > 0) {
 						const accuracy = (sData.correct / attempted) * 100;
-						const change = calculateEloChange(t.gamification!.elo[sub as 'P' | 'C' | 'M'], accuracy);
-						t.gamification!.elo[sub as 'P' | 'C' | 'M'] += change;
-						t.gamification!.elo[sub as 'P' | 'C' | 'M'] = Math.max(100, t.gamification!.elo[sub as 'P' | 'C' | 'M']);
+						const change = calculateEloChange(t.gamification!.elo[code as 'P' | 'C' | 'M'], accuracy);
+						t.gamification!.elo[code as 'P' | 'C' | 'M'] += change;
+						t.gamification!.elo[code as 'P' | 'C' | 'M'] = Math.max(100, t.gamification!.elo[code as 'P' | 'C' | 'M']);
 					}
 				}
 			});
