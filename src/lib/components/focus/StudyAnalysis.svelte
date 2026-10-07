@@ -117,7 +117,7 @@
 	h3 { margin: 0; font-size: .82rem; font-weight: 800; letter-spacing: .1em; color: var(--text-secondary); }
 	.tag { margin: .3rem 0 0; font-size: 1.05rem; font-weight: 800; letter-spacing: -.03em; }
 	.tools { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
-	.grans, .toggle { display: inline-flex; gap: .2rem; padding: .25rem; border: 1px solid var(--border-subtle); border-radius: 999px; background: var(--surface-canvas); }
+	.grans, .toggle { display: inline-flex; gap: .2rem; padding: .25rem; border: 1px solid var(--border-subtle); border-radius: 999px; background: var(--surface-subtle); }
 	.grans button, .toggle button { padding: .38rem .75rem; border: 0; border-radius: 999px; background: transparent; color: var(--text-secondary); font-size: .68rem; font-weight: 800; letter-spacing: .05em; }
 	.grans button.active, .toggle button.active { color: #fff; background: var(--accent); }
 	.nav { display: flex; gap: .4rem; margin: .9rem 0; }
@@ -126,7 +126,7 @@
 	.pg:disabled { opacity: .4; }
 	.pg.flip :global(svg) { transform: rotate(180deg); }
 	.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .6rem; margin-bottom: 1.1rem; }
-	.kpis div { display: grid; gap: .15rem; padding: .7rem .8rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-canvas); }
+	.kpis div { display: grid; gap: .15rem; padding: .7rem .8rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); }
 	.kpis b { font-size: 1.25rem; font-weight: 800; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
 	.kpis span { color: var(--text-secondary); font-size: .6rem; font-weight: 800; letter-spacing: .09em; }
 	.donut-wrap { position: relative; display: grid; place-items: center; margin: .4rem 0 1rem; }

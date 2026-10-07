@@ -282,6 +282,11 @@ export interface TrackerState {
 	savedAt: string | null;
 	mocks: MockTest[];
 	mistakes: MistakeLog[];
+	gamification?: {
+		xp: number;
+		level: number;
+		elo: Record<'P' | 'C' | 'M', number>;
+	};
 }
 
 export interface MockTest {

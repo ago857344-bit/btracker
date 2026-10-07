@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { fly } from 'svelte/transition';
+	import confetti from 'canvas-confetti';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import RevisionDueModal from '$lib/components/RevisionDueModal.svelte';
-	import { addPlannerTask, celebration, plannerPrompt } from '$lib/stores/tracker';
+	import { addPlannerTask, celebration, plannerPrompt, tracker } from '$lib/stores/tracker';
 	import { todayKey } from '$lib/state/dates';
+	import { getLevelData } from '$lib/state/gamification';
 
 	let timer: ReturnType<typeof setTimeout>;
 	$: if ($celebration) {
@@ -19,6 +21,29 @@
 		const title = $plannerPrompt;
 		plannerPrompt.set(null);
 		if (title) addPlannerTask(todayKey(), { title, col: 0, s: '', st: '', en: '', rec: 'once', hrs: 1, test: false });
+	}
+
+	let currentLevel = 0;
+	let showLevelUp = false;
+	let levelUpData = { level: 1, title: '' };
+
+	$: if ($tracker && $tracker.gamification) {
+		const { level, title } = getLevelData($tracker.gamification.xp);
+		if (currentLevel > 0 && level > currentLevel) {
+			levelUpData = { level, title };
+			showLevelUp = true;
+			fireConfetti();
+		}
+		currentLevel = level;
+	}
+
+	function fireConfetti() {
+		const duration = 2.5 * 1000;
+		const end = Date.now() + duration;
+		const interval: any = setInterval(() => {
+			if (Date.now() > end) return clearInterval(interval);
+			confetti({ particleCount: 30, spread: 60, origin: { x: Math.random(), y: Math.random() - 0.2 }, zIndex: 10000, colors: ['#6d5dfc', '#d99a2b', '#ffffff'] });
+		}, 250);
 	}
 </script>
 
@@ -39,6 +64,18 @@
 	</svelte:fragment>
 </Modal>
 
+<Modal open={showLevelUp} title="" width="420px" on:close={() => showLevelUp = false}>
+	<div class="level-up-box">
+		<span class="lu-icon"><NavIcon name="trophy" size={48} /></span>
+		<h2>LEVEL UP!</h2>
+		<p>You've officially reached <b>Level {levelUpData.level}</b>!</p>
+		<p class="lu-rank">You are now a<br/><span>{levelUpData.title}</span></p>
+	</div>
+	<svelte:fragment slot="footer">
+		<button type="button" class="btn solid" style="width: 100%" on:click={() => showLevelUp = false}>Awesome!</button>
+	</svelte:fragment>
+</Modal>
+
 <style>
 	.celebration { position: fixed; z-index: 150; top: 1.1rem; left: 50%; display: flex; align-items: center; gap: .7rem; padding: .75rem 1.15rem; border-radius: 16px; background: #0f2e1c; border: 1px solid #245c3a; color: #d8ffe7; box-shadow: 0 18px 44px rgb(4 20 10 / 45%); transform: translateX(-50%); }
 	.celebration .check { display: grid; place-items: center; color: #4ade80; }
@@ -51,4 +88,12 @@
 	.btn.ghost { color: var(--text-secondary); border-color: var(--border-subtle); background: transparent; }
 	.btn.ghost:hover { color: var(--text-primary); }
 	.btn.solid { color: white; background: var(--accent); }
+
+	.level-up-box { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 1rem 0 2rem; }
+	.lu-icon { color: var(--accent); margin-bottom: 1rem; filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent), transparent 60%)); }
+	.level-up-box h2 { font-size: 2.2rem; font-weight: 900; letter-spacing: -.03em; color: var(--text-primary); margin: 0 0 .5rem; line-height: 1; }
+	.level-up-box p { font-size: .9rem; color: var(--text-secondary); margin: 0 0 1.5rem; }
+	.level-up-box p b { color: var(--text-primary); }
+	.lu-rank { margin: 0 !important; font-size: .8rem !important; font-weight: 700; color: var(--text-secondary) !important; text-transform: uppercase; letter-spacing: .08em; }
+	.lu-rank span { display: block; font-size: 1.6rem; font-weight: 900; letter-spacing: -.04em; color: var(--accent); margin-top: .4rem; text-transform: none; }
 </style>

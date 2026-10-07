@@ -164,7 +164,12 @@ export function setAccent(color: string) {
 
 /** Append a completed focus session to the study log. */
 export function logStudySession(session: StudySession) {
-	updateTracker((state) => { state.log.push(session); });
+	updateTracker((state) => {
+		state.log.push(session);
+		if (!state.gamification) state.gamification = { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } };
+		state.gamification.xp += session[1] * 10;
+		// Level calculation will be derived dynamically, or we can update it here.
+	});
 }
 
 /** Convenience wrapper that builds a StudySession tuple from timer results. */

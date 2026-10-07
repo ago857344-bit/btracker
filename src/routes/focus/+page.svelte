@@ -795,7 +795,7 @@ function primary() {
 	.card { padding: 1.3rem 1.4rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-card); background: var(--surface-panel); box-shadow: var(--shadow-card); }
 	.stage { display: grid; justify-items: center; gap: 1.05rem; text-align: center; }
 
-	.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .8rem; width: 100%; padding: .9rem 1rem; border: 1px dashed var(--border-subtle); border-radius: 14px; background: var(--surface-canvas); text-align: left; }
+	.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .8rem; width: 100%; padding: .9rem 1rem; border: 1px dashed var(--border-subtle); border-radius: 14px; background: var(--surface-subtle); text-align: left; }
 	.field { display: grid; gap: .3rem; }
 	.field span { color: var(--text-secondary); font-size: .62rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
 	.field input, .field select, .chapter { padding: .55rem .65rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-panel); color: var(--text-primary); font-size: .82rem; width: 100%; }

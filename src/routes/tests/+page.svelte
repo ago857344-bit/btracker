@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { tracker } from '$lib/stores/tracker';
 	import type { MockTest, MistakeLog } from '$lib/types/tracker';
+	import { calculateEloChange } from '$lib/state/gamification';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 
@@ -43,6 +44,23 @@
 		tracker.update(t => {
 			if (!t.mocks) t.mocks = [];
 			t.mocks.push(newTest);
+			
+			if (!t.gamification) t.gamification = { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } };
+			t.gamification.xp += 200; // Mock test XP
+			
+			// Adjust Elo based on mock performance
+			['P', 'C', 'M'].forEach(sub => {
+				const sData = newTest.subjects[sub];
+				if (sData) {
+					const attempted = sData.correct + sData.incorrect;
+					if (attempted > 0) {
+						const accuracy = (sData.correct / attempted) * 100;
+						const change = calculateEloChange(t.gamification!.elo[sub as 'P' | 'C' | 'M'], accuracy);
+						t.gamification!.elo[sub as 'P' | 'C' | 'M'] += change;
+						t.gamification!.elo[sub as 'P' | 'C' | 'M'] = Math.max(100, t.gamification!.elo[sub as 'P' | 'C' | 'M']);
+					}
+				}
+			});
 			return t;
 		});
 		

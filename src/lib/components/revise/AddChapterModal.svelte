@@ -114,7 +114,7 @@
 	.btn.solid { color: #fff; background: var(--accent); }
 	.btn.solid:disabled { opacity: .45; }
 
-	.how { padding: 1rem; border: 1px dashed var(--border-subtle); border-radius: 16px; background: var(--surface-canvas); }
+	.how { padding: 1rem; border: 1px dashed var(--border-subtle); border-radius: 16px; background: var(--surface-subtle); }
 	.how h4 { margin: 0; font-size: .66rem; font-weight: 800; letter-spacing: .12em; color: var(--text-secondary); }
 	.how-sub { margin: .25rem 0 .8rem; font-size: .95rem; font-weight: 800; letter-spacing: -.02em; }
 	.how-card { display: grid; gap: .3rem; margin-bottom: .7rem; padding: .75rem .85rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-panel); }

@@ -125,7 +125,7 @@
 	header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 	h3 { margin: 0; font-size: .82rem; font-weight: 800; letter-spacing: .1em; color: var(--text-secondary); }
 	.total { margin: .3rem 0 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -.04em; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-	.grans { display: inline-flex; gap: .2rem; padding: .25rem; border: 1px solid var(--border-subtle); border-radius: 999px; background: var(--surface-canvas); }
+	.grans { display: inline-flex; gap: .2rem; padding: .25rem; border: 1px solid var(--border-subtle); border-radius: 999px; background: var(--surface-subtle); }
 	.grans button { padding: .38rem .8rem; border: 0; border-radius: 999px; background: transparent; color: var(--text-secondary); font-size: .68rem; font-weight: 800; letter-spacing: .05em; }
 	.grans button.active { color: #fff; background: var(--accent); }
 	.nav { display: flex; align-items: center; gap: .5rem; margin: 1rem 0 .9rem; }
@@ -164,7 +164,7 @@
 	.sub-row { display: grid; grid-template-columns: 8px 5.5rem 1fr auto auto; align-items: center; gap: .5rem; }
 	.dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 	.sub-name { font-size: .75rem; font-weight: 700; white-space: nowrap; }
-	.bar-wrap { height: 6px; border-radius: 99px; background: var(--surface-canvas); overflow: hidden; min-width: 0; }
+	.bar-wrap { height: 6px; border-radius: 99px; background: var(--surface-subtle); overflow: hidden; min-width: 0; }
 	.bar { height: 100%; border-radius: 99px; transition: width .4s ease; }
 	.sub-time { font-size: .7rem; font-weight: 750; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text-primary); }
 	.sub-pct { font-size: .65rem; font-weight: 700; color: var(--text-secondary); white-space: nowrap; min-width: 2.4rem; text-align: right; }

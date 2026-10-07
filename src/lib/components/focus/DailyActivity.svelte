@@ -74,13 +74,13 @@
 	.pg.flip :global(svg) { transform: rotate(180deg); }
 	.reset { padding: .4rem .8rem; border: 1px solid var(--accent); border-radius: 9px; color: var(--accent); background: var(--accent-soft); font-size: .68rem; font-weight: 800; letter-spacing: .04em; }
 	.sub { margin: 1.2rem 0 .5rem; color: var(--text-secondary); font-size: .66rem; font-weight: 800; letter-spacing: .1em; }
-	.strip { display: flex; align-items: flex-end; gap: 3px; height: 96px; padding: .5rem .6rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-canvas); }
+	.strip { display: flex; align-items: flex-end; gap: 3px; height: 96px; padding: .5rem .6rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); }
 	.col { flex: 1; display: flex; align-items: flex-end; height: 100%; }
 	.bar { width: 100%; border-radius: 3px 3px 1px 1px; background: var(--surface-subtle); transition: height .3s ease; }
 	.bar.on { background: var(--accent); }
 	.axis { display: flex; justify-content: space-between; margin-top: .3rem; color: var(--text-secondary); font-size: .6rem; font-weight: 700; }
 	.sessions { display: grid; gap: .45rem; margin: 1.1rem 0 0; padding: 0; list-style: none; }
-	.sessions li { display: flex; align-items: center; gap: .55rem; padding: .55rem .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-canvas); font-size: .8rem; }
+	.sessions li { display: flex; align-items: center; gap: .55rem; padding: .55rem .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-subtle); font-size: .8rem; }
 	.dot { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 99px; }
 	.who { font-weight: 750; }
 	.act { color: var(--text-secondary); font-size: .72rem; }

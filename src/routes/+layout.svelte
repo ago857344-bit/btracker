@@ -1,10 +1,14 @@
 <script lang="ts">
 	import '../app.css';
-	import { browser } from '$app/environment';
+	import { browser, dev } from '$app/environment';
 	import { goto, beforeNavigate } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { page } from '$app/stores';
+	import { injectAnalytics } from '@vercel/analytics/sveltekit';
+	
+	injectAnalytics({ mode: dev ? 'development' : 'production' });
+
 	import AppSidebar from '$lib/components/AppSidebar.svelte';
 	import MobileBottomNav from '$lib/components/MobileBottomNav.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';

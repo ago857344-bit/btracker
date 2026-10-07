@@ -6,10 +6,12 @@
 	import InfoTip from '$lib/components/ui/InfoTip.svelte';
 	import { tracker, intelligence, momentum, streakDays, peakProductivity, analysisSummary } from '$lib/stores/tracker';
 	import { dayKeyOf, focusMinutesOn, formatMinutes, shortDateKey, startOfWeek } from '$lib/state/dates';
+	import { getLevelData, getEloRank } from '$lib/state/gamification';
+	import { SUBJECTS } from '$lib/state/subjects';
 
 	const RANK_COLORS: Record<string, string> = { ELITE: '#d99a2b', ADVANCED: '#8b7bff', INTERMEDIATE: '#2b8ba6', NOVICE: '#8b87a0' };
 
-	let open: Record<string, boolean> = { momentum: true, quick: true, identity: true, deep: false, portfolio: false, academic: false, dna: false, velocity: false };
+	let open: Record<string, boolean> = { rank: true, momentum: false, quick: true, identity: true, deep: false, portfolio: false, academic: false, dna: false, velocity: false };
 	const toggle = (key: string) => (open = { ...open, [key]: !open[key] });
 
 	function weekMinutes(offset: number) {
@@ -63,6 +65,40 @@
 	</header>
 
 	<div class="accordion">
+		<section class="sec">
+			<button type="button" class="sec-head" aria-expanded={open.rank} on:click={() => toggle('rank')}>
+				<span class="dot" style="background: var(--accent)"></span> PLAYER RANK & ELO
+				<NavIcon name="chevron-down" size={15} />
+			</button>
+			{#if open.rank}
+				{@const lvl = getLevelData($tracker.gamification?.xp || 0)}
+				<div class="sec-body rank-body">
+					<div class="level-box">
+						<span class="lv-label">CURRENT RANK</span>
+						<b class="lv-title">{lvl.title}</b>
+						<span class="lv-number">Level {lvl.level}</span>
+						<div class="lv-prog-wrap">
+							<div class="lv-prog-fill" style="width: {lvl.progress}%"></div>
+						</div>
+						<span class="lv-xp-text">{Math.floor($tracker.gamification?.xp || 0)} / {lvl.nextTierXp} XP</span>
+					</div>
+					<div class="elo-box">
+						<span class="lv-label">SUBJECT ELO RATINGS</span>
+						<div class="elo-grid">
+							{#each SUBJECTS as sub (sub.code)}
+								{@const elo = getEloRank(($tracker.gamification?.elo || { P: 300, C: 300, M: 300 })[sub.code as "P" | "C" | "M"] || 300)}
+								<div class="elo-item" style="--sub: {sub.color}; --elo: {elo.color}">
+									<span class="elo-sub">{sub.name}</span>
+									<span class="elo-rank"><NavIcon name={elo.icon as any} size={13} /> {elo.name}</span>
+									<b class="elo-score">{Math.floor(($tracker.gamification?.elo || { P: 300, C: 300, M: 300 })[sub.code as "P" | "C" | "M"] || 300)}</b>
+								</div>
+							{/each}
+						</div>
+					</div>
+				</div>
+			{/if}
+		</section>
+
 		<section class="sec">
 			<button type="button" class="sec-head" aria-expanded={open.momentum} on:click={() => toggle('momentum')}>
 				<span class="dot" style="background: {$momentum.color}"></span> MOMENTUM STATUS
@@ -201,7 +237,7 @@
 			{#if open.dna}
 				<div class="sec-body">
 					<div class="dna">
-						{#each ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as label, i}
+						{#each ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as label, i (i)}
 							<div class="dcol">
 								<div class="dbar" class:on={dayBuckets[i] > 0} style="height: {dayBuckets[i] ? Math.max(8, (dayBuckets[i] / dayMax) * 100) : 4}%" title="{formatMinutes(dayBuckets[i])}"></div>
 								<span>{label}</span>
@@ -252,6 +288,22 @@
 	.dot { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 99px; background: var(--text-secondary); }
 	.dot.acc { background: var(--accent); }
 	.sec-body { padding: 0 1.2rem 1.2rem; }
+	
+	.rank-body { display: grid; grid-template-columns: 1fr 1.5fr; gap: 1rem; }
+	@media (max-width: 600px) { .rank-body { grid-template-columns: 1fr; } }
+	.level-box, .elo-box { padding: 1.2rem; border-radius: 16px; background: var(--surface-subtle); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: center; }
+	.lv-label { color: var(--text-secondary); font-size: .65rem; font-weight: 800; letter-spacing: .12em; margin-bottom: .4rem; }
+	.lv-title { font-size: 1.8rem; font-weight: 850; letter-spacing: -.03em; color: var(--accent); line-height: 1.1; margin-bottom: .2rem; }
+	.lv-number { font-size: .85rem; font-weight: 700; color: var(--text-primary); margin-bottom: 1rem; }
+	.lv-prog-wrap { height: 8px; border-radius: 99px; background: var(--surface-subtle); overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); margin-bottom: .4rem; }
+	.lv-prog-fill { height: 100%; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, white)); border-radius: 99px; }
+	.lv-xp-text { font-size: .7rem; font-weight: 700; color: var(--text-secondary); text-align: right; }
+	.elo-grid { display: grid; gap: .5rem; margin-top: .4rem; }
+	.elo-item { display: flex; align-items: center; justify-content: space-between; padding: .6rem .8rem; background: var(--surface-subtle); border-radius: 10px; border-left: 4px solid var(--elo); }
+	.elo-sub { font-size: .8rem; font-weight: 800; color: var(--text-primary); flex: 1; }
+	.elo-rank { display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .5rem; border-radius: 6px; background: color-mix(in srgb, var(--elo), transparent 85%); color: var(--elo); font-size: .65rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; margin-right: .8rem; }
+	.elo-score { font-size: 1.1rem; font-weight: 850; color: var(--elo); }
+
 
 	.word { display: block; font-size: clamp(2.2rem, 7vw, 3.4rem); font-style: italic; font-weight: 900; letter-spacing: -.04em; line-height: 1.05; }
 	.sentence { margin: .5rem 0 1.2rem; color: var(--text-secondary); font-size: .88rem; }
@@ -263,7 +315,7 @@
 	.guide span { color: var(--text-secondary); font-size: .74rem; }
 
 	.grid4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .7rem; }
-	.cell { display: grid; gap: .25rem; padding: .85rem .95rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-canvas); }
+	.cell { display: grid; gap: .25rem; padding: .85rem .95rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-subtle); }
 	.cell.hl { border-color: var(--accent); background: var(--accent-soft); }
 	.k { display: flex; align-items: center; gap: .35rem; color: var(--text-secondary); font-size: .58rem; font-weight: 800; letter-spacing: .1em; }
 	.cell b { font-size: 1.4rem; font-weight: 800; letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
@@ -278,7 +330,7 @@
 	.picon { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px; border-radius: 13px; color: #d99a2b; background: color-mix(in srgb, #d99a2b, transparent 86%); }
 	.peakrow b { display: block; font-size: 1.05rem; letter-spacing: -.03em; }
 	.dim { color: var(--text-secondary); font-size: .72rem; }
-	.strip { display: flex; align-items: flex-end; gap: 3px; height: 90px; padding: .5rem .6rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-canvas); }
+	.strip { display: flex; align-items: flex-end; gap: 3px; height: 90px; padding: .5rem .6rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); }
 	.hcol { flex: 1; display: flex; align-items: flex-end; height: 100%; }
 	.hbar { width: 100%; border-radius: 3px 3px 1px 1px; background: var(--surface-subtle); }
 	.hbar.on { background: #d99a2b; }
@@ -292,7 +344,7 @@
 	.ptime { color: var(--text-secondary); font-size: .74rem; font-weight: 750; font-variant-numeric: tabular-nums; }
 	.psolved { min-width: 70px; text-align: right; color: var(--text-secondary); font-size: .68rem; font-weight: 700; }
 
-	.dna { display: flex; align-items: flex-end; gap: .6rem; height: 120px; padding: .6rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-canvas); }
+	.dna { display: flex; align-items: flex-end; gap: .6rem; height: 120px; padding: .6rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); }
 	.dcol { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: .3rem; height: 100%; }
 	.dbar { width: 100%; max-width: 30px; border-radius: 5px 5px 2px 2px; background: var(--surface-subtle); }
 	.dbar.on { background: #8b7bff; }

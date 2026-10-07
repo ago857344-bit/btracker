@@ -435,7 +435,7 @@
 	.field { display: grid; gap: .35rem; margin-bottom: .9rem; }
 	.field span, .label { color: var(--text-secondary); font-size: .62rem; font-weight: 800; letter-spacing: .09em; }
 	.label { display: block; margin: 0 0 .5rem; }
-	.field input { padding: .6rem .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-canvas); color: var(--text-primary); font-size: .85rem; }
+	.field input { padding: .6rem .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-subtle); color: var(--text-primary); font-size: .85rem; }
 	.field input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 
 
@@ -465,7 +465,7 @@
 	.warn { margin: 0; color: var(--text-secondary); font-size: .84rem; line-height: 1.6; }
 
 	.legacy-label { margin: 0 0 .5rem; padding-top: 1.1rem; border-top: 1px solid var(--border-subtle); }
-	.code-area { width: 100%; box-sizing: border-box; margin: 0 0 .7rem; padding: .65rem .75rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-canvas); color: var(--text-primary); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .74rem; line-height: 1.5; resize: vertical; }
+	.code-area { width: 100%; box-sizing: border-box; margin: 0 0 .7rem; padding: .65rem .75rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-subtle); color: var(--text-primary); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .74rem; line-height: 1.5; resize: vertical; }
 	.code-area:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
 	.legacy-error { margin: -.2rem 0 .7rem; color: var(--danger, #e0455a); font-size: .76rem; }
 	.legacy-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }

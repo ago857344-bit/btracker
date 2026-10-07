@@ -5,9 +5,12 @@
 	import { tracker } from '$lib/stores/tracker';
 	import { chaptersDueToday } from '$lib/stores/recall-selectors';
 	import { currentUser } from '$lib/stores/auth';
+	import { getLevelData } from '$lib/state/gamification';
 
 	export let collapsed = false;
 	export let mobileOpen = false;
+	$: xp = $tracker.gamification?.xp || 0;
+	$: levelData = getLevelData(xp);
 
 	const primary = [
 		{ href: '/', label: 'Home', icon: 'home' },
@@ -73,11 +76,17 @@
 		<a class="settings-link" href="/settings" on:click={closeMobile}>
 			<span class="nav-icon"><NavIcon name="settings" size={22} /></span><span class="nav-text">Settings</span>
 		</a>
-		<div class="profile-container">
+		<div class="profile-container gamer-card">
 			<AccountMenu />
 			<span class="profile-copy">
-				<b>{$tracker.meta.name || 'My Account'}</b>
-				<small>{$currentUser?.email || 'Local workspace'}</small>
+				<div class="user-level-row">
+					<b>{$tracker.meta.name || 'My Account'}</b>
+					<span class="lv-badge">Lv {levelData.level}</span>
+				</div>
+				<small class="rank-name">{levelData.title}</small>
+				<div class="xp-bar" title="{xp} XP / {levelData.nextTierXp} XP">
+					<div class="xp-fill" style="width: {levelData.progress}%"></div>
+				</div>
 			</span>
 		</div>
 	</div>
@@ -102,9 +111,13 @@
 	.due-badge { margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center; background: var(--accent); color: white; font-size: .62rem; font-weight: 800; }
 	.nav-divider { height: 1px; margin: clamp(0.5rem, 1.5vh, 1rem) .65rem clamp(0.1rem, 0.3vh, 0.2rem); background: var(--border-subtle); }
 	.sidebar-bottom { display: grid; gap: .55rem; margin-top: auto; }
-	.profile-container { padding: .65rem .55rem .15rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; gap: .7rem; }
-	.profile-copy { display: grid; gap: .08rem; min-width: 0; font-size: .77rem; }
-	.profile-copy small { color: var(--text-secondary); font-size: .67rem; text-overflow: ellipsis; overflow: hidden; }
+	.profile-container { padding: .75rem .65rem; border: 1px solid var(--border-subtle); border-radius: 14px; display: flex; align-items: center; gap: .7rem; background: var(--surface-subtle); margin-top: .3rem; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+	.profile-copy { display: grid; gap: .1rem; min-width: 0; font-size: .77rem; width: 100%; }
+	.user-level-row { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+	.lv-badge { background: var(--accent); color: white; padding: .1rem .35rem; border-radius: 6px; font-size: .6rem; font-weight: 850; letter-spacing: .05em; }
+	.rank-name { color: var(--accent); font-weight: 800; font-size: .62rem; text-transform: uppercase; letter-spacing: .06em; margin-bottom: .2rem; }
+	.xp-bar { height: 6px; background: color-mix(in srgb, var(--text-primary), transparent 90%); border-radius: 99px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); width: 100%; }
+	.xp-fill { height: 100%; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 80%, white)); transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
 	
 	aside.collapsed { width: 76px; }
 	aside.collapsed .brand-name, aside.collapsed .nav-text, aside.collapsed .nav-label, aside.collapsed .profile-copy { width: 0; opacity: 0; }

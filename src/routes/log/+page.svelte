@@ -12,6 +12,7 @@
 		accuracyOf, cellClasses, chapterStats, exerciseStats, logTotals, moduleStats, pctOf, subjectStats,
 		type QuestionStats
 	} from '$lib/state/questions';
+	import { getEloRank } from '$lib/state/gamification';
 
 	interface View { s: string | null; m: number | null; c: number | null; e: string | null }
 	let view: View = { s: null, m: null, c: null, e: null };
@@ -76,9 +77,16 @@
 	<div class="grid g3">
 		{#each SYLLABUS as sub (sub.code)}
 			{@const st = subjectStats($tracker, sub.code)}
+			{@const elo = getEloRank(($tracker.gamification?.elo || { P: 300, C: 300, M: 300 })[sub.code as "P" | "C" | "M"] || 300)}
 			<button type="button" class="card subj" style="--c: {sub.accent}" on:click={() => open({ s: sub.code })}>
 				<span class="bar"></span>
-				<div class="card-top"><h2>{sub.name}</h2><span class="pct" class:zero={!pctOf(st)}>{pctOf(st)}%</span></div>
+				<div class="card-top">
+					<h2>{sub.name}</h2>
+					<div class="top-rights">
+						<span class="elo-tag" style="--elo: {elo.color}"><NavIcon name={elo.icon as any} size={11} /> {elo.name} ({Math.floor(($tracker.gamification?.elo || { P: 300, C: 300, M: 300 })[sub.code as "P" | "C" | "M"] || 300)})</span>
+						<span class="pct" class:zero={!pctOf(st)}>{pctOf(st)}%</span>
+					</div>
+				</div>
 				<p class="meta">{allChapters(sub.code).length} chapters · {st.n.toLocaleString()} questions</p>
 				<div class="rail"><i style="width:{pctOf(st)}%"></i></div>
 				<div class="statline">
@@ -214,6 +222,8 @@
 	.card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--accent), transparent 55%); }
 	.card .bar { position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px; border-radius: 99px; background: var(--c, var(--accent)); }
 	.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; }
+	.top-rights { display: flex; align-items: center; gap: .4rem; }
+	.elo-tag { display: inline-flex; align-items: center; gap: .25rem; padding: .18rem .55rem; border-radius: 99px; background: color-mix(in srgb, var(--elo), transparent 85%); color: var(--elo); font-size: .64rem; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; border: 1px solid color-mix(in srgb, var(--elo), transparent 60%); }
 	h2 { margin: 0; font-size: 1.05rem; letter-spacing: -.03em; }
 	h3 { margin: 0; font-size: .95rem; letter-spacing: -.02em; }
 	.pct { padding: .18rem .55rem; border-radius: 99px; background: var(--accent); color: white; font-size: .74rem; font-weight: 800; }

@@ -82,7 +82,7 @@
 	.dot { width: 9px; height: 9px; border-radius: 99px; }
 	.head b { font-size: .95rem; letter-spacing: -.02em; }
 	.stats { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin: 1.1rem 0; }
-	.stats div { display: grid; gap: .2rem; padding: .75rem .85rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-canvas); }
+	.stats div { display: grid; gap: .2rem; padding: .75rem .85rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); }
 	.stats span { color: var(--text-secondary); font-size: .6rem; font-weight: 800; letter-spacing: .09em; }
 	.stats b { font-size: 1.2rem; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 	.green { color: var(--success, #2f9e6e); }

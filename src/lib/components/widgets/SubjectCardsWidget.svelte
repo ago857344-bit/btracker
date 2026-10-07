@@ -3,6 +3,7 @@
 	import SubjectHubModal from '$lib/components/widgets/SubjectHubModal.svelte';
 	import { subjectSolvedTotals, tracker } from '$lib/stores/tracker';
 	import { SUBJECTS } from '$lib/state/subjects';
+	import { getEloRank } from '$lib/state/gamification';
 
 	let hubOpen = false;
 	let hubSub = 'P';
@@ -15,9 +16,12 @@
 <div class="cards">
 	{#each SUBJECTS as subject (subject.code)}
 		<button type="button" class="subject-card" style="--sub: {subject.color}" on:click={() => openHub(subject.code)}>
-			<span class="icon"><NavIcon name={subject.icon} size={18} /></span>
+			<span class="icon"><NavIcon name={subject.icon as any} size={18} /></span>
 			<span class="name">{subject.name}</span>
 			<span class="goal">Goal: {dailyGoal}</span>
+			<span class="elo-badge" style="--elo: {getEloRank(($tracker.gamification?.elo || { P: 300, C: 300, M: 300 })[subject.code as "P" | "C" | "M"] || 300).color}">
+				<NavIcon name={getEloRank(($tracker.gamification?.elo || { P: 300, C: 300, M: 300 })[subject.code as "P" | "C" | "M"] || 300).icon as any} size={11} /> {getEloRank(($tracker.gamification?.elo || { P: 300, C: 300, M: 300 })[subject.code as "P" | "C" | "M"] || 300).name} ({Math.floor(($tracker.gamification?.elo || { P: 300, C: 300, M: 300 })[subject.code as "P" | "C" | "M"] || 300)})
+			</span>
 			<span class="solved-wrap">
 				<b class="solved">{$subjectSolvedTotals[subject.code] ?? 0}</b>
 				<small>Solved</small>
@@ -44,4 +48,5 @@
 	.solved { font-size: 1.9rem; font-weight: 850; letter-spacing: -.05em; line-height: 1; color: var(--sub); }
 	.solved-wrap small { color: var(--text-secondary); font-size: .66rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 	.open { display: inline-flex; align-items: center; gap: .35rem; color: var(--sub); font-size: .72rem; font-weight: 750; }
+	.elo-badge { position: absolute; top: .85rem; right: .85rem; display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .6rem; border-radius: 8px; background: color-mix(in srgb, var(--elo), transparent 85%); color: var(--elo); font-size: .66rem; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; border: 1px solid color-mix(in srgb, var(--elo), transparent 70%); box-shadow: 0 4px 12px color-mix(in srgb, var(--elo), transparent 85%); }
 </style>

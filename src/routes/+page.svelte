@@ -104,7 +104,7 @@
 	.hint { padding: .7rem .95rem; border: 1px dashed var(--accent); border-radius: var(--radius-control); color: var(--text-secondary); background: var(--accent-soft); font-size: .8rem; line-height: 1.5; }
 	
 	/* Restored 3-column grid */
-	.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.15rem; }
+	.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.15rem; grid-auto-flow: dense; }
 	.cell { display: flex; min-width: 0; }
 	.cell.span-2 { grid-column: span 2; }
 	.cell.span-3 { grid-column: span 3; }
