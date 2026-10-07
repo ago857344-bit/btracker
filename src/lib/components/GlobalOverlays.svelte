@@ -29,9 +29,19 @@
 	let showLevelUp = false;
 	let levelUpData = { level: 1, title: '', currentTierXp: 0, nextTierXp: 500, progress: 0 };
 
+	let readyToCelebrate = false;
+	onMount(() => {
+		if (browser && !localStorage.getItem('btracker_seen_v29_update')) {
+			setTimeout(() => {
+				showUpdateModal = true;
+			}, 800);
+		}
+		setTimeout(() => { readyToCelebrate = true; }, 2000); // Prevent confetti on initial DB hydration
+	});
+
 	$: if ($tracker && $tracker.gamification) {
 		const { level, title, currentTierXp, nextTierXp, progress } = getLevelData($tracker.gamification.xp);
-		if (currentLevel > 0 && level > currentLevel) {
+		if (readyToCelebrate && currentLevel > 0 && level > currentLevel) {
 			levelUpData = { level, title, currentTierXp, nextTierXp, progress };
 			showLevelUp = true;
 			fireConfetti();
@@ -40,13 +50,6 @@
 	}
 
 	let showUpdateModal = false;
-	onMount(() => {
-		if (browser && !localStorage.getItem('btracker_seen_v29_update')) {
-			setTimeout(() => {
-				showUpdateModal = true;
-			}, 800);
-		}
-	});
 
 	function dismissUpdateModal() {
 		localStorage.setItem('btracker_seen_v29_update', 'true');
