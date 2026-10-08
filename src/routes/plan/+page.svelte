@@ -12,6 +12,7 @@
 	import { TASK_COLORS, SUBJECTS, subjectColor, subjectName } from '$lib/state/subjects';
 	import { addDaysKey, dayKeyOf, monthLabelOf, parseKey, startOfWeek, todayKey } from '$lib/state/dates';
 	import type { HomeworkItem } from '$lib/types/tracker';
+	import { getAIPlannerBalance } from '$lib/services/ai';
 
 	let tab: 'planner' | 'goals' = 'planner';
 	let view: 'week' | 'month' = 'week';
@@ -23,26 +24,43 @@
 	let balancerOpen = false;
 	let balanceDays = 7;
 
-	function runAutoBalance() {
-		tracker.update(t => {
+	let aiBalancing = false;
+	let aiError = '';
+
+	async function runAutoBalance() {
+		aiBalancing = true;
+		aiError = '';
+		try {
 			const today = todayKey();
-			let pendingTasks = [];
+			const pendingTasks = ($tracker.h || []).filter(task => !task.done && task.due && task.due <= today);
+			if (pendingTasks.length === 0) {
+				balancerOpen = false;
+				return;
+			}
 			
-			for (const task of (t.h || [])) {
-				if (!task.done && task.due && task.due <= today) {
-					pendingTasks.push(task);
+			const elo = $tracker.gamification?.elo || { P: 300, C: 300, M: 300 };
+			const days = [];
+			for (let i = 0; i < balanceDays; i++) {
+				days.push(addDaysKey(today, i));
+			}
+
+			const taskInput = pendingTasks.map(t => ({ id: t.id, text: (t.text || '') as string, sub: (t.sub || '') as string }));
+			const map = await getAIPlannerBalance(taskInput, days, elo);
+
+			tracker.update(t => {
+				for (const task of (t.h || [])) {
+					if (map[task.id]) {
+						task.due = map[task.id];
+					}
 				}
-			}
-
-			if (pendingTasks.length === 0) return t;
-
-			for (let i = 0; i < pendingTasks.length; i++) {
-				const targetDay = addDaysKey(today, i % balanceDays);
-				pendingTasks[i].due = targetDay;
-			}
-			return t;
-		});
-		balancerOpen = false;
+				return t;
+			});
+			balancerOpen = false;
+		} catch (e: any) {
+			aiError = e.message || 'Failed to auto-balance schedule.';
+		} finally {
+			aiBalancing = false;
+		}
 	}
 
 	let query = '';
@@ -292,24 +310,37 @@
 	{/if}
 </Modal>
 
-<Modal bind:open={balancerOpen} title="Auto Schedule Balancer" width="400px">
+<Modal bind:open={balancerOpen} title="✨ AI Schedule Balancer" width="400px">
 	<div style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
-		<p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0; line-height: 1.5;">
-			This will gather all your overdue and unfinished tasks from the past (and today) and evenly distribute them across the upcoming days.
-		</p>
-		<label style="display: flex; flex-direction: column; gap: 0.4rem; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary);">
-			Distribute across how many days?
-			<input type="number" bind:value={balanceDays} min="1" max="30" style="padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-subtle); background: var(--surface-subtle); color: var(--text-primary);" />
-		</label>
+		{#if aiBalancing}
+			<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 0; gap: 1rem; text-align: center;">
+				<div style="width: 40px; height: 40px; border-radius: 50%; background: var(--accent); animation: pulse 1.5s infinite;"></div>
+				<p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">Gemini is balancing your schedule...</p>
+			</div>
+		{:else}
+			<p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0; line-height: 1.5;">
+				Gemini will gather your overdue and pending tasks and intelligently distribute them across the upcoming days, prioritizing subjects where your Elo is weakest.
+			</p>
+			{#if aiError}
+				<div style="color: #e0455a; background: color-mix(in srgb, #e0455a 15%, transparent); padding: 0.6rem; border-radius: 8px; font-size: 0.85rem; font-weight: 700;">
+					{aiError}
+				</div>
+			{/if}
+			<label style="display: flex; flex-direction: column; gap: 0.4rem; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary);">
+				Distribute across how many days?
+				<input type="number" bind:value={balanceDays} min="1" max="30" style="padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-subtle); background: var(--surface-subtle); color: var(--text-primary);" />
+			</label>
+		{/if}
 	</div>
 	<svelte:fragment slot="footer">
-		<button type="button" class="text-btn" on:click={() => balancerOpen = false} style="padding: 0.6rem 1rem; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-weight: 600;">Cancel</button>
-		<button type="button" class="primary-btn" on:click={runAutoBalance} style="padding: 0.6rem 1.25rem; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;">Balance Now</button>
+		<button type="button" class="text-btn" disabled={aiBalancing} on:click={() => balancerOpen = false} style="padding: 0.6rem 1rem; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-weight: 600;">Cancel</button>
+		<button type="button" class="primary-btn" disabled={aiBalancing} on:click={runAutoBalance} style="padding: 0.6rem 1.25rem; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.4rem;"><NavIcon name="sparkles" size={14} /> Balance Now</button>
 	</svelte:fragment>
 </Modal>
 
 
 <style>
+	@keyframes pulse { 0% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.8); opacity: 0.5; } }
 	.plan { display: grid; gap: 1.1rem; }
 	.tabs { display: inline-flex; gap: .3rem; justify-self: start; padding: .28rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-panel); }
 	.tabs button { width: 140px; height: 44px; padding: 0 1rem; border: 0; border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: .78rem; font-weight: 750; letter-spacing: .02em; cursor: pointer; font-family: inherit; }

@@ -37,3 +37,46 @@ Structure your response exactly as follows:
 
 	return await askGemini(prompt, sys);
 }
+
+export async function getAIPlannerBalance(
+	tasks: { id: string; text: any; sub: any }[],
+	days: string[],
+	elo: { P: number; C: number; M: number }
+): Promise<Record<string, string>> {
+	const prompt = `
+STUDENT ELO: Physics (${Math.floor(elo.P)}), Chemistry (${Math.floor(elo.C)}), Math (${Math.floor(elo.M)})
+Lowest Elo = Weakest subject (needs more focus/earlier scheduling).
+
+AVAILABLE DATES (Next ${days.length} days):
+${days.join(', ')}
+
+PENDING TASKS:
+${JSON.stringify(tasks, null, 2)}
+`;
+
+	const sys = `You are a JEE study schedule optimizer. 
+Assign a date to each task ID.
+Balance the workload evenly across the available dates, prioritizing weaker subjects (lowest Elo) early in the week.
+OUTPUT STRICTLY A VALID JSON OBJECT mapping task IDs to date strings, e.g. {"task1": "2026-10-08", "task2": "2026-10-09"}. 
+Do not include Markdown fences like \`\`\`json. Return ONLY the raw JSON object.`;
+
+	const res = await askGemini(prompt, sys);
+	const cleanRes = res.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
+	return JSON.parse(cleanRes);
+}
+
+export async function getAICrashCourse(chapterName: string, subjectName: string, elo: number): Promise<string> {
+	const prompt = `Chapter: ${chapterName}\nSubject: ${subjectName}\nCurrent Elo in Subject: ${Math.floor(elo)}`;
+	const sys = `You are a JEE expert tutor. The student needs a rapid 2-minute conceptual crash course on this chapter.
+Their Elo is ${Math.floor(elo)} (Base is 300, 1200+ is Elite, <500 is weak).
+Adapt the explanation complexity to their Elo. If they are weak, do ELI5. If elite, give advanced edge-case insights.
+Format cleanly in Markdown.
+Structure exactly as follows:
+### ⚡ The Core Idea
+(1 paragraph summary)
+### 🔑 Key Formulas & Concepts
+(Bullet points)
+### ⚠️ Common Traps
+(1-2 classic mistakes students make)`;
+	return await askGemini(prompt, sys);
+}

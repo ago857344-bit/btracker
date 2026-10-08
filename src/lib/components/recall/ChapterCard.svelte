@@ -9,7 +9,7 @@
 	import { subjectColor, subjectName } from '$lib/state/subjects';
 	import { shortDateKey, dayKeyOf } from '$lib/state/dates';
 
-	const dispatch = createEventDispatcher<{ revise: string; delete: string }>();
+	const dispatch = createEventDispatcher<{ revise: string; delete: string; crashcourse: string }>();
 
 	export let chapter: ChapterRecallData;
 	export let onRevise: ((chapterKey: string) => void) | undefined = undefined;
@@ -31,6 +31,12 @@
 			try { onDelete(chapter.chapterKey); } catch (err) { console.error(err); }
 		}
 		dispatch('delete', chapter.chapterKey);
+	}
+
+	function triggerCrashCourse(e: MouseEvent) {
+		e.preventDefault();
+		e.stopPropagation();
+		dispatch('crashcourse', chapter.chapterKey);
 	}
 
 	$: currentScore = calculateCurrentScore(chapter.decay || { r0: 100, halfLife: 7, lastRevisionAt: null });
@@ -114,6 +120,9 @@
 		<button type="button" class="revise-btn" on:click={triggerRevise}>
 			<NavIcon name="bolt" size={13} />
 			Revise
+		</button>
+		<button type="button" class="delete-btn" style="color: var(--accent); border-color: var(--border-subtle);" title="AI Crash Course" on:click={triggerCrashCourse}>
+			<NavIcon name="sparkles" size={13} />
 		</button>
 		<button type="button" class="delete-btn" title="Remove chapter" on:click={triggerDelete}>
 			<NavIcon name="trash" size={13} />

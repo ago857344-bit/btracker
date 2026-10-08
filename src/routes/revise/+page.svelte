@@ -6,6 +6,7 @@
 	import AddChapterModal from '$lib/components/revise/AddChapterModal.svelte';
 	import ReviseModal from '$lib/components/revise/ReviseModal.svelte';
 	import ReviseManualModal from '$lib/components/revise/ReviseManualModal.svelte';
+	import AICrashCourseModal from '$lib/components/revise/AICrashCourseModal.svelte';
 	import Heatmap from '$lib/components/recall/Heatmap.svelte';
 	import ChapterCard from '$lib/components/recall/ChapterCard.svelte';
 	import { tracker, revisedToday, completeRevision, deleteRevision, celebration } from '$lib/stores/tracker';
@@ -27,6 +28,7 @@
 	let manualOpen = false;
 	let reviseOpen = false;
 	let activeChapterKey = '';
+	let crashCourseKey = '';
 	let ratingFor: string | null = null;
 
 	$: today = todayKey();
@@ -172,6 +174,7 @@
 					{chapter}
 					on:revise={(e) => handleRevise(e.detail)}
 					on:delete={(e) => handleDeleteChapter(e.detail)}
+					on:crashcourse={(e) => { crashCourseKey = e.detail; }}
 				/>
 			{/each}
 		</div>
@@ -209,6 +212,11 @@
 <ReviseModal open={reviseOpen} chapter={activeChapter} chapterKey={activeChapterKey} on:close={() => (reviseOpen = false)} />
 <AddChapterModal open={addOpen} on:close={() => (addOpen = false)} />
 	<ReviseManualModal open={manualOpen} on:close={() => (manualOpen = false)} />
+
+	<AICrashCourseModal 
+		chapterKey={crashCourseKey || null}
+		on:close={() => (crashCourseKey = '')}
+	/>
 
 <style>
 	.revise { display: grid; gap: 1.2rem; }
