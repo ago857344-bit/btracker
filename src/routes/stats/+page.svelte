@@ -94,7 +94,7 @@
 					{#if !aiReportHtml && !aiLoading}
 						<div class="ai-empty">
 							<span class="ai-icon"><NavIcon name="sparkles" size={36} /></span>
-							<h3>Groq Mentor</h3>
+							<h3>Gemini Mentor</h3>
 							<p>Analyze your Elo and recent mistake logs to instantly discover your critical weak points and get a strategic gameplan for the week.</p>
 							{#if aiError}<p class="ai-error">{aiError}</p>{/if}
 							<button type="button" class="btn solid ai-btn" on:click={handleGenerateAIReport}>
@@ -104,7 +104,7 @@
 					{:else if aiLoading}
 						<div class="ai-loading">
 							<div class="ai-pulse"></div>
-							<p>Groq is analyzing your stats...</p>
+							<p>Gemini is analyzing your stats...</p>
 						</div>
 					{:else}
 						<div class="ai-report markdown-body">

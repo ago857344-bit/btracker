@@ -315,11 +315,11 @@
 		{#if aiBalancing}
 			<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 0; gap: 1rem; text-align: center;">
 				<div style="width: 40px; height: 40px; border-radius: 50%; background: var(--accent); animation: pulse 1.5s infinite;"></div>
-				<p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">Groq is balancing your schedule...</p>
+				<p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">Gemini is balancing your schedule...</p>
 			</div>
 		{:else}
 			<p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0; line-height: 1.5;">
-				Groq will gather your overdue and pending tasks and intelligently distribute them across the upcoming days, prioritizing subjects where your Elo is weakest.
+				Gemini will gather your overdue and pending tasks and intelligently distribute them across the upcoming days, prioritizing subjects where your Elo is weakest.
 			</p>
 			{#if aiError}
 				<div style="color: #e0455a; background: color-mix(in srgb, #e0455a 15%, transparent); padding: 0.6rem; border-radius: 8px; font-size: 0.85rem; font-weight: 700;">

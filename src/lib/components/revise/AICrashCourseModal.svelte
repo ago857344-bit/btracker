@@ -47,7 +47,7 @@
 		{#if loading}
 			<div class="ai-loading">
 				<div class="ai-pulse"></div>
-				<p>Groq is preparing your 2-minute crash course...</p>
+				<p>Gemini is preparing your 2-minute crash course...</p>
 			</div>
 		{:else if error}
 			<div class="ai-error">{error}</div>
