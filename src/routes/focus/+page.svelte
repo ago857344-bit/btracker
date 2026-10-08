@@ -222,13 +222,17 @@ function primary() {
 			elapsed = 0; sessionStartedEpochMin = 0;
 			return;
 		}
-		const doneMinutes = Math.round(((activeLen * 60) - remaining) / 60);
-		if (tab === 'focus' && phase === 'focus' && doneMinutes >= 1) logSession(doneMinutes, focusKind === 'questions' ? 'Focus · Questions' : focusKind === 'revision' ? 'Focus · Revision' : 'Focus · Theory');
 		reset();
 	}
 
-	function reset() {
+	function reset(skipLog: boolean | Event = false) {
 		clearInterval(interval); running = false; countdownEndsAt = null; countUpStartedAt = null;
+		if (skipLog !== true && tab === 'focus' && phase === 'focus') {
+			const doneMinutes = Math.round(((activeLen * 60) - remaining) / 60);
+			if (doneMinutes >= 1) {
+				logSession(doneMinutes, focusKind === 'questions' ? 'Focus · Questions' : focusKind === 'revision' ? 'Focus · Revision' : 'Focus · Theory');
+			}
+		}
 		sessionStartedEpochMin = 0; phase = 'focus'; remaining = activeLen * 60; elapsed = 0;
 	}
 
