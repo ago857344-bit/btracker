@@ -45,14 +45,14 @@
 <Modal title="✨ AI Crash Course" open={true} on:close={() => dispatch('close')}>
 	<div class="course-container">
 		{#if loading}
-			<div class="gemini-loader-container">
+			<div class="gemini-loader-container gemini-glow-box">
 				<div class="gemini-orb"></div>
 				<p class="gemini-shimmer-text">Gemini is preparing your 2-minute crash course...</p>
 			</div>
 		{:else if error}
 			<div class="ai-error">{error}</div>
 		{:else}
-			<div class="markdown-body ai-report gemini-glow-box" style="padding: 1.5rem; border-radius: 16px; background: var(--surface-subtle); margin-top: 0.5rem;">
+			<div class="markdown-body ai-report">
 				{@html html}
 			</div>
 		{/if}

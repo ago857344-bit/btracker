@@ -313,7 +313,7 @@
 <Modal bind:open={balancerOpen} title="✨ AI Schedule Balancer" width="400px">
 	<div style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
 		{#if aiBalancing}
-			<div class="gemini-loader-container">
+			<div class="gemini-loader-container gemini-glow-box">
 				<div class="gemini-orb"></div>
 				<p class="gemini-shimmer-text">Gemini is balancing your schedule...</p>
 			</div>

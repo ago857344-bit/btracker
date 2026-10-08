@@ -506,8 +506,11 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 	align-items: center;
 	justify-content: center;
 	gap: 1.25rem;
-	padding: 2.5rem 0;
+	padding: 2.5rem 1rem;
 	text-align: center;
+	border-radius: 16px;
+	background: var(--surface-subtle);
+	margin-top: 0.5rem;
 }
 
 .gemini-orb {

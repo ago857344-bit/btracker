@@ -108,7 +108,7 @@ Keep your responses concise and format them cleanly. DO NOT answer the question 
 			{/if}
 
 			{#if loading && history.length === 0}
-				<div class="gemini-loader-container" style="margin: auto; opacity: 0.8; transform: scale(0.9);">
+				<div class="gemini-loader-container gemini-glow-box" style="margin: auto; opacity: 0.8; transform: scale(0.9);">
 					<div class="gemini-orb"></div>
 					<p class="gemini-shimmer-text" style="font-size: 0.75rem;">Gemini is analyzing your mistake...</p>
 				</div>
@@ -119,7 +119,7 @@ Keep your responses concise and format them cleanly. DO NOT answer the question 
 					<div class="msg {msg.role}">
 						{#if msg.role === 'model'}
 							<span class="avatar"><NavIcon name="sparkles" size={12} /></span>
-							<div class="bubble md gemini-glow-box">{@html chatHtml[i === 0 ? 0 : i - 1]}</div>
+							<div class="bubble md">{@html chatHtml[i === 0 ? 0 : i - 1]}</div>
 						{:else}
 							<div class="bubble">{msg.parts[0].text}</div>
 						{/if}
@@ -130,7 +130,7 @@ Keep your responses concise and format them cleanly. DO NOT answer the question 
 			{#if loading && history.length > 0}
 				<div class="msg model typing">
 					<span class="avatar"><NavIcon name="sparkles" size={12} /></span>
-					<div class="bubble"><span class="dot-pulse"></span></div>
+					<div class="bubble gemini-glow-box" style="border-radius: 16px;"><span class="dot-pulse"></span></div>
 				</div>
 			{/if}
 		</div>
