@@ -76,12 +76,14 @@
 	let hoveredDate: string | null = null;
 	let tooltipX = 0;
 	let tooltipY = 0;
+	let containerNode: HTMLElement;
 
 	function handleHover(event: MouseEvent, date: string) {
-		if (!showTooltip) return;
+		if (!showTooltip || !containerNode) return;
 		hoveredDate = date;
-		tooltipX = event.clientX;
-		tooltipY = event.clientY;
+		const rect = containerNode.getBoundingClientRect();
+		tooltipX = event.clientX - rect.left;
+		tooltipY = event.clientY - rect.top;
 	}
 
 	function handleMouseLeave() {
@@ -89,7 +91,7 @@
 	}
 </script>
 
-<div class="heatmap">
+<div class="heatmap" bind:this={containerNode}>
 	<div class="grid" style="--cell-size: {cellSize}px">
 		{#each weeks as week}
 			<div class="week">
@@ -137,6 +139,7 @@
 
 <style>
 	.heatmap {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
@@ -200,7 +203,7 @@
 	}
 
 	.tooltip {
-		position: fixed;
+		position: absolute;
 		padding: 0.5rem 0.6rem;
 		background: var(--surface-card);
 		border: 1px solid var(--border-subtle);
@@ -211,7 +214,7 @@
 		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 		z-index: 1000;
 		pointer-events: none;
-		transform: translateX(-50%);
+		transform: translate(-50%, -100%);
 	}
 
 	.tooltip-date {
