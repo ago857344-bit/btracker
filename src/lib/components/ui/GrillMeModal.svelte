@@ -107,6 +107,13 @@ Keep your responses concise and format them cleanly. DO NOT answer the question 
 				<div class="err-box">{error}</div>
 			{/if}
 
+			{#if loading && history.length === 0}
+				<div class="gemini-loader-container" style="margin: auto; opacity: 0.8; transform: scale(0.9);">
+					<div class="gemini-orb"></div>
+					<p class="gemini-shimmer-text" style="font-size: 0.75rem;">Gemini is analyzing your mistake...</p>
+				</div>
+			{/if}
+
 			{#each history as msg, i}
 				{#if msg.role === 'model' || i > 0} <!-- skip the first "I'm ready" hidden prompt -->
 					<div class="msg {msg.role}">
@@ -181,6 +188,6 @@ Keep your responses concise and format them cleanly. DO NOT answer the question 
 	.send-btn { flex: 0 0 44px; width: 44px; height: 44px; border-radius: 12px; background: var(--accent); color: white; border: none; cursor: pointer; display: grid; place-items: center; }
 	.send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-	.dot-pulse { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--text-secondary); box-shadow: 12px 0 0 0 var(--text-secondary), 24px 0 0 0 var(--text-secondary); animation: pulse 1.5s infinite; }
-	@keyframes pulse { 0% { opacity: 0.2; } 50% { opacity: 1; } 100% { opacity: 0.2; } }
+	.dot-pulse { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #4285f4; box-shadow: 12px 0 0 0 #ea4335, 24px 0 0 0 #fbbc05; animation: gemini-typing 1.5s infinite; }
+	@keyframes gemini-typing { 0% { opacity: 0.3; transform: translateY(0); } 33% { opacity: 1; transform: translateY(-3px); } 66% { opacity: 0.3; transform: translateY(0); } 100% { opacity: 0.3; transform: translateY(0); } }
 </style>

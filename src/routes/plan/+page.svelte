@@ -313,9 +313,9 @@
 <Modal bind:open={balancerOpen} title="✨ AI Schedule Balancer" width="400px">
 	<div style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
 		{#if aiBalancing}
-			<div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 2rem 0; gap: 1rem; text-align: center;">
-				<div style="width: 40px; height: 40px; border-radius: 50%; background: var(--accent); animation: pulse 1.5s infinite;"></div>
-				<p style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">Gemini is balancing your schedule...</p>
+			<div class="gemini-loader-container">
+				<div class="gemini-orb"></div>
+				<p class="gemini-shimmer-text">Gemini is balancing your schedule...</p>
 			</div>
 		{:else}
 			<p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0; line-height: 1.5;">
@@ -340,7 +340,6 @@
 
 
 <style>
-	@keyframes pulse { 0% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.8); opacity: 0.5; } }
 	.plan { display: grid; gap: 1.1rem; }
 	.tabs { display: inline-flex; gap: .3rem; justify-self: start; padding: .28rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-panel); }
 	.tabs button { width: 140px; height: 44px; padding: 0 1rem; border: 0; border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: .78rem; font-weight: 750; letter-spacing: .02em; cursor: pointer; font-family: inherit; }

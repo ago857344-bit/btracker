@@ -102,9 +102,9 @@
 							</button>
 						</div>
 					{:else if aiLoading}
-						<div class="ai-loading">
-							<div class="ai-pulse"></div>
-							<p>Gemini is analyzing your stats...</p>
+						<div class="gemini-loader-container">
+							<div class="gemini-orb"></div>
+							<p class="gemini-shimmer-text">Gemini is analyzing your stats...</p>
 						</div>
 					{:else}
 						<div class="ai-report markdown-body">
@@ -394,10 +394,6 @@
 	.ai-empty p { font-size: .85rem; color: var(--text-secondary); line-height: 1.5; margin: 0 0 1rem; }
 	.ai-error { color: var(--danger) !important; font-weight: 700; background: color-mix(in srgb, var(--danger) 15%, transparent); padding: .4rem .8rem; border-radius: 6px; }
 	.ai-btn { gap: .4rem; padding: .6rem 1.2rem; font-weight: 750; letter-spacing: .02em; }
-	
-	.ai-loading { display: flex; flex-direction: column; align-items: center; gap: 1rem; color: var(--text-secondary); font-weight: 700; font-size: .85rem; letter-spacing: .05em; text-transform: uppercase; }
-	.ai-pulse { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); animation: pulse 1.5s infinite; }
-	@keyframes pulse { 0% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.8); opacity: 0.5; } }
 
 	.ai-report { width: 100%; text-align: left; font-size: .9rem; line-height: 1.6; color: var(--text-secondary); }
 	.ai-report :global(h3) { font-size: 1.1rem; color: var(--text-primary); margin: 1.5rem 0 .5rem; font-weight: 800; text-transform: uppercase; letter-spacing: .02em; }

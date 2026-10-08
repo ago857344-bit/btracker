@@ -45,9 +45,9 @@
 <Modal title="✨ AI Crash Course" open={true} on:close={() => dispatch('close')}>
 	<div class="course-container">
 		{#if loading}
-			<div class="ai-loading">
-				<div class="ai-pulse"></div>
-				<p>Gemini is preparing your 2-minute crash course...</p>
+			<div class="gemini-loader-container">
+				<div class="gemini-orb"></div>
+				<p class="gemini-shimmer-text">Gemini is preparing your 2-minute crash course...</p>
 			</div>
 		{:else if error}
 			<div class="ai-error">{error}</div>
@@ -65,9 +65,6 @@
 
 <style>
 	.course-container { padding: 1.5rem 1rem; min-height: 250px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
-	.ai-loading { display: flex; flex-direction: column; align-items: center; gap: 1rem; color: var(--text-secondary); font-weight: 700; font-size: .85rem; letter-spacing: .05em; text-transform: uppercase; }
-	.ai-pulse { width: 40px; height: 40px; border-radius: 50%; background: var(--accent); animation: pulse 1.5s infinite; }
-	@keyframes pulse { 0% { transform: scale(0.8); opacity: 0.5; } 50% { transform: scale(1.2); opacity: 1; } 100% { transform: scale(0.8); opacity: 0.5; } }
 	.ai-error { color: var(--danger, #e0455a); font-weight: 700; background: color-mix(in srgb, var(--danger) 15%, transparent); padding: .6rem 1rem; border-radius: 8px; text-align: center; }
 	
 	.ai-report { width: 100%; text-align: left; font-size: .95rem; line-height: 1.6; color: var(--text-secondary); }
