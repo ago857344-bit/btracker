@@ -18,7 +18,7 @@ export async function askGeminiChat(history: ChatMessage[], systemInstruction?: 
 	}
 
 	// Artificial delay to let the user enjoy the cool loading animations!
-	await new Promise(resolve => setTimeout(resolve, 4000));
+	await new Promise(resolve => setTimeout(resolve, 3000));
 
 	return data.text;
 }

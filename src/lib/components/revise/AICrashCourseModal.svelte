@@ -67,7 +67,7 @@
 	.course-container { padding: 1.5rem 1rem; min-height: 250px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
 	.ai-error { color: var(--danger, #e0455a); font-weight: 700; background: color-mix(in srgb, var(--danger) 15%, transparent); padding: .6rem 1rem; border-radius: 8px; text-align: center; }
 	
-	.ai-report { width: 100%; text-align: left; font-size: .95rem; line-height: 1.6; color: var(--text-secondary); }
+	.ai-report { width: 100%; text-align: left; font-size: .95rem; line-height: 1.6; color: var(--text-secondary); padding: 1.2rem; border-radius: 16px; }
 	.ai-report :global(h3) { font-size: 1.1rem; color: var(--text-primary); margin: 1.5rem 0 .5rem; font-weight: 800; text-transform: uppercase; letter-spacing: .02em; }
 	.ai-report :global(h3:first-child) { margin-top: 0; }
 	.ai-report :global(strong) { color: var(--text-primary); font-weight: 750; }

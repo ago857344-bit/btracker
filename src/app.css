@@ -490,6 +490,8 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 :root[data-wallpaper="true"] .modal-card,
 :root[data-wallpaper="true"] .rangebar,
 :root[data-wallpaper="true"] .sheet,
+:root[data-wallpaper="true"] .bubble,
+:root[data-wallpaper="true"] .ai-report,
 :root[data-wallpaper="true"] [role="menu"],
 :root[data-wallpaper="true"] [role="dialog"]:not(.modal-backdrop) {
 	background: var(--surface-panel) !important;
