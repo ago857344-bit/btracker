@@ -17,5 +17,8 @@ export async function askGeminiChat(history: ChatMessage[], systemInstruction?: 
 		return data.error || "Failed to communicate with AI server.";
 	}
 
+	// Artificial delay to let the user enjoy the cool loading animations!
+	await new Promise(resolve => setTimeout(resolve, 2000));
+
 	return data.text;
 }

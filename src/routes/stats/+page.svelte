@@ -107,7 +107,7 @@
 							<p class="gemini-shimmer-text">Gemini is analyzing your stats...</p>
 						</div>
 					{:else}
-						<div class="ai-report markdown-body">
+						<div class="ai-report markdown-body gemini-glow-box" style="padding: 1.5rem; border-radius: 16px; background: var(--surface-subtle); margin-top: 1rem;">
 							{@html aiReportHtml}
 							<button type="button" class="btn ghost ai-refresh" on:click={handleGenerateAIReport}>
 								<NavIcon name="history" size={13} /> Regenerate Report

@@ -52,7 +52,7 @@
 		{:else if error}
 			<div class="ai-error">{error}</div>
 		{:else}
-			<div class="markdown-body ai-report">
+			<div class="markdown-body ai-report gemini-glow-box" style="padding: 1.5rem; border-radius: 16px; background: var(--surface-subtle); margin-top: 0.5rem;">
 				{@html html}
 			</div>
 		{/if}
