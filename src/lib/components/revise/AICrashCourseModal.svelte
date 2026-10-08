@@ -43,9 +43,9 @@
 
 {#if chapterKey}
 <Modal title="✨ AI Crash Course" open={true} on:close={() => dispatch('close')}>
-	<div class="course-container">
+	<div class="course-container" class:gemini-glow-box={loading}>
 		{#if loading}
-			<div class="gemini-loader-container gemini-glow-box">
+			<div class="gemini-loader-container">
 				<div class="gemini-orb"></div>
 				<p class="gemini-shimmer-text">Gemini is preparing your 2-minute crash course...</p>
 			</div>

@@ -102,13 +102,13 @@ Keep your responses concise and format them cleanly. DO NOT answer the question 
 			<b>Mistake Target:</b> {mistake.description}
 		</div>
 
-		<div class="gm-chat" bind:this={chatBox}>
+		<div class="gm-chat" class:gemini-glow-box={loading} bind:this={chatBox}>
 			{#if error}
 				<div class="err-box">{error}</div>
 			{/if}
 
 			{#if loading && history.length === 0}
-				<div class="gemini-loader-container gemini-glow-box" style="margin: auto; opacity: 0.8; transform: scale(0.9);">
+				<div class="gemini-loader-container" style="margin: auto; opacity: 0.8; transform: scale(0.9);">
 					<div class="gemini-orb"></div>
 					<p class="gemini-shimmer-text" style="font-size: 0.75rem;">Gemini is analyzing your mistake...</p>
 				</div>
@@ -130,7 +130,7 @@ Keep your responses concise and format them cleanly. DO NOT answer the question 
 			{#if loading && history.length > 0}
 				<div class="msg model typing">
 					<span class="avatar"><NavIcon name="sparkles" size={12} /></span>
-					<div class="bubble gemini-glow-box" style="border-radius: 16px;"><span class="dot-pulse"></span></div>
+					<div class="bubble"><span class="dot-pulse"></span></div>
 				</div>
 			{/if}
 		</div>

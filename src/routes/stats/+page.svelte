@@ -90,7 +90,7 @@
 				<NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.ai}
-				<div class="sec-body ai-body">
+				<div class="sec-body ai-body" class:gemini-glow-box={aiLoading}>
 					{#if !aiReportHtml && !aiLoading}
 						<div class="ai-empty">
 							<span class="ai-icon"><NavIcon name="sparkles" size={36} /></span>
@@ -102,7 +102,7 @@
 							</button>
 						</div>
 					{:else if aiLoading}
-						<div class="gemini-loader-container gemini-glow-box">
+						<div class="gemini-loader-container">
 							<div class="gemini-orb"></div>
 							<p class="gemini-shimmer-text">Gemini is analyzing your stats...</p>
 						</div>
