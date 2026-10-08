@@ -3,7 +3,7 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import type { MistakeLog } from '$lib/types/tracker';
 	import { askGeminiChat, type ChatMessage } from '$lib/services/gemini';
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/services/markdown';
 
 	export let mistake: MistakeLog | null = null;
 	const dispatch = createEventDispatcher();
@@ -40,7 +40,7 @@ Keep your responses concise and format them cleanly. DO NOT answer the question 
 			history = [{ role: 'user', parts: [{ text: prompt }] }];
 			const reply = await askGeminiChat(history, sysPrompt);
 			history = [...history, { role: 'model', parts: [{ text: reply }] }];
-			chatHtml = [await marked.parse(reply)];
+			chatHtml = [await renderMarkdown(reply)];
 		} catch (e: any) {
 			error = e.message;
 		} finally {
@@ -68,7 +68,7 @@ Keep your responses concise and format them cleanly. DO NOT answer the question 
 		try {
 			const reply = await askGeminiChat(history, sysPrompt);
 			history = [...history, { role: 'model', parts: [{ text: reply }] }];
-			chatHtml = [...chatHtml, await marked.parse(reply)];
+			chatHtml = [...chatHtml, await renderMarkdown(reply)];
 		} catch (e: any) {
 			error = e.message;
 		} finally {

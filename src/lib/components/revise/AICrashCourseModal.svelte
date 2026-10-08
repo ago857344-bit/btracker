@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/services/markdown';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { getAICrashCourse } from '$lib/services/ai';
@@ -32,7 +32,7 @@
 			const chName = key.split(/[-:]/).slice(1).join('-').trim() || key;
 			
 			const md = await getAICrashCourse(chName, sName, elo);
-			html = await marked.parse(md);
+			html = await renderMarkdown(md);
 		} catch (err: any) {
 			error = err.message || 'Failed to generate crash course.';
 		} finally {

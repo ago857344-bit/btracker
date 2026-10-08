@@ -9,7 +9,7 @@
 	import { getLevelData, getEloRank } from '$lib/state/gamification';
 	import { SUBJECTS } from '$lib/state/subjects';
 	import { getWeaknessAnalysis } from '$lib/services/ai';
-	import { marked } from 'marked';
+	import { renderMarkdown } from '$lib/services/markdown';
 
 	const RANK_COLORS: Record<string, string> = { ELITE: '#d99a2b', ADVANCED: '#8b7bff', INTERMEDIATE: '#2b8ba6', NOVICE: '#8b87a0' };
 
@@ -25,7 +25,7 @@
 		aiError = '';
 		try {
 			const md = await getWeaknessAnalysis($tracker);
-			aiReportHtml = await marked.parse(md);
+			aiReportHtml = await renderMarkdown(md);
 		} catch (e: any) {
 			aiError = e.message || 'Failed to generate report.';
 		} finally {
