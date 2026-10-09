@@ -322,32 +322,67 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 	.mini-timer { 
 		display: flex; 
 		align-items: center; 
+		position: relative;
 		gap: 8px; 
 		padding: 6px 14px; 
-		margin-bottom: 4px;
-		margin-right: 4px;
+		margin-bottom: 8px;
+		margin-right: 6px;
 		background: var(--surface-panel-ai, var(--surface-panel)); 
 		backdrop-filter: var(--glass-filter, blur(24px)); 
 		-webkit-backdrop-filter: var(--glass-filter, blur(24px)); 
 		border: 1px solid var(--accent); 
-		border-radius: 99px;
+		border-radius: 20px 20px 4px 20px; /* comic bubble shape */
 		box-shadow: 0 8px 24px rgba(0,0,0,0.25);
 		color: var(--text-primary);
 		cursor: pointer;
 		pointer-events: auto;
-		transform-origin: bottom center;
+		transform-origin: bottom right;
 		transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 		z-index: 2;
 	}
-	:root[data-clear-glass="true"] .mini-timer { background: var(--surface-canvas) !important; border: 1px solid var(--accent) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+	
+	/* Comic book tail pointing to the orb */
+	.mini-timer::after {
+		content: '';
+		position: absolute;
+		bottom: -6px;
+		right: 16px;
+		width: 10px;
+		height: 10px;
+		background: var(--surface-panel-ai, var(--surface-panel));
+		border-bottom: 1px solid var(--accent);
+		border-right: 1px solid var(--accent);
+		transform: rotate(45deg);
+		border-bottom-right-radius: 2px;
+		transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+		z-index: -1;
+	}
+
+	:root[data-clear-glass="true"] .mini-timer,
+	:root[data-clear-glass="true"] .mini-timer::after { 
+		background: var(--surface-canvas) !important; 
+	}
+	
+	:root[data-clear-glass="true"] .mini-timer {
+		border: 1px solid var(--accent) !important; 
+		backdrop-filter: none !important; 
+		-webkit-backdrop-filter: none !important;
+	}
 
 	.mini-timer.break { border-color: var(--success); }
+	.mini-timer.break::after { border-color: var(--success); }
 	
 	.mini-timer:hover {
 		padding: 8px 18px;
 		gap: 14px;
 		transform: scale(1.08) translateY(-4px);
 		box-shadow: 0 16px 32px color-mix(in srgb, var(--accent) 20%, transparent);
+		border-radius: 24px; /* rounds out on hover */
+	}
+	
+	.mini-timer:hover::after {
+		bottom: -5px; /* adjust tail position slightly on hover */
+		right: 20px;
 	}
 	
 	.mini-timer.break:hover {
