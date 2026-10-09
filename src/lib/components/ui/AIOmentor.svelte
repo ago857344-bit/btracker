@@ -164,6 +164,17 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 		</div>
 	{/if}
 	
+
+{#if $globalTimer.running && $page.url.pathname !== '/focus'}
+	<div class="mini-timer" transition:fly={{ y: 20, duration: 300 }} class:break={$globalTimer.phase === 'break'} on:click={() => goto('/focus')}>
+		<div class="mini-time">{formatClock($globalTimer.tab === 'stopwatch' ? $globalTimer.elapsed : $globalTimer.remaining)}</div>
+		<div class="mini-phase">{$globalTimer.tab === 'stopwatch' ? 'SW' : $globalTimer.phase === 'break' ? 'BREAK' : 'FOCUS'}</div>
+		<button class="mini-pause" aria-label="Pause" on:click|stopPropagation={$globalTimer.toggle}>
+			<NavIcon name="pause" size={12} />
+		</button>
+	</div>
+{/if}
+
 	<button type="button" class="orb {orbState}" on:click={handleOrbClick}>
 		<div class="core"></div>
 		<div class="ring r1"></div>
