@@ -14,6 +14,7 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import GlobalOverlays from '$lib/components/GlobalOverlays.svelte';
 	import AIOmentor from '$lib/components/ui/AIOmentor.svelte';
+	import FocusScreen from '$lib/components/focus/FocusScreen.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
 	import StreakButton from '$lib/components/StreakButton.svelte';
 	import ThemeMenu from '$lib/components/ThemeMenu.svelte';
@@ -169,11 +170,16 @@
 				</div>
 			</header>
 			<main>
-				{#key $page.url.pathname}
-					<div in:fly={{ y: 8, duration: 200, delay: 0, opacity: 1 }} style="height: 100%;">
-						<slot />
-					</div>
-				{/key}
+				<div style="display: {$page.url.pathname === '/focus' ? 'block' : 'none'}; height: 100%;">
+					<FocusScreen />
+				</div>
+				<div style="display: {$page.url.pathname === '/focus' ? 'none' : 'block'}; height: 100%;">
+					{#key $page.url.pathname}
+						<div in:fly={{ y: 8, duration: 200, delay: 0, opacity: 1 }} style="height: 100%;">
+							<slot />
+						</div>
+					{/key}
+				</div>
 			</main>
 		</div>
 
