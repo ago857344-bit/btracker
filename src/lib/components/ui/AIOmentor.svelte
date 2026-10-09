@@ -169,8 +169,10 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 	{/if}
 	
 
+
+<div class="orb-cluster">
 {#if $globalTimer.running && $page.url.pathname !== '/focus'}
-	<div class="mini-timer" transition:fly={{ y: 20, duration: 300 }} class:break={$globalTimer.phase === 'break'} on:click={() => goto('/focus')}>
+	<div class="mini-timer" transition:fly={{ x: 20, duration: 400 }} class:break={$globalTimer.phase === 'break'} on:click={() => goto('/focus')}>
 		<div class="mini-time">{formatClock($globalTimer.tab === 'stopwatch' ? $globalTimer.elapsed : $globalTimer.remaining)}</div>
 		<div class="mini-phase">{$globalTimer.tab === 'stopwatch' ? 'SW' : $globalTimer.phase === 'break' ? 'BREAK' : 'FOCUS'}</div>
 		<button class="mini-pause" aria-label="Pause" on:click|stopPropagation={$globalTimer.toggle}>
@@ -186,6 +188,7 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 		<div class="ring r3"></div>
 		<div class="ring r4"></div>
 	</button>
+</div>
 </div>
 
 <style>
@@ -319,41 +322,36 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 	@keyframes pulse-core-diamond { 0%, 100% { transform: rotate(45deg) scale(0.8); opacity: 0.8; } 50% { transform: rotate(45deg) scale(0.9); opacity: 1; } }
 	@keyframes pulse-core-fast-diamond { 0%, 100% { transform: rotate(45deg) scale(0.8); opacity: 0.8; } 50% { transform: rotate(45deg) scale(1.05); opacity: 1; } }
 
+	.orb-cluster { display: flex; align-items: center; gap: 0; position: relative; pointer-events: none; justify-content: flex-end; }
 	.mini-timer { 
-		position: absolute; 
-		bottom: 60px; 
-		right: 0; 
 		display: flex; 
 		align-items: center; 
 		gap: 12px; 
-		padding: 8px 12px 8px 16px; 
+		height: 44px;
+		padding: 0 24px 0 16px; 
+		margin-right: -22px; /* Underlap the orb */
 		background: var(--surface-panel-ai, var(--surface-panel)); 
 		backdrop-filter: var(--glass-filter, blur(24px)); 
 		-webkit-backdrop-filter: var(--glass-filter, blur(24px)); 
 		border: 1px solid var(--accent); 
-		border-radius: 99px;
-		box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+		border-right: none;
+		border-radius: 99px 0 0 99px;
+		box-shadow: -8px 8px 24px rgba(0,0,0,0.25);
 		color: var(--text-primary);
 		cursor: pointer;
 		pointer-events: auto;
-		transform-origin: bottom right;
-		/* Flowing boundary following the theme */
-		animation: flowing-border 4s ease-in-out infinite;
+		transform-origin: right center;
+		z-index: 1; /* Below orb */
 	}
-	:root[data-clear-glass="true"] .mini-timer { background: var(--surface-canvas) !important; border: 1px solid var(--accent) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+	:root[data-clear-glass="true"] .mini-timer { background: var(--surface-canvas) !important; border: 1px solid var(--accent) !important; border-right: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 
 	.mini-timer.break { border-color: var(--success); }
 	
-	@keyframes flowing-border {
-		0% { border-radius: 99px 40px 99px 60px; }
-		50% { border-radius: 60px 99px 40px 99px; }
-		100% { border-radius: 99px 40px 99px 60px; }
-	}
-
 	.mini-time { font-family: monospace; font-size: 1.1rem; font-weight: 700; letter-spacing: 1px; color: var(--accent); }
 	.mini-timer.break .mini-time { color: var(--success); }
 	.mini-phase { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.1em; opacity: 0.8; }
-	.mini-pause { width: 28px; height: 28px; border-radius: 50%; border: none; background: color-mix(in srgb, var(--text-primary) 15%, transparent); color: var(--text-primary); display: grid; place-items: center; cursor: pointer; transition: background 0.2s, transform 0.2s; }
+	.mini-pause { width: 28px; height: 28px; border-radius: 50%; border: none; background: color-mix(in srgb, var(--text-primary) 15%, transparent); color: var(--text-primary); display: grid; place-items: center; cursor: pointer; transition: background 0.2s, transform 0.2s; margin-left: 4px; }
 	.mini-pause:hover { background: color-mix(in srgb, var(--text-primary) 25%, transparent); transform: scale(1.1); }
+	.orb { z-index: 2; }
 
 </style>
