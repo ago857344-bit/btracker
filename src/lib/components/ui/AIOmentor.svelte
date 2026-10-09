@@ -331,7 +331,7 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 		backdrop-filter: var(--glass-filter, blur(24px)); 
 		-webkit-backdrop-filter: var(--glass-filter, blur(24px)); 
 		border: 1px solid var(--accent); 
-		border-radius: 20px 20px 4px 20px; /* comic bubble shape */
+		border-radius: 99px; /* full rounded pill */
 		box-shadow: 0 8px 24px rgba(0,0,0,0.25);
 		color: var(--text-primary);
 		cursor: pointer;
