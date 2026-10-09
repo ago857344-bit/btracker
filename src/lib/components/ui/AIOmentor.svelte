@@ -167,16 +167,13 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 			{message}
 		</div>
 	{/if}
-	
 
-
-<div class="orb-cluster">
 {#if $globalTimer.running && $page.url.pathname !== '/focus'}
-	<div class="mini-timer" transition:fly={{ x: 20, duration: 400 }} class:break={$globalTimer.phase === 'break'} on:click={() => goto('/focus')}>
+	<div class="mini-timer" transition:fly={{ y: 30, duration: 400, opacity: 0 }} class:break={$globalTimer.phase === 'break'} on:click={() => goto('/focus')}>
 		<div class="mini-time">{formatClock($globalTimer.tab === 'stopwatch' ? $globalTimer.elapsed : $globalTimer.remaining)}</div>
 		<div class="mini-phase">{$globalTimer.tab === 'stopwatch' ? 'SW' : $globalTimer.phase === 'break' ? 'BREAK' : 'FOCUS'}</div>
 		<button class="mini-pause" aria-label="Pause" on:click|stopPropagation={$globalTimer.toggle}>
-			<NavIcon name="pause" size={12} />
+			<NavIcon name="pause" size={14} />
 		</button>
 	</div>
 {/if}
@@ -188,7 +185,6 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 		<div class="ring r3"></div>
 		<div class="ring r4"></div>
 	</button>
-</div>
 </div>
 
 <style>
@@ -322,36 +318,71 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 	@keyframes pulse-core-diamond { 0%, 100% { transform: rotate(45deg) scale(0.8); opacity: 0.8; } 50% { transform: rotate(45deg) scale(0.9); opacity: 1; } }
 	@keyframes pulse-core-fast-diamond { 0%, 100% { transform: rotate(45deg) scale(0.8); opacity: 0.8; } 50% { transform: rotate(45deg) scale(1.05); opacity: 1; } }
 
-	.orb-cluster { display: flex; align-items: center; gap: 0; position: relative; pointer-events: none; justify-content: flex-end; }
+	
 	.mini-timer { 
 		display: flex; 
 		align-items: center; 
-		gap: 12px; 
-		height: 44px;
-		padding: 0 24px 0 16px; 
-		margin-right: -22px; /* Underlap the orb */
+		gap: 8px; 
+		padding: 6px 14px; 
+		margin-bottom: 4px;
+		margin-right: 4px;
 		background: var(--surface-panel-ai, var(--surface-panel)); 
 		backdrop-filter: var(--glass-filter, blur(24px)); 
 		-webkit-backdrop-filter: var(--glass-filter, blur(24px)); 
 		border: 1px solid var(--accent); 
-		border-right: none;
-		border-radius: 99px 0 0 99px;
-		box-shadow: -8px 8px 24px rgba(0,0,0,0.25);
+		border-radius: 99px;
+		box-shadow: 0 8px 24px rgba(0,0,0,0.25);
 		color: var(--text-primary);
 		cursor: pointer;
 		pointer-events: auto;
-		transform-origin: right center;
-		z-index: 1; /* Below orb */
+		transform-origin: bottom center;
+		transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+		z-index: 2;
 	}
-	:root[data-clear-glass="true"] .mini-timer { background: var(--surface-canvas) !important; border: 1px solid var(--accent) !important; border-right: none !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+	:root[data-clear-glass="true"] .mini-timer { background: var(--surface-canvas) !important; border: 1px solid var(--accent) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 
 	.mini-timer.break { border-color: var(--success); }
 	
-	.mini-time { font-family: monospace; font-size: 1.1rem; font-weight: 700; letter-spacing: 1px; color: var(--accent); }
+	.mini-timer:hover {
+		padding: 8px 18px;
+		gap: 14px;
+		transform: scale(1.08) translateY(-4px);
+		box-shadow: 0 16px 32px color-mix(in srgb, var(--accent) 20%, transparent);
+	}
+	
+	.mini-timer.break:hover {
+		box-shadow: 0 16px 32px color-mix(in srgb, var(--success) 20%, transparent);
+	}
+
+	.mini-time { font-family: monospace; font-size: 1.05rem; font-weight: 700; letter-spacing: 1px; color: var(--accent); transition: font-size 0.3s; }
 	.mini-timer.break .mini-time { color: var(--success); }
+	
+	.mini-timer:hover .mini-time { font-size: 1.15rem; }
+	
 	.mini-phase { font-size: 0.65rem; font-weight: 800; letter-spacing: 0.1em; opacity: 0.8; }
-	.mini-pause { width: 28px; height: 28px; border-radius: 50%; border: none; background: color-mix(in srgb, var(--text-primary) 15%, transparent); color: var(--text-primary); display: grid; place-items: center; cursor: pointer; transition: background 0.2s, transform 0.2s; margin-left: 4px; }
-	.mini-pause:hover { background: color-mix(in srgb, var(--text-primary) 25%, transparent); transform: scale(1.1); }
-	.orb { z-index: 2; }
+	
+	.mini-pause { 
+		width: 0; 
+		height: 0; 
+		opacity: 0;
+		padding: 0;
+		overflow: hidden;
+		border-radius: 50%; 
+		border: none; 
+		background: color-mix(in srgb, var(--text-primary) 15%, transparent); 
+		color: var(--text-primary); 
+		display: grid; 
+		place-items: center; 
+		cursor: pointer; 
+		transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); 
+	}
+	
+	.mini-timer:hover .mini-pause {
+		width: 30px;
+		height: 30px;
+		opacity: 1;
+	}
+	
+	.mini-pause:hover { background: color-mix(in srgb, var(--text-primary) 25%, transparent); transform: scale(1.15); }
 
 </style>
