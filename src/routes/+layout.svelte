@@ -181,9 +181,7 @@
 		<GlobalOverlays />
 		<AIOmentor />
 		{#if activeVideoUrl}
-			{#key activeVideoUrl}
-				<video src={activeVideoUrl} autoplay loop muted playsinline class="live-wallpaper-bg" on:ended={(e) => e.currentTarget.play()}></video>
-			{/key}
+			<video src={activeVideoUrl} autoplay loop muted playsinline preload="auto" class="live-wallpaper-bg" on:loadeddata={(e) => e.currentTarget.play()} on:canplay={(e) => e.currentTarget.play()}></video>
 		{/if}
 
 	</div>

@@ -6,6 +6,7 @@
 	export let open = false;
 	export let title = '';
 	export let width = '560px';
+	export let solid = false;
 
 	const dispatch = createEventDispatcher<{ close: void }>();
 	const close = () => { open = false; dispatch('close'); };
@@ -15,7 +16,7 @@
 
 {#if open}
 	<div class="modal-backdrop" transition:fade={{ duration: 160 }} role="presentation" on:click={close} on:keydown={() => {}}>
-		<div class="modal-card glass" style="max-width: {width}" transition:fly={{ y: 14, duration: 200 }} role="dialog" aria-modal="true" aria-label={title} on:click|stopPropagation on:keydown={() => {}}>
+		<div class="modal-card glass" class:solid style="max-width: {width}" transition:fly={{ y: 14, duration: 200 }} role="dialog" aria-modal="true" aria-label={title} on:click|stopPropagation on:keydown={() => {}}>
 			<header>
 				<div class="bottom-sheet-handle"></div>
 				<h3>{title}</h3>
@@ -60,4 +61,8 @@
 			opacity: 0.3;
 		}
 	}
+
+	.modal-card.solid { background: var(--surface-canvas) !important; border: 1px solid var(--border-subtle); backdrop-filter: none; }
+	.modal-card.solid header { background: var(--surface-canvas) !important; backdrop-filter: none; -webkit-backdrop-filter: none; }
+
 </style>

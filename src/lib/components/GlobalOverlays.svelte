@@ -289,7 +289,7 @@
 
 
 
-<Modal open={showAIUpdateModal} title="" width="480px" on:close={dismissAIUpdateModal}>
+<Modal open={showAIUpdateModal} title="" width="480px" solid={true} on:close={dismissAIUpdateModal}>
 	<div class="update-box">
 		<span class="update-icon"><NavIcon name="sparkles" size={42} /></span>
 		<span class="update-date">LATEST UPDATE</span>
@@ -367,7 +367,7 @@
 	.xp-bar { height: 8px; background: color-mix(in srgb, var(--text-primary), transparent 90%); border-radius: 99px; overflow: hidden; }
 	.xp-fill { height: 100%; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 80%, white)); transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
 
-	.update-box { display: flex; flex-direction: column; align-items: center; padding: .5rem 0 1rem; }
+	.update-box { display: flex; flex-direction: column; align-items: center; padding: 2rem 1rem; background: var(--surface-canvas);  }
 	.update-icon { color: var(--accent); margin-bottom: .8rem; }
 	.update-date { font-size: .65rem; font-weight: 800; letter-spacing: .1em; color: var(--accent); margin-bottom: .4rem; text-transform: uppercase; background: color-mix(in srgb, var(--accent) 15%, transparent); padding: .2rem .5rem; border-radius: 6px; }
 	.update-box h2 { font-size: 1.8rem; font-weight: 900; letter-spacing: -.03em; color: var(--text-primary); margin: 0 0 .3rem; line-height: 1; }
@@ -381,7 +381,7 @@
 
 	.tour-backdrop { position: fixed; inset: 0; z-index: 10000; pointer-events: auto; }
 	.tour-spotlight { position: fixed; z-index: 10001; border-radius: 16px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.7), 0 0 20px var(--accent); pointer-events: none; transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
-	.tour-tooltip { position: fixed; z-index: 10002; width: 300px; background: var(--surface-panel-ai, var(--surface-panel)); border: 1px solid var(--accent); border-radius: 12px; padding: 1.2rem; box-shadow: 0 16px 40px rgba(0,0,0,0.4); color: var(--text-primary); transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+	.tour-tooltip { position: fixed; z-index: 10002; width: 300px; background: var(--surface-canvas); color: var(--text-primary); border: 1px solid var(--accent); border-radius: 12px; padding: 1.2rem; box-shadow: 0 16px 40px rgba(0,0,0,0.4); color: var(--text-primary); transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
 	.tour-tooltip h4 { margin: 0 0 0.5rem; color: var(--accent); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 800; }
 	.tour-tooltip p { margin: 0 0 1.2rem; font-size: 0.9rem; line-height: 1.5; color: var(--text-secondary); }
 	.tour-foot { display: flex; justify-content: space-between; align-items: center; }
