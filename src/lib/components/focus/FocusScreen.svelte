@@ -1,6 +1,9 @@
 <svelte:head><title>Focus · BTracker</title></svelte:head>
 
 <script lang="ts">
+	import { globalTimer } from '$lib/stores/timerState';
+	$: $globalTimer = { running, remaining, elapsed, tab, phase, toggle: primary };
+
 	import { onDestroy } from 'svelte';
 	import { parseVoiceLog } from '$lib/services/voiceParsing';
 	import { fade, fly } from 'svelte/transition';
