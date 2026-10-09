@@ -1,6 +1,7 @@
 import { loadTrackerState } from '$lib/services/persistence';
 import { createInitialTrackerState, DEFAULT_WIDGETS } from '$lib/state/defaults';
-import { getLevelData } from '$lib/state/gamification';
+import { getLevelData, recordPeaks } from '$lib/state/gamification';
+import { rolloverWeekSnapshot } from '$lib/state/weekly';
 import { hydration, replaceTracker } from '$lib/stores/tracker';
 import type { TrackerState } from '$lib/types/tracker';
 
@@ -54,6 +55,7 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 			widgets: Array.isArray(saved.ui?.widgets) ? [...saved.ui.widgets] : [...base.ui.widgets]
 		},
 		gamification: {
+			...saved.gamification,
 			xp: retroXp,
 			level: Math.max(saved.gamification?.level || 1, getLevelData(retroXp).level),
 			elo: retroElo
@@ -61,6 +63,8 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 	};
 	const known = new Set(merged.ui.widgets.map((w) => w.id));
 	for (const widget of DEFAULT_WIDGETS) if (!known.has(widget.id)) merged.ui.widgets.push({ ...widget });
+	rolloverWeekSnapshot(merged);
+	recordPeaks(merged.gamification!);
 	return merged;
 }
 

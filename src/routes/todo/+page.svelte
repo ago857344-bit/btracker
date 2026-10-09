@@ -6,6 +6,7 @@
 	import { subjectColor, CHAPTERS } from '$lib/state/subjects';
 	import { allChapters, SYLLABUS } from '$lib/state/syllabus';
 	import { extractPdfText, matchChapters, type ChapterMatch } from '$lib/services/btest';
+import { triageTodos } from '$lib/services/aiTriage';
 	import {
 		addChecklistColumn, addTodo, addTodos, celebration, CHECKLIST_DEFAULT_COLS, clearDoneTodos, deleteTodo,
 		removeChecklistColumn, reorderTodo, toggleChecklistCell, toggleTodo, tracker, addTodoSubtask, toggleTodoSubtask, deleteTodoSubtask
@@ -16,6 +17,30 @@
 	let dragId: string | null = null;
 	let expandedTodo: string | null = null;
 	let subtaskDraft = '';
+let triaging = false;
+
+async function runAiTriage() {
+    const openTodos = $tracker.todos.filter(t => !t.done);
+    if (!openTodos.length) return;
+    
+    triaging = true;
+    try {
+        const result = await triageTodos(openTodos, $tracker.gamification?.elo || { P: 1200, C: 1200, M: 1200 });
+        
+        $tracker.todos = $tracker.todos.map(t => {
+            if (result[t.id]) {
+                return { ...t, roiTag: result[t.id] };
+            }
+            return t;
+        });
+        uiSuccess();
+    } catch (e) {
+        console.error(e);
+        uiPop();
+    } finally {
+        triaging = false;
+    }
+}
 
 	$: todos = $tracker.todos;
 	$: open = todos.filter((t) => !t.done);
@@ -155,6 +180,12 @@
 			<input type="text" placeholder="Add a task and press Enter…" bind:value={draft} aria-label="New task" />
 			<button type="submit" disabled={!draft.trim()}>Add</button>
 		</form>
+        
+        <div style="display: flex; justify-content: flex-end; margin-top: -0.2rem; margin-bottom: 0.2rem;">
+            <button type="button" class="btn-triage" class:loading={triaging} on:click={runAiTriage} disabled={triaging || !todos.some(t => !t.done)}>
+                <NavIcon name="sparkles" size={13} /> {triaging ? 'Triaging...' : 'AI Smart Triage'}
+            </button>
+        </div>
 
 		{#if todos.length}
 			<ul class="list">
@@ -182,6 +213,9 @@
 								</div>
 							{/if}
 						</div>
+						{#if item.roiTag}
+							<span class="roi-tag {item.roiTag.replace(' ', '-').toLowerCase()}">{item.roiTag}</span>
+						{/if}
 						{#if item.source === 'btest'}<span class="tag">btest</span>{/if}
 						<button type="button" class="expand-btn" on:click={() => expandedTodo = expandedTodo === item.id ? null : item.id}>
 							<NavIcon name={expandedTodo === item.id ? 'chevron-down' : 'chevron'} size={14} />
@@ -433,5 +467,15 @@
 	.subtask-form { display: flex; align-items: center; gap: 12px; margin-top: 4px; padding: 4px 0; color: var(--text-secondary); }
 	.subtask-form input { background: none; border: none; font-size: 0.85rem; color: var(--text-primary); outline: none; flex: 1; }
 	.subtask-form input::placeholder { color: var(--text-secondary); }
+
+
+.btn-triage { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.8rem; border-radius: 99px; background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); font-size: 0.76rem; font-weight: 750; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); cursor: pointer; transition: all 0.2s; }
+	.btn-triage:hover:not(:disabled) { background: var(--accent); color: white; }
+	.btn-triage.loading { opacity: 0.6; pointer-events: none; }
+	.roi-tag { font-size: 0.68rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 6px; letter-spacing: 0.02em; text-transform: uppercase; margin-right: 0.3rem; }
+	.roi-tag.high-roi { background: color-mix(in srgb, var(--success) 20%, transparent); color: var(--success); border: 1px solid color-mix(in srgb, var(--success) 40%, transparent); }
+	.roi-tag.time-trap { background: color-mix(in srgb, var(--warning) 20%, transparent); color: var(--warning); border: 1px solid color-mix(in srgb, var(--warning) 40%, transparent); }
+	.roi-tag.core { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
+	.roi-tag.normal { display: none; }
 
 </style>

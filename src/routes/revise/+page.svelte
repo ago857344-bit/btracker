@@ -172,9 +172,9 @@
 			{#each displayedRecallChapters as chapter (chapter.chapterKey)}
 				<ChapterCard
 					{chapter}
-					on:revise={(e) => handleRevise(e.detail)}
-					on:delete={(e) => handleDeleteChapter(e.detail)}
-					on:crashcourse={(e) => { crashCourseKey = e.detail; }}
+					on:revise={(e: any) => handleRevise(e.detail)}
+					on:delete={(e: any) => handleDeleteChapter(e.detail)}
+					on:crashcourse={(e: any) => { crashCourseKey = e.detail; }}
 				/>
 			{/each}
 		</div>

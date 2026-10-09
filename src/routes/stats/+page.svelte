@@ -4,6 +4,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import InfoTip from '$lib/components/ui/InfoTip.svelte';
+	import WeeklyReportSection from '$lib/components/stats/WeeklyReportSection.svelte';
 	import { tracker, intelligence, momentum, streakDays, peakProductivity, analysisSummary } from '$lib/stores/tracker';
 	import { dayKeyOf, focusMinutesOn, formatMinutes, shortDateKey, startOfWeek } from '$lib/state/dates';
 	import { getLevelData, getEloRank } from '$lib/state/gamification';
@@ -13,7 +14,7 @@
 
 	const RANK_COLORS: Record<string, string> = { ELITE: '#d99a2b', ADVANCED: '#8b7bff', INTERMEDIATE: '#2b8ba6', NOVICE: '#8b87a0' };
 
-	let open: Record<string, boolean> = { ai: true, rank: true, momentum: false, quick: true, identity: true, deep: false, portfolio: false, academic: false, dna: false, velocity: false };
+	let open: Record<string, boolean> = { ai: true, rank: true, weekly: true, momentum: false, quick: true, identity: true, deep: false, portfolio: false, academic: false, dna: false, velocity: false };
 	const toggle = (key: string) => (open = { ...open, [key]: !open[key] });
 
 	let aiLoading = false;
@@ -167,6 +168,18 @@
 							</div>
 						</div>
 					</div>
+				</div>
+			{/if}
+		</section>
+
+		<section class="sec">
+			<button type="button" class="sec-head" aria-expanded={open.weekly} on:click={() => toggle('weekly')}>
+				<span class="dot" style="background: var(--accent)"></span> WEEKLY REPORT CARD
+				<NavIcon name="chevron-down" size={15} />
+			</button>
+			{#if open.weekly}
+				<div class="sec-body">
+					<WeeklyReportSection />
 				</div>
 			{/if}
 		</section>

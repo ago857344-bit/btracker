@@ -178,16 +178,16 @@ body[data-deep-work="true"] .layout {
 /* Global generic glass */
 .glass {
 	background: color-mix(in srgb, var(--surface-panel), transparent 15%) !important;
-	backdrop-filter: blur(20px) saturate(180%);
-	-webkit-backdrop-filter: blur(20px) saturate(180%);
+	backdrop-filter: var(--glass-filter, blur(20px) saturate(180%));
+	-webkit-backdrop-filter: var(--glass-filter, blur(20px) saturate(180%));
 }
 /* Let --surface-panel handle light mode opacity instead of hardcoding */
 
 /* Glass inputs and inner elements */
 select, input[type="text"], input[type="number"], .method, .glass-element {
 	background: color-mix(in srgb, var(--surface-panel), transparent 40%) !important;
-	backdrop-filter: blur(12px);
-	-webkit-backdrop-filter: blur(12px);
+	backdrop-filter: var(--glass-filter, blur(12px) saturate(180%));
+	-webkit-backdrop-filter: var(--glass-filter, blur(12px) saturate(180%));
 	border: 1px solid color-mix(in srgb, var(--border-subtle), transparent 30%);
 	box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);
 	transition: transform 0.2s, box-shadow 0.2s, background 0.2s !important;
@@ -282,7 +282,7 @@ button:hover:not(:disabled), .tb:hover, .ic:hover, aside a:hover, .row:hover, .i
 :root[data-theme="light"][data-wallpaper="true"], 
 :root[data-theme="duolingo"][data-wallpaper="true"], 
 :root[data-theme="anki"][data-wallpaper="true"], 
-:root[data-theme="notion"][data-wallpaper="true"] {
+:root[data-theme="notion"][data-wallpaper="true"], :root[data-theme="master"][data-wallpaper="true"] {
 	/* Frosted glass for light modes: 55% white, 45% transparent */
 	--surface-panel: color-mix(in srgb, #ffffff, transparent 12%);
 	--surface-subtle: color-mix(in srgb, #ffffff, transparent 20%);
@@ -374,9 +374,11 @@ button:hover:not(:disabled), .tb:hover, .ic:hover, aside a:hover, .row:hover, .i
 :root[data-theme="duolingo"][data-wallpaper="true"] aside,
 :root[data-theme="anki"][data-wallpaper="true"] aside,
 :root[data-theme="notion"][data-wallpaper="true"] aside,
+:root[data-theme="master"][data-wallpaper="true"] aside,
 :root[data-theme="duolingo"][data-wallpaper="true"] .panel,
 :root[data-theme="anki"][data-wallpaper="true"] .panel,
-:root[data-theme="notion"][data-wallpaper="true"] .panel {
+:root[data-theme="notion"][data-wallpaper="true"] .panel,
+:root[data-theme="master"][data-wallpaper="true"] .panel {
 	box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5), inset 0 0 20px rgba(255,255,255,0.15), 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
@@ -587,4 +589,253 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 	color: #ffffff !important;
 	--text-primary: #ffffff !important;
 	--text-secondary: #e2e8f0 !important;
+}
+
+/* ========================================================================= */
+/* ELO TIER THEMES — full palettes + reward animations                        */
+/* ========================================================================= */
+:root[data-theme='initiate'] {
+	--accent: #00e5ff;
+	--accent-strong: #00b8d4;
+	--surface-canvas: #05090c;
+	--surface-panel: #0a1318;
+	--surface-subtle: #0f1b21;
+	--text-primary: #e8fcff;
+	--text-secondary: #9cc4cf;
+	--border-subtle: rgba(0, 229, 255, 0.14);
+	--accent-soft: rgba(0, 229, 255, 0.12);
+	--shadow-card: 0 14px 40px rgb(0 0 0 / 35%);
+}
+
+:root[data-theme='challenger'] {
+	--accent: #ff4500; /* Emergency Orange */
+	--accent-strong: #cc3700;
+	--surface-canvas: #140704;
+	--surface-panel: #1e0d08;
+	--surface-subtle: #2a130c;
+	--text-primary: #fff3ee;
+	--text-secondary: #d4a391;
+	--border-subtle: rgba(255, 69, 0, 0.2);
+	--accent-soft: rgba(255, 69, 0, 0.14);
+	--shadow-card: 0 14px 40px rgb(0 0 0 / 32%);
+}
+:root[data-theme='challenger'] .layout-shell {
+	border-top: 4px solid var(--accent);
+}
+
+:root[data-theme='master'] {
+	--accent: #0072c6;
+	--accent-strong: #005a9e;
+	--surface-canvas: #f0f7ff;
+	--surface-panel: #ffffff;
+	--surface-subtle: #e6f2ff;
+	--text-primary: #1a2733;
+	--text-secondary: #4a5c6e;
+	--border-subtle: rgba(0, 114, 198, 0.2);
+}
+
+:root[data-theme='god-mode'] {
+	--accent: #ffd700; /* Gold */
+	--accent-strong: #ccac00;
+	--success: #00ffd5;
+	--surface-canvas: #070602;
+	--surface-panel: #14110a;
+	--surface-subtle: #1d180c;
+	--border-subtle: rgba(255, 215, 0, 0.18);
+	--accent-soft: rgba(255, 215, 0, 0.13);
+	--text-primary: #fffbee;
+	--text-secondary: #d4c9a8;
+	--shadow-card: 0 14px 40px rgb(0 0 0 / 36%);
+}
+:root[data-theme='god-mode'] h1, :root[data-theme='god-mode'] h2 {
+	text-shadow: 0 0 12px rgba(255, 215, 0, 0.4);
+}
+:root[data-theme='god-mode'] .layout-shell {
+	box-shadow: inset 0 0 100px rgba(255, 215, 0, 0.05);
+}
+
+/* Subject mastery themes */
+:root[data-theme='quantum'] {
+	--accent: #7c8cff;
+	--accent-strong: #5c6ef0;
+	--surface-canvas: #05061a;
+	--surface-panel: #0b0d28;
+	--surface-subtle: #121535;
+	--text-primary: #eef0ff;
+	--text-secondary: #a6abd8;
+	--border-subtle: rgba(124, 140, 255, 0.18);
+	--accent-soft: rgba(124, 140, 255, 0.14);
+	--shadow-card: 0 14px 40px rgb(0 0 0 / 36%);
+}
+
+:root[data-theme='catalyst'] {
+	--accent: #a3e635;
+	--accent-strong: #84cc16;
+	--success: #22c55e;
+	--surface-canvas: #040a05;
+	--surface-panel: #0a150b;
+	--surface-subtle: #102011;
+	--text-primary: #f2ffe6;
+	--text-secondary: #a9c79a;
+	--border-subtle: rgba(163, 230, 53, 0.16);
+	--accent-soft: rgba(163, 230, 53, 0.12);
+	--shadow-card: 0 14px 40px rgb(0 0 0 / 36%);
+}
+/* Lime is too bright for white button text. */
+:root[data-theme='catalyst'] .quick-add, :root[data-theme='catalyst'] .brand-mark { color: #0a1a02; }
+
+:root[data-theme='axiom'] {
+	--accent: #ff5c8a;
+	--accent-strong: #e64576;
+	--surface-canvas: #10040a;
+	--surface-panel: #1a0912;
+	--surface-subtle: #240e19;
+	--text-primary: #fff0f5;
+	--text-secondary: #d6a5b6;
+	--border-subtle: rgba(255, 92, 138, 0.18);
+	--accent-soft: rgba(255, 92, 138, 0.13);
+	--shadow-card: 0 14px 40px rgb(0 0 0 / 34%);
+}
+
+/* ========================================================================= */
+/* ACCENT FX — driven by data-fx (theme default or cosmetics loadout)         */
+/* ========================================================================= */
+@keyframes tier-shimmer {
+	0% { background-position: 200% center; }
+	100% { background-position: -200% center; }
+}
+@keyframes tier-glow {
+	0%, 100% { box-shadow: 0 0 4px var(--tier-glow-color, var(--accent)); }
+	50% { box-shadow: 0 0 16px var(--tier-glow-color, var(--accent)); }
+}
+@keyframes fx-flicker {
+	0%, 100% { box-shadow: 0 0 6px var(--tier-glow-color); }
+	18% { box-shadow: 0 0 14px var(--tier-glow-color); }
+	24% { box-shadow: 0 0 5px var(--tier-glow-color); }
+	46% { box-shadow: 0 0 18px var(--tier-glow-color); }
+	62% { box-shadow: 0 0 8px var(--tier-glow-color); }
+	80% { box-shadow: 0 0 15px var(--tier-glow-color); }
+}
+@keyframes fx-flux {
+	0%, 100% { box-shadow: -4px 0 12px var(--tier-glow-color), 4px 0 12px rgba(177, 151, 252, 0.5); }
+	50% { box-shadow: 4px 0 12px var(--tier-glow-color), -4px 0 12px rgba(177, 151, 252, 0.5); }
+}
+@keyframes fx-ripple {
+	0% { box-shadow: 0 0 0 0 var(--tier-glow-color); }
+	70% { box-shadow: 0 0 0 9px transparent; }
+	100% { box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes fx-march {
+	to { background-position: 16px 0, -16px 100%, 0 -16px, 100% 16px; }
+}
+@keyframes fx-prism {
+	0%, 100% { box-shadow: 0 0 12px rgba(255, 107, 107, 0.55); }
+	20% { box-shadow: 0 0 14px rgba(255, 212, 59, 0.55); }
+	40% { box-shadow: 0 0 14px rgba(105, 219, 124, 0.55); }
+	60% { box-shadow: 0 0 14px rgba(77, 171, 247, 0.55); }
+	80% { box-shadow: 0 0 14px rgba(177, 151, 252, 0.55); }
+}
+
+:root[data-fx] { --tier-glow-color: color-mix(in srgb, var(--accent), transparent 48%); }
+
+:root[data-fx='pulse'] nav a.active,
+:root[data-fx='pulse'] .brand-mark {
+	animation: tier-glow 2.2s ease-in-out infinite;
+}
+
+:root[data-fx='ember'] .quick-add,
+:root[data-fx='ember'] .brand-mark {
+	animation: fx-flicker 2.8s linear infinite;
+}
+
+:root[data-fx='tide'] nav a.active,
+:root[data-fx='tide'] .brand-mark {
+	animation: tier-glow 3.4s ease-in-out infinite;
+	--tier-glow-color: color-mix(in srgb, var(--accent), transparent 55%);
+}
+
+:root[data-fx='gilded'] .brand-mark,
+:root[data-fx='gilded'] .lv-badge,
+:root[data-fx='gilded'] .quick-add {
+	background-image: linear-gradient(110deg, #ccac00 25%, #fff3b0 45%, #ffd700 60%, #ccac00 85%);
+	background-size: 200% auto;
+	animation: tier-shimmer 3.2s linear infinite;
+}
+:root[data-fx='gilded'] nav a.active,
+:root[data-fx='gilded'] .brand-mark {
+	animation: tier-shimmer 3.2s linear infinite, tier-glow 2.6s ease-in-out infinite;
+	--tier-glow-color: rgba(255, 215, 0, 0.55);
+}
+
+:root[data-fx='flux'] nav a.active,
+:root[data-fx='flux'] .brand-mark {
+	animation: fx-flux 2.4s ease-in-out infinite;
+}
+
+:root[data-fx='reaction'] .brand-mark,
+:root[data-fx='reaction'] .quick-add,
+:root[data-fx='reaction'] nav a.active {
+	animation: fx-ripple 2s ease-out infinite;
+	--tier-glow-color: color-mix(in srgb, var(--accent), transparent 35%);
+}
+
+:root[data-fx='proof'] nav a.active {
+	background-image:
+		linear-gradient(90deg, var(--accent) 50%, transparent 0),
+		linear-gradient(90deg, var(--accent) 50%, transparent 0),
+		linear-gradient(0deg, var(--accent) 50%, transparent 0),
+		linear-gradient(0deg, var(--accent) 50%, transparent 0);
+	background-repeat: repeat-x, repeat-x, repeat-y, repeat-y;
+	background-size: 8px 1px, 8px 1px, 1px 8px, 1px 8px;
+	background-position: 0 0, 0 100%, 0 0, 100% 0;
+	animation: fx-march 1.1s linear infinite;
+}
+:root[data-fx='proof'] .brand-mark {
+	animation: tier-glow 2.6s ease-in-out infinite;
+}
+
+:root[data-fx='celestial'] .brand-mark,
+:root[data-fx='celestial'] .lv-badge,
+:root[data-fx='celestial'] .quick-add {
+	background-image: linear-gradient(110deg, #ff6b6b, #ffd43b, #69db7c, #4dabf7, #b197fc, #f783ac, #ff6b6b);
+	background-size: 300% auto;
+	color: #fff;
+	text-shadow: 0 1px 2px rgb(0 0 0 / 35%);
+	animation: tier-shimmer 7s linear infinite, fx-prism 7s linear infinite;
+}
+:root[data-fx='celestial'] nav a.active {
+	animation: fx-prism 7s linear infinite;
+}
+
+:root[data-reduced-motion='true'] .brand-mark,
+:root[data-reduced-motion='true'] .lv-badge,
+:root[data-reduced-motion='true'] .quick-add,
+:root[data-reduced-motion='true'] nav a.active {
+	animation: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+	:root[data-fx] .brand-mark, :root[data-fx] .lv-badge, :root[data-fx] .quick-add, :root[data-fx] nav a.active {
+		animation: none !important;
+	}
+}
+
+
+/* NUCLEAR OVERRIDE FOR 0% OPACITY */
+:root[data-clear-glass="true"] * {
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+:root[data-clear-glass="true"] .glass,
+:root[data-clear-glass="true"] .card,
+:root[data-clear-glass="true"] .panel,
+:root[data-clear-glass="true"] .glass-element,
+:root[data-clear-glass="true"] aside,
+:root[data-clear-glass="true"] nav a.active,
+:root[data-clear-glass="true"] .settings-link:hover,
+:root[data-clear-glass="true"] .modal {
+	background: transparent !important;
+}
+:root[data-clear-glass="true"] {
+	--surface-panel: transparent !important;
+	--surface-subtle: transparent !important;
 }

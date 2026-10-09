@@ -6,7 +6,7 @@
 export type SubjectCode = 'P' | 'C' | 'M' | (string & {});
 export type DayKey = `${number}-${number}-${number}` | string;
 export type QuestionKey = string;
-export type ThemeId = 'light' | 'dark' | 'red' | 'green' | 'custom' | 'notion' | 'duolingo' | 'anki' | 'obsidian' | 'quizlet';
+export type ThemeId = 'aurora' | 'light' | 'dark' | 'red' | 'green' | 'custom' | 'notion' | 'duolingo' | 'anki' | 'obsidian' | 'quizlet' | 'challenger' | 'god-mode' | 'initiate' | 'master' | 'quantum' | 'catalyst' | 'axiom';
 export type TimerKind = 'pomo' | 'endless' | 'speed';
 
 export interface CustomSubject { code: SubjectCode; name: string; accent: string; short?: string }
@@ -70,6 +70,7 @@ export interface TodoItem {
 	source?: 'manual' | 'btest';
 	created: number;
 	subtasks?: TodoSubtask[];
+	roiTag?: 'High ROI' | 'Time Trap' | 'Normal' | 'Core';
 }
 
 /** Per-subject chapter checklist grid: custom columns, ✓ marks keyed by chapter no. */
@@ -235,7 +236,12 @@ export interface WidgetLayout {
 		| 'subjects' | 'standing' | 'up-next' | 'activity';
 	enabled: boolean; order: number; span: 1 | 2 | 3; height?: 'sm' | 'md' | 'lg';
 }
-export interface UiPreferences { accent: string; widgets: WidgetLayout[]; reducedMotion: boolean; wallpaper?: string | null; wallpaperHistory?: string[]; glassStrength?: number; haptics?: boolean; sounds?: boolean; }
+/** Equipped cosmetics; an absent slot means "match the active theme". */
+export interface CosmeticLoadout {
+	fx?: string; wallpaper?: string; confetti?: string; timer?: string; frame?: string; title?: string;
+	aurora?: boolean;
+}
+export interface UiPreferences { devMode?: boolean; accent: string; widgets: WidgetLayout[]; reducedMotion: boolean; wallpaper?: string | null; wallpaperHistory?: string[]; glassStrength?: number; haptics?: boolean; sounds?: boolean; cosmetics?: CosmeticLoadout; }
 
 
 export interface MistakeLog {
@@ -286,7 +292,21 @@ export interface TrackerState {
 		xp: number;
 		level: number;
 		elo: Record<'P' | 'C' | 'M', number>;
+		/** Baseline captured at the start of the current week, used for weekly-delta reports. */
+		week?: WeeklySnapshot | null;
+		/** Seasons completed via Ascend; season Elo drives the tier badge once prestiged. */
+		prestige?: { count: number; seasonElo: Record<string, number>; history?: { at: number; avgElo: number }[] };
+		/** All-time highs so earned cosmetics never re-lock after a bad test or a prestige reset. */
+		peak?: { tierElo: number; subject: Record<string, number> };
 	};
+}
+
+/** Totals recorded when the current (Monday-based) week began, so deltas can be reported. */
+export interface WeeklySnapshot {
+	/** DayKey (YYYY-MM-DD) of the Monday the baseline belongs to. */
+	start: string;
+	xp: number;
+	elo: Record<string, number>;
 }
 
 export interface MockTest {

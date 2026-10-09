@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { tracker, updateTracker } from '$lib/stores/tracker';
 	import type { MockTest, MistakeLog } from '$lib/types/tracker';
-	import { calculateEloChange } from '$lib/state/gamification';
+	import { applyEloResult } from '$lib/state/gamification';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import GrillMeModal from '$lib/components/ui/GrillMeModal.svelte';
@@ -59,9 +59,7 @@
 					const attempted = sData.correct + sData.incorrect;
 					if (attempted > 0) {
 						const accuracy = (sData.correct / attempted) * 100;
-						const change = calculateEloChange(t.gamification!.elo[code as 'P' | 'C' | 'M'], accuracy);
-						t.gamification!.elo[code as 'P' | 'C' | 'M'] += change;
-						t.gamification!.elo[code as 'P' | 'C' | 'M'] = Math.max(100, t.gamification!.elo[code as 'P' | 'C' | 'M']);
+						applyEloResult(t.gamification!, code, accuracy, 100);
 					}
 				}
 			});

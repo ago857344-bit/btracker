@@ -2,6 +2,7 @@
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { fade, fly, slide } from 'svelte/transition';
 	import StatRing from '$lib/components/StatRing.svelte';
+	import { loadout } from '$lib/stores/cosmetics';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 
 	export let running: boolean = false;
@@ -100,7 +101,7 @@
 
 	<div class="content">
 		<div class="dial-container" class:running style="--dial-color: {phase === 'break' ? 'var(--success, #2f9e6e)' : accent}">
-			<StatRing value={ringProgress} size={320} stroke={18} color={phase === 'break' ? 'var(--success, #2f9e6e)' : accent}>
+			<StatRing value={ringProgress} size={320} stroke={18} skin={phase === 'break' ? 'classic' : $loadout.timer} color={phase === 'break' ? 'var(--success, #2f9e6e)' : accent}>
 				<span class="time">{dialTime}</span>
 				<span class="phase" style="color: {phase === 'break' ? 'var(--success, #2f9e6e)' : accent}">
 					{phase === 'break' ? 'BREAK' : 'FOCUS'}

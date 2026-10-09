@@ -3,8 +3,10 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import NavIcon from '$lib/components/NavIcon.svelte';
-	import { THEME_PRESETS, isDarkTheme, presetOf } from '$lib/state/themes';
-	import { customizingHome, setAccent, tracker, updateTracker } from '$lib/stores/tracker';
+	import { THEME_PRESETS, isDarkTheme, presetOf, syncThemeWallpaper } from '$lib/state/themes';
+	import { celebration, customizingHome, setAccent, tracker, updateTracker } from '$lib/stores/tracker';
+	import { unlockCtx } from '$lib/stores/cosmetics';
+	import { reqLabel, reqMet, type UnlockCtx } from '$lib/state/cosmetics';
 	import type { ThemeId } from '$lib/types/tracker';
 
 	const ACCENTS = ['#6d5dfc', '#e0455a', '#d99a2b', '#2f9e6e', '#2b8ba6', '#2383e2', '#46a302', '#b44df0'];
@@ -13,6 +15,7 @@
 	let node: HTMLDivElement;
 
 	$: current = presetOf($tracker.theme);
+	const canUse = (preset: (typeof THEME_PRESETS)[number], ctx: UnlockCtx) => reqMet(preset.unlock, ctx);
 
 	function handleOutside(event: MouseEvent) {
 		if (open && node && !node.contains(event.target as Node)) open = false;
@@ -20,9 +23,15 @@
 
 	function selectTheme(id: ThemeId) {
 		const preset = presetOf(id);
+		if (preset.unlock && !reqMet(preset.unlock, $unlockCtx)) {
+			celebration.set(`${preset.label} locked — needs ${reqLabel(preset.unlock)}.`);
+			open = false;
+			return;
+		}
 		updateTracker((state) => {
 			state.theme = id;
 			state.ui.accent = preset.accent;
+			syncThemeWallpaper(state);
 		});
 	}
 
@@ -32,6 +41,7 @@
 			const target = goingDark ? 'dark' : 'light';
 			state.theme = target;
 			state.ui.accent = presetOf(target).accent;
+			syncThemeWallpaper(state);
 		});
 	}
 
@@ -66,13 +76,14 @@
 			<p class="label">THEMES</p>
 			<div class="themes">
 				{#each THEME_PRESETS as preset, i (preset.id + "-" + i)}
-					<button type="button" class="theme-card" class:on={current.id === preset.id} on:click={() => selectTheme(preset.id)}>
+					<button type="button" class="theme-card" class:on={current.id === preset.id} class:locked={!canUse(preset, $unlockCtx)} on:click={() => selectTheme(preset.id)}>
 						<span class="chip" style="background: {preset.accent}">
-							{#if current.id === preset.id}<NavIcon name="check" size={12} />{/if}
+							{#if !canUse(preset, $unlockCtx)}<NavIcon name="lock" size={11} />
+							{:else if current.id === preset.id}<NavIcon name="check" size={12} />{/if}
 						</span>
 						<span class="meta">
 							<b>{preset.label}</b>
-							<small>{preset.blurb}</small>
+							<small>{preset.unlock && !canUse(preset, $unlockCtx) ? `${reqLabel(preset.unlock)} to unlock` : preset.blurb}</small>
 						</span>
 					</button>
 				{/each}
@@ -110,6 +121,7 @@
 	.theme-card { display: flex; align-items: center; gap: .5rem; padding: .45rem .5rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); text-align: left; font-family: inherit; }
 	.theme-card:hover { border-color: var(--accent); }
 	.theme-card.on { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+	.theme-card.locked { opacity: .65; }
 	.chip { display: grid; place-items: center; flex: none; width: 22px; height: 22px; border-radius: 8px; color: #fff; }
 	.meta { display: grid; min-width: 0; }
 	.meta b { color: var(--text-primary); font-size: .74rem; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

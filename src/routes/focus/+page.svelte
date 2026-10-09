@@ -2,9 +2,11 @@
 
 <script lang="ts">
 	import { onDestroy } from 'svelte';
+	import { parseVoiceLog } from '$lib/services/voiceParsing';
 	import { fade, fly } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import StatRing from '$lib/components/StatRing.svelte';
+	import { loadout } from '$lib/stores/cosmetics';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import InfoTip from '$lib/components/ui/InfoTip.svelte';
 	import DailyActivity from '$lib/components/focus/DailyActivity.svelte';
@@ -53,6 +55,46 @@
 	let reportsOpen = false;
 
 	let logOpen = false; let logMinutes = 30; let logSubject: string | null = null;
+
+	let isListening = false;
+	let voiceFeedback = '';
+	
+	function startVoiceLog() {
+		if (typeof window === 'undefined') return;
+		const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+		if (!SpeechRecognition) {
+			voiceFeedback = 'Voice not supported in this browser.';
+			return;
+		}
+		
+		const recognition = new SpeechRecognition();
+		recognition.lang = 'en-US';
+		recognition.interimResults = false;
+		
+		recognition.onstart = () => { isListening = true; voiceFeedback = 'Listening...'; };
+		
+		recognition.onresult = async (event: any) => {
+			const transcript = event.results[0][0].transcript;
+			voiceFeedback = 'Thinking...';
+			const res = await parseVoiceLog(transcript);
+			if (res) {
+				if (res.minutes) logMinutes = res.minutes;
+				if (res.subject) logSubject = res.subject;
+				if (res.chapter) logChapter = res.chapter;
+				voiceFeedback = 'Ready to log!';
+				setTimeout(() => voiceFeedback = '', 2000);
+			} else {
+				voiceFeedback = 'Could not understand.';
+			}
+			isListening = false;
+		};
+		
+		recognition.onerror = () => { isListening = false; voiceFeedback = 'Error listening.'; };
+		recognition.onend = () => { isListening = false; if (voiceFeedback === 'Listening...') voiceFeedback = ''; };
+		
+		recognition.start();
+	}
+
 	let focusChapter = '';
 	import { boostChapterFromPractice } from '$lib/stores/recall-actions'; let logChapter = '';
 	$: focusValid = Boolean(subject) && Boolean(focusChapter);
@@ -572,7 +614,7 @@ function primary() {
 			{/if}
 
 			<div class="dial" class:break={phase === 'break' && tab === 'focus'}>
-				<StatRing value={ringProgress} size={280} stroke={16} color={phase === 'break' && tab === 'focus' ? 'var(--success, #2f9e6e)' : accent}>
+				<StatRing value={ringProgress} size={280} stroke={16} skin={phase === 'break' && tab === 'focus' ? 'classic' : $loadout.timer} color={phase === 'break' && tab === 'focus' ? 'var(--success, #2f9e6e)' : accent}>
 					{#if running && tab !== 'stopwatch'}<span class="state-pill">{phase === 'break' ? 'ON BREAK' : 'FOCUSING'}</span>{/if}
 					{#if tab === 'stopwatch' && !running && elapsed === 0}
 						<span class="state-pill amber">⚡ COUNTS UP INFINITE</span>
@@ -719,6 +761,15 @@ function primary() {
 </Modal>
 
 <Modal bind:open={logOpen} title="LOG FOCUS TIME" width="400px">
+	<div class="voice-box">
+		<button type="button" class="voice-btn {isListening ? 'active' : ''}" on:click={startVoiceLog}>
+			<NavIcon name="plus" size={18} /> {isListening ? 'Listening...' : 'Tap to Voice Log'}
+		</button>
+		{#if voiceFeedback}
+			<div class="voice-feedback">{voiceFeedback}</div>
+		{/if}
+	</div>
+	<div style="text-align: center; color: var(--text-secondary); margin-bottom: 1rem; font-size: 0.75rem;">OR ENTER MANUALLY</div>
 	<label class="field"><span>Minutes</span><input type="number" min="1" max="1440" bind:value={logMinutes} /></label>
 	<label class="field"><span>Subject</span>
 		<select bind:value={logSubject}>
@@ -936,4 +987,14 @@ function primary() {
 		grid-column: 1;
 		grid-row: 1;
 	}
+
+	.voice-box { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; margin-bottom: 1rem; background: var(--surface-subtle); border-radius: 12px; }
+	.voice-btn { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 99px; background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); font-weight: 700; cursor: pointer; transition: all 0.2s; }
+	.voice-btn:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); }
+	.voice-btn.active { background: var(--danger); color: white; border-color: var(--danger); animation: pulse 1.5s infinite; }
+	.voice-feedback { margin-top: 0.6rem; font-size: 0.8rem; font-weight: 600; color: var(--accent); }
+	@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+
+
 </style>

@@ -5,6 +5,7 @@ import { addDaysKey, focusMinutesOn, dayKeyOf, lastNDays, sessionDayKey, startOf
 import { SUBJECTS, dayPartOf, intervalFor, subjectColor } from '$lib/state/subjects';
 import { cellKey, questionCount, questionKey } from '$lib/state/syllabus';
 import { isDone, isFlag, resultOf, setDone, setFlag, setResult, setStars, starsOf } from '$lib/state/questions';
+import { applyEloResult } from '$lib/state/gamification';
 import type {
 	GoalTarget, HomeworkItem, StudySession, TimerState, TrackerGoal, TrackerState, WidgetLayout
 } from '$lib/types/tracker';
@@ -500,12 +501,7 @@ export function completeRevision(key: string, rating?: number) {
 		s.gamification.xp += 50; // Flat XP for quick inline revisions
 		
 		const subCode = item.sub || key.split(':')[0] || 'P';
-		// Simplified ELO calculation inline to avoid circular import if calculateEloChange is elsewhere
-		const currentElo = (s.gamification.elo as any)[subCode] ?? 300;
-		const expected = Math.max(20, Math.min(90, (currentElo / 2000) * 100));
-		const diff = accuracy - expected;
-		const change = Math.max(-20, Math.min(30, Math.round(diff * 0.4)));
-		(s.gamification.elo as any)[subCode] = Math.max(100, currentElo + change);
+		applyEloResult(s.gamification, subCode, accuracy, 100);
 	});
 }
 

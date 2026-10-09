@@ -1,3 +1,5 @@
+import type { TrackerState } from '$lib/types/tracker';
+
 export const LEVEL_THRESHOLDS = [
 	0, 500, 1200, 2200, 3500, 5000, 7000, 9500, 12500, 16000, 20000,
 	25000, 31000, 38000, 46000, 55000, 65000, 76000, 88000, 100000
@@ -38,3 +40,51 @@ export const calculateEloChange = (currentElo: number, accuracy: number) => {
 	const change = Math.round(diff * 0.4); // max change is ~30 points.
 	return Math.max(-20, Math.min(30, change));
 };
+
+type Gamification = NonNullable<TrackerState['gamification']>;
+
+export const ASCEND_ELO = 1600;
+export const SEASON_START_ELO = 300;
+
+const average = (ratings: Record<string, number> | undefined) => {
+	const values = Object.values(ratings ?? {});
+	return values.length ? values.reduce((a, b) => a + b, 0) / values.length : SEASON_START_ELO;
+};
+
+/** Elo that drives the tier badge: skill Elo until the first Ascend, then the current season's Elo. */
+export const tierEloOf = (g: Gamification | undefined) =>
+	g?.prestige?.count ? average(g.prestige.seasonElo) : average(g?.elo);
+
+export function recordPeaks(g: Gamification) {
+	const peak = (g.peak ??= { tierElo: 0, subject: {} });
+	peak.tierElo = Math.max(peak.tierElo, Math.round(tierEloOf(g)));
+	for (const [sub, value] of Object.entries(g.elo)) peak.subject[sub] = Math.max(peak.subject[sub] ?? 0, Math.round(value));
+}
+
+/** Apply one graded attempt to skill Elo (and season Elo once prestiged), then refresh peaks. */
+export function applyEloResult(g: Gamification, sub: string, accuracy: number, floor = 100) {
+	const elo = g.elo as Record<string, number>;
+	const current = elo[sub] ?? SEASON_START_ELO;
+	elo[sub] = Math.max(floor, current + calculateEloChange(current, accuracy));
+	if (g.prestige?.count) {
+		const season = g.prestige.seasonElo[sub] ?? SEASON_START_ELO;
+		g.prestige.seasonElo[sub] = Math.max(floor, season + calculateEloChange(season, accuracy));
+	}
+	recordPeaks(g);
+}
+
+export const canAscend = (g: Gamification | undefined) => tierEloOf(g) >= ASCEND_ELO;
+
+/**
+ * Prestige: reset the season Elo to the starting rating and add a star. Skill Elo is untouched
+ * so AI insights and subject ranks keep reflecting real ability.
+ */
+export function ascend(g: Gamification) {
+	if (!canAscend(g)) return false;
+	recordPeaks(g);
+	const prestige = (g.prestige ??= { count: 0, seasonElo: {} });
+	(prestige.history ??= []).push({ at: Date.now(), avgElo: Math.round(tierEloOf(g)) });
+	prestige.count += 1;
+	prestige.seasonElo = { P: SEASON_START_ELO, C: SEASON_START_ELO, M: SEASON_START_ELO };
+	return true;
+}

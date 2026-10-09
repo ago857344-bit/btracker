@@ -80,7 +80,7 @@ export function updateChapterWeightage(chapterKey: string, weightage: 1 | 2 | 3)
  * @param modalities - Modalities used
  * @param timeSpentMinutes - Time spent in minutes
  */
-import { calculateEloChange } from '$lib/state/gamification';
+import { applyEloResult } from '$lib/state/gamification';
 
 export function recordChapterRevision(
 	chapterKey: string,
@@ -108,17 +108,9 @@ export function recordChapterRevision(
 		const accuracy = accMap[confidence] || 70;
 		const subCode = chapterKey.split(/[-:]/)[0] || 'P';
 		
-		let gamification = $tracker.gamification || { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } };
-		let currentElo = (gamification.elo as any)[subCode] ?? 300;
-		
-		gamification = {
-			...gamification,
-			xp: gamification.xp + xpGain,
-			elo: {
-				...gamification.elo,
-				[subCode]: Math.max(0, currentElo + calculateEloChange(currentElo, accuracy))
-			}
-		};
+		const gamification = structuredClone($tracker.gamification || { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } });
+		gamification.xp += xpGain;
+		applyEloResult(gamification, subCode, accuracy, 0);
 
 		return {
 			...$tracker,
