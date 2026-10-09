@@ -99,11 +99,11 @@
 				root.style.setProperty('--surface-panel-ai', 'transparent');
 			} else if (isDarkTheme(state.theme)) {
 				root.style.setProperty('--surface-panel', `color-mix(in srgb, #0a0a10, transparent ${t}%)`);
-				root.style.setProperty('--surface-panel-ai', `color-mix(in srgb, #0a0a10, transparent ${Math.max(0, t - 25)}%)`);
+				root.style.setProperty('--surface-panel-ai', `color-mix(in srgb, #0a0a10, transparent ${Math.min(t, 15)}%)`);
 				root.style.setProperty('--surface-subtle', `color-mix(in srgb, #0a0a10, transparent ${st}%)`);
 			} else {
 				root.style.setProperty('--surface-panel', `color-mix(in srgb, #ffffff, transparent ${t}%)`);
-				root.style.setProperty('--surface-panel-ai', `color-mix(in srgb, #ffffff, transparent ${Math.max(0, t - 25)}%)`);
+				root.style.setProperty('--surface-panel-ai', `color-mix(in srgb, #ffffff, transparent ${Math.min(t, 15)}%)`);
 				root.style.setProperty('--surface-subtle', `color-mix(in srgb, #ffffff, transparent ${st}%)`);
 			}
 		} else {
