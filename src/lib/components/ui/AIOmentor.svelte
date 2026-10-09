@@ -1,5 +1,9 @@
 <script lang="ts">
 	import { tracker } from '$lib/stores/tracker';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+	import { globalTimer } from '$lib/stores/timerState';
+	import { formatClock } from '$lib/state/dates';
 	import { fade, fly, scale } from 'svelte/transition';
 	import { onMount, tick } from 'svelte';
 	import NavIcon from '../NavIcon.svelte'; // Assuming NavIcon exists
