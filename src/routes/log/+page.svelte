@@ -23,7 +23,7 @@
 	$: subject = view.s ? syllabusSubject(view.s) : null;
 	$: module = view.s !== null && view.m !== null ? syllabusModule(view.s, view.m) : null;
 	$: chapter = view.s !== null && view.c !== null ? syllabusChapter(view.s, view.c) : null;
-	$: exercise = chapter?.exs.find((ex) => ex.code === view.e) ?? null;
+	$: exercise = (view.s !== null && view.c !== null && view.e !== null) ? visibleExercises($tracker, view.s, view.c).find((ex) => ex.code === view.e) ?? null : null;
 	$: exCount = view.s !== null && view.c !== null && view.e !== null ? questionCount($tracker, view.s, view.c, view.e) : 0;
 	$: total = logTotals($tracker);
 
