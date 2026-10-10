@@ -5,7 +5,7 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { subjectColor, CHAPTERS } from '$lib/state/subjects';
 	import { allChapters, SYLLABUS } from '$lib/state/syllabus';
-	import { extractPdfText, matchChapters, type ChapterMatch } from '$lib/services/btest';
+	import { extractPdfText, matchChapters, matchChaptersAI, type ChapterMatch } from '$lib/services/btest';
 import { triageTodos } from '$lib/services/aiTriage';
 	import {
 		addChecklistColumn, addTodo, addTodos, celebration, CHECKLIST_DEFAULT_COLS, clearDoneTodos, deleteTodo,
@@ -133,7 +133,7 @@ async function runAiTriage() {
 		busy = true; error = ''; matches = []; scanned = false; fileName = file.name;
 		try {
 			const text = await extractPdfText(file);
-			const found = matchChapters(text);
+			const found = await matchChaptersAI(text);
 			matches = found;
 			selected = new Set(found.map(key));
 			scanned = true;

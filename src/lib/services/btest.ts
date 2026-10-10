@@ -89,3 +89,71 @@ export async function extractPdfText(file: File): Promise<string> {
 	}
 	return text;
 }
+
+/**
+ * Matches syllabus chapters using an AI call (Groq/Gemini).
+ */
+export async function matchChaptersAI(text: string): Promise<ChapterMatch[]> {
+	if (!text || text.trim() === '') return [];
+	
+	const allChapters = allSyllabusChapters();
+	// Pass the syllabus and the extracted text to the AI
+	const prompt = `
+You are an expert syllabus parser for a JEE student tracking app.
+The user has uploaded a PDF syllabus, and its raw extracted text is provided below.
+Your job is to identify ALL chapters mentioned in the text from the official JEE syllabus list.
+
+Available Official Syllabus Chapters (Format: CODE|Subject|Module|Number|Name):
+${allChapters.map(c => `${c.code}|${c.subName}|${c.moduleName}|${c.no}|${c.name}`).join('\n')}
+
+Raw PDF Text:
+${text.substring(0, 15000)} // truncate to avoid massive token limits if PDF is huge
+
+Return a JSON array of objects, where each object has exactly these keys:
+- code: The subject code (e.g. 'P' for Physics)
+- subName: The subject name
+- moduleName: The module name
+- no: The chapter number
+- name: The exact chapter name from the official list
+- score: 1
+- line: The snippet from the text that matched it
+
+DO NOT return any other keys. Only return the JSON array.
+`;
+
+	const res = await fetch('/api/gemini', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			history: [{ role: 'user', parts: [{ text: prompt }] }],
+			jsonMode: true
+		})
+	});
+	
+	if (!res.ok) {
+		console.warn("AI match failed, falling back to legacy keyword match...");
+		return matchChapters(text); // fallback
+	}
+	
+	const data = await res.json();
+	if (data.error || !data.text) {
+		return matchChapters(text);
+	}
+	
+	try {
+		const parsed = JSON.parse(data.text);
+		if (Array.isArray(parsed)) {
+			// Deduplicate just in case
+			const unique = new Map();
+			for (const m of parsed) {
+				const key = `${m.code}-${m.no}`;
+				if (!unique.has(key)) unique.set(key, m);
+			}
+			return Array.from(unique.values()) as ChapterMatch[];
+		}
+	} catch (e) {
+		console.error("AI JSON parse error", e);
+	}
+	
+	return matchChapters(text);
+}
