@@ -802,7 +802,8 @@ function bumpSolved(state: TrackerState, sc: string, delta: number) {
 	if (delta > 0) {
 		state.gamification.xp += 10 * delta;
 		for (let i = 0; i < delta; i++) {
-			applyEloResult(state.gamification, sc, 90, 100, 0.25); 
+			// Very slow, grinding Elo. You get minimal Elo for just ticking boxes.
+			applyEloResult(state.gamification, sc, 90, 100, 0.08); 
 		}
 	} else if (delta < 0) {
 		state.gamification.xp = Math.max(0, state.gamification.xp + (10 * delta));
@@ -827,19 +828,36 @@ function applyAction(state: TrackerState, loc: QuestionLoc, i: number, action: Q
 	const qk = questionKey(loc.sc, loc.ch, loc.ex, i);
 	const before = cells[i] || 0;
 	const wasDone = isDone(before);
+	const wasWrong = resultOf(before) === 2;
+	
 	let v = before;
 	if (action === 'done') v = setDone(v, true);
 	else if (action === 'undone') { v = setResult(setDone(v, false), 0); delete state.r[qk]; }
-	else if (action === 'correct') { v = setResult(setDone(v, true), 1); delete state.r[qk]; }
+	else if (action === 'correct') { 
+		v = setResult(setDone(v, true), 1); 
+		delete state.r[qk]; 
+		if (wasWrong && state.gamification) {
+			// Refund Elo if they correct a mistake
+			applyEloResult(state.gamification, loc.sc, 100, 100, 0.6);
+		}
+	}
 	else if (action === 'wrong') {
 		v = setResult(setDone(v, true), 2);
 		if (!state.r[qk]) state.r[qk] = { d: todayKey(), t: ['oth'] };
+		if (!wasWrong && state.gamification) {
+			// Harsh penalty for getting it wrong
+			applyEloResult(state.gamification, loc.sc, 0, 100, 0.6);
+		}
 	}
-	else if (action === 'cant') { v = setResult(setDone(v, false), 3); delete state.r[qk]; }
+	else if (action === 'cant') { 
+		v = setResult(setDone(v, false), 3); 
+		delete state.r[qk]; 
+	}
 	else if (action === 'flag') v = setFlag(v, true);
 	else if (action === 'unflag') v = setFlag(v, false);
 	else if (action === 'clear') { v = 0; delete state.n[qk]; delete state.r[qk]; }
 	else if (action[0] === 's') v = setStars(v, Number(action[1]));
+	
 	cells[i] = v;
 	if (!wasDone && isDone(v)) bumpSolved(state, loc.sc, 1);
 	if (wasDone && !isDone(v)) bumpSolved(state, loc.sc, -1);

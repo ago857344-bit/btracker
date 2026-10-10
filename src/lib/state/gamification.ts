@@ -34,11 +34,15 @@ export const getEloRank = (elo: number) => {
 
 export const calculateEloChange = (currentElo: number, accuracy: number, weight = 1.0) => {
 	// Accuracy is 0 to 100.
-	// Expected accuracy roughly scales with Elo.
-	const expected = Math.max(20, Math.min(90, (currentElo / 2000) * 100));
+	// Expected accuracy scales aggressively with Elo. At Grandmaster (1600+), expected is 90%+.
+	const expected = Math.max(20, Math.min(96, (currentElo / 1800) * 100));
 	const diff = accuracy - expected;
-	const change = Math.round(diff * 0.4 * weight);
-	return Math.max(-20, Math.min(30, change));
+	
+	// If you perform worse than expected, you get punished heavily (3x multiplier on Elo loss).
+	let multiplier = diff < 0 ? 0.9 : 0.3;
+	
+	const change = Math.round(diff * multiplier * weight);
+	return Math.max(-45, Math.min(20, change));
 };
 
 type Gamification = NonNullable<TrackerState['gamification']>;
