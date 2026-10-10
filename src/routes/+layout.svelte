@@ -143,6 +143,8 @@
 		return null;
 	})();
 
+	let bgVideo: HTMLVideoElement;
+	$: if (bgVideo && activeVideoUrl) { bgVideo.load(); bgVideo.play().catch(() => {}); }
 </script>
 
 <svelte:window on:keydown={(event) => { if (event.key === 'Escape') mobileOpen = false; }} />
@@ -187,7 +189,7 @@
 		<GlobalOverlays />
 		<AIOmentor />
 		{#if activeVideoUrl}
-			<video src={activeVideoUrl} autoplay loop muted playsinline preload="auto" class="live-wallpaper-bg" on:loadeddata={(e) => e.currentTarget.play().catch(() => {})} on:canplay={(e) => e.currentTarget.play().catch(() => {})}></video>
+			<video bind:this={bgVideo} src={activeVideoUrl} autoplay loop muted playsinline preload="auto" class="live-wallpaper-bg" on:loadeddata={(e) => e.currentTarget.play().catch(() => {})} on:canplay={(e) => e.currentTarget.play().catch(() => {})}></video>
 		{/if}
 
 	</div>
@@ -240,7 +242,7 @@
 		.scrim { display: block; position: fixed; z-index: 10; inset: 0; border: 0; background: rgb(16 14 30 / 34%); backdrop-filter: blur(2px); }
 	}
 
-.live-wallpaper-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: -2; pointer-events: none; opacity: 0.85; mix-blend-mode: screen; }
+.live-wallpaper-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: -2; pointer-events: none; opacity: 0.85;  -webkit-transform: translateZ(0); transform: translateZ(0); }
 ::global(:root[data-theme*="-dark"]) .live-wallpaper-bg { opacity: 0.4; }
 </style>
 
