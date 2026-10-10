@@ -46,7 +46,7 @@
 		const diffY = touchEndY - touchStartY;
 
 		if (Math.abs(diffX) > 75 && Math.abs(diffY) < 50) {
-			let target = e.target;
+			let target = (e.target instanceof Element ? e.target : (e.target as Node)?.parentElement) as HTMLElement | null;
 			let isScrollable = false;
 			while (target && target !== e.currentTarget) {
 				if (target.classList && target.classList.contains('flashcard')) {
