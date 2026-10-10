@@ -32,12 +32,12 @@ export const getEloRank = (elo: number) => {
 	return { name: 'Grandmaster', color: '#ff00ff', icon: 'zap' };
 };
 
-export const calculateEloChange = (currentElo: number, accuracy: number) => {
+export const calculateEloChange = (currentElo: number, accuracy: number, weight = 1.0) => {
 	// Accuracy is 0 to 100.
 	// Expected accuracy roughly scales with Elo.
 	const expected = Math.max(20, Math.min(90, (currentElo / 2000) * 100));
 	const diff = accuracy - expected;
-	const change = Math.round(diff * 0.4); // max change is ~30 points.
+	const change = Math.round(diff * 0.4 * weight);
 	return Math.max(-20, Math.min(30, change));
 };
 
@@ -62,13 +62,13 @@ export function recordPeaks(g: Gamification) {
 }
 
 /** Apply one graded attempt to skill Elo (and season Elo once prestiged), then refresh peaks. */
-export function applyEloResult(g: Gamification, sub: string, accuracy: number, floor = 100) {
+export function applyEloResult(g: Gamification, sub: string, accuracy: number, floor = 100, weight = 1.0) {
 	const elo = g.elo as Record<string, number>;
 	const current = elo[sub] ?? SEASON_START_ELO;
-	elo[sub] = Math.max(floor, current + calculateEloChange(current, accuracy));
+	elo[sub] = Math.max(floor, current + calculateEloChange(current, accuracy, weight));
 	if (g.prestige?.count) {
 		const season = g.prestige.seasonElo[sub] ?? SEASON_START_ELO;
-		g.prestige.seasonElo[sub] = Math.max(floor, season + calculateEloChange(season, accuracy));
+		g.prestige.seasonElo[sub] = Math.max(floor, season + calculateEloChange(season, accuracy, weight));
 	}
 	recordPeaks(g);
 }

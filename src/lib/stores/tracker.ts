@@ -789,6 +789,18 @@ function bumpSolved(state: TrackerState, sc: string, delta: number) {
 	bucket[sc] = Math.max(0, (Number(bucket[sc]) || 0) + delta);
 	if (!bucket[sc]) delete bucket[sc];
 	if (!Object.keys(bucket).length) delete state.stat[day];
+
+	if (!state.gamification) state.gamification = { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } };
+	
+	if (delta > 0) {
+		state.gamification.xp += 10 * delta;
+		for (let i = 0; i < delta; i++) {
+			applyEloResult(state.gamification, sc, 90, 100, 0.05); 
+		}
+	} else if (delta < 0) {
+		state.gamification.xp = Math.max(0, state.gamification.xp + (10 * delta));
+		// We don't reduce Elo for unchecking, too complex. Just XP is fine.
+	}
 }
 
 function cellsFor(state: TrackerState, loc: QuestionLoc): number[] {
