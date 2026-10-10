@@ -10,10 +10,20 @@ marked.use(markedKatex({
 
 export const renderMarkdown = async (text: string) => {
     if (!text) return '';
-    // Convert inline Gemini math \( ... \) to standard $ ... $
-    let processed = text.replace(/\\\((.*?)\\\)/gs, '$$$1$$');
-    // Convert block Gemini math \[ ... \] to standard $$ ... $$
+    let processed = text;
+    
+    // Replace double-escaped block math: \\[ ... \\] -> $$ ... $$
+    processed = processed.replace(/\\\\\[(.*?)\\\\\]/gs, '\n\n$$$$\n$1\n$$$$\n\n');
+    
+    // Replace single-escaped block math: \[ ... \] -> $$ ... $$
     processed = processed.replace(/\\\[(.*?)\\\]/gs, '\n\n$$$$\n$1\n$$$$\n\n');
+    
+    // Replace double-escaped inline math: \\( ... \\) -> $ ... $
+    processed = processed.replace(/\\\\\((.*?)\\\\\)/gs, '$$$1$$');
+    
+    // Replace single-escaped inline math: \( ... \) -> $ ... $
+    processed = processed.replace(/\\\((.*?)\\\)/gs, '$$$1$$');
+
     return await marked.parse(processed);
 };
 
