@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { tracker } from '$lib/stores/tracker';
+	import { marked } from 'marked';
+	import { tracker, logBulkQuestions, logMockTestScore } from '$lib/stores/tracker';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
 	import { globalTimer } from '$lib/stores/timerState';
@@ -88,13 +89,14 @@
 		orbState = 'active';
 		scrollToBottom();
 
-		const systemInstruction = `You are the BTracker AI Mentor, a highly intelligent JEE preparation assistant. 
-The user is currently studying. 
-Their current subject Elo ratings are: 
-Physics: ${$tracker.gamification?.elo?.P ?? 1200}
-Chemistry: ${$tracker.gamification?.elo?.C ?? 1200}
-Maths: ${$tracker.gamification?.elo?.M ?? 1200}
-Keep your answers brief, engaging, analytical, and highly motivating. Give direct actionable advice. Use plain text without markdown formatting.`;
+		const systemInstruction = `You are the BTracker AI Mentor. 
+Current Elo: P: ${$tracker.gamification?.elo?.P ?? 1200}, C: ${$tracker.gamification?.elo?.C ?? 1200}, M: ${$tracker.gamification?.elo?.M ?? 1200}.
+CRITICAL INSTRUCTIONS:
+1. KEEP IT SHORT! Answer in 1-2 brief sentences max. NO LONG EXPLANATIONS. NO FLUFF.
+2. Format your text nicely using Markdown (bold, lists).
+3. If the user asks to start a focus timer, append EXACTLY this JSON block at the end of your message: <cmd>{"action": "startTimer", "minutes": 25, "subject": "P", "chapter": 1}</cmd> (subject must be 'P', 'C', or 'M').
+4. If the user asks to log questions/exercises (e.g. "I did ex 1"), append: <cmd>{"action": "logQuestions", "subject": "P", "chapter": 1, "count": 20, "name": "Ex 1"}</cmd>.
+5. If the user asks to log a mock test (e.g. "scored 180 out of 300"), append: <cmd>{"action": "logMockTest", "score": 180, "total": 300, "subjectScores": {"P": {"c": 15, "w": 5, "s": 60}, "C": {"c": 15, "w": 5, "s": 60}, "M": {"c": 15, "w": 5, "s": 60}}}</cmd>. Estimate subject scores if they don't provide them.`;
 
 		const history = chatHistory.map(msg => ({
 			role: msg.role === 'ai' ? 'model' : 'user',
@@ -112,7 +114,30 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 			if (data.error) {
 				chatHistory = [...chatHistory, { role: 'ai', text: `Error: ${data.error}` }];
 			} else if (data.text) {
-				chatHistory = [...chatHistory, { role: 'ai', text: data.text }];
+				let text = data.text;
+				
+				// Parse and execute commands
+				const cmdRegex = /<cmd>(.*?)<\/cmd>/g;
+				let match;
+				while ((match = cmdRegex.exec(text)) !== null) {
+					try {
+						const cmd = JSON.parse(match[1]);
+						if (cmd.action === 'startTimer') {
+							globalTimer.start(cmd.subject, (cmd.minutes || 25) * 60, String(cmd.chapter || ''));
+						} else if (cmd.action === 'logQuestions') {
+							logBulkQuestions(cmd.subject, cmd.chapter || 1, cmd.count || 10, cmd.name || 'AI Logged');
+						} else if (cmd.action === 'logMockTest') {
+							logMockTestScore(cmd.score || 0, cmd.total || 300, cmd.subjectScores || { P: {c:0,w:0,s:0}, C: {c:0,w:0,s:0}, M: {c:0,w:0,s:0} });
+						}
+					} catch (e) {
+						console.error("AI Command Error:", e);
+					}
+				}
+				
+				// Remove commands from visible text
+				text = text.replace(/<cmd>.*?<\/cmd>/g, '').trim();
+				
+				chatHistory = [...chatHistory, { role: 'ai', text }];
 			} else {
 				chatHistory = [...chatHistory, { role: 'ai', text: "I'm sorry, I couldn't process that right now." }];
 			}
@@ -120,7 +145,7 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 			chatHistory = [...chatHistory, { role: 'ai', text: "Network error. Please try again." }];
 		} finally {
 			isTyping = false;
-			orbState = 'thinking';
+			orbState = 'idle';
 			scrollToBottom();
 		}
 	};
@@ -140,7 +165,11 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 			<div class="chat-body" bind:this={chatContainer}>
 				{#each chatHistory as msg}
 					<div class="chat-bubble {msg.role}">
-						{msg.text}
+						{#if msg.role === 'ai'}
+							{@html marked.parse(msg.text)}
+						{:else}
+							{msg.text}
+						{/if}
 					</div>
 				{/each}
 				{#if isTyping}
@@ -164,7 +193,7 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 		</div>
 	{:else if showMessage}
 		<div class="mentor-bubble" transition:fly={{ y: 10, duration: 300 }}>
-			{message}
+			{@html marked.parse(message)}
 		</div>
 	{/if}
 
@@ -211,8 +240,8 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 	
 	/* CHAT PANEL */
 	.chat-panel { 
-		width: 320px; 
-		height: 440px;
+		width: 380px; 
+		height: 520px;
 		background: var(--surface-panel-ai, var(--surface-panel)); 
 		backdrop-filter: var(--glass-filter, blur(24px) saturate(180%)); 
 		-webkit-backdrop-filter: var(--glass-filter, blur(24px) saturate(180%)); 
@@ -252,7 +281,7 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 	.send-btn:not(:disabled):active { scale: 0.9; }
 
 	/* BUBBLE & ORB */
-	.mentor-bubble { background: var(--surface-panel-ai, var(--surface-panel)); backdrop-filter: var(--glass-filter, blur(20px) saturate(180%)); -webkit-backdrop-filter: var(--glass-filter, blur(20px) saturate(180%)); border: 1px solid var(--border-subtle); padding: 0.75rem 1rem; border-radius: 12px; border-bottom-right-radius: 2px; color: var(--text-primary); font-size: 0.8rem; font-weight: 600; max-width: 240px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); pointer-events: auto; line-height: 1.4; }
+	.mentor-bubble { background: var(--surface-panel-ai, var(--surface-panel)); backdrop-filter: var(--glass-filter, blur(20px) saturate(180%)); -webkit-backdrop-filter: var(--glass-filter, blur(20px) saturate(180%)); border: 1px solid var(--border-subtle); padding: 0.75rem 1rem; border-radius: 12px; border-bottom-right-radius: 2px; color: var(--text-primary); font-size: 0.85rem; font-weight: 600; max-width: 360px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); pointer-events: auto; line-height: 1.5; }
 	:root[data-clear-glass="true"] .mentor-bubble { background: var(--surface-canvas) !important; border: 1px solid var(--border-subtle) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
 
 .orb { position: relative; width: 44px; height: 44px; border: 0; background: transparent; cursor: pointer; pointer-events: auto; padding: 0; outline: none; border-radius: 50%; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); display: grid; place-items: center; }
@@ -439,4 +468,9 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 	
 	.mini-pause:hover { background: color-mix(in srgb, var(--text-primary) 25%, transparent); transform: scale(1.15); }
 
+	.chat-bubble :global(p), .mentor-bubble :global(p) { margin: 0 0 0.5rem 0; }
+	.chat-bubble :global(p:last-child), .mentor-bubble :global(p:last-child) { margin-bottom: 0; }
+	.chat-bubble :global(strong), .mentor-bubble :global(strong) { color: var(--accent); font-weight: 700; }
+	.chat-bubble :global(ul), .mentor-bubble :global(ul) { margin: 0.5rem 0 0.5rem 1.2rem; padding: 0; }
+	.chat-bubble :global(li), .mentor-bubble :global(li) { margin-bottom: 0.2rem; }
 </style>

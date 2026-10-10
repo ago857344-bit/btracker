@@ -961,3 +961,61 @@ export function bulkExercise(loc: QuestionLoc, action: 'done' | 'correct' | 'cle
 	});
 }
 
+
+export function logBulkQuestions(sc: string, ch: number, count: number, name = 'AI Logged') {
+	updateTracker((state) => {
+		const ckey = `${sc}${ch}`;
+		if (!state.x) state.x = { exs: {}, cnt: {} };
+		if (!state.x.exs[ckey]) state.x.exs[ckey] = [];
+		const code = `AI${Date.now().toString(36).slice(-4)}`;
+		state.x.exs[ckey].push({ code, name, count });
+		state.x.cnt[ckey] = (state.x.cnt[ckey] || 0) + count;
+		
+		const k = cellKey(sc, ch, code);
+		state.d[k] = Array(count).fill(0);
+		for(let i=0; i<count; i++) {
+			state.d[k][i] = setResult(setDone(0, true), 1);
+		}
+		
+		const delta = count;
+		const day = todayKey();
+		const bucket = state.stat[day] ?? (state.stat[day] = {});
+		bucket[sc] = Math.max(0, (Number(bucket[sc]) || 0) + delta);
+		
+		if (state.gamification) {
+			state.gamification.xp += 10 * delta;
+			for (let i = 0; i < delta; i++) {
+				applyEloResult(state.gamification, sc, 90, 100, 0.01); 
+			}
+		}
+	});
+}
+
+export function logMockTestScore(score: number, total: number, subjectScores: Record<string, {c: number, w: number, s: number}>) {
+	updateTracker((t) => {
+		if(!t.mocks) t.mocks = [];
+		const test = {
+			id: crypto.randomUUID(),
+			date: Date.now(),
+			name: 'AI Logged Mock Test',
+			score,
+			totalMarks: total,
+			correct: 0, incorrect: 0, unattempted: 0,
+			subjects: {} as any
+		};
+		for(const code of Object.keys(subjectScores)) {
+			const sInfo = subjectScores[code];
+			test.subjects[code] = { score: sInfo.s, correct: sInfo.c, incorrect: sInfo.w };
+		}
+		t.mocks.push(test);
+		
+		const accuracy = total > 0 ? (score / total) * 100 : 0;
+		for (const code of ['P', 'C', 'M']) {
+			if(test.subjects[code]) {
+				if (t.gamification) {
+					applyEloResult(t.gamification, code, accuracy, 100);
+				}
+			}
+		}
+	});
+}
