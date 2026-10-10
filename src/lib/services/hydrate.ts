@@ -56,14 +56,40 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 		}
 	}
 
-	// Apply retroactive Elo based on the TRUE number of logged questions
-	for (const code of ['P', 'C', 'M']) {
-		const count = trueSolved[code as 'P' | 'C' | 'M'];
-		if (count > 0) {
-			let current = retroElo[code as 'P' | 'C' | 'M'] ?? 300;
-			// 0.3 Elo per question for past data (approx 4300 questions to hit Grandmaster)
-			const bump = count * 0.3; 
-			retroElo[code as 'P' | 'C' | 'M'] = Math.max(current, 300 + bump);
+	const g = saved.gamification;
+	const needsWipe = !g || !(g as any).v2_elo;
+
+	if (needsWipe) {
+		// Force recalculate true Elo from scratch to wipe the previous inflation bug
+		for (const code of ['P', 'C', 'M']) {
+			retroElo[code as 'P' | 'C' | 'M'] = 300 + ((trueSolved[code as 'P' | 'C' | 'M'] || 0) * 0.3);
+		}
+		if (saved.mocks && Array.isArray(saved.mocks)) {
+			for (const test of saved.mocks) {
+				const totalMarks = test.totalMarks || 0;
+				const score = test.score || 0;
+				const accuracy = totalMarks > 0 ? (score / totalMarks) * 100 : 0;
+				for (const code of ['P', 'C', 'M']) {
+					const sInfo = test.subjects?.[code];
+					if (sInfo && (sInfo.correct > 0 || sInfo.incorrect > 0)) {
+						const expected = Math.max(20, Math.min(96, (retroElo[code as 'P' | 'C' | 'M']! / 1800) * 100));
+						const diff = accuracy - expected;
+						const multiplier = diff < 0 ? 0.9 : 0.3;
+						const change = Math.round(diff * multiplier * 100);
+						retroElo[code as 'P' | 'C' | 'M'] = Math.max(100, retroElo[code as 'P' | 'C' | 'M']! + Math.max(-45, Math.min(20, change)));
+					}
+				}
+			}
+		}
+	} else {
+		// Apply normal retroactive Elo boundary (prevents losing newly gained active Elo)
+		for (const code of ['P', 'C', 'M']) {
+			const count = trueSolved[code as 'P' | 'C' | 'M'];
+			if (count > 0) {
+				let current = retroElo[code as 'P' | 'C' | 'M'] ?? 300;
+				const bump = count * 0.3; 
+				retroElo[code as 'P' | 'C' | 'M'] = Math.max(current, 300 + bump);
+			}
 		}
 	}
 
@@ -102,7 +128,8 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 			...saved.gamification,
 			xp: retroXp,
 			level: Math.max(saved.gamification?.level || 1, getLevelData(retroXp).level),
-			elo: retroElo
+			elo: retroElo,
+			v2_elo: true
 		}
 	};
 	const known = new Set(merged.ui.widgets.map((w) => w.id));
