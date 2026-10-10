@@ -29,6 +29,7 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 	let statQuestions = { P: 0, C: 0, M: 0 };
 	if (saved.stat) {
 		for (const day of Object.values(saved.stat)) {
+			if (!day) continue;
 			for (const code of Object.keys(day)) {
 				statQuestions[code as 'P' | 'C' | 'M'] = (statQuestions[code as 'P' | 'C' | 'M'] || 0) + (day[code] || 0);
 				minCalculatedXp += (day[code] || 0) * 10;
