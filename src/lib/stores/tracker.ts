@@ -802,8 +802,8 @@ function bumpSolved(state: TrackerState, sc: string, delta: number) {
 	if (delta > 0) {
 		state.gamification.xp += 10 * delta;
 		for (let i = 0; i < delta; i++) {
-			// Very slow, grinding Elo. You get minimal Elo for just ticking boxes.
-			applyEloResult(state.gamification, sc, 90, 100, 0.08); 
+			// Very slow, grinding Elo. ~0.3 Elo per question.
+			applyEloResult(state.gamification, sc, 90, 100, 0.01); 
 		}
 	} else if (delta < 0) {
 		state.gamification.xp = Math.max(0, state.gamification.xp + (10 * delta));

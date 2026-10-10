@@ -61,8 +61,8 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 		const count = trueSolved[code as 'P' | 'C' | 'M'];
 		if (count > 0) {
 			let current = retroElo[code as 'P' | 'C' | 'M'] ?? 300;
-			// 1.8 Elo per question for past data
-			const bump = count * 1.8; 
+			// 0.3 Elo per question for past data (approx 4300 questions to hit Grandmaster)
+			const bump = count * 0.3; 
 			retroElo[code as 'P' | 'C' | 'M'] = Math.max(current, 300 + bump);
 		}
 	}
