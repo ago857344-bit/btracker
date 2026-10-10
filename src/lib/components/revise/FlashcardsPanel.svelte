@@ -4,6 +4,7 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Icon from '$lib/components/NavIcon.svelte';
 	import type { Flashcard } from '$lib/types/tracker';
+	import { renderMarkdown } from '$lib/services/markdown';
 	
 	let dueCards: Flashcard[] = [];
 	$: dueCards = ($tracker.flashcards || []).filter(c => c.nextReviewAt <= Date.now());
@@ -11,6 +12,14 @@
 	let reviewing = false;
 	let currentCardIndex = 0;
 	let flipped = false;
+	let frontHtml = '';
+	let backHtml = '';
+	
+	$: if (dueCards.length > 0 && currentCardIndex < dueCards.length) {
+		renderMarkdown(dueCards[currentCardIndex].front).then(h => frontHtml = h);
+		renderMarkdown(dueCards[currentCardIndex].back).then(h => backHtml = h);
+	}
+
 	
 	let showCreateModal = false;
 	let createSubject = 'P';
@@ -73,7 +82,12 @@
 		createError = '';
 		
 		const sName = subjectName(createSubject);
-		const prompt = `Create 5 flashcards for ${sName} chapter ${createChapter}. Output ONLY a JSON array of 5 objects, each with 'front' and 'back' string properties representing the flashcard content. Do not use any markdown formatting or wrapper.`;
+		const prompt = `You are an elite JEE tutor (similar to NotebookLM's deep analytical engine). 
+Create 5 highly conceptual, active-recall flashcards for ${sName} - Chapter: ${createChapter}. 
+Focus on tricky edge cases, deep conceptual understanding, and critical formulas rather than basic definitions. 
+Use proper LaTeX for all math/physics variables and equations using inline \\( ... \\) or block \\[ ... \\].
+Output a strict JSON object with a single key "cards" containing an array of 5 objects.
+Each object must have exactly two keys: 'front' (the question/scenario) and 'back' (the detailed, insightful answer).`;
 		
 		try {
 			const res = await fetch('/api/gemini', {
@@ -172,17 +186,17 @@
 			
 			<div class="flashcard glass" class:is-flipped={flipped}>
 				<div class="card-inner">
-					<div class="card-front">
+					<div class="card-front glass">
 						<div class="card-subject" data-sub={dueCards[currentCardIndex].subject}>
 							{subjectName(dueCards[currentCardIndex].subject)} • {dueCards[currentCardIndex].chapter}
 						</div>
 						<div class="card-content">
-							{@html dueCards[currentCardIndex].front.replace(/\n/g, '<br/>')}
+							{@html frontHtml}
 						</div>
 					</div>
-					<div class="card-back">
+					<div class="card-back glass">
 						<div class="card-content">
-							{@html dueCards[currentCardIndex].back.replace(/\n/g, '<br/>')}
+							{@html backHtml}
 						</div>
 					</div>
 				</div>
