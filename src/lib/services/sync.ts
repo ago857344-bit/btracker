@@ -19,7 +19,7 @@ function schedulePush(state: TrackerState) {
 		if (!userId) return;
 		syncStatus.set('pushing');
 		try { await pushState(userId, state); syncStatus.set('synced'); }
-		catch { syncStatus.set('error'); }
+		catch (e) { console.error("Cloud push failed:", e); syncStatus.set('error'); }
 	}, 800);
 }
 
@@ -40,7 +40,7 @@ async function onSignIn(userId: string) {
 			if (local.savedAt) await pushState(userId, local);
 			syncStatus.set('synced');
 		}
-	} catch { syncStatus.set('error'); }
+	} catch (e) { console.error("Cloud pull failed:", e); syncStatus.set('error'); }
 }
 
 function onSignOut() {
