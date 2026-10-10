@@ -29,7 +29,6 @@
 		{ href: '/todo', label: 'To Do', icon: 'list' },
 		{ href: '/focus', label: 'Focus', icon: 'focus' },
 		{ href: '/revise', label: 'Revise', icon: 'revise' },
-		{ href: '/flashcards', label: 'Flashcards', icon: 'layers' }
 	] as const;
 	const secondary = [
 		{ href: '/stats', label: 'Stats', icon: 'stats' },

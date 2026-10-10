@@ -20,7 +20,9 @@
 
 	type RevTab = 'due' | 'critical' | 'all';
 	const RATINGS: [number, string][] = [[1, 'Again'], [3, 'Hard'], [4, 'Good'], [5, 'Easy']];
-	let tab: RevTab = 'due';
+	import FlashcardsPanel from '$lib/components/revise/FlashcardsPanel.svelte';
+	let viewMode: 'topic' | 'flashcards' = 'topic';
+	let tab: RevTab = "due";
 	let query = '';
 	let subFilter = '';
 	let methodFilter = '';
@@ -132,6 +134,13 @@
 		<div class="actions" style="display: flex; gap: 0.8rem; align-items: center;"><button type="button" class="btn-icon" on:click={() => (manualOpen = true)} title="How this works" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-subtle); background: var(--surface-panel); color: var(--text-secondary); cursor: pointer; transition: all 0.2s;"><NavIcon name="info" size={16} /></button><button type="button" class="add" on:click={() => (addOpen = true)}><NavIcon name="plus" size={15} /> Add Chapter</button></div>
 	</header>
 
+	<div class="view-toggle">
+		<button class:active={viewMode === 'topic'} on:click={() => viewMode = 'topic'}>Topic Decay</button>
+		<button class:active={viewMode === 'flashcards'} on:click={() => viewMode = 'flashcards'}>Flashcards</button>
+	</div>
+
+	{#if viewMode === 'topic'}
+
 	<!-- Consistency Heatmap -->
 	<div class="heatmap-section">
 		<div class="heatmap-header">
@@ -206,6 +215,9 @@
 				</button>
 			</div>
 		</div>
+	{/if}
+	{:else}
+		<FlashcardsPanel />
 	{/if}
 </section>
 
@@ -284,4 +296,9 @@
 	.sample-btn:hover { border-color: var(--accent); color: var(--accent); }
 	.sample-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
 	@media (max-width: 760px) { .kpis { grid-template-columns: 1fr; } }
+
+	.view-toggle { display: flex; gap: 0.5rem; margin-bottom: 2rem; background: var(--surface-subtle); padding: 0.4rem; border-radius: 12px; width: fit-content; border: 1px solid var(--border-subtle); }
+	.view-toggle button { padding: 0.6rem 1.2rem; border-radius: 8px; border: none; background: transparent; color: var(--text-secondary); font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
+	.view-toggle button:hover { color: var(--text-primary); }
+	.view-toggle button.active { background: var(--surface-panel); color: var(--text-primary); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 </style>
