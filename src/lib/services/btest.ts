@@ -101,15 +101,16 @@ export async function matchChaptersAI(text: string): Promise<ChapterMatch[]> {
 	const prompt = `
 You are an expert syllabus parser for a JEE student tracking app.
 The user has uploaded a PDF syllabus, and its raw extracted text is provided below.
-Your job is to identify ALL chapters mentioned in the text from the official JEE syllabus list.
+Your job is to carefully read the text and identify EVERY SINGLE chapter mentioned from the official JEE syllabus list. Do not skip any.
 
 Available Official Syllabus Chapters (Format: CODE|Subject|Module|Number|Name):
 ${allChapters.map(c => `${c.code}|${c.subName}|${c.moduleName}|${c.no}|${c.name}`).join('\n')}
 
 Raw PDF Text:
-${text.substring(0, 15000)} // truncate to avoid massive token limits if PDF is huge
+${text.substring(0, 100000)}
 
-Return a JSON array of objects, where each object has exactly these keys:
+You must return a valid JSON object with a single key "chapters" which contains an array of objects.
+Each object in the array must have exactly these keys:
 - code: The subject code (e.g. 'P' for Physics)
 - subName: The subject name
 - moduleName: The module name
@@ -118,7 +119,12 @@ Return a JSON array of objects, where each object has exactly these keys:
 - score: 1
 - line: The snippet from the text that matched it
 
-DO NOT return any other keys. Only return the JSON array.
+Example JSON output:
+{
+  "chapters": [
+    { "code": "P", "subName": "Physics", "moduleName": "Mechanics", "no": 1, "name": "Kinematics", "score": 1, "line": "Unit 1: Kinematics" }
+  ]
+}
 `;
 
 	const res = await fetch('/api/gemini', {
@@ -141,11 +147,15 @@ DO NOT return any other keys. Only return the JSON array.
 	}
 	
 	try {
-		const parsed = JSON.parse(data.text);
-		if (Array.isArray(parsed)) {
+		// Clean up any markdown json formatting if present
+		const cleanText = data.text.replace(/^\s*```json/m, '').replace(/```\s*$/m, '').trim();
+		const parsed = JSON.parse(cleanText);
+		const chaptersArray = Array.isArray(parsed) ? parsed : parsed.chapters;
+		
+		if (Array.isArray(chaptersArray)) {
 			// Deduplicate just in case
 			const unique = new Map();
-			for (const m of parsed) {
+			for (const m of chaptersArray) {
 				const key = `${m.code}-${m.no}`;
 				if (!unique.has(key)) unique.set(key, m);
 			}
