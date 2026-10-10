@@ -2,7 +2,7 @@
 
 <script lang="ts">
 	import { globalTimer } from '$lib/stores/timerState';
-	$: $globalTimer = { running, remaining, elapsed, tab, phase, toggle: primary };
+	$: $globalTimer = { running, remaining, elapsed, tab, phase, toggle: primary, start: aiStart };
 
 	import { onDestroy } from 'svelte';
 	import { parseVoiceLog } from '$lib/services/voiceParsing';
@@ -238,6 +238,27 @@
       osc.stop(ctx.currentTime + 1.5);
     } catch(e) {}
   }
+}
+
+function aiStart(s: string, seconds: number, ch: string, mode: 'timer' | 'stopwatch' = 'timer') {
+	if (running) { running = false; clearInterval(interval); countdownEndsAt = null; countUpStartedAt = null; }
+	subject = s;
+	focusChapter = ch;
+	sessionStartedEpochMin = Math.floor(Date.now() / 60000);
+	
+	if (mode === 'stopwatch') {
+		tab = 'stopwatch';
+		elapsed = 0;
+		countUpStartedAt = Date.now();
+		running = true;
+		startTicking();
+	} else {
+		tab = 'focus';
+		phase = 'focus';
+		focusLen = Math.floor(seconds / 60);
+		remaining = seconds;
+		beginCountdown(remaining);
+	}
 }
 
 function primary() {

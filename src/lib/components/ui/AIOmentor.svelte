@@ -94,7 +94,7 @@ Current Elo: P: ${$tracker.gamification?.elo?.P ?? 1200}, C: ${$tracker.gamifica
 CRITICAL INSTRUCTIONS:
 1. KEEP IT SHORT! Answer in 1-2 brief sentences max. NO LONG EXPLANATIONS. NO FLUFF.
 2. Format your text nicely using Markdown (bold, lists).
-3. If the user asks to start a focus timer, append EXACTLY this JSON block at the end of your message: <cmd>{"action": "startTimer", "minutes": 25, "subject": "P", "chapter": 1}</cmd> (subject must be 'P', 'C', or 'M').
+3. If the user asks to start a focus timer or stopwatch, append EXACTLY this JSON block at the end of your message: <cmd>{"action": "startTimer", "minutes": 25, "subject": "P", "chapter": 1, "mode": "timer"}</cmd> (subject must be 'P', 'C', or 'M'. Mode can be "timer" or "stopwatch").
 4. If the user asks to log questions/exercises (e.g. "I did ex 1"), append: <cmd>{"action": "logQuestions", "subject": "P", "chapter": 1, "count": 20, "name": "Ex 1"}</cmd>.
 5. If the user asks to log a mock test (e.g. "scored 180 out of 300"), append: <cmd>{"action": "logMockTest", "score": 180, "total": 300, "subjectScores": {"P": {"c": 15, "w": 5, "s": 60}, "C": {"c": 15, "w": 5, "s": 60}, "M": {"c": 15, "w": 5, "s": 60}}}</cmd>. Estimate subject scores if they don't provide them.`;
 
@@ -123,7 +123,7 @@ CRITICAL INSTRUCTIONS:
 					try {
 						const cmd = JSON.parse(match[1]);
 						if (cmd.action === 'startTimer') {
-							globalTimer.start(cmd.subject, (cmd.minutes || 25) * 60, String(cmd.chapter || ''));
+							$globalTimer.start(cmd.subject, (cmd.minutes || 25) * 60, String(cmd.chapter || ''), cmd.mode || 'timer');
 						} else if (cmd.action === 'logQuestions') {
 							logBulkQuestions(cmd.subject, cmd.chapter || 1, cmd.count || 10, cmd.name || 'AI Logged');
 						} else if (cmd.action === 'logMockTest') {

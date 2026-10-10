@@ -6,5 +6,6 @@ export const globalTimer = writable({
     elapsed: 0,
     tab: 'focus',
     phase: 'focus',
-    toggle: () => {}
+    toggle: () => {},
+    start: (subject: string, seconds: number, chapter: string, mode?: 'timer' | 'stopwatch') => {}
 });
