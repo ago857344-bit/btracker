@@ -147,6 +147,12 @@
 	$: if (bgVideo && activeVideoUrl) { bgVideo.load(); bgVideo.play().catch(() => {}); }
 </script>
 
+<svelte:head>
+	{#if activeVideoUrl}
+		<link rel="preload" as="video" href={activeVideoUrl} type="video/mp4" fetchpriority="high" />
+	{/if}
+</svelte:head>
+
 <svelte:window on:keydown={(event) => { if (event.key === 'Escape') mobileOpen = false; }} />
 
 {#if isAuthRoute}
