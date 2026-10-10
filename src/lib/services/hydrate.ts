@@ -14,7 +14,7 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 	let retroXp = saved.gamification?.xp ?? base.gamification!.xp;
 	let retroElo = saved.gamification?.elo ? { ...base.gamification!.elo, ...saved.gamification.elo } : { ...base.gamification!.elo };
 
-	// Retroactive XP & ELO bump (ensures previous mock tests and revisions count)
+		// Retroactive XP & ELO bump (ensures previous mock tests and revisions count)
 	let minCalculatedXp = 0;
 	if (saved.log && Array.isArray(saved.log)) {
 		minCalculatedXp += saved.log.reduce((acc, session) => acc + ((session[1] || 0) * 10), 0);
@@ -26,13 +26,28 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 		minCalculatedXp += Object.keys(saved.rev.items).length * 50;
 	}
 	
+	let statQuestions = { P: 0, C: 0, M: 0 };
+	if (saved.stat) {
+		for (const day of Object.values(saved.stat)) {
+			for (const code of Object.keys(day)) {
+				statQuestions[code as 'P' | 'C' | 'M'] = (statQuestions[code as 'P' | 'C' | 'M'] || 0) + (day[code] || 0);
+				minCalculatedXp += (day[code] || 0) * 10;
+			}
+		}
+	}
+	
 	if (retroXp < minCalculatedXp) {
 		retroXp = minCalculatedXp;
-		// Only bump base Elo if they literally just migrated and had 0 XP but tons of history
-		if (retroXp > 5000 && (!saved.gamification || saved.gamification.xp === 0)) {
-			retroElo.P = Math.max(retroElo.P, 350);
-			retroElo.C = Math.max(retroElo.C, 350);
-			retroElo.M = Math.max(retroElo.M, 350);
+	}
+	
+	// Apply retroactive Elo from legacy logged questions if they are still at starting Elo
+	for (const code of ['P', 'C', 'M']) {
+		const count = statQuestions[code as 'P' | 'C' | 'M'] || 0;
+		if (count > 0) {
+			let current = retroElo[code as 'P' | 'C' | 'M'] ?? 300;
+			// 1.5 Elo per question, capped at +500 retroactive Elo
+			const bump = Math.min(count * 1.5, 500);
+			retroElo[code as 'P' | 'C' | 'M'] = Math.max(current, 300 + bump);
 		}
 	}
 
