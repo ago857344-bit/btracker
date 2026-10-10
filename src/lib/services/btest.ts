@@ -101,28 +101,24 @@ export async function matchChaptersAI(text: string): Promise<ChapterMatch[]> {
 	const prompt = `
 You are an expert syllabus parser for a JEE student tracking app.
 The user has uploaded a PDF syllabus, and its raw extracted text is provided below.
-Your job is to carefully read the text and identify EVERY SINGLE chapter mentioned from the official JEE syllabus list. Do not skip any.
+Your job is to carefully read the text and identify EVERY SINGLE chapter mentioned from the official JEE syllabus list.
 
-Available Official Syllabus Chapters (Format: CODE|Subject|Module|Number|Name):
-${allChapters.map(c => `${c.code}|${c.subName}|${c.moduleName}|${c.no}|${c.name}`).join('\n')}
+Available Official Syllabus Chapters (Format: CODE | Number | Name):
+${allChapters.map(c => `${c.code} | ${c.no} | ${c.name}`).join('\n')}
 
 Raw PDF Text:
 ${text.substring(0, 100000)}
 
-You must return a valid JSON object with a single key "chapters" which contains an array of objects.
+You must return a valid JSON object with a single key "matches" which contains an array of objects.
 Each object in the array must have exactly these keys:
-- code: The subject code (e.g. 'P' for Physics)
-- subName: The subject name
-- moduleName: The module name
+- code: The subject code (e.g. 'P')
 - no: The chapter number
-- name: The exact chapter name from the official list
-- score: 1
-- line: The snippet from the text that matched it
 
 Example JSON output:
 {
-  "chapters": [
-    { "code": "P", "subName": "Physics", "moduleName": "Mechanics", "no": 1, "name": "Kinematics", "score": 1, "line": "Unit 1: Kinematics" }
+  "matches": [
+    { "code": "P", "no": 1 },
+    { "code": "C", "no": 5 }
   ]
 }
 `;
@@ -150,16 +146,23 @@ Example JSON output:
 		// Clean up any markdown json formatting if present
 		const cleanText = data.text.replace(/^\s*```json/m, '').replace(/```\s*$/m, '').trim();
 		const parsed = JSON.parse(cleanText);
-		const chaptersArray = Array.isArray(parsed) ? parsed : parsed.chapters;
+		const matchesArray = Array.isArray(parsed) ? parsed : (parsed.matches || parsed.chapters);
 		
-		if (Array.isArray(chaptersArray)) {
-			// Deduplicate just in case
-			const unique = new Map();
-			for (const m of chaptersArray) {
-				const key = `${m.code}-${m.no}`;
-				if (!unique.has(key)) unique.set(key, m);
+		if (Array.isArray(matchesArray)) {
+			// Build a lookup map of all valid chapters
+			const validMap = new Map<string, ChapterRef>();
+			for (const ch of allChapters) {
+				validMap.set(`${ch.code}-${ch.no}`, ch);
 			}
-			return Array.from(unique.values()) as ChapterMatch[];
+
+			const unique = new Map<string, ChapterMatch>();
+			for (const m of matchesArray) {
+				const key = `${m.code}-${m.no}`;
+				if (validMap.has(key) && !unique.has(key)) {
+					unique.set(key, { ...validMap.get(key)!, score: 1, line: "AI Matched" });
+				}
+			}
+			return Array.from(unique.values());
 		}
 	} catch (e) {
 		console.error("AI JSON parse error", e);
