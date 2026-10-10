@@ -5,6 +5,8 @@
 	import { loadout } from '$lib/stores/cosmetics';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 
+	import { tracker } from '$lib/stores/tracker';
+
 	export let running: boolean = false;
 	export let dialTime: string = '00:00';
 	export let ringProgress: number = 0;
@@ -20,6 +22,20 @@
   exit: void;
   penalty: void;
 }>();
+
+	$: focusPet = $tracker.settings?.focusPet || 'orb';
+	let isShattering = false;
+
+	function handleExit() {
+		if (running && phase === 'focus') {
+			isShattering = true;
+			setTimeout(() => {
+				dispatch('exit');
+			}, 800);
+		} else {
+			dispatch('exit');
+		}
+	}
 
 	const quotes = [
 		"Work hard in silence, let your success be your noise.",
@@ -94,7 +110,7 @@
 			<NavIcon name="brain" size={20} />
 			DEEP WORK MODE
 		</div>
-		<button class="exit-btn" type="button" title="Exit Deep Work" on:click={() => dispatch('exit')}>
+		<button class="exit-btn" type="button" title="Exit Deep Work" on:click={handleExit}>
 			<NavIcon name="x" size={24} />
 		</button>
 	</div>
@@ -102,8 +118,26 @@
 	<div class="content">
 		<div class="dial-container" class:running style="--dial-color: {phase === 'break' ? 'var(--success, #2f9e6e)' : accent}">
 			<StatRing value={ringProgress} size={320} stroke={18} skin={phase === 'break' ? 'classic' : $loadout.timer} color={phase === 'break' ? 'var(--success, #2f9e6e)' : accent}>
-				<span class="time">{dialTime}</span>
-				<span class="phase" style="color: {phase === 'break' ? 'var(--success, #2f9e6e)' : accent}">
+				
+				<div class="focus-pet-container" class:shatter={isShattering} style="--pet-scale: {1 + (ringProgress / 100) * 0.5}">
+					{#if focusPet === 'orb'}
+						<div class="pet-orb"></div>
+					{:else if focusPet === 'crystal'}
+						<svg class="pet-crystal" viewBox="0 0 100 100" width="80" height="80">
+							<polygon points="50,10 90,50 50,90 10,50" fill="currentColor" opacity="0.8" />
+							<polygon points="50,10 70,50 50,90 30,50" fill="white" opacity="0.3" />
+						</svg>
+					{:else if focusPet === 'flame'}
+						<div class="pet-flame">
+							<svg viewBox="0 0 100 100" width="80" height="80">
+								<path d="M50 10 Q 70 40 50 90 Q 30 40 50 10" fill="currentColor" opacity="0.8" />
+							</svg>
+						</div>
+					{/if}
+				</div>
+
+				<span class="time" style="position: relative; z-index: 2;">{dialTime}</span>
+				<span class="phase" style="position: relative; z-index: 2; color: {phase === 'break' ? 'var(--success, #2f9e6e)' : accent}">
 					{phase === 'break' ? 'BREAK' : 'FOCUS'}
 				</span>
 				{#if subject}
@@ -414,5 +448,64 @@
 	.play-btn.active {
 		color: var(--accent);
 		background: color-mix(in srgb, var(--accent), transparent 85%);
+	}
+
+	/* Pet Styles */
+	.focus-pet-container {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%) scale(var(--pet-scale, 1));
+		transition: transform 0.3s ease;
+		z-index: 1;
+		pointer-events: none;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+	}
+
+	.pet-orb {
+		width: 120px;
+		height: 120px;
+		border-radius: 50%;
+		background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+		opacity: 0.6;
+		animation: pulse-pet 2s infinite alternate;
+	}
+
+	.pet-crystal {
+		color: var(--accent);
+		animation: float-pet 3s infinite ease-in-out;
+	}
+
+	.pet-flame {
+		color: var(--accent);
+		animation: flicker-pet 1s infinite alternate;
+	}
+
+	@keyframes pulse-pet {
+		from { opacity: 0.4; transform: scale(0.9); }
+		to { opacity: 0.8; transform: scale(1.1); }
+	}
+
+	@keyframes float-pet {
+		0%, 100% { transform: translateY(0); }
+		50% { transform: translateY(-10px); }
+	}
+
+	@keyframes flicker-pet {
+		0% { transform: scale(1) rotate(-2deg); opacity: 0.7; }
+		50% { transform: scale(1.05) rotate(2deg); opacity: 0.9; }
+		100% { transform: scale(0.95) rotate(0deg); opacity: 0.6; }
+	}
+
+	@keyframes shatter-anim {
+		0% { transform: translate(-50%, -50%) scale(var(--pet-scale, 1)) rotate(0); opacity: 1; filter: brightness(1); }
+		20% { transform: translate(-50%, -50%) scale(calc(var(--pet-scale, 1) * 1.2)) rotate(15deg); filter: brightness(2); }
+		100% { transform: translate(-50%, -50%) scale(0) rotate(-45deg); opacity: 0; filter: brightness(0); }
+	}
+
+	.focus-pet-container.shatter {
+		animation: shatter-anim 0.8s forwards ease-in;
 	}
 </style>

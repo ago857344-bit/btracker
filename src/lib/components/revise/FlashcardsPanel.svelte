@@ -186,7 +186,7 @@ Each object must have exactly two keys: 'front' (the question/scenario) and 'bac
 			
 			<div class="flashcard glass" class:is-flipped={flipped}>
 				<div class="card-inner">
-					<div class="card-front glass">
+					<div class="card-front">
 						<div class="card-subject" data-sub={dueCards[currentCardIndex].subject}>
 							{subjectName(dueCards[currentCardIndex].subject)} • {dueCards[currentCardIndex].chapter}
 						</div>
@@ -194,7 +194,7 @@ Each object must have exactly two keys: 'front' (the question/scenario) and 'bac
 							{@html frontHtml}
 						</div>
 					</div>
-					<div class="card-back glass">
+					<div class="card-back">
 						<div class="card-content">
 							{@html backHtml}
 						</div>
@@ -257,7 +257,7 @@ Each object must have exactly two keys: 'front' (the question/scenario) and 'bac
 	.create-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px color-mix(in srgb, var(--accent), transparent 55%); }
 	
 	.dashboard { display: grid; gap: 2rem; text-align: center; }
-	.stat-card { padding: 3rem; border: 1px solid var(--border-subtle); border-radius: 24px; background: var(--surface-panel); box-shadow: var(--shadow-card); }
+	.stat-card { padding: 3rem; border: 1px solid var(--border-subtle); border-radius: 24px; }
 	.stat-value { font-size: 4rem; font-weight: 900; line-height: 1; color: var(--text-primary); }
 	.stat-label { margin-top: .5rem; color: var(--text-secondary); font-size: 1rem; font-weight: 650; text-transform: uppercase; letter-spacing: .05em; }
 	
@@ -271,12 +271,12 @@ Each object must have exactly two keys: 'front' (the question/scenario) and 'bac
 	.review-area { display: grid; gap: 1.5rem; max-width: 600px; margin: 0 auto; }
 	.progress { text-align: center; color: var(--text-secondary); font-size: .9rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
 	
-	.flashcard { perspective: 1000px; height: 350px; cursor: pointer; border-radius: 24px; }
+	.flashcard { perspective: 1000px; height: 350px; cursor: pointer; border-radius: 24px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-card); }
 	.card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
 	.flashcard.is-flipped .card-inner { transform: rotateX(180deg); }
 	
-	.card-front, .card-back { position: absolute; inset: 0; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; display: flex; flex-direction: column; padding: 2rem; border: 1px solid var(--border-subtle); border-radius: 24px; background: var(--surface-panel); box-shadow: var(--shadow-card); }
-	.card-back { transform: rotateX(180deg); background: var(--surface-subtle); }
+	.card-front, .card-back { position: absolute; inset: 0; width: 100%; height: 100%; -webkit-backface-visibility: hidden; backface-visibility: hidden; display: flex; flex-direction: column; padding: 2rem; border: 1px solid var(--border-subtle); border-radius: 24px;  }
+	.card-back { transform: rotateX(180deg); }
 	
 	.card-subject { font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1rem; opacity: 0.7; }
 	.card-subject[data-sub="P"] { color: var(--p-color, #4dabf7); }

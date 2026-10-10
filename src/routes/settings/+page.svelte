@@ -566,6 +566,23 @@
 				<small>Tones down transitions and animations.</small>
 			</label>
 		</div>
+		
+		<div class="panel">
+			<h2><NavIcon name="brain" size={15} /> Focus Gamification</h2>
+			<p class="muted">Choose a visual companion to sit in the center of your deep work timer.</p>
+			<div class="cos-grid">
+				<button type="button" class="cos" class:on={($tracker.settings?.focusPet || 'orb') === 'orb'} on:click={() => updateTracker(s => { s.settings = s.settings || {}; s.settings.focusPet = 'orb'; })}>
+					<span>Orb</span>
+				</button>
+				<button type="button" class="cos" class:on={$tracker.settings?.focusPet === 'crystal'} on:click={() => updateTracker(s => { s.settings = s.settings || {}; s.settings.focusPet = 'crystal'; })}>
+					<span>Crystal</span>
+				</button>
+				<button type="button" class="cos" class:on={$tracker.settings?.focusPet === 'flame'} on:click={() => updateTracker(s => { s.settings = s.settings || {}; s.settings.focusPet = 'flame'; })}>
+					<span>Flame</span>
+				</button>
+			</div>
+		</div>
+
 		<div class="panel" id="cosmetics">
 			<h2><NavIcon name="sparkles" size={15} /> Cosmetics Loadout</h2>
 			<p class="muted">Mix and match anything you've earned — independent of your theme. Elo unlocks are permanent (they track your all-time peak); streak effects stay active only while the streak lives.</p>

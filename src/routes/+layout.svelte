@@ -14,6 +14,7 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import GlobalOverlays from '$lib/components/GlobalOverlays.svelte';
 	import AIOmentor from '$lib/components/ui/AIOmentor.svelte';
+	import CommandPalette from '$lib/components/ui/CommandPalette.svelte';
 	import FocusScreen from '$lib/components/focus/FocusScreen.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
 	import StreakButton from '$lib/components/StreakButton.svelte';
@@ -27,6 +28,55 @@
 
 	let collapsed = false;
 	let mobileOpen = false;
+
+	let touchStartX = 0;
+	let touchStartY = 0;
+	const mainRoutes = ['/', '/plan', '/focus', '/review', '/revise'];
+
+	function handleTouchStart(e: TouchEvent) {
+		touchStartX = e.changedTouches[0].screenX;
+		touchStartY = e.changedTouches[0].screenY;
+	}
+
+	function handleTouchEnd(e: TouchEvent) {
+		const touchEndX = e.changedTouches[0].screenX;
+		const touchEndY = e.changedTouches[0].screenY;
+
+		const diffX = touchEndX - touchStartX;
+		const diffY = touchEndY - touchStartY;
+
+		if (Math.abs(diffX) > 75 && Math.abs(diffY) < 50) {
+			let target = e.target;
+			let isScrollable = false;
+			while (target && target !== e.currentTarget) {
+				if (target.classList && target.classList.contains('flashcard')) {
+					isScrollable = true;
+					break;
+				}
+				const style = window.getComputedStyle(target);
+				if (style.overflowX === 'auto' || style.overflowX === 'scroll') {
+					if (target.scrollWidth > target.clientWidth) {
+						isScrollable = true;
+						break;
+					}
+				}
+				target = target.parentElement;
+			}
+
+			if (isScrollable) return;
+
+			// @ts-ignore
+			const currentIdx = mainRoutes.indexOf($page.url.pathname);
+			if (currentIdx === -1) return;
+
+			if (diffX < 0) {
+				if (currentIdx < mainRoutes.length - 1) void goto(mainRoutes[currentIdx + 1]);
+			} else {
+				if (currentIdx > 0) void goto(mainRoutes[currentIdx - 1]);
+			}
+		}
+	}
+
 
 				
 	beforeNavigate(({ cancel }) => {
@@ -177,7 +227,7 @@
 					<AccountMenu />
 				</div>
 			</header>
-			<main>
+			<main on:touchstart={handleTouchStart} on:touchend={handleTouchEnd}>
 				<div style="display: {$page.url.pathname === '/focus' ? 'block' : 'none'}; height: 100%;">
 					<FocusScreen />
 				</div>
@@ -198,6 +248,7 @@
 			<video bind:this={bgVideo} src={activeVideoUrl} autoplay loop muted playsinline preload="auto" class="live-wallpaper-bg" on:loadeddata={(e) => e.currentTarget.play().catch(() => {})} on:canplay={(e) => e.currentTarget.play().catch(() => {})}></video>
 		{/if}
 
+			<CommandPalette />
 	</div>
 {:else}
 	<div class="auth-loading" aria-live="polite">Checking your session…</div>

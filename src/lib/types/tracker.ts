@@ -313,6 +313,9 @@ export interface TrackerState {
 		/** All-time highs so earned cosmetics never re-lock after a bad test or a prestige reset. */
 		peak?: { tierElo: number; subject: Record<string, number> };
 	};
+	settings?: {
+		focusPet?: 'orb' | 'crystal' | 'flame';
+	};
 }
 
 /** Totals recorded when the current (Monday-based) week began, so deltas can be reported. */

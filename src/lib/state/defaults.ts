@@ -125,5 +125,6 @@ export const createInitialTrackerState = (): TrackerState => ({
 	mistakes: [],
 	flashcards: [],
 	gamification: { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } },
+	settings: { focusPet: 'orb' },
 	theme: 'dark', pom: { ...DEFAULT_POMODORO }, ui: createUiPreferences(), savedAt: null
 });
