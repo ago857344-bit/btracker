@@ -31,7 +31,7 @@
 		.bottom-nav {
 			display: flex;
 			position: fixed;
-			bottom: env(safe-area-inset-bottom, 20px);
+			bottom: max(env(safe-area-inset-bottom), 20px);
 			left: 50%;
 			transform: translateX(-50%);
 			width: 94%;
@@ -50,6 +50,9 @@
 		}
 		
 		.tab {
+			-webkit-tap-highlight-color: transparent;
+			border-radius: 14px;
+			margin: 4px;
 			display: flex;
 			flex-direction: column;
 			align-items: center;
@@ -62,6 +65,7 @@
 		}
 		
 		.tab:active {
+			background: color-mix(in srgb, var(--text-primary), transparent 90%);
 			transform: scale(0.9);
 		}
 		
