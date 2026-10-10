@@ -188,7 +188,26 @@ Keep your answers brief, engaging, analytical, and highly motivating. Give direc
 </div>
 
 <style>
-	.mentor-wrapper { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; pointer-events: none; }
+	.mentor-wrapper { 
+		position: fixed; 
+		bottom: 24px; 
+		right: 24px; 
+		z-index: 9999; 
+		display: flex; 
+		flex-direction: column; 
+		align-items: flex-end; 
+		gap: 12px; 
+		pointer-events: none; 
+		transition: bottom 0.3s;
+	}
+	
+	@media (max-width: 760px) {
+		.mentor-wrapper {
+			/* Push above the mobile bottom nav (68px height + 20px bottom inset + 12px padding) */
+			bottom: calc(env(safe-area-inset-bottom, 20px) + 80px);
+			right: 16px;
+		}
+	}
 	
 	/* CHAT PANEL */
 	.chat-panel { 
