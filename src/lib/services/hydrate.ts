@@ -17,7 +17,7 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 		// Retroactive XP & ELO bump (ensures previous mock tests and revisions count)
 	let minCalculatedXp = 0;
 	if (saved.log && Array.isArray(saved.log)) {
-		minCalculatedXp += saved.log.reduce((acc, session) => acc + ((session[1] || 0) * 10), 0);
+		minCalculatedXp += saved.log.reduce((acc, session) => acc + ((session?.[1] || 0) * 10), 0);
 	}
 	if (saved.mocks && Array.isArray(saved.mocks)) {
 		minCalculatedXp += saved.mocks.length * 200;

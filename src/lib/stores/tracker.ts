@@ -35,7 +35,14 @@ export function scheduleSave() {
 	clearTimeout(pendingSave); saveStatus.set('saving');
 	pendingSave = setTimeout(async () => {
 		const state = get(tracker);
-		try { await saveTrackerState(state); saveStatus.set('saved'); cloudSink?.(state); } catch { saveStatus.set('error'); }
+		try {
+			await saveTrackerState(state);
+			saveStatus.set('saved');
+			cloudSink?.(state);
+		} catch (e) {
+			console.error("Local Save Error:", e);
+			saveStatus.set('error');
+		}
 	}, 450);
 }
 
