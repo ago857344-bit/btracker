@@ -28,10 +28,22 @@ async function onSignIn(userId: string) {
 	syncStatus.set('pulling');
 	try {
 		const cloud = await pullState(userId);
+		const local = get(tracker);
+		
 		if (cloud) {
-			// Cloud wins: adopt it and mirror down to this device's local store.
-			replaceTracker(normalizeState(cloud), true);
-			syncStatus.set('synced');
+			// Only let cloud win if it's actually newer than our local state.
+			// This prevents wiping out local progress if a push failed right before a reload.
+			const cloudTime = cloud.savedAt ? new Date(cloud.savedAt).getTime() : 0;
+			const localTime = local.savedAt ? new Date(local.savedAt).getTime() : 0;
+			
+			if (cloudTime >= localTime) {
+				replaceTracker(normalizeState(cloud), true);
+				syncStatus.set('synced');
+			} else {
+				// Local is newer! Push local to cloud to heal the sync.
+				await pushState(userId, local);
+				syncStatus.set('synced');
+			}
 		} else {
 			// First login on this account: migrate the existing local data up so nothing is lost.
 			// Never seed the cloud with a never-saved (empty) state — the cloud-wins pull on the
