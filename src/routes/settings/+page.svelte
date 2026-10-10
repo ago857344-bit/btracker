@@ -715,7 +715,7 @@
 
 
 	.accent-locked-msg { padding: 0.8rem 1rem; background: var(--surface-subtle); border-radius: 8px; color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
-	.preview-banner { position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 9999; background: var(--surface-panel); border: 1px solid var(--accent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 99px; padding: 0.4rem 0.4rem 0.4rem 1.2rem; display: flex; align-items: center; gap: 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.4); color: var(--text-primary); font-size: 0.9rem; }
+	.preview-banner { position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 9999; background: var(--surface-panel); border: 1px solid var(--accent); backdrop-filter: var(--glass-filter); -webkit-backdrop-filter: var(--glass-filter); border-radius: 99px; padding: 0.4rem 0.4rem 0.4rem 1.2rem; display: flex; align-items: center; gap: 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.4); color: var(--text-primary); font-size: 0.9rem; }
 	.pb-content { display: flex; align-items: center; gap: 0.6rem; }
 	.pb-icon { color: var(--accent); display: flex; animation: tick 1s infinite; }
 	.pb-btn { background: var(--accent); color: var(--surface-canvas); border: none; padding: 0.4rem 1rem; border-radius: 99px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }

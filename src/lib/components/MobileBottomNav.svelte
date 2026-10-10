@@ -39,8 +39,8 @@
 			height: 68px;
 			padding: 0 0.5rem;
 			background: color-mix(in srgb, var(--surface-panel), transparent 35%);
-			backdrop-filter: blur(40px) saturate(220%) contrast(110%);
-			-webkit-backdrop-filter: blur(40px) saturate(220%) contrast(110%);
+			backdrop-filter: var(--glass-filter);
+			-webkit-backdrop-filter: var(--glass-filter);
 			border-radius: 99px;
 			border: 1px solid color-mix(in srgb, rgba(255,255,255,0.4), var(--border-subtle) 80%);
 			box-shadow: 0 16px 40px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255, 255, 255, 0.2);

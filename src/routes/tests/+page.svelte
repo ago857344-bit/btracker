@@ -391,7 +391,7 @@
 <GrillMeModal mistake={grillingMistake} on:close={() => (grillingMistake = null)} />
 <style>
 	.tests-container { padding: 1.5rem; max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 2rem; }
-	.glass { background: var(--surface-panel); border: 1px solid var(--border-subtle); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 16px; }
+	.glass { background: var(--surface-panel); border: 1px solid var(--border-subtle); backdrop-filter: var(--glass-filter); -webkit-backdrop-filter: var(--glass-filter); border-radius: 16px; }
 	
 	header { padding: 1.5rem; display: flex; flex-direction: column; }
 	.header-content { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }

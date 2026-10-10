@@ -173,8 +173,8 @@
 		inset: 0;
 		z-index: 9999;
 		background: rgba(10, 10, 16, 0.3) !important;
-		backdrop-filter: blur(12px) saturate(180%) !important;
-		-webkit-backdrop-filter: blur(12px) saturate(180%) !important;
+		backdrop-filter: var(--glass-filter) !important;
+		-webkit-backdrop-filter: var(--glass-filter) !important;
 		display: flex;
 		flex-direction: column;
 		transition: background-color 0.5s ease;
@@ -320,8 +320,8 @@
 
 	.sound-menu {
 		background: var(--surface-panel, rgba(20, 20, 25, 0.7));
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
+		backdrop-filter: var(--glass-filter);
+		-webkit-backdrop-filter: var(--glass-filter);
 		border: 1px solid color-mix(in srgb, var(--accent), transparent 80%);
 		border-radius: 16px;
 		padding: 1.25rem;
@@ -379,8 +379,8 @@
 		align-items: center;
 		gap: 0.75rem;
 		background: var(--surface-panel, rgba(20, 20, 25, 0.7));
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
+		backdrop-filter: var(--glass-filter);
+		-webkit-backdrop-filter: var(--glass-filter);
 		padding: 0.5rem;
 		border-radius: 999px;
 		border: 1px solid color-mix(in srgb, var(--accent), transparent 80%);

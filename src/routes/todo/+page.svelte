@@ -360,7 +360,7 @@ async function runAiTriage() {
 	.tabs button { height: 44px; padding: 0 1.1rem; border: 0; border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: .78rem; font-weight: 750; cursor: pointer; font-family: inherit; }
 	.tabs button.selected { color: #fff; background: var(--accent); }
 
-	.add { display: flex; align-items: center; gap: .6rem; height: 46px; padding: 0 .5rem 0 .9rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: color-mix(in srgb, var(--surface-panel), transparent 55%); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); color: var(--text-secondary); }
+	.add { display: flex; align-items: center; gap: .6rem; height: 46px; padding: 0 .5rem 0 .9rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: color-mix(in srgb, var(--surface-panel), transparent 55%); backdrop-filter: var(--glass-filter); -webkit-backdrop-filter: var(--glass-filter); color: var(--text-secondary); }
 	.add:focus-within { border-color: var(--accent); background: color-mix(in srgb, var(--surface-panel), transparent 35%); }
 	.add input { flex: 1; border: 0; background: transparent; color: var(--text-primary); font-size: .88rem; font-family: inherit; }
 	.add input:focus { outline: none; }
@@ -368,7 +368,7 @@ async function runAiTriage() {
 	.add button:disabled { opacity: .45; cursor: default; }
 
 	.list { list-style: none; margin: 0; padding: 0; display: grid; gap: .65rem; background: transparent; }
-	.row { display: flex; align-items: center; gap: .6rem; padding: .75rem .9rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-panel); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); transition: transform 0.15s ease, box-shadow 0.15s ease; }
+	.row { display: flex; align-items: center; gap: .6rem; padding: .75rem .9rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-panel); backdrop-filter: var(--glass-filter); -webkit-backdrop-filter: var(--glass-filter); transition: transform 0.15s ease, box-shadow 0.15s ease; }
 	.row:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
 	.row.done { opacity: .55; background: transparent; box-shadow: none; }
 	.grip { color: var(--border-subtle); cursor: grab; }
