@@ -244,6 +244,19 @@ export interface CosmeticLoadout {
 export interface UiPreferences { devMode?: boolean; accent: string; widgets: WidgetLayout[]; reducedMotion: boolean; wallpaper?: string | null; wallpaperHistory?: string[]; glassStrength?: number; haptics?: boolean; sounds?: boolean; cosmetics?: CosmeticLoadout; }
 
 
+
+export interface Flashcard {
+	id: string;
+	front: string;
+	back: string;
+	subject: string;
+	chapter: string;
+	interval: number;
+	repetition: number;
+	efactor: number;
+	nextReviewAt: number;
+}
+
 export interface MistakeLog {
 	id: string;
 	date: number;
@@ -288,6 +301,7 @@ export interface TrackerState {
 	savedAt: string | null;
 	mocks: MockTest[];
 	mistakes: MistakeLog[];
+	flashcards?: Flashcard[];
 	gamification?: {
 		xp: number;
 		level: number;

@@ -123,6 +123,7 @@ export const createInitialTrackerState = (): TrackerState => ({
 	norec: false, hwSort: 'loc', goals: createGoals(), col: [], bm: {}, notes: [], an: createAnalysis(), rev: createRevision(),
 	meta: createMeta(), lib: [], gt: [], refl: {}, sess: [], todos: [], chapterGrids: {}, mocks: [],
 	mistakes: [],
+	flashcards: [],
 	gamification: { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } },
 	theme: 'dark', pom: { ...DEFAULT_POMODORO }, ui: createUiPreferences(), savedAt: null
 });
