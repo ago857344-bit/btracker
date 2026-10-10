@@ -119,27 +119,37 @@
 		<div class="dial-container" class:running style="--dial-color: {phase === 'break' ? 'var(--success, #2f9e6e)' : accent}">
 			<StatRing value={ringProgress} size={320} stroke={18} skin={phase === 'break' ? 'classic' : $loadout.timer} color={phase === 'break' ? 'var(--success, #2f9e6e)' : accent}>
 				
-				<div class="focus-pet-container" class:shatter={isShattering} style="--pet-scale: {1 + (ringProgress / 100) * 0.5}">
+				<div class="focus-pet-container" class:shatter={isShattering} style="--pet-scale: {1 + (ringProgress / 100) * 0.3}">
 					{#if focusPet === 'orb'}
-						<div class="pet-orb"></div>
+						<div class="pet-orb">
+							<div class="orb-core"></div>
+							<div class="orb-aura"></div>
+						</div>
 					{:else if focusPet === 'crystal'}
-						<svg class="pet-crystal" viewBox="0 0 100 100" width="80" height="80">
-							<polygon points="50,10 90,50 50,90 10,50" fill="currentColor" opacity="0.8" />
-							<polygon points="50,10 70,50 50,90 30,50" fill="white" opacity="0.3" />
-						</svg>
+						<div class="pet-crystal">
+							<svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+								<path d="M12 2L4 10l8 12 8-12-8-10z" fill="color-mix(in srgb, var(--accent) 70%, white)" />
+								<path d="M12 2v20l8-12-8-10z" fill="var(--accent)" opacity="0.6"/>
+							</svg>
+							<div class="crystal-glow"></div>
+						</div>
 					{:else if focusPet === 'flame'}
 						<div class="pet-flame">
-							<svg viewBox="0 0 100 100" width="80" height="80">
-								<path d="M50 10 Q 70 40 50 90 Q 30 40 50 10" fill="currentColor" opacity="0.8" />
+							<svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+								<path d="M12 2c0 0-5 6-5 11a5 5 0 0 0 10 0c0-5-5-11-5-11z" fill="var(--accent)" opacity="0.6" class="flame-outer" />
+								<path d="M12 8c0 0-2.5 3-2.5 6a2.5 2.5 0 0 0 5 0c0-3-2.5-6-2.5-6z" fill="#fff" class="flame-inner" />
 							</svg>
+							<div class="flame-glow"></div>
 						</div>
 					{/if}
 				</div>
 
-				<span class="time" style="position: relative; z-index: 2;">{dialTime}</span>
-				<span class="phase" style="position: relative; z-index: 2; color: {phase === 'break' ? 'var(--success, #2f9e6e)' : accent}">
-					{phase === 'break' ? 'BREAK' : 'FOCUS'}
-				</span>
+				<div class="timer-text-wrap">
+					<span class="time">{dialTime}</span>
+					<span class="phase" style="color: {phase === 'break' ? 'var(--success, #2f9e6e)' : accent}">
+						{phase === 'break' ? 'BREAK' : 'FOCUS'}
+					</span>
+				</div>
 				{#if subject}
 					<span class="subject-line">{subject}{chapter ? ` · ${chapter}` : ''}</span>
 				{/if}
@@ -451,13 +461,24 @@
 	}
 
 	/* Pet Styles */
+	.timer-text-wrap {
+		position: relative;
+		z-index: 2;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		transform: translateY(20px);
+	}
+
 	.focus-pet-container {
 		position: absolute;
-		top: 50%;
+		top: -45px;
 		left: 50%;
-		transform: translate(-50%, -50%) scale(var(--pet-scale, 1));
+		transform: translateX(-50%) scale(var(--pet-scale, 1));
+		transform-origin: bottom center;
 		transition: transform 0.3s ease;
-		z-index: 1;
+		z-index: 3;
 		pointer-events: none;
 		display: flex;
 		justify-content: center;
@@ -465,38 +486,82 @@
 	}
 
 	.pet-orb {
-		width: 120px;
-		height: 120px;
+		position: relative;
+		width: 60px; height: 60px;
+		display: flex; justify-content: center; align-items: center;
+	}
+	.orb-core {
+		width: 100%; height: 100%;
 		border-radius: 50%;
-		background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
-		opacity: 0.6;
-		animation: pulse-pet 2s infinite alternate;
+		background: radial-gradient(circle at 30% 30%, #fff, var(--accent) 50%, transparent 80%);
+		box-shadow: 0 0 20px 5px var(--accent), inset 0 0 20px var(--accent);
+		animation: orb-spin 4s linear infinite;
+	}
+	.orb-aura {
+		position: absolute;
+		inset: -15px;
+		border-radius: 50%;
+		background: conic-gradient(from 0deg, transparent, var(--accent), transparent 40%, var(--accent), transparent 80%);
+		opacity: 0.4;
+		animation: orb-spin 8s linear infinite reverse;
+		filter: blur(8px);
 	}
 
 	.pet-crystal {
-		color: var(--accent);
-		animation: float-pet 3s infinite ease-in-out;
+		position: relative;
+		display: flex; justify-content: center; align-items: center;
+		animation: crystal-float 4s ease-in-out infinite;
+	}
+	.crystal-glow {
+		position: absolute;
+		width: 30px; height: 8px;
+		bottom: -15px;
+		background: var(--accent);
+		filter: blur(8px);
+		border-radius: 50%;
+		animation: crystal-shadow 4s ease-in-out infinite;
 	}
 
 	.pet-flame {
-		color: var(--accent);
-		animation: flicker-pet 1s infinite alternate;
+		position: relative;
+		display: flex; justify-content: center; align-items: center;
+	}
+	.flame-outer {
+		transform-origin: center bottom;
+		animation: flicker-outer 2s ease-in-out infinite alternate;
+	}
+	.flame-inner {
+		transform-origin: center bottom;
+		animation: flicker-inner 1.5s ease-in-out infinite alternate;
+	}
+	.flame-glow {
+		position: absolute;
+		width: 40px; height: 40px;
+		border-radius: 50%;
+		background: var(--accent);
+		filter: blur(15px);
+		opacity: 0.5;
+		animation: pulse-glow 2s infinite alternate;
 	}
 
-	@keyframes pulse-pet {
-		from { opacity: 0.4; transform: scale(0.9); }
-		to { opacity: 0.8; transform: scale(1.1); }
+	@keyframes orb-spin {
+		100% { transform: rotate(360deg); }
 	}
-
-	@keyframes float-pet {
-		0%, 100% { transform: translateY(0); }
-		50% { transform: translateY(-10px); }
+	@keyframes crystal-float {
+		0%, 100% { transform: translateY(0px); }
+		50% { transform: translateY(-12px); }
 	}
-
-	@keyframes flicker-pet {
-		0% { transform: scale(1) rotate(-2deg); opacity: 0.7; }
-		50% { transform: scale(1.05) rotate(2deg); opacity: 0.9; }
-		100% { transform: scale(0.95) rotate(0deg); opacity: 0.6; }
+	@keyframes crystal-shadow {
+		0%, 100% { transform: scale(1); opacity: 0.7; }
+		50% { transform: scale(0.6); opacity: 0.2; }
+	}
+	@keyframes flicker-outer {
+		0% { transform: scale(1) skewX(2deg); }
+		100% { transform: scale(1.05) skewX(-2deg); }
+	}
+	@keyframes flicker-inner {
+		0% { transform: scale(1) skewX(-1deg); }
+		100% { transform: scale(0.9) skewX(3deg); }
 	}
 
 	@keyframes shatter-anim {

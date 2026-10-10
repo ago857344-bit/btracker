@@ -795,7 +795,7 @@ function bumpSolved(state: TrackerState, sc: string, delta: number) {
 	if (delta > 0) {
 		state.gamification.xp += 10 * delta;
 		for (let i = 0; i < delta; i++) {
-			applyEloResult(state.gamification, sc, 90, 100, 0.05); 
+			applyEloResult(state.gamification, sc, 90, 100, 0.25); 
 		}
 	} else if (delta < 0) {
 		state.gamification.xp = Math.max(0, state.gamification.xp + (10 * delta));

@@ -54,6 +54,19 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 	const merged: TrackerState = {
 		...base,
 		...saved,
+		d: {
+			...base.d,
+			...saved.d
+		},
+		x: {
+			...base.x,
+			...saved.x,
+			cnt: { ...base.x.cnt, ...(saved.x?.cnt || {}) },
+			exs: { ...base.x.exs, ...(saved.x?.exs || {}) },
+			subs: saved.x?.subs || base.x.subs,
+			mods: { ...base.x.mods, ...(saved.x?.mods || {}) },
+			chs: { ...base.x.chs, ...(saved.x?.chs || {}) }
+		},
 		rev: {
 			...base.rev,
 			...saved.rev,
