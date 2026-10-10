@@ -57,9 +57,11 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 	}
 
 	const g = saved.gamification;
-	const needsWipe = !g || !(g as any).v2_elo;
+	const needsWipe = !g || !(g as any).v3_elo;
 
 	if (needsWipe) {
+		if (saved.gamification) delete saved.gamification.peak;
+		
 		// Force recalculate true Elo from scratch to wipe the previous inflation bug
 		for (const code of ['P', 'C', 'M']) {
 			retroElo[code as 'P' | 'C' | 'M'] = 300 + ((trueSolved[code as 'P' | 'C' | 'M'] || 0) * 0.3);
@@ -129,7 +131,7 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 			xp: retroXp,
 			level: Math.max(saved.gamification?.level || 1, getLevelData(retroXp).level),
 			elo: retroElo,
-			v2_elo: true
+			v3_elo: true
 		}
 	};
 	const known = new Set(merged.ui.widgets.map((w) => w.id));

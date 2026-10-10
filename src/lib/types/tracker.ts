@@ -312,7 +312,7 @@ export interface TrackerState {
 		prestige?: { count: number; seasonElo: Record<string, number>; history?: { at: number; avgElo: number }[] };
 		/** All-time highs so earned cosmetics never re-lock after a bad test or a prestige reset. */
 		peak?: { tierElo: number; subject: Record<string, number> };
-		v2_elo?: boolean;
+		v3_elo?: boolean;
 	};
 	settings?: {
 		focusPet?: 'orb' | 'crystal' | 'flame';
