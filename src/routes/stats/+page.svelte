@@ -174,7 +174,7 @@
 
 		<section class="sec">
 			<button type="button" class="sec-head" aria-expanded={open.weekly} on:click={() => toggle('weekly')}>
-				<span class="dot" style="background: var(--accent)"></span> WEEKLY REPORT CARD
+				<span class="dot" style="background: var(--accent)"></span> SHAREABLE REPORT CARD (DAILY / WEEKLY)
 				<NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.weekly}
