@@ -14,6 +14,7 @@
 
 	const STATIC_COMMANDS: Array<{ id: string, label: string, icon: NavIconName, action: () => void }> = [
 		{ id: 'home', label: 'Go to Home', icon: 'home', action: () => { goto('/'); open = false; } },
+		{ id: 'todo', label: 'Go to To Do / Brain Dumps', icon: 'list', action: () => { goto('/todo'); open = false; } },
 		{ id: 'plan', label: 'Go to Plan', icon: 'plan', action: () => { goto('/plan'); open = false; } },
 		{ id: 'review', label: 'Go to Review', icon: 'book', action: () => { goto('/review'); open = false; } },
 		{ id: 'focus', label: 'Go to Focus', icon: 'focus', action: () => { goto('/focus'); open = false; } },
@@ -81,7 +82,8 @@
 							id: crypto.randomUUID(),
 							title: text,
 							done: false,
-							created: Date.now()
+							created: Date.now(),
+							source: 'brain-dump'
 						});
 					});
 					open = false;
@@ -123,7 +125,8 @@
 									id: crypto.randomUUID(),
 									title: text,
 									done: false,
-									created: Date.now()
+									created: Date.now(),
+									source: 'brain-dump'
 								});
 							});
 							open = false;
@@ -145,6 +148,13 @@
 						</button>
 					{/each}
 				{/if}
+			</div>
+			
+			<div class="palette-footer">
+				<span class="keys"><kbd>↵</kbd> Select / Dump</span>
+				<span class="keys"><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+				<span class="keys"><kbd>esc</kbd> Close</span>
+				<span class="tip">Brain dumps save to <button type="button" class="tip-link" on:click={() => { goto('/todo'); open = false; }}>To Do</button></span>
 			</div>
 		</div>
 	</div>
@@ -226,5 +236,38 @@
 	}
 	.result-item.selected :global(svg) {
 		color: white;
+	}
+
+	.palette-footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.8rem;
+		padding: 0.55rem 1rem;
+		border-top: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.15));
+		background: var(--surface-subtle);
+		font-size: 0.72rem;
+		color: var(--text-secondary);
+	}
+	.keys { display: inline-flex; align-items: center; gap: 0.3rem; }
+	kbd {
+		padding: 0.15rem 0.35rem;
+		border-radius: 4px;
+		background: var(--surface-panel);
+		border: 1px solid var(--border-subtle);
+		font-family: inherit;
+		font-size: 0.68rem;
+	}
+	.tip { margin-left: auto; display: inline-flex; align-items: center; gap: 0.3rem; }
+	.tip-link {
+		background: transparent;
+		border: none;
+		color: var(--accent);
+		font-weight: 700;
+		cursor: pointer;
+		padding: 0;
+		text-decoration: underline;
+		font-family: inherit;
+		font-size: inherit;
 	}
 </style>

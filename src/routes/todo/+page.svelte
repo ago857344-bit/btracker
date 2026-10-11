@@ -217,6 +217,7 @@ async function runAiTriage() {
 							<span class="roi-tag {item.roiTag.replace(' ', '-').toLowerCase()}">{item.roiTag}</span>
 						{/if}
 						{#if item.source === 'btest'}<span class="tag">btest</span>{/if}
+						{#if item.source === 'brain-dump'}<span class="tag brain-dump"><NavIcon name="brain" size={10} /> Brain dump</span>{/if}
 						<button type="button" class="expand-btn" on:click={() => expandedTodo = expandedTodo === item.id ? null : item.id}>
 							<NavIcon name={expandedTodo === item.id ? 'chevron-down' : 'chevron'} size={14} />
 						</button>
@@ -378,6 +379,7 @@ async function runAiTriage() {
 	.title { flex: 1; min-width: 0; font-size: .86rem; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.row.done .title { color: var(--text-secondary); text-decoration: line-through; }
 	.tag { padding: .12rem .5rem; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-size: .58rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+	.tag.brain-dump { display: inline-flex; align-items: center; gap: .25rem; background: color-mix(in srgb, var(--accent), transparent 85%); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent), transparent 70%); }
 	.del { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 9px; background: transparent; color: var(--text-secondary); cursor: pointer; }
 	.del:hover { color: var(--danger, #e0455a); background: var(--surface-subtle); }
 	.clear { justify-self: start; display: inline-flex; align-items: center; gap: .4rem; height: 44px; padding: 0 .9rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-panel); color: var(--text-secondary); font-size: .76rem; font-weight: 700; cursor: pointer; font-family: inherit; }

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { marked } from 'marked';
+	import { renderMarkdownSync } from '$lib/services/markdown';
 	import { tracker, logBulkQuestions, logMockTestScore } from '$lib/stores/tracker';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -93,7 +93,7 @@
 Current Elo: P: ${$tracker.gamification?.elo?.P ?? 1200}, C: ${$tracker.gamification?.elo?.C ?? 1200}, M: ${$tracker.gamification?.elo?.M ?? 1200}.
 CRITICAL INSTRUCTIONS:
 1. KEEP IT SHORT! Answer in 1-2 brief sentences max. NO LONG EXPLANATIONS. NO FLUFF.
-2. Format your text nicely using Markdown (bold, lists).
+2. Format your text using clean Markdown. When writing math formulas or symbols (integrals, fractions, derivatives, vectors, greek symbols), ALWAYS wrap them in LaTeX dollar signs like $ \int f(x) dx $ or $ \frac{a}{b} $ or $$ \int_a^b f(x) dx $$ so KaTeX renders them properly.
 3. If the user asks to start a focus timer or stopwatch, append EXACTLY this JSON block at the end of your message: <cmd>{"action": "startTimer", "minutes": 25, "subject": "P", "chapter": 1, "mode": "timer"}</cmd> (subject must be 'P', 'C', or 'M'. Mode can be "timer" or "stopwatch").
 4. If the user asks to log questions/exercises (e.g. "I did ex 1"), append: <cmd>{"action": "logQuestions", "subject": "P", "chapter": 1, "count": 20, "name": "Ex 1"}</cmd>.
 5. If the user asks to log a mock test (e.g. "scored 180 out of 300"), append: <cmd>{"action": "logMockTest", "score": 180, "total": 300, "subjectScores": {"P": {"c": 15, "w": 5, "s": 60}, "C": {"c": 15, "w": 5, "s": 60}, "M": {"c": 15, "w": 5, "s": 60}}}</cmd>. Estimate subject scores if they don't provide them.`;
@@ -166,7 +166,7 @@ CRITICAL INSTRUCTIONS:
 				{#each chatHistory as msg}
 					<div class="chat-bubble {msg.role}">
 						{#if msg.role === 'ai'}
-							{@html marked.parse(msg.text)}
+							{@html renderMarkdownSync(msg.text)}
 						{:else}
 							{msg.text}
 						{/if}
@@ -193,7 +193,7 @@ CRITICAL INSTRUCTIONS:
 		</div>
 	{:else if showMessage}
 		<div class="mentor-bubble" transition:fly={{ y: 10, duration: 300 }}>
-			{@html marked.parse(message)}
+			{@html renderMarkdownSync(message)}
 		</div>
 	{/if}
 
@@ -267,6 +267,10 @@ CRITICAL INSTRUCTIONS:
 	.chat-bubble { padding: 10px 14px; border-radius: 14px; font-size: 0.85rem; line-height: 1.5; max-width: 85%; word-wrap: break-word; }
 	.chat-bubble.ai { background: var(--surface-subtle); color: var(--text-primary); border-bottom-left-radius: 4px; align-self: flex-start; }
 	.chat-bubble.user { background: var(--accent); color: #fff; border-bottom-right-radius: 4px; align-self: flex-end; }
+	.chat-bubble :global(.katex-display) { overflow-x: auto; overflow-y: hidden; margin: 0.5rem 0; padding: 0.2rem 0; max-width: 100%; }
+	.chat-bubble :global(.katex) { font-size: 1.05em; }
+	.mentor-bubble :global(.katex-display) { overflow-x: auto; overflow-y: hidden; margin: 0.4rem 0; padding: 0.1rem 0; max-width: 100%; }
+	.mentor-bubble :global(.katex) { font-size: 1.05em; }
 	
 	.chat-bubble.typing { display: flex; gap: 4px; padding: 12px 16px; }
 	.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-secondary); animation: bounce 1.4s infinite ease-in-out both; }
