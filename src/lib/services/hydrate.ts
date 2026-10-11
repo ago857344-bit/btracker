@@ -2,6 +2,7 @@ import { loadTrackerState } from '$lib/services/persistence';
 import { createInitialTrackerState, DEFAULT_WIDGETS } from '$lib/state/defaults';
 import { getLevelData, recordPeaks } from '$lib/state/gamification';
 import { rolloverWeekSnapshot } from '$lib/state/weekly';
+import { todayKey } from '$lib/state/dates';
 import { hydration, replaceTracker } from '$lib/stores/tracker';
 import type { TrackerState } from '$lib/types/tracker';
 
@@ -136,6 +137,29 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 	};
 	const known = new Set(merged.ui.widgets.map((w) => w.id));
 	for (const widget of DEFAULT_WIDGETS) if (!known.has(widget.id)) merged.ui.widgets.push({ ...widget });
+	
+	// Reconcile question stat with real question bitmasks in d
+	if (!merged.stat) merged.stat = {};
+	const today = todayKey();
+	for (const sc of ['P', 'C', 'M'] as const) {
+		const solvedInD = trueSolved[sc] || 0;
+		const loggedInStat = statQuestions[sc] || 0;
+		const diff = solvedInD - loggedInStat;
+		if (diff > 0) {
+			const recent = Math.min(diff, 250);
+			const historical = diff - recent;
+			
+			const todayBucket = merged.stat[today] ?? (merged.stat[today] = {});
+			todayBucket[sc] = (Number(todayBucket[sc]) || 0) + recent;
+			
+			if (historical > 0) {
+				const baselineDay = '2026-10-01';
+				const baseBucket = merged.stat[baselineDay] ?? (merged.stat[baselineDay] = {});
+				baseBucket[sc] = (Number(baseBucket[sc]) || 0) + historical;
+			}
+		}
+	}
+
 	rolloverWeekSnapshot(merged);
 	recordPeaks(merged.gamification!);
 	return merged;

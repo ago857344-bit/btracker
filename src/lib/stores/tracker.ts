@@ -4,7 +4,7 @@ import { saveTrackerState } from '$lib/services/persistence';
 import { addDaysKey, focusMinutesOn, dayKeyOf, lastNDays, sessionDayKey, startOfWeek, todayKey } from '$lib/state/dates';
 import { SUBJECTS, dayPartOf, intervalFor, subjectColor } from '$lib/state/subjects';
 import { cellKey, questionCount, questionKey } from '$lib/state/syllabus';
-import { isDone, isFlag, resultOf, setDone, setFlag, setResult, setStars, starsOf } from '$lib/state/questions';
+import { isDone, isFlag, resultOf, setDone, setFlag, setResult, setStars, starsOf, subjectStats } from '$lib/state/questions';
 import { applyEloResult } from '$lib/state/gamification';
 import type {
 	GoalTarget, HomeworkItem, StudySession, TimerState, TrackerGoal, TrackerState, WidgetLayout
@@ -551,9 +551,29 @@ export const recentActivity = derived(tracker, ($t): ActivityEntry[] => {
 });
 
 export const subjectSolvedTotals = derived(tracker, ($t) => {
-	const out: Record<string, number> = {};
-	for (const bucket of Object.values($t.stat)) {
-		for (const [code, value] of Object.entries(bucket)) out[code] = (out[code] ?? 0) + (Number(value) || 0);
+	const out: Record<string, number> = { P: 0, C: 0, M: 0 };
+	if ($t.d) {
+		for (const [key, arr] of Object.entries($t.d)) {
+			const sc = key.charAt(0);
+			if (sc in out && Array.isArray(arr)) {
+				let solved = 0;
+				for (const cell of arr) {
+					if ((cell & 1) === 1) solved++;
+				}
+				out[sc] += solved;
+			}
+		}
+	}
+	for (const code of ['P', 'C', 'M']) {
+		try {
+			const st = subjectStats($t, code);
+			if (st && st.done > out[code]) out[code] = st.done;
+		} catch (e) {}
+	}
+	for (const bucket of Object.values($t.stat || {})) {
+		for (const [code, value] of Object.entries(bucket || {})) {
+			if (code in out) out[code] = Math.max(out[code], Number(value) || 0);
+		}
 	}
 	return out;
 });
@@ -968,8 +988,8 @@ export function logBulkQuestions(sc: string, ch: number, count: number, name = '
 		if (!state.x) state.x = { exs: {}, cnt: {} };
 		if (!state.x.exs[ckey]) state.x.exs[ckey] = [];
 		const code = `AI${Date.now().toString(36).slice(-4)}`;
-		state.x.exs[ckey].push({ code, name, count });
-		state.x.cnt[ckey] = (state.x.cnt[ckey] || 0) + count;
+		state.x.exs[ckey].push({ code, name });
+		state.x.cnt[cellKey(sc, ch, code)] = Math.max(1, Math.round(count));
 		
 		const k = cellKey(sc, ch, code);
 		state.d[k] = Array(count).fill(0);
