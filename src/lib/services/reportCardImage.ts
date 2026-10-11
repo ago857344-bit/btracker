@@ -153,84 +153,205 @@ export async function renderReportImage(report: WeekReport): Promise<Blob> {
 	ctx.font = `800 23px ${FONT}`;
 	spaced(ctx, `LEVEL ${report.level} · ${(report.flairTitle ?? report.levelTitle).toUpperCase()}`, MARGIN + pillW + 28, pillY + pillH / 2 + 8, 4);
 
-	// XP hero.
-	ctx.fillStyle = INK;
-	ctx.font = `900 158px ${FONT}`;
-	ctx.shadowColor = hexToRgba(accent, 0.45);
-	ctx.shadowBlur = 42;
-	ctx.fillText(`+${report.xpGained.toLocaleString('en-US')}`, MARGIN, 648);
-	ctx.shadowBlur = 0;
-	ctx.fillStyle = MUTED;
-	ctx.font = `700 24px ${FONT}`;
-	spaced(ctx, 'XP EARNED THIS WEEK', MARGIN + 4, 700, 8);
+	// Quick summary ribbon.
+	const ribbonY = 405;
+	const ribbonH = 76;
+	const ribbonW = W - MARGIN * 2;
+	ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+	ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+	ctx.lineWidth = 1.5;
+	rr(ctx, MARGIN, ribbonY, ribbonW, ribbonH, 16);
+	ctx.fill();
+	ctx.stroke();
 
-	// Elo movement rows.
-	const eloLabelY = 800;
-	ctx.fillStyle = MUTED;
-	ctx.font = `800 20px ${FONT}`;
-	spaced(ctx, 'ELO MOVEMENT', MARGIN, eloLabelY, 7);
-
-	const rowHeight = 88;
-	report.subjects.forEach((sub, index) => {
-		const rowY = eloLabelY + 34 + index * rowHeight;
-
-		ctx.fillStyle = sub.color;
-		ctx.beginPath();
-		ctx.arc(MARGIN + 14, rowY + 34, 10, 0, Math.PI * 2);
-		ctx.fill();
-
+	const ribbonStats = [
+		{ label: 'TOTAL FOCUS', value: formatFocus(report.minutes) },
+		{ label: 'QUESTIONS SOLVED', value: `${report.solved}` },
+		{ label: 'ACTIVE DAYS', value: `${report.activeDays} / 7` },
+		{ label: 'DAILY AVERAGE', value: `${(report.minutes / 60 / Math.max(1, report.activeDays)).toFixed(1)}h / day` }
+	];
+	const rColW = ribbonW / ribbonStats.length;
+	ribbonStats.forEach((st, idx) => {
+		const cx = MARGIN + idx * rColW + rColW / 2;
+		ctx.textAlign = 'center';
 		ctx.fillStyle = INK;
-		ctx.font = `750 34px ${FONT}`;
-		ctx.textBaseline = 'middle';
-		ctx.fillText(sub.name, MARGIN + 44, rowY + 34);
+		ctx.font = `800 27px ${FONT}`;
+		ctx.fillText(st.value, cx, ribbonY + 35);
+		ctx.fillStyle = MUTED;
+		ctx.font = `700 13px ${FONT}`;
+		spaced(ctx, st.label, cx - spacedWidth(ctx, st.label, 3) / 2, ribbonY + 58, 3);
 
-		ctx.font = `800 22px ${FONT}`;
-		const rankText = sub.rankName.toUpperCase();
-		const rankW = ctx.measureText(rankText).width + 32;
-		ctx.fillStyle = hexToRgba(sub.rankColor, 0.16);
-		rr(ctx, MARGIN + 260, rowY + 12, rankW, 44, 22);
-		ctx.fill();
-		ctx.fillStyle = sub.rankColor;
-		ctx.fillText(rankText, MARGIN + 276, rowY + 35);
-
-		ctx.textAlign = 'right';
-		ctx.fillStyle = INK;
-		ctx.font = `850 46px ${FONT}`;
-		ctx.fillText(`${sub.elo}`, W - MARGIN - 120, rowY + 34);
-
-		const deltaColor = sub.delta > 0 ? SUCCESS : sub.delta < 0 ? DANGER : MUTED;
-		ctx.fillStyle = deltaColor;
-		ctx.font = `800 30px ${FONT}`;
-		const arrow = sub.delta > 0 ? '▲' : sub.delta < 0 ? '▼' : '—';
-		ctx.fillText(sub.delta === 0 ? '— 0' : `${arrow} ${signed(sub.delta)}`, W - MARGIN, rowY + 36);
-		ctx.textAlign = 'left';
-
-		if (index < report.subjects.length - 1) {
-			ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
-			ctx.fillRect(MARGIN, rowY + rowHeight - 12, W - MARGIN * 2, 2);
+		if (idx < ribbonStats.length - 1) {
+			ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+			ctx.fillRect(MARGIN + (idx + 1) * rColW, ribbonY + 16, 1, ribbonH - 32);
 		}
 	});
 
-	// Stat strip.
-	const statsTop = eloLabelY + 34 + report.subjects.length * rowHeight + 36;
+	// ─── Double Graph: Daily Hours & Questions ───
+	const graphPanelY = 505;
+	const graphPanelH = 610;
+	const graphPanelW = W - MARGIN * 2;
+	ctx.fillStyle = 'rgba(255, 255, 255, 0.025)';
+	ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+	ctx.lineWidth = 1.5;
+	rr(ctx, MARGIN, graphPanelY, graphPanelW, graphPanelH, 24);
+	ctx.fill();
+	ctx.stroke();
+
+	// Graph Title & Legend
+	ctx.textAlign = 'left';
+	ctx.fillStyle = INK;
+	ctx.font = `800 20px ${FONT}`;
+	spaced(ctx, 'DAILY ACTIVITY · HOURS & QUESTIONS', MARGIN + 32, graphPanelY + 44, 4);
+
+	// Legend: Hours (accent) & Questions (emerald)
+	const legendY = graphPanelY + 34;
+	const leg1X = W - MARGIN - 380;
+	// Hours legend box
+	ctx.fillStyle = accent;
+	rr(ctx, leg1X, legendY - 10, 16, 16, 4);
+	ctx.fill();
+	ctx.fillStyle = MUTED;
+	ctx.font = `700 17px ${FONT}`;
+	ctx.fillText('Study Hours', leg1X + 24, legendY + 4);
+
+	// Questions legend box
+	const leg2X = leg1X + 170;
+	ctx.fillStyle = '#10b981';
+	rr(ctx, leg2X, legendY - 10, 16, 16, 4);
+	ctx.fill();
+	ctx.fillStyle = MUTED;
+	ctx.font = `700 17px ${FONT}`;
+	ctx.fillText('Questions Solved', leg2X + 24, legendY + 4);
+
+	// Gridlines & Scale
+	const plotTop = graphPanelY + 120;
+	const plotBottom = graphPanelY + 490;
+	const plotH = plotBottom - plotTop; // 370px
+	const maxH = Math.max(4, Math.ceil(report.maxDailyHours * 1.25));
+	const maxQ = Math.max(30, Math.ceil(report.maxDailyQuestions * 1.25));
+
+	// Top gridline
+	ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+	ctx.setLineDash([6, 6]);
+	ctx.beginPath();
+	ctx.moveTo(MARGIN + 32, plotTop);
+	ctx.lineTo(W - MARGIN - 32, plotTop);
+	ctx.stroke();
+
+	// Mid gridline
+	const midY = plotTop + plotH / 2;
+	ctx.beginPath();
+	ctx.moveTo(MARGIN + 32, midY);
+	ctx.lineTo(W - MARGIN - 32, midY);
+	ctx.stroke();
+	ctx.setLineDash([]);
+
+	// Baseline
+	ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+	ctx.beginPath();
+	ctx.moveTo(MARGIN + 24, plotBottom);
+	ctx.lineTo(W - MARGIN - 24, plotBottom);
+	ctx.stroke();
+
+	// Grid scale text
+	ctx.textAlign = 'right';
+	ctx.font = `600 14px ${FONT}`;
+	ctx.fillStyle = hexToRgba(MUTED, 0.7);
+	ctx.fillText(`${maxH}h / ${maxQ}Q`, W - MARGIN - 36, plotTop - 8);
+	ctx.fillText(`${(maxH / 2).toFixed(0)}h / ${Math.round(maxQ / 2)}Q`, W - MARGIN - 36, midY - 8);
+
+	// 7 Day Columns
+	const colWidth = (graphPanelW - 64) / 7;
+	const barW = 28;
+	const barGap = 6;
+
+	report.daily.forEach((day, i) => {
+		const colCenterX = MARGIN + 32 + i * colWidth + colWidth / 2;
+		const hoursBarX = colCenterX - barW - barGap / 2;
+		const qBarX = colCenterX + barGap / 2;
+
+		const hHeight = day.hours > 0 ? Math.max(8, Math.min(plotH, (day.hours / maxH) * plotH)) : 3;
+		const qHeight = day.questions > 0 ? Math.max(8, Math.min(plotH, (day.questions / maxQ) * plotH)) : 3;
+
+		// Hours bar
+		if (day.hours > 0) {
+			const hGrad = ctx.createLinearGradient(0, plotBottom - hHeight, 0, plotBottom);
+			hGrad.addColorStop(0, accent);
+			hGrad.addColorStop(1, hexToRgba(accent, 0.65));
+			ctx.fillStyle = hGrad;
+			rr(ctx, hoursBarX, plotBottom - hHeight, barW, hHeight, 6);
+			ctx.fill();
+
+			// Value text above
+			ctx.textAlign = 'center';
+			ctx.fillStyle = '#e2e0ff';
+			ctx.font = `800 16px ${FONT}`;
+			const valText = day.hours >= 1 ? `${day.hours}h` : `${day.minutes}m`;
+			ctx.fillText(valText, hoursBarX + barW / 2, plotBottom - hHeight - 8);
+		} else {
+			ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+			rr(ctx, hoursBarX, plotBottom - 3, barW, 3, 2);
+			ctx.fill();
+		}
+
+		// Questions bar
+		if (day.questions > 0) {
+			const qGrad = ctx.createLinearGradient(0, plotBottom - qHeight, 0, plotBottom);
+			qGrad.addColorStop(0, '#10b981');
+			qGrad.addColorStop(1, '#059669');
+			ctx.fillStyle = qGrad;
+			rr(ctx, qBarX, plotBottom - qHeight, barW, qHeight, 6);
+			ctx.fill();
+
+			// Value text above
+			ctx.textAlign = 'center';
+			ctx.fillStyle = '#a7f3d0';
+			ctx.font = `800 16px ${FONT}`;
+			ctx.fillText(`${day.questions}`, qBarX + barW / 2, plotBottom - qHeight - 8);
+		} else {
+			ctx.fillStyle = 'rgba(255, 255, 255, 0.06)';
+			rr(ctx, qBarX, plotBottom - 3, barW, 3, 2);
+			ctx.fill();
+		}
+
+		// Day Footer: Label & Date
+		if (day.isToday) {
+			ctx.fillStyle = hexToRgba(accent, 0.22);
+			rr(ctx, colCenterX - 36, plotBottom + 12, 72, 38, 10);
+			ctx.fill();
+		}
+
+		ctx.textAlign = 'center';
+		ctx.font = `800 20px ${FONT}`;
+		ctx.fillStyle = day.isToday ? accent : INK;
+		ctx.fillText(day.dayLabel.toUpperCase(), colCenterX, plotBottom + 36);
+
+		ctx.font = `700 14px ${FONT}`;
+		ctx.fillStyle = MUTED;
+		ctx.fillText(`${day.dateNum}`, colCenterX, plotBottom + 58);
+	});
+
+	// Bottom Stat strip.
+	const statsTop = graphPanelY + graphPanelH + 24;
 	const stats = [
 		{ label: 'FOCUS', value: formatFocus(report.minutes) },
 		{ label: 'SOLVED', value: `${report.solved}` },
 		{ label: 'REVISIONS', value: `${report.revisions}` },
-		{ label: 'TESTS', value: `${report.tests}` },
-		{ label: 'MISTAKES', value: `${report.mistakes}` }
+		{ label: 'MOCK TESTS', value: `${report.tests}` },
+		{ label: 'ACTIVE DAYS', value: `${report.activeDays}/7` }
 	];
-	const colWidth = (W - MARGIN * 2) / stats.length;
+	const colWidthStat = (W - MARGIN * 2) / stats.length;
 	stats.forEach((stat, index) => {
-		const colX = MARGIN + index * colWidth;
+		const colX = MARGIN + index * colWidthStat;
 		ctx.fillStyle = INK;
-		ctx.font = `800 44px ${FONT}`;
+		ctx.font = `800 38px ${FONT}`;
 		ctx.textAlign = 'center';
 		ctx.textBaseline = 'alphabetic';
-		ctx.fillText(stat.value, colX + colWidth / 2, statsTop + 44);
+		ctx.fillText(stat.value, colX + colWidthStat / 2, statsTop + 38);
 		ctx.fillStyle = MUTED;
-		ctx.font = `700 17px ${FONT}`;
-		spaced(ctx, stat.label, colX + colWidth / 2 - spacedWidth(ctx, stat.label, 5) / 2, statsTop + 80, 5);
+		ctx.font = `700 15px ${FONT}`;
+		spaced(ctx, stat.label, colX + colWidthStat / 2 - spacedWidth(ctx, stat.label, 4) / 2, statsTop + 68, 4);
 	});
 	ctx.textAlign = 'left';
 

@@ -44,6 +44,18 @@ export interface WeekSubjectRow {
 	rankColor: string;
 }
 
+export interface DailyBreakdownItem {
+	key: string;
+	dayLabel: string;
+	shortDay: string;
+	dateNum: number;
+	hours: number;
+	minutes: number;
+	questions: number;
+	isToday: boolean;
+	isFuture: boolean;
+}
+
 export interface WeekReport {
 	startKey: string;
 	endKey: string;
@@ -68,6 +80,10 @@ export interface WeekReport {
 	tests: number;
 	mistakes: number;
 	sessions: number;
+	daily: DailyBreakdownItem[];
+	maxDailyHours: number;
+	maxDailyQuestions: number;
+	activeDays: number;
 }
 
 const inRange = (key: string, start: string, until: string) => key >= start && key <= until;
@@ -75,6 +91,7 @@ const inRange = (key: string, start: string, until: string) => key >= start && k
 /** Aggregate everything the weekly report card needs for the current week. */
 export function buildWeekReport(state: TrackerState): WeekReport {
 	const g = state.gamification;
+	const start = startOfWeek();
 	const startKey = currentWeekStartKey();
 	const end = startOfWeek();
 	end.setDate(end.getDate() + 6);
@@ -109,6 +126,54 @@ export function buildWeekReport(state: TrackerState): WeekReport {
 	const avgElo = Math.round(tierEloOf(g));
 	const lvl = getLevelData(xp);
 
+	// Daily breakdown for the 7 days of this week (Mon -> Sun)
+	const daily: DailyBreakdownItem[] = [];
+	let maxDailyHours = 0;
+	let maxDailyQuestions = 0;
+
+	for (let i = 0; i < 7; i++) {
+		const d = new Date(start);
+		d.setDate(start.getDate() + i);
+		const key = dayKeyOf(d);
+		const dayLabel = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i];
+		const shortDay = ['M', 'T', 'W', 'T', 'F', 'S', 'S'][i];
+		const isToday = key === today;
+		const isFuture = key > today;
+
+		let dayMins = 0;
+		for (const session of state.log) {
+			if (sessionDayKey(session) === key) {
+				dayMins += Number(session[1]) || 0;
+			}
+		}
+
+		let dayQs = 0;
+		const bucket = state.stat[key];
+		if (bucket) {
+			for (const val of Object.values(bucket)) {
+				dayQs += Number(val) || 0;
+			}
+		}
+
+		const dayHours = Number((dayMins / 60).toFixed(1));
+		if (dayHours > maxDailyHours) maxDailyHours = dayHours;
+		if (dayQs > maxDailyQuestions) maxDailyQuestions = dayQs;
+
+		daily.push({
+			key,
+			dayLabel,
+			shortDay,
+			dateNum: d.getDate(),
+			hours: dayHours,
+			minutes: dayMins,
+			questions: dayQs,
+			isToday,
+			isFuture
+		});
+	}
+
+	const activeDays = daily.filter((d) => d.minutes > 0 || d.questions > 0).length;
+
 	return {
 		startKey,
 		endKey,
@@ -135,6 +200,10 @@ export function buildWeekReport(state: TrackerState): WeekReport {
 				rankName: rank.name, rankColor: rank.color
 			};
 		}),
-		minutes, solved, revisions, tests, mistakes, sessions
+		minutes, solved, revisions, tests, mistakes, sessions,
+		daily,
+		maxDailyHours,
+		maxDailyQuestions,
+		activeDays
 	};
 }

@@ -1,10 +1,13 @@
 <script lang="ts">
 	import AnimatedNumber from '$lib/components/ui/AnimatedNumber.svelte';
+	import WeeklyDoubleGraph from '$lib/components/charts/WeeklyDoubleGraph.svelte';
 	import { tracker, streakDays } from '$lib/stores/tracker';
 	import { startOfWeek, weekRangeLabel, dayKeyOf, formatMinutes } from '$lib/state/dates';
 	import { logTotals, accuracyOf } from '$lib/state/questions';
+	import { buildWeekReport } from '$lib/state/weekly';
 
 	$: log = $tracker.log;
+	$: report = buildWeekReport($tracker);
 	
 	$: thisWeekKeys = (() => {
 		const start = startOfWeek();
@@ -142,6 +145,9 @@
 			</div>
 		</div>
 	</div>
+
+	<!-- Double Graph Section -->
+	<WeeklyDoubleGraph daily={report.daily} compact={true} showSummary={false} />
 
 	<div class="footer" style="border-top-color: color-mix(in srgb, {overallGrade.c} 30%, transparent)">
 		<div class="overall">
