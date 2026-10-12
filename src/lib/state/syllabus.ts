@@ -224,8 +224,10 @@ export const allChapters = (code: string) => syllabusSubject(code)?.modules.flat
 /** Question count for an exercise, honouring the user's own override. */
 export function questionCount(state: TrackerState, sc: string, chNo: number, exCode: string): number {
 	const key = cellKey(sc, chNo, exCode);
-	const override = state.x.cnt[key];
-	if (override !== undefined) return override;
+	const override = state.x?.cnt?.[key];
+	if (override !== undefined && override > 0) return override;
+	const dLen = state.d?.[key]?.length;
+	if (dLen !== undefined && dLen > 0) return dLen;
 	const chapter = syllabusChapter(sc, chNo);
 	return chapter?.exs.find((e) => e.code === exCode)?.base ?? 0;
 }
@@ -236,13 +238,38 @@ export function visibleExercises(state: TrackerState, sc: string, chNo: number):
 	if (!chapter) return [];
 	
 	const all = [...chapter.exs];
-	const custom = state.x.exs[`${sc}${chNo}`] || [];
+	const custom = state.x?.exs?.[`${sc}${chNo}`] || [];
+	const customCodes = new Set<string>();
+
 	for (const ce of custom) {
+		customCodes.add(ce.code);
 		all.push({ code: ce.code, name: ce.name, tag: 'Custom', base: 0 });
 	}
 
+	// Auto-discover custom exercises that have data in state.d even if metadata was omitted/lost
+	if (state.d) {
+		const prefix = `${sc}${chNo}`;
+		const builtInCodes = new Set(chapter.exs.map((e) => e.code));
+		for (const key of Object.keys(state.d)) {
+			if (key.startsWith(prefix)) {
+				const code = key.slice(prefix.length);
+				if (code && !builtInCodes.has(code) && !customCodes.has(code)) {
+					customCodes.add(code);
+					all.push({
+						code,
+						name: code.startsWith('AI') ? 'AI Practice' : 'Custom Exercise',
+						tag: 'Custom',
+						base: state.d[key]?.length || 0
+					});
+				}
+			}
+		}
+	}
+
 	return all.filter((ex) => {
-		const override = state.x.cnt[cellKey(sc, chNo, ex.code)];
+		// Custom exercises created by the user should never be filtered out
+		if (ex.tag === 'Custom') return true;
+		const override = state.x?.cnt?.[cellKey(sc, chNo, ex.code)];
 		const count = override !== undefined ? override : ex.base;
 		return count > 0;
 	});

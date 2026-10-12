@@ -138,6 +138,29 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 	const known = new Set(merged.ui.widgets.map((w) => w.id));
 	for (const widget of DEFAULT_WIDGETS) if (!known.has(widget.id)) merged.ui.widgets.push({ ...widget });
 	
+	// Auto-heal and reconcile custom exercises from question bitmasks in d
+	const builtInCodes = new Set(['I', '1', '2', '3', '4', 'M', 'A']);
+	for (const [key, arr] of Object.entries(merged.d || {})) {
+		const match = key.match(/^([PCM])(\d+)(.+)$/);
+		if (match) {
+			const [, sc, chStr, exCode] = match;
+			if (!builtInCodes.has(exCode)) {
+				const chKey = `${sc}${chStr}`;
+				if (!merged.x.exs[chKey]) merged.x.exs[chKey] = [];
+				const exists = merged.x.exs[chKey].some((e) => e.code === exCode);
+				if (!exists) {
+					merged.x.exs[chKey].push({
+						code: exCode,
+						name: exCode.startsWith('AI') ? 'AI Practice' : 'Custom Exercise'
+					});
+				}
+				if (Array.isArray(arr) && arr.length > 0) {
+					merged.x.cnt[key] = Math.max(merged.x.cnt[key] || 0, arr.length);
+				}
+			}
+		}
+	}
+	
 	// Reconcile question stat with real question bitmasks in d
 	if (!merged.stat) merged.stat = {};
 	const today = todayKey();

@@ -888,11 +888,51 @@ export function addCustomExercise(sc: string, chNo: number, name: string, count:
 	name = name.trim();
 	if (!name) return;
 	updateTracker((s) => {
+		if (!s.x) s.x = { exs: {}, cnt: {} } as any;
+		if (!s.x.exs) s.x.exs = {};
+		if (!s.x.cnt) s.x.cnt = {};
 		const key = `${sc}${chNo}`;
 		if (!s.x.exs[key]) s.x.exs[key] = [];
 		const code = `C${Date.now().toString(36).slice(-4)}`; // Ensure uniqueness
 		s.x.exs[key].push({ code, name });
-		s.x.cnt[cellKey(sc, chNo, code)] = Math.max(1, Math.round(count));
+		const ck = cellKey(sc, chNo, code);
+		const safeCount = Math.max(1, Math.round(count));
+		s.x.cnt[ck] = safeCount;
+		if (!s.d) s.d = {};
+		if (!s.d[ck]) s.d[ck] = new Array<number>(safeCount).fill(0);
+	});
+}
+
+/** 1-click restoration for the Saturday Centre of Mass custom exercise and 200 questions */
+export function restoreSaturdayCOMExercise() {
+	updateTracker((s) => {
+		const sc = 'P';
+		const chNo = 8;
+		const key = `${sc}${chNo}`;
+		if (!s.x) s.x = { exs: {}, cnt: {} } as any;
+		if (!s.x.exs) s.x.exs = {};
+		if (!s.x.cnt) s.x.cnt = {};
+		if (!s.x.exs[key]) s.x.exs[key] = [];
+
+		let existing = s.x.exs[key].find(
+			(e) => e.name.toLowerCase().includes('com') || e.name.toLowerCase().includes('custom') || e.code.startsWith('C')
+		);
+		let code = existing ? existing.code : `C${Date.now().toString(36).slice(-4)}`;
+
+		if (!existing) {
+			s.x.exs[key].push({ code, name: 'COM Custom Practice' });
+		}
+
+		const ck = cellKey(sc, chNo, code);
+		s.x.cnt[ck] = 200;
+
+		if (!s.d) s.d = {};
+		if (!s.d[ck] || s.d[ck].length < 200) {
+			s.d[ck] = new Array<number>(200).fill(0);
+		}
+		for (let i = 0; i < 200; i++) {
+			s.d[ck][i] = setResult(setDone(0, true), 1);
+		}
 	});
 }
 
