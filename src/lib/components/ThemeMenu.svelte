@@ -10,6 +10,9 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import type { ThemeId } from '$lib/types/tracker';
 
+	export let sidebar = false;
+	export let collapsed = false;
+
 	const ACCENTS = ['#6d5dfc', '#e0455a', '#d99a2b', '#2f9e6e', '#2b8ba6', '#2383e2', '#46a302', '#b44df0'];
 
 	let open = false;
@@ -42,7 +45,7 @@
 	$: current = presetOf($tracker.theme);
 	const canUse = (preset: (typeof THEME_PRESETS)[number], ctx: UnlockCtx) => reqMet(preset.unlock, ctx);
 
-	function handleOutside(event: MouseEvent) {
+	function handleOutside(event: Event) {
 		if (open && node && !node.contains(event.target as Node)) open = false;
 	}
 
@@ -81,12 +84,20 @@
 	}
 </script>
 
-<svelte:window on:mousedown={handleOutside} />
+<svelte:window on:mousedown={handleOutside} on:pointerdown={handleOutside} />
 
-<div class="theme-menu" bind:this={node}>
-	<button class="icon-button" type="button" aria-label="Appearance" aria-expanded={open} on:click={() => (open = !open)}>
-		<NavIcon name={isDarkTheme($tracker.theme) ? 'sun' : 'moon'} size={19} />
-	</button>
+<div class="theme-menu" class:sidebar-mode={sidebar} class:is-collapsed={collapsed} bind:this={node}>
+	{#if sidebar}
+		<button class="theme-nav-btn" type="button" aria-label="Appearance" aria-expanded={open} on:click={() => (open = !open)}>
+			<span class="nav-icon"><NavIcon name={isDarkTheme($tracker.theme) ? 'sun' : 'moon'} size={22} /></span>
+			<span class="nav-text">Theme</span>
+			<span class="theme-pill">{current.label}</span>
+		</button>
+	{:else}
+		<button class="icon-button" type="button" aria-label="Appearance" aria-expanded={open} on:click={() => (open = !open)}>
+			<NavIcon name={isDarkTheme($tracker.theme) ? 'sun' : 'moon'} size={19} />
+		</button>
+	{/if}
 
 	{#if open}
 		<div class="popover" transition:fade={{ duration: 140 }} role="dialog" aria-label="Appearance">
@@ -196,9 +207,109 @@
 
 <style>
 	.theme-menu { position: relative; }
-	.icon-button { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--border-subtle); border-radius: 11px; color: var(--text-secondary); background: var(--surface-panel); }
+	.theme-menu.sidebar-mode { width: 100%; }
+	.icon-button { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--border-subtle); border-radius: 11px; color: var(--text-secondary); background: var(--surface-panel); cursor: pointer; }
 	.icon-button:hover { color: var(--accent); border-color: var(--accent); }
-	.popover { position: absolute; z-index: 120; top: calc(100% + .55rem); right: 0; width: 320px; padding: .95rem; border: 1px solid var(--border-subtle); border-radius: 18px; background: var(--surface-panel); box-shadow: var(--shadow-card); }
+
+	.theme-nav-btn {
+		display: flex;
+		align-items: center;
+		gap: clamp(0.6rem, 1vw, 1rem);
+		height: clamp(40px, 6vh, 52px);
+		padding: 0 .75rem;
+		border-radius: 12px;
+		color: var(--text-secondary);
+		background: transparent;
+		border: none;
+		font-size: clamp(0.85rem, 1.2vh, 1rem);
+		font-weight: 650;
+		width: 100%;
+		text-align: left;
+		cursor: pointer;
+		transition: background .16s ease, color .16s ease;
+		font-family: inherit;
+	}
+	.theme-nav-btn:hover {
+		color: var(--text-primary);
+		background: var(--surface-subtle);
+	}
+	.nav-icon {
+		display: grid;
+		flex: 0 0 24px;
+		place-items: center;
+	}
+	.nav-text {
+		white-space: nowrap;
+		overflow: hidden;
+		transition: opacity .18s ease;
+	}
+	.theme-pill {
+		margin-left: auto;
+		padding: 0.12rem 0.45rem;
+		border-radius: 6px;
+		background: var(--surface-canvas);
+		border: 1px solid var(--border-subtle);
+		font-size: 0.65rem;
+		font-weight: 750;
+		color: var(--accent);
+		white-space: nowrap;
+	}
+
+	.is-collapsed .theme-nav-btn {
+		justify-content: center;
+		padding-inline: 0;
+		gap: 0;
+	}
+	.is-collapsed .nav-text,
+	.is-collapsed .theme-pill {
+		display: none;
+	}
+
+	.popover {
+		position: absolute;
+		z-index: 120;
+		top: calc(100% + .55rem);
+		right: 0;
+		width: 320px;
+		padding: .95rem;
+		border: 1px solid var(--border-subtle);
+		border-radius: 18px;
+		background: var(--surface-panel);
+		box-shadow: var(--shadow-card);
+	}
+
+	.sidebar-mode .popover {
+		position: fixed;
+		top: auto;
+		bottom: 1.5rem;
+		left: clamp(260px, 22.5vw, 310px);
+		right: auto;
+		z-index: 250;
+		box-shadow: 0 16px 44px rgba(0,0,0,0.35);
+	}
+
+	.sidebar-mode.is-collapsed .popover {
+		left: 84px;
+	}
+
+	@media (max-width: 760px) {
+		.popover,
+		.sidebar-mode .popover {
+			position: fixed;
+			top: auto;
+			bottom: max(env(safe-area-inset-bottom), 16px);
+			left: 10px;
+			right: 10px;
+			width: calc(100% - 20px);
+			max-width: 440px;
+			margin: 0 auto;
+			max-height: 80vh;
+			overflow-y: auto;
+			z-index: 2000;
+			border-radius: 20px;
+			box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+		}
+	}
 	.head { display: flex; align-items: center; justify-content: space-between; margin-bottom: .7rem; }
 	.head span { display: inline-flex; align-items: center; gap: .42rem; color: var(--text-primary); font-size: .86rem; font-weight: 800; letter-spacing: -.01em; }
 	.mode { display: inline-flex; align-items: center; gap: .35rem; height: 30px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 9px; background: var(--surface-subtle); color: var(--text-secondary); font-size: .74rem; font-weight: 750; font-family: inherit; }

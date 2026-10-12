@@ -18,7 +18,6 @@
 	import FocusScreen from '$lib/components/focus/FocusScreen.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
 	import StreakButton from '$lib/components/StreakButton.svelte';
-	import ThemeMenu from '$lib/components/ThemeMenu.svelte';
 	import FormulaVault from '$lib/components/FormulaVault.svelte';
 	import PwaBanner from '$lib/components/PwaBanner.svelte';
 	import { hydrateTracker } from '$lib/services/hydrate';
@@ -264,11 +263,7 @@
 				</div>
 				<div class="topbar-actions">
 					<span class:error={$saveStatus === 'error'} class="save-state"><i></i>{saveLabel}</span>
-					<button class="topbar-icon-btn" type="button" title="Formula Vault (Press F)" on:click={() => formulaVaultOpen.update((v) => !v)}>
-						<NavIcon name="book" size={16} />
-					</button>
 					<StreakButton />
-					<ThemeMenu />
 					<a class="quick-add" href="/plan?new=task"><NavIcon name="plus" size={17} /><span>New task</span></a>
 					<AccountMenu />
 				</div>

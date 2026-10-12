@@ -2,6 +2,7 @@
 	import { page } from '$app/stores';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
+	import ThemeMenu from '$lib/components/ThemeMenu.svelte';
 	import { tracker, formulaVaultOpen } from '$lib/stores/tracker';
 	import { chaptersDueToday } from '$lib/stores/recall-selectors';
 	import { currentUser } from '$lib/stores/auth';
@@ -112,12 +113,13 @@
 			</a>
 		{/each}
 		<button type="button" class="vault-nav-btn" on:click={() => { formulaVaultOpen.set(true); closeMobile(); }}>
-			<span class="nav-icon"><NavIcon name="book" size={22} /></span><span class="nav-text">Formula Vault</span>
+			<span class="nav-icon"><NavIcon name="book" size={22} /></span><span class="nav-text">Formula Hub</span>
 			<span class="vault-kbd">F</span>
 		</button>
 	</nav>
 
 	<div class="sidebar-bottom">
+		<ThemeMenu sidebar={true} {collapsed} />
 		<a class="settings-link" href="/settings" on:click={closeMobile}>
 			<span class="nav-icon"><NavIcon name="settings" size={22} /></span><span class="nav-text">Settings</span>
 		</a>
@@ -171,7 +173,7 @@
 	aside.collapsed .brand-row { justify-content: center; padding-inline: 0; }
 	aside.collapsed .brand { gap: 0; }
 	aside.collapsed .collapse { position: absolute; right: -12px; top: 24px; width: 24px; height: 24px; border: 1px solid var(--border-subtle); background: var(--surface-panel); transform: rotate(0deg); } /* Points Right (>) when closed */
-	aside.collapsed nav a, aside.collapsed .settings-link, aside.collapsed .vault-nav-btn { justify-content: center; padding-inline: 0; gap: 0; }
+	aside.collapsed nav a, aside.collapsed .settings-link, aside.collapsed .vault-nav-btn, aside.collapsed :global(.theme-nav-btn) { justify-content: center; padding-inline: 0; gap: 0; }
 	aside.collapsed .vault-kbd { display: none; }
 	aside.collapsed .nav-divider { margin-inline: .3rem; }
 	aside.collapsed .profile-container { justify-content: center; padding-inline: 0; }
@@ -205,7 +207,7 @@
 		}
 		aside.collapsed .brand-name, aside.collapsed .nav-text, aside.collapsed .nav-label, aside.collapsed .profile-copy { width: auto; opacity: 1; }
 		aside.collapsed .collapse { position: static; transform: none; border: 0; background: transparent; }
-		aside.collapsed nav a, aside.collapsed .settings-link, aside.collapsed .profile-container { justify-content: flex-start; padding-inline: .75rem; }
+		aside.collapsed nav a, aside.collapsed .settings-link, aside.collapsed .profile-container, aside.collapsed :global(.theme-nav-btn) { justify-content: flex-start; padding-inline: .75rem; }
 		.close-mobile-btn {
 			display: grid;
 			place-items: center;
