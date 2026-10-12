@@ -7,7 +7,7 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import {
-		tracker, updateTracker, replaceTracker, celebration, restoreSaturdayCOMExercise,
+		tracker, updateTracker, replaceTracker, celebration,
 		setProfileName, setExamDate, setWeeklyGoalHours, setStreakGoalHours
 	} from '$lib/stores/tracker';
 	import { createInitialTrackerState } from '$lib/state/defaults';
@@ -535,7 +535,6 @@
 			<div class="data-actions">
 				<button type="button" class="btn" on:click={exportData}><NavIcon name="download" size={14} /> Export backup</button>
 				<label class="btn"><NavIcon name="save" size={14} /> Import backup<input type="file" accept="application/json,.json" hidden on:change={importData} /></label>
-				<button type="button" class="btn" on:click={() => { restoreSaturdayCOMExercise(); celebration.set('Saturday COM Exercise with 200 questions restored!'); }}><NavIcon name="history" size={14} /> Restore Saturday COM (200 Qs)</button>
 				<button type="button" class="btn danger" on:click={() => (confirmClear = true)}><NavIcon name="trash" size={14} /> Clear all data</button>
 			</div>
 

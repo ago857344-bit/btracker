@@ -5,7 +5,7 @@
 	import { uiClick } from '$lib/utils/feedback';
 	import QuestionSheet from '$lib/components/log/QuestionSheet.svelte';
 	import AddExerciseModal from '$lib/components/log/AddExerciseModal.svelte';
-	import { setQuestionCount, tracker, restoreSaturdayCOMExercise, celebration } from '$lib/stores/tracker';
+	import { setQuestionCount, tracker } from '$lib/stores/tracker';
 	import {
 		allChapters, questionCount, syllabusChapter, syllabusModule, syllabusSubject, SYLLABUS, visibleExercises,
 		type SyllabusExercise
@@ -164,17 +164,6 @@
 			<NavIcon name="plus" size={13} /> Add Exercise
 		</button>
 	</header>
-	{#if subject.code === 'P' && chapter.no === 8 && !visibleExercises($tracker, 'P', 8).some((e) => e.tag === 'Custom')}
-		<div class="com-restore-banner">
-			<div class="banner-text">
-				<div class="banner-title"><NavIcon name="history" size={14} /> Restore Saturday COM Exercise?</div>
-				<p>Recover your custom exercise and all 200 solved questions from Saturday in one click.</p>
-			</div>
-			<button type="button" class="btn-restore" on:click={() => { restoreSaturdayCOMExercise(); celebration.set('Saturday COM Exercise with 200 questions restored!'); }}>
-				Restore 200 Qs
-			</button>
-		</div>
-	{/if}
 	<div class="grid g2">
 		{#each visibleExercises($tracker, subject.code, chapter.no) as ex (ex.code)}
 			{@const st = exerciseStats($tracker, subject.code, chapter.no, ex.code)}
@@ -284,49 +273,4 @@
 	.primary { height: 44px; padding: 0 1rem; border: 0; border-radius: 11px; background: var(--accent); color: white; font-size: .82rem; font-weight: 750; }
 	.msg { margin: .6rem 0 0; color: var(--danger); font-size: .78rem; font-weight: 650; }
 	.emptywide { color: var(--text-secondary); font-size: .86rem; }
-
-	.com-restore-banner {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 1rem;
-		margin-bottom: 1.2rem;
-		padding: 0.9rem 1.15rem;
-		border-radius: 14px;
-		background: color-mix(in srgb, var(--accent) 12%, var(--surface-panel));
-		border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border-subtle));
-	}
-	.banner-title {
-		display: flex;
-		align-items: center;
-		gap: 0.45rem;
-		font-weight: 800;
-		font-size: 0.88rem;
-		color: var(--accent);
-	}
-	.banner-text p {
-		margin: 0.2rem 0 0;
-		font-size: 0.74rem;
-		color: var(--text-secondary);
-	}
-	.btn-restore {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.4rem;
-		padding: 0.5rem 0.95rem;
-		border-radius: 9px;
-		font-size: 0.76rem;
-		font-weight: 800;
-		background: var(--accent);
-		color: white;
-		border: none;
-		cursor: pointer;
-		white-space: nowrap;
-		box-shadow: 0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent);
-		transition: transform 0.15s ease, opacity 0.15s ease;
-	}
-	.btn-restore:hover {
-		transform: translateY(-1px);
-		opacity: 0.92;
-	}
 </style>
