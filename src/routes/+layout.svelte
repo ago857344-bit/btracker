@@ -41,6 +41,7 @@
 	}
 
 	function handleTouchEnd(e: TouchEvent) {
+		if (mobileOpen) return;
 		const touchEndX = e.changedTouches[0].screenX;
 		const touchEndY = e.changedTouches[0].screenY;
 
@@ -81,10 +82,16 @@
 
 
 				
-	beforeNavigate(({ cancel }) => {
+	function handleGlobalPointerDown(e: Event) {
+		if (!mobileOpen) return;
+		const target = e.target as HTMLElement | null;
+		if (target?.closest('aside') || target?.closest('.mobile-menu')) return;
+		mobileOpen = false;
+	}
+
+	beforeNavigate(() => {
 		if (mobileOpen) {
 			mobileOpen = false;
-			cancel();
 		}
 	});
 
@@ -224,18 +231,22 @@
 	{/if}
 </svelte:head>
 
-<svelte:window on:keydown={(event) => {
-	if (event.key === 'Escape') mobileOpen = false;
-	if ((event.key === 'f' || event.key === 'F') && !event.ctrlKey && !event.metaKey && !event.altKey) {
-		const target = event.target as HTMLElement | null;
-		const tag = target?.tagName?.toLowerCase();
-		const isEditable = target?.isContentEditable;
-		if (tag !== 'input' && tag !== 'textarea' && tag !== 'select' && !isEditable) {
-			event.preventDefault();
-			formulaVaultOpen.update((v) => !v);
+<svelte:window
+	on:pointerdown={handleGlobalPointerDown}
+	on:touchstart={handleGlobalPointerDown}
+	on:keydown={(event) => {
+		if (event.key === 'Escape') mobileOpen = false;
+		if ((event.key === 'f' || event.key === 'F') && !event.ctrlKey && !event.metaKey && !event.altKey) {
+			const target = event.target as HTMLElement | null;
+			const tag = target?.tagName?.toLowerCase();
+			const isEditable = target?.isContentEditable;
+			if (tag !== 'input' && tag !== 'textarea' && tag !== 'select' && !isEditable) {
+				event.preventDefault();
+				formulaVaultOpen.update((v) => !v);
+			}
 		}
-	}
-}} />
+	}}
+/>
 
 {#if isAuthRoute}
 	<slot />
@@ -243,7 +254,7 @@
 	{@const themeIsCustom = THEME_PRESETS.find(t => t.id === $tracker.theme)?.unlock != null}
 	<div class:sidebar-collapsed={collapsed} class:aurora-on={$loadout.aurora || themeIsCustom} class="app-shell">
 		{#if $loadout.aurora || themeIsCustom}<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>{/if}
-		{#if mobileOpen}<button class="scrim" aria-label="Close navigation" on:click={() => mobileOpen = false}></button>{/if}
+		{#if mobileOpen}<div class="scrim" aria-hidden="true"></div>{/if}
 		<AppSidebar bind:collapsed bind:mobileOpen />
 		<div class="app-main">
 			<header class="topbar">
@@ -335,7 +346,7 @@
 		.quick-add span { display: none; }
 		.quick-add { width: 36px; justify-content: center; padding: 0; }
 		main { padding: 1rem .75rem 100px; }
-		.scrim { display: block; position: fixed; z-index: 10; inset: 0; border: 0; background: rgb(16 14 30 / 34%); backdrop-filter: blur(2px); }
+		.scrim { display: block; position: fixed; z-index: 10; inset: 0; border: 0; background: rgb(16 14 30 / 34%); backdrop-filter: blur(2px); pointer-events: none; }
 	}
 
 .live-wallpaper-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: -2; pointer-events: none; opacity: 0.85;  -webkit-transform: translateZ(0); transform: translateZ(0); }

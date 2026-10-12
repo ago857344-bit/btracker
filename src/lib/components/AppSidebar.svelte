@@ -38,6 +38,26 @@
 	const isActive = (href: string) => href === '/' ? $page.url.pathname === '/' : $page.url.pathname.startsWith(href);
 	const closeMobile = () => mobileOpen = false;
 
+	let touchStartX = 0;
+	let touchStartY = 0;
+
+	function handleTouchStart(e: TouchEvent) {
+		if (e.touches.length > 0) {
+			touchStartX = e.touches[0].clientX;
+			touchStartY = e.touches[0].clientY;
+		}
+	}
+
+	function handleTouchEnd(e: TouchEvent) {
+		if (e.changedTouches.length > 0) {
+			const deltaX = e.changedTouches[0].clientX - touchStartX;
+			const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY);
+			if (deltaX < -40 && deltaY < 80) {
+				closeMobile();
+			}
+		}
+	}
+
 	function handleToggle() {
 		if (typeof window !== 'undefined' && window.innerWidth <= 760) {
 			mobileOpen = false;
@@ -47,15 +67,28 @@
 	}
 </script>
 
-<aside class="glass" class:collapsed class:mobile-open={mobileOpen} aria-label="Primary navigation">
+<aside
+	class="glass"
+	class:collapsed
+	class:mobile-open={mobileOpen}
+	aria-label="Primary navigation"
+	on:touchstart={handleTouchStart}
+	on:touchend={handleTouchEnd}
+>
 	<div class="brand-row">
 		<a class="brand" href="/" aria-label="BTracker home" on:click={closeMobile}>
 			<span class="brand-mark">B</span>
 			<span class="brand-name">btracker</span>
 		</a>
-		<button class="collapse" type="button" on:click={handleToggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
-			<NavIcon name="chevron" size={18} />
-		</button>
+		{#if mobileOpen}
+			<button class="close-mobile-btn" type="button" on:click={closeMobile} aria-label="Close menu">
+				<NavIcon name="x" size={18} />
+			</button>
+		{:else}
+			<button class="collapse" type="button" on:click={handleToggle} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+				<NavIcon name="chevron" size={18} />
+			</button>
+		{/if}
 	</div>
 
 	<nav>
@@ -151,13 +184,52 @@
 	.vault-kbd { margin-left: auto; padding: 0.1rem 0.4rem; border-radius: 5px; background: var(--surface-canvas); border: 1px solid var(--border-subtle); font-size: 0.65rem; font-weight: 800; color: var(--accent); }
 
 	
+	.close-mobile-btn { display: none; }
+
 	@media (max-width: 760px) {
-		aside { width: min(270px, calc(100vw - 48px)); transform: translateX(-102%); box-shadow: var(--shadow-card); }
-		aside.mobile-open { transform: translateX(0); }
-		aside.collapsed { width: min(270px, calc(100vw - 48px)); }
+		aside {
+			width: min(280px, calc(100vw - 48px));
+			transform: translateX(-102%);
+			box-shadow: var(--shadow-card);
+			padding-top: calc(max(env(safe-area-inset-top), 28px) + 0.85rem);
+			padding-bottom: calc(max(env(safe-area-inset-bottom), 16px) + 1.25rem);
+		}
+		aside.mobile-open {
+			transform: translateX(0);
+			z-index: 120;
+		}
+		aside.collapsed {
+			width: min(280px, calc(100vw - 48px));
+			padding-top: calc(max(env(safe-area-inset-top), 28px) + 0.85rem);
+			padding-bottom: calc(max(env(safe-area-inset-bottom), 16px) + 1.25rem);
+		}
 		aside.collapsed .brand-name, aside.collapsed .nav-text, aside.collapsed .nav-label, aside.collapsed .profile-copy { width: auto; opacity: 1; }
 		aside.collapsed .collapse { position: static; transform: none; border: 0; background: transparent; }
 		aside.collapsed nav a, aside.collapsed .settings-link, aside.collapsed .profile-container { justify-content: flex-start; padding-inline: .75rem; }
+		.close-mobile-btn {
+			display: grid;
+			place-items: center;
+			margin-left: auto;
+			width: 38px;
+			height: 38px;
+			min-width: 38px;
+			min-height: 38px;
+			border: 1px solid var(--border-subtle);
+			border-radius: 10px;
+			background: var(--surface-subtle);
+			color: var(--text-secondary);
+			cursor: pointer;
+			touch-action: manipulation;
+			-webkit-tap-highlight-color: transparent;
+			transition: background 0.15s, color 0.15s, transform 0.1s;
+		}
+		.close-mobile-btn:hover {
+			color: var(--text-primary);
+			background: var(--surface-panel);
+		}
+		.close-mobile-btn:active {
+			transform: scale(0.92);
+		}
 	}
 
 .elo-badge { flex: none; max-width: 62%; overflow: hidden; text-overflow: ellipsis; font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
