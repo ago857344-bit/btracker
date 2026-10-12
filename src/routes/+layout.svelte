@@ -19,7 +19,6 @@
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
 	import StreakButton from '$lib/components/StreakButton.svelte';
 	import ThemeMenu from '$lib/components/ThemeMenu.svelte';
-	import QuickQuestionLog from '$lib/components/QuickQuestionLog.svelte';
 	import FormulaVault from '$lib/components/FormulaVault.svelte';
 	import PwaBanner from '$lib/components/PwaBanner.svelte';
 	import { hydrateTracker } from '$lib/services/hydrate';
@@ -258,7 +257,6 @@
 						<NavIcon name="book" size={16} />
 					</button>
 					<StreakButton />
-					<QuickQuestionLog />
 					<ThemeMenu />
 					<a class="quick-add" href="/plan?new=task"><NavIcon name="plus" size={17} /><span>New task</span></a>
 					<AccountMenu />

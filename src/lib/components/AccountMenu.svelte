@@ -3,6 +3,8 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { currentUser, initials, signOut, syncStatus, hasSkippedLogin } from '$lib/stores/auth';
 
+	export let showSignIn = true;
+
 	let open = false;
 	let root: HTMLDivElement;
 
@@ -51,8 +53,12 @@
 				<button type="button" role="menuitem" on:click={doSignOut}><NavIcon name="lock" size={16} /> Sign out</button>
 			</div>
 		{/if}
-	{:else}
+	{:else if showSignIn}
 		<button type="button" class="signin" on:click={goToLogin}><NavIcon name="shield" size={16} /><span>Sign in</span></button>
+	{:else}
+		<div class="avatar-btn static-avatar">
+			<span class="initials">{$initials || 'ME'}</span>
+		</div>
 	{/if}
 </div>
 

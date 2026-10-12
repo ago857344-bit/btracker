@@ -90,7 +90,7 @@
 		</a>
 		<div class="profile-container gamer-card">
 			<div class="avatar-ring" class:active={frame} class:animated={frame?.id === 'flame' || frame?.id === 'celestial'} style={frame ? `--ring-bg: linear-gradient(135deg, ${frame.colors?.join(', ')})` : undefined}>
-				<AccountMenu />
+				<AccountMenu showSignIn={false} />
 			</div>
 			<span class="profile-copy">
 				<div class="user-level-row">
