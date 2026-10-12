@@ -115,7 +115,8 @@ export const DEFAULT_WIDGETS: WidgetLayout[] = [
 	{ id: 'up-next', enabled: true, order: 5, span: 1 },
 	{ id: 'due-homework', enabled: true, order: 6, span: 2 },
 	{ id: 'activity', enabled: true, order: 7, span: 3, height: 'lg' },
-	{ id: 'standing', enabled: false, order: 8, span: 1 },
+	{ id: 'yearly-heatmap', enabled: true, order: 8, span: 3, height: 'md' },
+	{ id: 'standing', enabled: false, order: 9, span: 1 },
 ];
 export const createUiPreferences = (): UiPreferences => ({ accent: '#6d5dfc', widgets: DEFAULT_WIDGETS, reducedMotion: false, wallpaper: null, glassStrength: 100, haptics: true, sounds: true });
 export const createInitialTrackerState = (): TrackerState => ({
@@ -126,5 +127,6 @@ export const createInitialTrackerState = (): TrackerState => ({
 	flashcards: [],
 	gamification: { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } },
 	settings: { focusPet: 'orb' },
+	streakFreezes: { available: 2, usedDates: [] },
 	theme: 'dark', pom: { ...DEFAULT_POMODORO }, ui: createUiPreferences(), savedAt: null
 });

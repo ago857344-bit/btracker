@@ -22,7 +22,8 @@
 	import { itemOf, reqMet, reqLabel, reqStatus, reqProgress, AURORA_REQ, type UnlockCtx } from '$lib/state/cosmetics';
 	import { COSMETIC_SLOTS, type Slot } from '$lib/state/cosmetics';
 
-	import type { ThemeId, TrackerState } from '$lib/types/tracker';
+	import type { ThemeId, TrackerState, StateSnapshot } from '$lib/types/tracker';
+	import { takeSnapshot, listSnapshots, restoreSnapshot, deleteSnapshot } from '$lib/services/persistence';
 
 	const ACCENTS = ['#6d5dfc', '#e0455a', '#d99a2b', '#2f9e6e', '#2b8ba6', '#8b7bff', '#ff5c8a', '#b44df0'];
 	const THEMES = THEME_PRESETS;
@@ -331,6 +332,43 @@
 		reader.readAsText(file);
 	}
 
+	let snapshots: Omit<StateSnapshot, 'state'>[] = [];
+	let snapshotLoading = false;
+	let restoreConfirmSnap: Omit<StateSnapshot, 'state'> | null = null;
+
+	async function loadSnapshots() {
+		if (browser) snapshots = await listSnapshots();
+	}
+
+	async function handleCreateSnapshot() {
+		snapshotLoading = true;
+		try {
+			await takeSnapshot($tracker, undefined, 'Manual');
+			await loadSnapshots();
+			celebration.set('Local Snapshot saved successfully!');
+		} finally {
+			snapshotLoading = false;
+		}
+	}
+
+	async function handleRestoreSnapshot(snap: Omit<StateSnapshot, 'state'>) {
+		const restored = await restoreSnapshot(snap.id);
+		if (restored) {
+			replaceTracker(restored);
+			restoreConfirmSnap = null;
+			celebration.set(`Restored snapshot from ${snap.label}!`);
+		}
+	}
+
+	async function handleDeleteSnapshot(id: string) {
+		await deleteSnapshot(id);
+		await loadSnapshots();
+	}
+
+	onMount(() => {
+		void loadSnapshots();
+	});
+
 	let legacyCode = '';
 	let legacyError = '';
 
@@ -538,6 +576,54 @@
 				<button type="button" class="btn danger" on:click={() => (confirmClear = true)}><NavIcon name="trash" size={14} /> Clear all data</button>
 			</div>
 
+			<!-- Local Snapshot Vault -->
+			<div class="snapshot-vault">
+				<div class="vault-head">
+					<div>
+						<p class="label" style="margin: 0; display: flex; align-items: center; gap: 0.35rem;">
+							<NavIcon name="shield" size={12} /> LOCAL SNAPSHOT VAULT
+						</p>
+						<p class="muted" style="margin: 0.2rem 0 0; font-size: 0.74rem;">
+							Rolling restore points stored safely in IndexedDB.
+						</p>
+					</div>
+					<button type="button" class="btn-snap-create" disabled={snapshotLoading} on:click={handleCreateSnapshot}>
+						<NavIcon name="plus" size={12} /> {snapshotLoading ? 'Saving...' : 'New Snapshot'}
+					</button>
+				</div>
+
+				{#if snapshots.length === 0}
+					<div class="snap-empty">
+						<span>No snapshots saved yet. Auto-snapshots are taken every 30 mins while studying.</span>
+					</div>
+				{:else}
+					<div class="snap-list">
+						{#each snapshots as snap (snap.id)}
+							<div class="snap-row">
+								<div class="snap-info">
+									<div class="snap-top">
+										<b>{snap.label}</b>
+										<span class="snap-tag {snap.reason === 'Manual' ? 'manual' : 'auto'}">{snap.reason}</span>
+									</div>
+									<div class="snap-sub">
+										<span>🎯 {snap.questionCount} Questions</span>
+										{#if snap.testCount > 0}<span>• 📝 {snap.testCount} tests</span>{/if}
+									</div>
+								</div>
+								<div class="snap-btns">
+									<button type="button" class="btn-snap-restore" on:click={() => (restoreConfirmSnap = snap)}>
+										<NavIcon name="history" size={12} /> Restore
+									</button>
+									<button type="button" class="btn-snap-del" title="Delete snapshot" on:click={() => handleDeleteSnapshot(snap.id)}>
+										<NavIcon name="trash" size={12} />
+									</button>
+								</div>
+							</div>
+						{/each}
+					</div>
+				{/if}
+			</div>
+
 			<p class="label legacy-label">IMPORT FROM OLD TRACKER</p>
 			<p class="muted">Paste the export code from the old site (or open the .txt file it downloaded), then import. Matching sections — syllabus progress, homework, tests, notes, goals — replace the current ones; your profile, to-dos, reflections and sessions stay untouched.</p>
 			<textarea
@@ -659,6 +745,17 @@
 		<button type="button" class="btn danger" on:click={clearAll}>Delete everything</button>
 	</svelte:fragment>
 </Modal>
+
+{#if restoreConfirmSnap}
+	<Modal open={true} title="RESTORE LOCAL SNAPSHOT" width="440px" on:close={() => (restoreConfirmSnap = null)}>
+		<p class="warn">Are you sure you want to restore to snapshot from <b>{restoreConfirmSnap.label}</b>?</p>
+		<p class="muted" style="margin-top: 0.4rem;">This will load {restoreConfirmSnap.questionCount} questions and {restoreConfirmSnap.testCount} tests recorded at that point in time.</p>
+		<svelte:fragment slot="footer">
+			<button type="button" class="btn" on:click={() => (restoreConfirmSnap = null)}>Cancel</button>
+			<button type="button" class="btn accent" on:click={() => restoreConfirmSnap && handleRestoreSnapshot(restoreConfirmSnap)}>Restore Now</button>
+		</svelte:fragment>
+	</Modal>
+{/if}
 
 
 <Modal bind:open={previewModalOpen} title="THEME LOCKED" width="380px">
@@ -788,5 +885,22 @@
 	.cos small { font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); opacity: 0.8; }
 	.check.dim { opacity: 0.5; }
 
-
+	.snapshot-vault { margin: 1.1rem 0 1.2rem; padding: 0.95rem 1rem; border-radius: 14px; background: var(--surface-subtle); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 0.75rem; }
+	.vault-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
+	.btn-snap-create { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.38rem 0.75rem; border-radius: 8px; border: none; background: var(--accent); color: white; font-size: 0.75rem; font-weight: 750; cursor: pointer; }
+	.btn-snap-create:disabled { opacity: 0.6; cursor: wait; }
+	.snap-empty { font-size: 0.76rem; color: var(--text-secondary); padding: 0.4rem 0; }
+	.snap-list { display: flex; flex-direction: column; gap: 0.45rem; max-height: 220px; overflow-y: auto; }
+	.snap-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 9px; background: var(--surface-panel); border: 1px solid var(--border-subtle); }
+	.snap-top { display: flex; align-items: center; gap: 0.45rem; }
+	.snap-top b { font-size: 0.78rem; color: var(--text-primary); }
+	.snap-tag { font-size: 0.62rem; font-weight: 800; padding: 0.1rem 0.4rem; border-radius: 4px; text-transform: uppercase; }
+	.snap-tag.manual { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); }
+	.snap-tag.auto { background: color-mix(in srgb, #10b981 20%, transparent); color: #10b981; }
+	.snap-sub { display: flex; align-items: center; gap: 0.4rem; font-size: 0.7rem; color: var(--text-secondary); margin-top: 0.1rem; }
+	.snap-btns { display: flex; align-items: center; gap: 0.35rem; }
+	.btn-snap-restore { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.3rem 0.65rem; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--surface-subtle); color: var(--text-primary); font-size: 0.72rem; font-weight: 700; cursor: pointer; }
+	.btn-snap-restore:hover { border-color: var(--accent); color: var(--accent); }
+	.btn-snap-del { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border-subtle); background: transparent; color: var(--text-secondary); cursor: pointer; }
+	.btn-snap-del:hover { color: var(--danger, #e0455a); border-color: var(--danger, #e0455a); }
 </style>

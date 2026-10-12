@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
-	import { tracker } from '$lib/stores/tracker';
+	import { tracker, formulaVaultOpen } from '$lib/stores/tracker';
 	import { chaptersDueToday } from '$lib/stores/recall-selectors';
 	import { currentUser } from '$lib/stores/auth';
 	import { getLevelData, tierEloOf } from '$lib/state/gamification';
@@ -78,6 +78,10 @@
 				{/if}
 			</a>
 		{/each}
+		<button type="button" class="vault-nav-btn" on:click={() => { formulaVaultOpen.set(true); closeMobile(); }}>
+			<span class="nav-icon"><NavIcon name="book" size={22} /></span><span class="nav-text">Formula Vault</span>
+			<span class="vault-kbd">F</span>
+		</button>
 	</nav>
 
 	<div class="sidebar-bottom">
@@ -134,12 +138,17 @@
 	aside.collapsed .brand-row { justify-content: center; padding-inline: 0; }
 	aside.collapsed .brand { gap: 0; }
 	aside.collapsed .collapse { position: absolute; right: -12px; top: 24px; width: 24px; height: 24px; border: 1px solid var(--border-subtle); background: var(--surface-panel); transform: rotate(0deg); } /* Points Right (>) when closed */
-	aside.collapsed nav a, aside.collapsed .settings-link { justify-content: center; padding-inline: 0; gap: 0; }
+	aside.collapsed nav a, aside.collapsed .settings-link, aside.collapsed .vault-nav-btn { justify-content: center; padding-inline: 0; gap: 0; }
+	aside.collapsed .vault-kbd { display: none; }
 	aside.collapsed .nav-divider { margin-inline: .3rem; }
 	aside.collapsed .profile-container { justify-content: center; padding-inline: 0; }
 	aside.collapsed :global(.signin span) { width: 0; opacity: 0; overflow: hidden; display: none; }
 	aside.collapsed :global(.signin) { justify-content: center; width: 36px; height: 36px; padding: 0; }
 	aside.collapsed :global(.signin svg) { margin: 0; }
+
+	.vault-nav-btn { display: flex; align-items: center; gap: clamp(0.6rem, 1vw, 1rem); height: clamp(40px, 6vh, 52px); padding: 0 .75rem; border-radius: 12px; color: var(--text-secondary); background: transparent; border: none; font-size: clamp(0.85rem, 1.2vh, 1rem); font-weight: 650; width: 100%; text-align: left; cursor: pointer; transition: background .16s ease, color .16s ease; font-family: inherit; }
+	.vault-nav-btn:hover { color: var(--text-primary); background: var(--surface-subtle); }
+	.vault-kbd { margin-left: auto; padding: 0.1rem 0.4rem; border-radius: 5px; background: var(--surface-canvas); border: 1px solid var(--border-subtle); font-size: 0.65rem; font-weight: 800; color: var(--accent); }
 
 	
 	@media (max-width: 760px) {

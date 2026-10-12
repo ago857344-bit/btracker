@@ -20,11 +20,13 @@
 	import StreakButton from '$lib/components/StreakButton.svelte';
 	import ThemeMenu from '$lib/components/ThemeMenu.svelte';
 	import QuickQuestionLog from '$lib/components/QuickQuestionLog.svelte';
+	import FormulaVault from '$lib/components/FormulaVault.svelte';
+	import PwaBanner from '$lib/components/PwaBanner.svelte';
 	import { hydrateTracker } from '$lib/services/hydrate';
 	import { startSync } from '$lib/services/sync';
 	import { THEME_PRESETS, isDarkTheme, wallpaperCss, resolveLiveWallpaper, resolveEcoMode, isMobileDevice } from '$lib/state/themes';
 	import { authReady, authConfigured, currentUser, hasSkippedLogin } from '$lib/stores/auth';
-	import { saveStatus, tracker } from '$lib/stores/tracker';
+	import { saveStatus, tracker, formulaVaultOpen } from '$lib/stores/tracker';
 	import { loadout } from '$lib/stores/cosmetics';
 
 	let collapsed = false;
@@ -223,7 +225,18 @@
 	{/if}
 </svelte:head>
 
-<svelte:window on:keydown={(event) => { if (event.key === 'Escape') mobileOpen = false; }} />
+<svelte:window on:keydown={(event) => {
+	if (event.key === 'Escape') mobileOpen = false;
+	if ((event.key === 'f' || event.key === 'F') && !event.ctrlKey && !event.metaKey && !event.altKey) {
+		const target = event.target as HTMLElement | null;
+		const tag = target?.tagName?.toLowerCase();
+		const isEditable = target?.isContentEditable;
+		if (tag !== 'input' && tag !== 'textarea' && tag !== 'select' && !isEditable) {
+			event.preventDefault();
+			formulaVaultOpen.update((v) => !v);
+		}
+	}
+}} />
 
 {#if isAuthRoute}
 	<slot />
@@ -241,6 +254,9 @@
 				</div>
 				<div class="topbar-actions">
 					<span class:error={$saveStatus === 'error'} class="save-state"><i></i>{saveLabel}</span>
+					<button class="topbar-icon-btn" type="button" title="Formula Vault (Press F)" on:click={() => formulaVaultOpen.update((v) => !v)}>
+						<NavIcon name="book" size={16} />
+					</button>
 					<StreakButton />
 					<QuickQuestionLog />
 					<ThemeMenu />
@@ -265,6 +281,8 @@
 		<MobileBottomNav />
 		<GlobalOverlays />
 		<AIOmentor />
+		<FormulaVault bind:open={$formulaVaultOpen} />
+		<PwaBanner />
 		{#if activeVideoUrl}
 			<video bind:this={bgVideo} src={activeVideoUrl} autoplay loop muted playsinline preload="auto" class="live-wallpaper-bg" on:loadeddata={(e) => e.currentTarget.play().catch(() => {})} on:canplay={(e) => e.currentTarget.play().catch(() => {})}></video>
 		{/if}
@@ -304,6 +322,8 @@
 	.save-state { display: inline-flex; align-items: center; gap: .42rem; color: var(--text-secondary); font-size: .74rem; font-weight: 650; }
 	.save-state i { display: block; width: 7px; height: 7px; border-radius: 99px; background: var(--success); }
 	.save-state.error i { background: var(--danger); }
+	.topbar-icon-btn { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; border: 1px solid var(--border-subtle); background: var(--surface-panel); color: var(--text-secondary); cursor: pointer; transition: border-color .15s ease, color .15s ease; }
+	.topbar-icon-btn:hover { border-color: var(--accent); color: var(--text-primary); }
 	.quick-add { display: inline-flex; align-items: center; gap: .42rem; height: 36px; padding: 0 .75rem; border-radius: 11px; color: white; background: var(--accent); box-shadow: 0 7px 16px color-mix(in srgb, var(--accent), transparent 67%); font-size: .78rem; font-weight: 750; text-decoration: none; }
 	main { width: min(100%, 1560px); margin: 0 auto; padding: clamp(1.5rem, 3.5vw, 3.5rem) clamp(1.5rem, 4vw, 4rem) 4rem; }
 	.mobile-menu { display: none; width: 37px; height: 37px; place-items: center; border: 1px solid var(--border-subtle); border-radius: 11px; color: var(--text-primary); background: var(--surface-panel); }

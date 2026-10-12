@@ -143,6 +143,10 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		todos: mergedTodos,
 		mocks: mergedMocks,
 		gamification: mergedGamification,
+		streakFreezes: {
+			available: Math.max(base.streakFreezes?.available ?? 2, remote.streakFreezes?.available ?? 2),
+			usedDates: Array.from(new Set([...(base.streakFreezes?.usedDates ?? []), ...(remote.streakFreezes?.usedDates ?? [])]))
+		},
 		savedAt: new Date().toISOString()
 	};
 

@@ -8,10 +8,21 @@ const ASSETS = [
   ...files.filter((f: string) => !f.endsWith('.mp4'))
 ];
 
+const ROUTES = [
+  '/', '/log', '/plan', '/focus', '/review', '/revise', '/stats', '/todo', '/tests', '/settings', '/flashcards', '/reminders'
+];
+
 self.addEventListener('install', (event: any) => {
   async function addFilesToCache() {
     const cache = await caches.open(CACHE);
     await cache.addAll(ASSETS);
+    // Precache primary routes for offline access
+    for (const route of ROUTES) {
+      try {
+        const resp = await fetch(route);
+        if (resp.ok) await cache.put(route, resp);
+      } catch {}
+    }
   }
   event.waitUntil(addFilesToCache());
   // @ts-ignore

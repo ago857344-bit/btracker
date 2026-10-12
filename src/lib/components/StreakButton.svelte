@@ -1,7 +1,8 @@
 <script lang="ts">
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
-	import { celebration, hydration, intelligence, streakDays } from '$lib/stores/tracker';
+	import { celebration, hydration, intelligence, streakDays, tracker, useStreakFreeze, earnStreakFreeze } from '$lib/stores/tracker';
+	import { todayKey, addDaysKey, focusMinutesOn } from '$lib/state/dates';
 
 	interface Badge { id: string; icon: string; name: string; need: number; unit: 'day' | 'hour'; label: string }
 
@@ -22,6 +23,12 @@
 
 	let open = false;
 	let seen: string[] | null = null;
+
+	$: yesterday = addDaysKey(todayKey(), -1);
+	$: streakNeed = ($tracker.meta?.streakGoalH || 1) * 60;
+	$: yesterdayMet = focusMinutesOn($tracker.log, yesterday) >= streakNeed;
+	$: yesterdayFrozen = ($tracker.streakFreezes?.usedDates || []).includes(yesterday);
+	$: canShieldYesterday = ($tracker.streakFreezes?.available ?? 0) > 0 && !yesterdayMet && !yesterdayFrozen;
 
 	// Badges are derived from never-decreasing figures (best-ever streak, lifetime hours),
 	// so an unlock is permanent without persisting anything extra.
@@ -60,6 +67,29 @@
 		</div>
 		<div class="stat"><div><b>{$intelligence.maxStreak}</b><small>best ever</small></div></div>
 		<div class="stat"><div><b>{$intelligence.lifetimeHours}h</b><small>focused</small></div></div>
+	</div>
+
+	<!-- Streak Freeze Protection Card -->
+	<div class="freeze-card">
+		<div class="freeze-left">
+			<span class="shield-icon">🛡️</span>
+			<div>
+				<b>Streak Freeze Protection: {$tracker.streakFreezes?.available ?? 2} available</b>
+				<small>Protects your streak if you miss a day. Earned every 7-day streak.</small>
+			</div>
+		</div>
+		<div class="freeze-actions">
+			{#if ($tracker.streakFreezes?.available ?? 2) < 4}
+				<button type="button" class="btn-freeze" on:click={() => { earnStreakFreeze(); celebration.set('Claimed 1 Streak Freeze shield!'); }}>
+					+ Claim 1 Freeze
+				</button>
+			{/if}
+			{#if canShieldYesterday}
+				<button type="button" class="btn-freeze shield" on:click={() => { useStreakFreeze(yesterday); celebration.set('Yesterday shielded with a Streak Freeze!'); }}>
+					Shield Yesterday
+				</button>
+			{/if}
+		</div>
 	</div>
 
 	<p class="label">STREAK MILESTONES</p>
@@ -106,4 +136,61 @@
 	.badge b { font-size: .72rem; font-weight: 800; letter-spacing: -.01em; }
 	.badge small { color: var(--text-secondary); font-size: .62rem; }
 	.badge.on { filter: none; opacity: 1; border-color: color-mix(in srgb, #f59e0b, transparent 45%); background: color-mix(in srgb, #f59e0b, transparent 94%); box-shadow: 0 4px 14px color-mix(in srgb, #f59e0b, transparent 86%); }
+
+	.freeze-card {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.85rem 1rem;
+		margin: 0.85rem 0 0.4rem;
+		border-radius: 14px;
+		background: color-mix(in srgb, #38bdf8 10%, var(--surface-subtle));
+		border: 1px solid color-mix(in srgb, #38bdf8 30%, var(--border-subtle));
+	}
+	.freeze-left {
+		display: flex;
+		align-items: center;
+		gap: 0.65rem;
+	}
+	.shield-icon {
+		font-size: 1.4rem;
+		line-height: 1;
+	}
+	.freeze-left b {
+		display: block;
+		font-size: 0.84rem;
+		color: var(--text-primary);
+	}
+	.freeze-left small {
+		display: block;
+		font-size: 0.7rem;
+		color: var(--text-secondary);
+	}
+	.freeze-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+	.btn-freeze {
+		padding: 0.4rem 0.75rem;
+		border-radius: 8px;
+		border: 1px solid color-mix(in srgb, #38bdf8 40%, var(--border-subtle));
+		background: var(--surface-panel);
+		color: #38bdf8;
+		font-size: 0.74rem;
+		font-weight: 750;
+		cursor: pointer;
+		white-space: nowrap;
+		transition: all 0.15s ease;
+	}
+	.btn-freeze:hover {
+		background: #38bdf8;
+		color: #071720;
+	}
+	.btn-freeze.shield {
+		background: #f59e0b;
+		color: #1a0f00;
+		border-color: #f59e0b;
+	}
 </style>

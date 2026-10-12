@@ -6,7 +6,8 @@
 		| 'stop' | 'coffee' | 'sofa' | 'book' | 'flame' | 'layers' | 'target' | 'pulse' | 'bulb' | 'trash'
 		| 'drag' | 'search' | 'funnel' | 'library' | 'save' | 'sparkles' | 'crown' | 'brain' | 'sigma' | 'trend'
 		| 'clock' | 'calendar-check' | 'history' | 'download' | 'arrow-right' | 'atom' | 'bolt' | 'calculator'
-		| 'tv' | 'info' | 'edit' | 'list' | 'quote' | 'reddit' | 'palette' | 'shield' | 'trophy' | 'sunrise' | 'grid' = 'home';
+		| 'tv' | 'info' | 'edit' | 'list' | 'quote' | 'reddit' | 'palette' | 'shield' | 'trophy' | 'sunrise' | 'grid'
+		| 'bookmark' | 'copy' = 'home';
 	export let size = 20;
 </script>
 
@@ -147,6 +148,10 @@
 		<rect x="4" y="4" width="4.6" height="4.6" rx="1.4" /><rect x="9.7" y="4" width="4.6" height="4.6" rx="1.4" /><rect x="15.4" y="4" width="4.6" height="4.6" rx="1.4" />
 		<rect x="4" y="9.7" width="4.6" height="4.6" rx="1.4" /><rect x="9.7" y="9.7" width="4.6" height="4.6" rx="1.4" fill="currentColor" stroke="none" /><rect x="15.4" y="9.7" width="4.6" height="4.6" rx="1.4" />
 		<rect x="4" y="15.4" width="4.6" height="4.6" rx="1.4" /><rect x="9.7" y="15.4" width="4.6" height="4.6" rx="1.4" /><rect x="15.4" y="15.4" width="4.6" height="4.6" rx="1.4" />
+	{:else if name === 'bookmark'}
+		<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
+	{:else if name === 'copy'}
+		<rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
 	{:else}
 		<path d="m9 18 6-6-6-6" />
 	{/if}

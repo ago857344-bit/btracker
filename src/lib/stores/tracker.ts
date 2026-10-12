@@ -198,6 +198,7 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 export const celebration = writable<string | null>(null);
 export const plannerPrompt = writable<string | null>(null);
 export const customizingHome = writable(false);
+export const formulaVaultOpen = writable(false);
 
 export function setProfileName(name: string) { updateTracker((s) => { s.meta.name = name; }); }
 export function setExamDate(date: string | null) { updateTracker((s) => { s.meta.exam = date; }); }
@@ -582,13 +583,36 @@ export const weeklyFocusMinutes = derived(tracker, ($t) => lastNDays(7).reduce((
 
 export const streakDays = derived(tracker, ($t) => {
 	const need = ($t.meta?.streakGoalH || 1) * 60;
-	const met = (key: string) => focusMinutesOn($t.log, key) >= need;
+	const usedDates = $t.streakFreezes?.usedDates || [];
+	const isFrozen = (key: string) => usedDates.includes(key);
+	const met = (key: string) => focusMinutesOn($t.log, key) >= need || isFrozen(key);
 	let cursor = todayKey();
 	if (!met(cursor)) cursor = addDaysKey(cursor, -1);
 	let count = 0;
 	while (count < 3650 && met(cursor)) { count += 1; cursor = addDaysKey(cursor, -1); }
 	return count;
 });
+
+export function useStreakFreeze(targetDateKey?: string) {
+	updateTracker((state) => {
+		if (!state.streakFreezes) state.streakFreezes = { available: 2, usedDates: [] };
+		if (state.streakFreezes.available <= 0) return;
+		const target = targetDateKey || addDaysKey(todayKey(), -1);
+		if (!state.streakFreezes.usedDates.includes(target)) {
+			state.streakFreezes.usedDates.push(target);
+			state.streakFreezes.available = Math.max(0, state.streakFreezes.available - 1);
+		}
+	});
+}
+
+export function earnStreakFreeze() {
+	updateTracker((state) => {
+		if (!state.streakFreezes) state.streakFreezes = { available: 2, usedDates: [] };
+		if (state.streakFreezes.available < 4) {
+			state.streakFreezes.available += 1;
+		}
+	});
+}
 
 export const peakProductivity = derived(tracker, ($t) => {
 	const buckets: Record<string, number> = { Morning: 0, Afternoon: 0, Evening: 0, Night: 0 };

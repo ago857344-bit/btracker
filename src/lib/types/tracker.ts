@@ -233,7 +233,7 @@ export interface PomodoroSettings {
 
 export interface WidgetLayout {
 	id: 'quote' | 'weekly-standing' | 'new-target' | 'daily-progress' | 'due-homework'
-		| 'subjects' | 'standing' | 'up-next' | 'activity';
+		| 'subjects' | 'standing' | 'up-next' | 'activity' | 'yearly-heatmap';
 	enabled: boolean; order: number; span: 1 | 2 | 3; height?: 'sm' | 'md' | 'lg';
 }
 /** Equipped cosmetics; an absent slot means "match the active theme". */
@@ -317,6 +317,21 @@ export interface TrackerState {
 	settings?: {
 		focusPet?: 'orb' | 'crystal' | 'flame';
 	};
+	streakFreezes?: {
+		available: number;
+		usedDates: string[];
+	};
+}
+
+export interface StateSnapshot {
+	id: string;
+	timestamp: number;
+	label: string;
+	reason: string;
+	questionCount: number;
+	testCount: number;
+	streak: number;
+	state: TrackerState;
 }
 
 /** Totals recorded when the current (Monday-based) week began, so deltas can be reported. */

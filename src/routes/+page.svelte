@@ -15,8 +15,10 @@
 	import DailyStandingWidget from '$lib/components/widgets/DailyStandingWidget.svelte';
 	import UpNextWidget from '$lib/components/widgets/UpNextWidget.svelte';
 	import RecentActivityWidget from '$lib/components/widgets/RecentActivityWidget.svelte';
+	import YearlyHeatmapWidget from '$lib/components/widgets/YearlyHeatmapWidget.svelte';
 	import TargetsModal from '$lib/components/TargetsModal.svelte';
-	import { tracker, dashboardWidgets, updateWidget, reorderWidget, cycleWidgetSpan, customizingHome } from '$lib/stores/tracker';
+	import { tracker, updateTracker, dashboardWidgets, updateWidget, reorderWidget, cycleWidgetSpan, customizingHome } from '$lib/stores/tracker';
+	import { DEFAULT_WIDGETS } from '$lib/state/defaults';
 	import type { WidgetLayout } from '$lib/types/tracker';
 
 	const registry: Record<WidgetLayout['id'], { title: string; eyebrow: string; icon: ComponentProps<NavIcon>['name']; comp: any }> = {
@@ -28,10 +30,23 @@
 		subjects: { title: 'Subject hubs', eyebrow: 'Questions solved', icon: 'layers', comp: SubjectCardsWidget },
 		standing: { title: 'Daily standing', eyebrow: 'Output', icon: 'trophy', comp: DailyStandingWidget },
 		'up-next': { title: 'Up next', eyebrow: 'Planner', icon: 'list', comp: UpNextWidget },
-		activity: { title: 'Recent activity', eyebrow: 'Feed', icon: 'history', comp: RecentActivityWidget }
+		activity: { title: 'Recent activity', eyebrow: 'Feed', icon: 'history', comp: RecentActivityWidget },
+		'yearly-heatmap': { title: '365-Day Study Matrix', eyebrow: 'Yearly Consistency', icon: 'history', comp: YearlyHeatmapWidget }
 	};
 
 	let targetsOpen = false;
+
+	function resetDefaultLayout() {
+		updateTracker((state) => {
+			state.ui.widgets = structuredClone(DEFAULT_WIDGETS);
+		});
+	}
+
+	function enableAllWidgets() {
+		updateTracker((state) => {
+			for (const w of state.ui.widgets) w.enabled = true;
+		});
+	}
 
 	// In customize mode show every widget (even hidden) so it can be re-enabled.
 	$: visible = ($customizingHome ? [...$tracker.ui.widgets] : $dashboardWidgets)
@@ -54,6 +69,10 @@
 			<p class="sub">Your personalized command center — progress, targets, and what needs you next.</p>
 		</div>
 		<div class="hero-tools">
+			<button type="button" class="customize-toggle" class:active={$customizingHome} on:click={() => customizingHome.update((v) => !v)}>
+				<NavIcon name="settings" size={15} />
+				{$customizingHome ? 'Done Editing' : 'Customize Layout'}
+			</button>
 			<button type="button" class="targets" on:click={() => (targetsOpen = true)}>
 				<NavIcon name="target" size={16} /> Edit targets
 			</button>
@@ -61,8 +80,24 @@
 	</header>
 
 	{#if $customizingHome}
-		<div class="hint">
-			Reorder with the arrows, resize with ↔, hide with −. Hidden widgets ({hiddenCount}) stay listed here so you can bring them back with +. Finish from the appearance menu in the top bar.
+		<div class="customize-banner" in:fly={{ y: -6, duration: 200 }}>
+			<div class="banner-info">
+				<b>Customizing Dashboard</b>
+				<span>Reorder with ↑ / ↓, resize with ↔, or toggle visibility with + / −.</span>
+			</div>
+			<div class="banner-actions">
+				{#if hiddenCount > 0}
+					<button type="button" class="btn-subtle" on:click={enableAllWidgets}>
+						Show All ({hiddenCount} hidden)
+					</button>
+				{/if}
+				<button type="button" class="btn-subtle" on:click={resetDefaultLayout}>
+					Reset to Defaults
+				</button>
+				<button type="button" class="btn-done" on:click={() => customizingHome.set(false)}>
+					Done Editing
+				</button>
+			</div>
 		</div>
 	{/if}
 
@@ -99,9 +134,20 @@
 	h1 span { color: var(--text-secondary); }
 	.sub { max-width: 520px; margin: .55rem 0 0; color: var(--text-secondary); font-size: .98rem; line-height: 1.6; }
 	.hero-tools { display: flex; align-items: center; gap: .6rem; }
-	.targets { display: inline-flex; align-items: center; gap: .45rem; padding: .55rem .95rem; border: 1px solid var(--border-subtle); border-radius: 11px; color: var(--text-primary); background: var(--surface-panel); font-size: .82rem; font-weight: 720; }
+	.customize-toggle { display: inline-flex; align-items: center; gap: .45rem; padding: .55rem .95rem; border: 1px solid var(--border-subtle); border-radius: 11px; color: var(--text-secondary); background: var(--surface-panel); font-size: .82rem; font-weight: 720; cursor: pointer; transition: all 0.15s ease; }
+	.customize-toggle:hover, .customize-toggle.active { border-color: var(--accent); color: var(--accent); }
+	.customize-toggle.active { background: color-mix(in srgb, var(--accent) 12%, var(--surface-panel)); }
+	.targets { display: inline-flex; align-items: center; gap: .45rem; padding: .55rem .95rem; border: 1px solid var(--border-subtle); border-radius: 11px; color: var(--text-primary); background: var(--surface-panel); font-size: .82rem; font-weight: 720; cursor: pointer; }
 	.targets:hover { border-color: var(--accent); color: var(--accent); }
-	.hint { padding: .7rem .95rem; border: 1px dashed var(--accent); border-radius: var(--radius-control); color: var(--text-secondary); background: var(--accent-soft); font-size: .8rem; line-height: 1.5; }
+	
+	.customize-banner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 1.15rem; border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border-subtle)); border-radius: 14px; background: color-mix(in srgb, var(--accent) 10%, var(--surface-panel)); flex-wrap: wrap; }
+	.banner-info b { display: block; font-size: .86rem; color: var(--accent); }
+	.banner-info span { font-size: .76rem; color: var(--text-secondary); }
+	.banner-actions { display: flex; align-items: center; gap: .5rem; }
+	.btn-subtle { padding: .42rem .75rem; border-radius: 8px; border: 1px solid var(--border-subtle); background: var(--surface-panel); color: var(--text-primary); font-size: .75rem; font-weight: 700; cursor: pointer; }
+	.btn-subtle:hover { border-color: var(--accent); }
+	.btn-done { padding: .42rem .9rem; border-radius: 8px; border: none; background: var(--accent); color: white; font-size: .75rem; font-weight: 800; cursor: pointer; }
+
 	
 	/* Restored 3-column grid */
 	.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.15rem; grid-auto-flow: dense; }

@@ -3,7 +3,7 @@
 	import { fade, scale } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import { isDarkTheme, presetOf, syncThemeWallpaper } from '$lib/state/themes';
-	import { updateTracker } from '$lib/stores/tracker';
+	import { updateTracker, formulaVaultOpen, customizingHome } from '$lib/stores/tracker';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 
 	let open = false;
@@ -14,11 +14,16 @@
 
 	const STATIC_COMMANDS: Array<{ id: string, label: string, icon: NavIconName, action: () => void }> = [
 		{ id: 'home', label: 'Go to Home', icon: 'home', action: () => { goto('/'); open = false; } },
+		{ id: 'formula', label: 'Open Formula Vault (F)', icon: 'book', action: () => { formulaVaultOpen.set(true); open = false; } },
+		{ id: 'customize', label: 'Customize Home Dashboard', icon: 'settings', action: () => { goto('/'); customizingHome.set(true); open = false; } },
+		{ id: 'log', label: 'Go to Question Log', icon: 'grid', action: () => { goto('/log'); open = false; } },
+		{ id: 'tests', label: 'Go to Tests & Mistake Log', icon: 'tests', action: () => { goto('/tests'); open = false; } },
 		{ id: 'todo', label: 'Go to To Do / Brain Dumps', icon: 'list', action: () => { goto('/todo'); open = false; } },
 		{ id: 'plan', label: 'Go to Plan', icon: 'plan', action: () => { goto('/plan'); open = false; } },
-		{ id: 'review', label: 'Go to Review', icon: 'book', action: () => { goto('/review'); open = false; } },
+		{ id: 'review', label: 'Go to Review', icon: 'target', action: () => { goto('/review'); open = false; } },
 		{ id: 'focus', label: 'Go to Focus', icon: 'focus', action: () => { goto('/focus'); open = false; } },
 		{ id: 'revise', label: 'Go to Revise', icon: 'revise', action: () => { goto('/revise'); open = false; } },
+		{ id: 'settings', label: 'Go to Settings / Snapshot Vault', icon: 'settings', action: () => { goto('/settings'); open = false; } },
 		{ id: 'theme', label: 'Toggle Theme', icon: 'sun', action: () => {
 			updateTracker((state) => {
 				const goingDark = !isDarkTheme(state.theme);

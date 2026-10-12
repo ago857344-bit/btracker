@@ -5,6 +5,7 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import InfoTip from '$lib/components/ui/InfoTip.svelte';
 	import WeeklyReportSection from '$lib/components/stats/WeeklyReportSection.svelte';
+	import YearlyHeatmapWidget from '$lib/components/widgets/YearlyHeatmapWidget.svelte';
 	import { tracker, intelligence, momentum, streakDays, peakProductivity, analysisSummary } from '$lib/stores/tracker';
 	import { dayKeyOf, focusMinutesOn, formatMinutes, shortDateKey, startOfWeek } from '$lib/state/dates';
 	import { getLevelData, getEloRank } from '$lib/state/gamification';
@@ -229,6 +230,17 @@
 						<b>{$intelligence.bestKey ? shortDateKey($intelligence.bestKey) : '—'}<small>{$intelligence.bestMinutes ? formatMinutes($intelligence.bestMinutes) : ''}</small></b>
 						<div class="mini"><div class="fill" style="width: {Math.min(100, ($intelligence.bestMinutes / 720) * 100)}%"></div></div>
 					</div>
+				</div>
+			{/if}
+		</section>
+
+		<section class="sec">
+			<button type="button" class="sec-head" aria-expanded={open.yearly ?? true} on:click={() => toggle('yearly')}>
+				<span class="dot" style="background: var(--accent)"></span> 365-DAY STUDY MATRIX &amp; STREAK FREEZES <NavIcon name="chevron-down" size={15} />
+			</button>
+			{#if open.yearly ?? true}
+				<div class="card" style="padding: 1.1rem 1.25rem;">
+					<YearlyHeatmapWidget />
 				</div>
 			{/if}
 		</section>
