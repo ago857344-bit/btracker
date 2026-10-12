@@ -67,7 +67,7 @@ export interface TodoItem {
 	done: boolean;
 	sub?: SubjectCode;
 	ch?: number;
-	source?: 'manual' | 'btest';
+	source?: 'manual' | 'btest' | 'brain-dump';
 	created: number;
 	subtasks?: TodoSubtask[];
 	roiTag?: 'High ROI' | 'Time Trap' | 'Normal' | 'Core';
@@ -241,7 +241,7 @@ export interface CosmeticLoadout {
 	fx?: string; wallpaper?: string; confetti?: string; timer?: string; frame?: string; title?: string;
 	aurora?: boolean;
 }
-export interface UiPreferences { devMode?: boolean; accent: string; widgets: WidgetLayout[]; reducedMotion: boolean; wallpaper?: string | null; wallpaperHistory?: string[]; glassStrength?: number; haptics?: boolean; sounds?: boolean; cosmetics?: CosmeticLoadout; liveWallpaper?: boolean; }
+export interface UiPreferences { devMode?: boolean; accent: string; widgets: WidgetLayout[]; reducedMotion: boolean; wallpaper?: string | null; wallpaperHistory?: string[]; glassStrength?: number; haptics?: boolean; sounds?: boolean; cosmetics?: CosmeticLoadout; liveWallpaper?: boolean; ecoMode?: boolean; }
 
 
 

@@ -149,6 +149,33 @@ CRITICAL INSTRUCTIONS:
 			scrollToBottom();
 		}
 	};
+
+	async function runActionShortcut(action: 'pomodoro' | 'stopwatch' | 'logP' | 'logC' | 'logM' | 'weakSpots') {
+		if (action === 'pomodoro') {
+			$globalTimer.start('P', 25 * 60, '', 'timer');
+			chatHistory = [...chatHistory, { role: 'ai', text: "Started 25m Pomodoro focus timer. Stay locked in! 🎯" }];
+			scrollToBottom();
+		} else if (action === 'stopwatch') {
+			$globalTimer.start('P', 0, '', 'stopwatch');
+			chatHistory = [...chatHistory, { role: 'ai', text: "Started stopwatch study session. Keep solving! ⏱️" }];
+			scrollToBottom();
+		} else if (action === 'logP') {
+			logBulkQuestions('P', 1, 25, 'AI Mentor Log');
+			chatHistory = [...chatHistory, { role: 'ai', text: "Logged 25 Physics questions (+250 XP). Momentum is building! ⚡" }];
+			scrollToBottom();
+		} else if (action === 'logC') {
+			logBulkQuestions('C', 1, 25, 'AI Mentor Log');
+			chatHistory = [...chatHistory, { role: 'ai', text: "Logged 25 Chemistry questions (+250 XP). Strong practice! 🧪" }];
+			scrollToBottom();
+		} else if (action === 'logM') {
+			logBulkQuestions('M', 1, 25, 'AI Mentor Log');
+			chatHistory = [...chatHistory, { role: 'ai', text: "Logged 25 Maths questions (+250 XP). Sharp accuracy! 📐" }];
+			scrollToBottom();
+		} else if (action === 'weakSpots') {
+			chatInput = "What are my weakest areas based on my Elo and question log, and what should I solve next?";
+			await sendMessage();
+		}
+	}
 </script>
 
 <div class="mentor-wrapper">
@@ -177,6 +204,27 @@ CRITICAL INSTRUCTIONS:
 						<span class="dot"></span><span class="dot"></span><span class="dot"></span>
 					</div>
 				{/if}
+			</div>
+
+			<div class="shortcuts-row" aria-label="Quick Actions">
+				<button type="button" class="action-pill" on:click={() => runActionShortcut('pomodoro')}>
+					<NavIcon name="clock" size={12} /> 25m Pomodoro
+				</button>
+				<button type="button" class="action-pill" on:click={() => runActionShortcut('stopwatch')}>
+					<NavIcon name="pulse" size={12} /> Stopwatch
+				</button>
+				<button type="button" class="action-pill p" on:click={() => runActionShortcut('logP')}>
+					<NavIcon name="plus" size={12} /> 25 Physics Qs
+				</button>
+				<button type="button" class="action-pill c" on:click={() => runActionShortcut('logC')}>
+					<NavIcon name="plus" size={12} /> 25 Chem Qs
+				</button>
+				<button type="button" class="action-pill m" on:click={() => runActionShortcut('logM')}>
+					<NavIcon name="plus" size={12} /> 25 Math Qs
+				</button>
+				<button type="button" class="action-pill" on:click={() => runActionShortcut('weakSpots')}>
+					<NavIcon name="target" size={12} /> Weak Spots
+				</button>
 			</div>
 
 			<div class="chat-input-area">
@@ -275,7 +323,42 @@ CRITICAL INSTRUCTIONS:
 	.chat-bubble.typing { display: flex; gap: 4px; padding: 12px 16px; }
 	.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-secondary); animation: bounce 1.4s infinite ease-in-out both; }
 	.dot:nth-child(1) { animation-delay: -0.32s; }
-	.dot:nth-child(2) { animation-delay: -0.16s; }
+	.shortcuts-row {
+		display: flex;
+		gap: 6px;
+		padding: 8px 12px;
+		overflow-x: auto;
+		white-space: nowrap;
+		scrollbar-width: none;
+		border-top: 1px solid color-mix(in srgb, var(--border-subtle), transparent 40%);
+		background: color-mix(in srgb, var(--surface-panel), transparent 40%);
+	}
+	.shortcuts-row::-webkit-scrollbar { display: none; }
+	.action-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		height: 26px;
+		padding: 0 8px;
+		border: 1px solid var(--border-subtle);
+		border-radius: 99px;
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		font-size: 0.7rem;
+		font-weight: 750;
+		cursor: pointer;
+		flex-shrink: 0;
+		transition: all 0.15s ease;
+		user-select: none;
+	}
+	.action-pill:hover {
+		border-color: var(--accent);
+		color: var(--text-primary);
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+	}
+	.action-pill.p:hover { border-color: #00e5ff; color: #00e5ff; }
+	.action-pill.c:hover { border-color: #a3e635; color: #a3e635; }
+	.action-pill.m:hover { border-color: #ffd700; color: #ffd700; }
 
 	.chat-input-area { padding: 12px; display: flex; gap: 8px; border-top: 1px solid var(--border-subtle); background: color-mix(in srgb, var(--surface-panel), transparent 50%); }
 	.chat-input-area input { flex: 1; background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 99px; padding: 8px 16px; color: var(--text-primary); font-size: 0.85rem; outline: none; transition: border-color 0.2s; }

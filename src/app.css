@@ -839,3 +839,24 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 	--surface-panel: transparent !important;
 	--surface-subtle: transparent !important;
 }
+
+/* ECO / BATTERY SAVER MODE OVERRIDES */
+:root[data-eco="true"] .aurora {
+	display: none !important;
+	animation: none !important;
+}
+:root[data-eco="true"] .live-wallpaper-bg {
+	display: none !important;
+}
+:root[data-eco="true"] * {
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+:root[data-eco="true"] .glass,
+:root[data-eco="true"] .card,
+:root[data-eco="true"] .panel,
+:root[data-eco="true"] .glass-element {
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+

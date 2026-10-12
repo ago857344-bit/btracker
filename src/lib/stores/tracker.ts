@@ -985,7 +985,7 @@ export function bulkExercise(loc: QuestionLoc, action: 'done' | 'correct' | 'cle
 export function logBulkQuestions(sc: string, ch: number, count: number, name = 'AI Logged') {
 	updateTracker((state) => {
 		const ckey = `${sc}${ch}`;
-		if (!state.x) state.x = { exs: {}, cnt: {} };
+		if (!state.x) state.x = { exs: {}, cnt: {} } as any;
 		if (!state.x.exs[ckey]) state.x.exs[ckey] = [];
 		const code = `AI${Date.now().toString(36).slice(-4)}`;
 		state.x.exs[ckey].push({ code, name });
@@ -1001,6 +1001,17 @@ export function logBulkQuestions(sc: string, ch: number, count: number, name = '
 		const day = todayKey();
 		const bucket = state.stat[day] ?? (state.stat[day] = {});
 		bucket[sc] = Math.max(0, (Number(bucket[sc]) || 0) + delta);
+
+		if (!state.sess) state.sess = [];
+		state.sess.push({
+			id: crypto.randomUUID(),
+			day,
+			sub: sc,
+			ch: String(ch),
+			att: count,
+			cor: count,
+			at: Date.now()
+		});
 		
 		if (state.gamification) {
 			state.gamification.xp += 10 * delta;

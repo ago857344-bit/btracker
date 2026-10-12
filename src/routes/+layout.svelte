@@ -19,9 +19,10 @@
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
 	import StreakButton from '$lib/components/StreakButton.svelte';
 	import ThemeMenu from '$lib/components/ThemeMenu.svelte';
+	import QuickQuestionLog from '$lib/components/QuickQuestionLog.svelte';
 	import { hydrateTracker } from '$lib/services/hydrate';
 	import { startSync } from '$lib/services/sync';
-	import { THEME_PRESETS, isDarkTheme, wallpaperCss, resolveLiveWallpaper, isMobileDevice } from '$lib/state/themes';
+	import { THEME_PRESETS, isDarkTheme, wallpaperCss, resolveLiveWallpaper, resolveEcoMode, isMobileDevice } from '$lib/state/themes';
 	import { authReady, authConfigured, currentUser, hasSkippedLogin } from '$lib/stores/auth';
 	import { saveStatus, tracker } from '$lib/stores/tracker';
 	import { loadout } from '$lib/stores/cosmetics';
@@ -171,6 +172,14 @@
 		} else {
 			root.removeAttribute('data-reduced-motion');
 		}
+
+		// @ts-ignore
+		const eco = resolveEcoMode(state.ui.ecoMode);
+		if (eco) {
+			root.setAttribute('data-eco', 'true');
+		} else {
+			root.removeAttribute('data-eco');
+		}
 	}
 
 	let isMobile = false;
@@ -187,7 +196,8 @@
 			stopFx();
 		};
 	});
-	$: liveWallpaperEnabled = resolveLiveWallpaper($tracker.ui.liveWallpaper);
+	$: isEcoActive = resolveEcoMode($tracker.ui.ecoMode);
+	$: liveWallpaperEnabled = !isEcoActive && resolveLiveWallpaper($tracker.ui.liveWallpaper);
 	$: currentWallpaperStr = $tracker.ui.wallpaper;
 	$: activeVideoUrl = (() => {
 		if (!liveWallpaperEnabled) return null;
@@ -232,6 +242,7 @@
 				<div class="topbar-actions">
 					<span class:error={$saveStatus === 'error'} class="save-state"><i></i>{saveLabel}</span>
 					<StreakButton />
+					<QuickQuestionLog />
 					<ThemeMenu />
 					<a class="quick-add" href="/plan?new=task"><NavIcon name="plus" size={17} /><span>New task</span></a>
 					<AccountMenu />

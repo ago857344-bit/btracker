@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { tracker, updateTracker } from '$lib/stores/tracker';
-	import type { MockTest, MistakeLog } from '$lib/types/tracker';
+	import { tracker, updateTracker, celebration } from '$lib/stores/tracker';
+	import type { MockTest, MistakeLog, Flashcard } from '$lib/types/tracker';
 	import { applyEloResult } from '$lib/state/gamification';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
@@ -138,6 +138,40 @@
 		(filterSubject === 'All' || m.subject === filterSubject) &&
 		(filterType === 'All' || m.errorType === filterType)
 	);
+
+	function mistakeCardFront(m: MistakeLog) {
+		return `${m.subject} [${m.errorType} Error]: ${m.description}`;
+	}
+
+	function isMistakeCardSaved(m: MistakeLog) {
+		const target = mistakeCardFront(m);
+		return ($tracker.flashcards || []).some(c => c.front === target);
+	}
+
+	function convertMistakeToFlashcard(m: MistakeLog) {
+		const front = mistakeCardFront(m);
+		const testContext = m.testName ? ` (${m.testName})` : '';
+		const back = `Takeaway for ${m.subject}${testContext}:\nError Type: ${m.errorType}\nRoot Cause: ${m.description}\nAction item: Focus on the underlying formula or calculation technique to avoid repeating under exam conditions.`;
+		
+		updateTracker(s => {
+			if (!s.flashcards) s.flashcards = [];
+			if (s.flashcards.some(c => c.front === front)) return s;
+			const card: Flashcard = {
+				id: crypto.randomUUID(),
+				front,
+				back,
+				subject: m.subject.charAt(0).toUpperCase(),
+				chapter: m.testName || 'Mistake Book',
+				interval: 1,
+				repetition: 0,
+				efactor: 2.5,
+				nextReviewAt: Date.now()
+			};
+			s.flashcards.push(card);
+			return s;
+		});
+		celebration.set('Converted to Active Recall Flashcard! 🧠');
+	}
 </script>
 
 <svelte:head>
@@ -279,6 +313,15 @@
 						<div class="card-header">
 							<span class="badge {mistake.subject.toLowerCase()}">{mistake.subject}</span>
 							<span class="badge type">{mistake.errorType}</span>
+							{#if isMistakeCardSaved(mistake)}
+								<span class="icon-btn saved" title="Already added to Flashcards" style="color: var(--success); cursor: default;">
+									<NavIcon name="check" size={13} />
+								</span>
+							{:else}
+								<button class="icon-btn" title="Convert to Active Recall Flashcard" on:click={() => convertMistakeToFlashcard(mistake)}>
+									<NavIcon name="layers" size={13} />
+								</button>
+							{/if}
 							<button class="icon-btn" style="color: #e0455a;" title="Grill Me on this mistake" on:click={() => (grillingMistake = mistake)}>
 								<NavIcon name="flame" size={14} />
 							</button>

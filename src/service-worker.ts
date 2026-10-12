@@ -5,7 +5,7 @@ const CACHE = `btracker-cache-${version}`;
 
 const ASSETS = [
   ...build,
-  ...files
+  ...files.filter((f: string) => !f.endsWith('.mp4'))
 ];
 
 self.addEventListener('install', (event: any) => {

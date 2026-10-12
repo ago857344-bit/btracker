@@ -62,6 +62,16 @@ export const resolveLiveWallpaper = (pref: boolean | undefined): boolean => {
 	return !isMobileDevice();
 };
 
+/**
+ * Resolves whether Eco / Battery Saver Mode is enabled.
+ * Default: true on mobile (to save battery & maximize frame rates), false on desktop.
+ * User preference overrides default.
+ */
+export const resolveEcoMode = (pref: boolean | undefined): boolean => {
+	if (pref !== undefined) return pref;
+	return isMobileDevice();
+};
+
 /** Resolve a stored wallpaper value to a CSS background-image value (builtin ids → preset gradient, URLs wrapped). */
 export const wallpaperCss = (wp: string) => {
 	if (wp.startsWith("data:video")) return "none";

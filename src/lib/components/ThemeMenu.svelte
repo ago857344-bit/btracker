@@ -3,10 +3,11 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
-	import { THEME_PRESETS, isDarkTheme, presetOf, syncThemeWallpaper, resolveLiveWallpaper, isMobileDevice } from '$lib/state/themes';
+	import { THEME_PRESETS, isDarkTheme, presetOf, syncThemeWallpaper, resolveLiveWallpaper, resolveEcoMode, isMobileDevice } from '$lib/state/themes';
 	import { celebration, customizingHome, setAccent, tracker, updateTracker } from '$lib/stores/tracker';
 	import { unlockCtx } from '$lib/stores/cosmetics';
 	import { reqLabel, reqMet, type UnlockCtx } from '$lib/state/cosmetics';
+	import NavIcon from '$lib/components/NavIcon.svelte';
 	import type { ThemeId } from '$lib/types/tracker';
 
 	const ACCENTS = ['#6d5dfc', '#e0455a', '#d99a2b', '#2f9e6e', '#2b8ba6', '#2383e2', '#46a302', '#b44df0'];
@@ -20,6 +21,7 @@
 	});
 
 	$: liveWallpaperActive = resolveLiveWallpaper($tracker.ui.liveWallpaper);
+	$: ecoActive = resolveEcoMode($tracker.ui.ecoMode);
 
 	function handleLiveWpToggle(e: Event & { currentTarget: HTMLInputElement }) {
 		const enabled = e.currentTarget.checked;
@@ -27,6 +29,14 @@
 			state.ui.liveWallpaper = enabled;
 		});
 		celebration.set(enabled ? 'Live wallpapers enabled.' : 'Live wallpapers disabled (lightweight mode).');
+	}
+
+	function handleEcoToggle(e: Event & { currentTarget: HTMLInputElement }) {
+		const enabled = e.currentTarget.checked;
+		updateTracker((state) => {
+			state.ui.ecoMode = enabled;
+		});
+		celebration.set(enabled ? 'Eco Mode active (Battery saver & smooth 60fps).' : 'Eco Mode disabled (Full effects).');
 	}
 
 	$: current = presetOf($tracker.theme);
@@ -129,6 +139,37 @@
 								Video background enabled
 							{:else}
 								Static background (Fast & light)
+							{/if}
+						</span>
+					</div>
+				</label>
+			</div>
+
+			<!-- Eco Mode (Battery Saver) Tickbox -->
+			<div class="toggle-section" style="margin-top: .4rem;">
+				<label class="toggle-label" for="eco-mode-checkbox">
+					<div class="checkbox-box">
+						<input
+							type="checkbox"
+							id="eco-mode-checkbox"
+							checked={ecoActive}
+							on:change={handleEcoToggle}
+						/>
+						<span class="custom-check">
+							{#if ecoActive}
+								<NavIcon name="check" size={11} />
+							{/if}
+						</span>
+					</div>
+					<div class="toggle-info">
+						<span class="toggle-name">Eco Mode (Battery Saver)</span>
+						<span class="toggle-sub">
+							{#if $tracker.ui.ecoMode === undefined}
+								{isMobile ? 'On on mobile (Pauses heavy blur & fx)' : 'Off on laptop (Full visual fx)'}
+							{:else if ecoActive}
+								Heavy blur & aurora paused (Smooth 60fps)
+							{:else}
+								Full visual effects & dynamic blur active
 							{/if}
 						</span>
 					</div>

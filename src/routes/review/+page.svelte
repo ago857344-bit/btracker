@@ -1,8 +1,10 @@
 <script lang="ts">
-	import { tracker } from '$lib/stores/tracker';
+	import { tracker, updateTracker, celebration } from '$lib/stores/tracker';
 	import { isFlag, resultOf } from '$lib/state/questions';
 	import { allChapters, cellKey, questionCount, visibleExercises } from '$lib/state/syllabus';
 	import { subjectColor, subjectName } from '$lib/state/subjects';
+	import NavIcon from '$lib/components/NavIcon.svelte';
+	import type { Flashcard } from '$lib/types/tracker';
 
 	interface ReviewQuestion {
 		id: string;
@@ -21,6 +23,39 @@
 	] as const;
 
 	let activeSubject: (typeof subjects)[number]['code'] = 'P';
+
+	function cardFront(q: ReviewQuestion) {
+		return `${q.chapter} · ${q.exercise} (Q${q.number})`;
+	}
+
+	function isCardSaved(q: ReviewQuestion) {
+		const target = cardFront(q);
+		return ($tracker.flashcards || []).some(c => c.front === target);
+	}
+
+	function convertToFlashcard(q: ReviewQuestion) {
+		const front = cardFront(q);
+		const reason = q.stuck ? 'Stuck question' : 'Marked for retry';
+		const back = `${reason} in ${q.chapter} (${q.exercise}).\nKey step: Recall the core formula, boundary conditions, and the critical step where mistakes occurred.`;
+		
+		updateTracker(s => {
+			if (!s.flashcards) s.flashcards = [];
+			if (s.flashcards.some(c => c.front === front)) return;
+			const card: Flashcard = {
+				id: crypto.randomUUID(),
+				front,
+				back,
+				subject: q.subject,
+				chapter: q.chapter,
+				interval: 1,
+				repetition: 0,
+				efactor: 2.5,
+				nextReviewAt: Date.now()
+			};
+			s.flashcards.push(card);
+		});
+		celebration.set('Added to Active Recall Flashcards! 🗂️');
+	}
 
 	$: questions = (() => {
 		const next: ReviewQuestion[] = [];
@@ -99,6 +134,20 @@
 					<div class="marks" aria-label="Question status">
 						{#if question.retry}<span class="retry">Retry</span>{/if}
 						{#if question.stuck}<span class="stuck">Stuck</span>{/if}
+						{#if isCardSaved(question)}
+							<span class="flashcard-badge saved" title="Already added to Active Recall Flashcards">
+								<NavIcon name="check" size={11} /> Flashcard
+							</span>
+						{:else}
+							<button
+								type="button"
+								class="flashcard-btn"
+								title="Convert to Active Recall Flashcard"
+								on:click={() => convertToFlashcard(question)}
+							>
+								<NavIcon name="layers" size={12} /> + Flashcard
+							</button>
+						{/if}
 					</div>
 				</article>
 			{/each}
@@ -118,10 +167,13 @@
 	h1 { margin: 0; font-size: 1.55rem; letter-spacing: -.045em; }
 	.hero p:not(.eyebrow) { margin: .4rem 0 0; color: var(--text-secondary); font-size: .84rem; }
 	.summary { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .45rem; }
-	.summary span, .marks span { display: inline-flex; align-items: center; min-height: 28px; padding: 0 .58rem; border: 1px solid var(--border-subtle); border-radius: 99px; color: var(--text-secondary); background: var(--surface-subtle); font-size: .7rem; font-weight: 750; }
+	.summary span, .marks span, .marks button { display: inline-flex; align-items: center; gap: .35rem; min-height: 28px; padding: 0 .58rem; border: 1px solid var(--border-subtle); border-radius: 99px; color: var(--text-secondary); background: var(--surface-subtle); font-size: .7rem; font-weight: 750; }
 	.summary b { margin-right: .22rem; color: var(--text-primary); }
 	.summary .retry, .marks .retry { color: var(--accent); border-color: color-mix(in srgb, var(--accent), transparent 55%); background: var(--accent-soft); }
 	.summary .stuck, .marks .stuck { color: var(--warning); border-color: color-mix(in srgb, var(--warning), transparent 55%); background: color-mix(in srgb, var(--warning), transparent 87%); }
+	.flashcard-btn { cursor: pointer; color: var(--text-primary); transition: all .15s ease; }
+	.flashcard-btn:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent), transparent 85%); }
+	.flashcard-badge.saved { color: var(--success); border-color: color-mix(in srgb, var(--success), transparent 55%); background: color-mix(in srgb, var(--success), transparent 88%); }
 	.tabs { display: flex; gap: .35rem; padding: .35rem; width: fit-content; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-panel); }
 	.tabs button { display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; padding: 0 .75rem; border: 0; border-radius: 9px; color: var(--text-secondary); background: transparent; font-size: .76rem; font-weight: 750; }
 	.tabs button:hover { color: var(--text-primary); background: var(--surface-subtle); }

@@ -16,7 +16,7 @@
 	import { parseImportedProgress } from '$lib/services/progressImport';
 	import { longDateKey } from '$lib/state/dates';
 	import { onMount, onDestroy } from 'svelte';
-	import { THEME_PRESETS, presetOf, isDarkTheme, syncThemeWallpaper, isBuiltinWallpaper, resolveLiveWallpaper, isMobileDevice } from '$lib/state/themes';
+	import { THEME_PRESETS, presetOf, isDarkTheme, syncThemeWallpaper, isBuiltinWallpaper, resolveLiveWallpaper, resolveEcoMode, isMobileDevice } from '$lib/state/themes';
 	import { unlockCtx } from '$lib/stores/cosmetics';
 	
 	import { itemOf, reqMet, reqLabel, reqStatus, reqProgress, AURORA_REQ, type UnlockCtx } from '$lib/state/cosmetics';
@@ -442,7 +442,7 @@
 
 			<p class="muted">Add a background image URL, or upload one from your computer. Works best with abstract or aesthetic backgrounds.</p>
 
-			<label class="check" style="margin-bottom: 1.1rem;">
+			<label class="check" style="margin-bottom: 0.75rem;">
 				<input
 					type="checkbox"
 					checked={resolveLiveWallpaper($tracker.ui.liveWallpaper)}
@@ -455,6 +455,22 @@
 				<span>
 					<strong>Live Video Wallpapers</strong><br/>
 					Enable dynamic animated video wallpapers. Default: On for laptops, off for mobile to ensure fast loading and save battery.
+				</span>
+			</label>
+
+			<label class="check" style="margin-bottom: 1.1rem;">
+				<input
+					type="checkbox"
+					checked={resolveEcoMode($tracker.ui.ecoMode)}
+					on:change={(e) => {
+						const checked = e.currentTarget.checked;
+						updateTracker((s) => { s.ui.ecoMode = checked; });
+						celebration.set(checked ? 'Eco Mode active (Battery saver & smooth 60fps).' : 'Eco Mode disabled (Full effects).');
+					}}
+				/>
+				<span>
+					<strong>Eco Mode (Battery Saver)</strong><br/>
+					Pauses aurora drift and heavy glass blurs for peak speed and battery efficiency. Default: On for mobile, off for laptops.
 				</span>
 			</label>
 			
