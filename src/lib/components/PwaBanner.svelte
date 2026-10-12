@@ -6,12 +6,16 @@
 
 	let deferredPrompt: any = null;
 	let showInstallBanner = false;
+	let isIos = false;
 	let isOffline = false;
 	let isStandalone = false;
 
 	onMount(() => {
-		isStandalone = window.matchMedia('(display-mode: standalone)').matches;
+		isStandalone = window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as any)?.standalone);
 		isOffline = !navigator.onLine;
+
+		const ua = window.navigator.userAgent.toLowerCase();
+		isIos = /iphone|ipad|ipod/.test(ua);
 
 		const handleBeforeInstall = (e: Event) => {
 			e.preventDefault();
@@ -21,6 +25,11 @@
 				showInstallBanner = true;
 			}
 		};
+
+		// iOS Safari does not support beforeinstallprompt; show guided prompt if on iOS and not yet installed
+		if (isIos && !isStandalone && !sessionStorage.getItem('btracker_pwa_dismissed')) {
+			showInstallBanner = true;
+		}
 
 		const handleOnline = () => {
 			isOffline = false;
@@ -75,14 +84,21 @@
 		<div class="install-left">
 			<div class="app-icon"><NavIcon name="sparkles" size={16} /></div>
 			<div class="install-text">
-				<b>Install BTracker</b>
-				<span>Fast offline access &amp; distraction-free desktop/mobile app</span>
+				{#if isIos}
+					<b>Install BTracker on iOS</b>
+					<span>Tap the <b>Share</b> button in Safari &amp; choose <b>Add to Home Screen</b></span>
+				{:else}
+					<b>Install BTracker</b>
+					<span>Fast offline access &amp; distraction-free desktop/mobile app</span>
+				{/if}
 			</div>
 		</div>
 		<div class="install-actions">
-			<button type="button" class="btn-install" on:click={installPwa}>
-				Install App
-			</button>
+			{#if !isIos}
+				<button type="button" class="btn-install" on:click={installPwa}>
+					Install App
+				</button>
+			{/if}
 			<button type="button" class="btn-dismiss" aria-label="Dismiss" on:click={dismissInstall}>
 				<NavIcon name="x" size={14} />
 			</button>

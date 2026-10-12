@@ -331,7 +331,7 @@
 	.auth-loading { display: grid; min-height: 100vh; place-items: center; background: var(--surface-canvas); color: var(--text-secondary); font-size: .9rem; font-weight: 650; }
 	@media (max-width: 760px) {
 		.app-shell, .app-shell.sidebar-collapsed { padding-left: 0; }
-		.topbar { min-height: 76px; padding: 1rem 1.15rem; }
+		.topbar { min-height: 76px; padding: max(env(safe-area-inset-top), 1rem) 1.15rem 1rem; }
 		.mobile-menu { display: grid; }
 		.save-state { display: none; }
 		.quick-add span { display: none; }
