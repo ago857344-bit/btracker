@@ -281,7 +281,10 @@
 	}
 
 	.vault-header {
-		padding: 1.1rem 1.25rem 0.85rem;
+		padding-top: calc(max(env(safe-area-inset-top), 0px) + 1.1rem);
+		padding-left: max(env(safe-area-inset-left), 1.25rem);
+		padding-right: max(env(safe-area-inset-right), 1.25rem);
+		padding-bottom: 0.85rem;
 		border-bottom: 1px solid var(--border-subtle);
 		background: var(--surface-subtle);
 		display: flex;
@@ -341,21 +344,29 @@
 	}
 
 	.close-btn {
-		width: 32px;
-		height: 32px;
-		border-radius: 9px;
+		width: 36px;
+		height: 36px;
+		min-width: 36px;
+		min-height: 36px;
+		border-radius: 10px;
 		border: 1px solid var(--border-subtle);
-		background: transparent;
+		background: color-mix(in srgb, var(--surface-panel) 60%, transparent);
 		color: var(--text-secondary);
 		display: grid;
 		place-items: center;
 		cursor: pointer;
-		transition: background 0.15s, color 0.15s;
+		touch-action: manipulation;
+		-webkit-tap-highlight-color: transparent;
+		transition: background 0.15s, color 0.15s, transform 0.1s;
 	}
 
 	.close-btn:hover {
 		background: var(--surface-panel);
 		color: var(--text-primary);
+	}
+
+	.close-btn:active {
+		transform: scale(0.92);
 	}
 
 	.search-wrap {
@@ -620,5 +631,27 @@
 		font-weight: 700;
 		font-size: 0.8rem;
 		cursor: pointer;
+	}
+
+	@media (max-width: 760px) {
+		.vault-drawer {
+			width: 100vw;
+		}
+		.vault-header {
+			padding-top: calc(max(env(safe-area-inset-top), 24px) + 1.25rem);
+			padding-left: 1rem;
+			padding-right: 1rem;
+			gap: 0.7rem;
+		}
+		.close-btn {
+			width: 42px;
+			height: 42px;
+			min-width: 42px;
+			min-height: 42px;
+			border-radius: 12px;
+		}
+		.vault-body {
+			padding: 0.85rem 1rem calc(max(env(safe-area-inset-bottom), 0px) + 2rem);
+		}
 	}
 </style>
