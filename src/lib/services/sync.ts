@@ -4,7 +4,7 @@ import { normalizeState } from '$lib/services/hydrate';
 import { supabaseConfigured } from '$lib/services/supabase';
 import { authReady, initAuth, syncStatus, teardownAuth } from '$lib/stores/auth';
 import { replaceTracker, setCloudSink, tracker } from '$lib/stores/tracker';
-import type { TrackerState } from '$lib/types/tracker';
+import type { TrackerState, TodoItem, HomeworkItem } from '$lib/types/tracker';
 
 let activeUserId: string | null = null;
 let pushTimer: ReturnType<typeof setTimeout> | undefined;
@@ -92,16 +92,98 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		}
 	}
 
-	// 5. Todos: Union by id
-	const mergedTodos = [...(base.todos || [])];
-	const todoMap = new Map(mergedTodos.map((t) => [t.id, t]));
-	for (const remTodo of remote.todos || []) {
-		const loc = todoMap.get(remTodo.id);
-		if (!loc) {
-			mergedTodos.push(remTodo);
-			todoMap.set(remTodo.id, remTodo);
-		} else if (remTodo.done && !loc.done) {
-			loc.done = true;
+	const cloudTime = remote.savedAt ? new Date(remote.savedAt).getTime() : 0;
+	const localTime = base.savedAt ? new Date(base.savedAt).getTime() : 0;
+	const cloudIsNewer = cloudTime >= localTime;
+	const prefSource = cloudIsNewer ? remote : base;
+
+	// 5. Todos: Union by id with subtask merging and deletion synchronization
+	const locTodoMap = new Map((base.todos || []).map((t) => [t.id, t]));
+	const remTodoMap = new Map((remote.todos || []).map((t) => [t.id, t]));
+
+	const mergedTodos: TodoItem[] = [];
+	const seenTodoIds = new Set<string>();
+
+	// Start with authoritative state (cloud if newer, local if newer)
+	const primaryTodos = cloudIsNewer ? (remote.todos || []) : (base.todos || []);
+	const secondaryMap = cloudIsNewer ? locTodoMap : remTodoMap;
+
+	for (const prim of primaryTodos) {
+		seenTodoIds.add(prim.id);
+		const sec = secondaryMap.get(prim.id);
+		if (!sec) {
+			mergedTodos.push({ ...prim });
+		} else {
+			// Item exists in both: merge completion status and subtasks
+			const isDone = Boolean(prim.done || sec.done);
+
+			// Merge subtasks
+			const subMap = new Map((prim.subtasks || []).map((s) => [s.id, { ...s }]));
+			for (const secSub of sec.subtasks || []) {
+				const existing = subMap.get(secSub.id);
+				if (!existing) {
+					subMap.set(secSub.id, { ...secSub });
+				} else {
+					existing.done = Boolean(existing.done || secSub.done);
+				}
+			}
+			const mergedSubtasks = Array.from(subMap.values());
+			const allSubsDone = mergedSubtasks.length > 0 && mergedSubtasks.every((s) => s.done);
+
+			mergedTodos.push({
+				...prim,
+				done: isDone || allSubsDone,
+				subtasks: mergedSubtasks.length > 0 ? mergedSubtasks : prim.subtasks,
+				roiTag: prim.roiTag || sec.roiTag
+			});
+		}
+	}
+
+	// For items existing ONLY in secondary state:
+	for (const [id, sec] of secondaryMap.entries()) {
+		if (seenTodoIds.has(id)) continue;
+		if (cloudIsNewer) {
+			// If cloud is newer, sec is local (phone).
+			// If created before cloudTime, laptop cleared/deleted it -> omit!
+			const createdTime = sec.created || 0;
+			if (cloudTime > 0 && createdTime < cloudTime) {
+				continue;
+			}
+		}
+		mergedTodos.push({ ...sec });
+		seenTodoIds.add(id);
+	}
+
+	// 5b. Planner tasks (h = pending, hd = done)
+	const allLocalHd = new Map((base.hd || []).map((i) => [i.id, i]));
+	const allRemoteHd = new Map((remote.hd || []).map((i) => [i.id, i]));
+	const mergedHdMap = new Map<string, HomeworkItem>();
+
+	for (const [id, item] of allRemoteHd.entries()) mergedHdMap.set(id, { ...item, done: true });
+	for (const [id, item] of allLocalHd.entries()) {
+		const existing = mergedHdMap.get(id);
+		if (!existing) mergedHdMap.set(id, { ...item, done: true });
+		else if (item.fin && (!existing.fin || item.fin > existing.fin)) existing.fin = item.fin;
+	}
+
+	const mergedH: HomeworkItem[] = [];
+	const seenHIds = new Set<string>();
+	const primH = cloudIsNewer ? (remote.h || []) : (base.h || []);
+	const secH = cloudIsNewer ? (base.h || []) : (remote.h || []);
+	const secHMap = new Map(secH.map((i) => [i.id, i]));
+
+	for (const item of primH) {
+		if (mergedHdMap.has(item.id)) continue;
+		seenHIds.add(item.id);
+		const sec = secHMap.get(item.id);
+		mergedH.push(sec ? { ...item, ...sec } : { ...item });
+	}
+
+	for (const item of secH) {
+		if (seenHIds.has(item.id) || mergedHdMap.has(item.id)) continue;
+		if (!cloudIsNewer) {
+			mergedH.push({ ...item });
+			seenHIds.add(item.id);
 		}
 	}
 
@@ -127,9 +209,6 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		v3_elo: true
 	};
 
-	const cloudIsNewer = (remote.savedAt ? new Date(remote.savedAt).getTime() : 0) >= (base.savedAt ? new Date(base.savedAt).getTime() : 0);
-	const prefSource = cloudIsNewer ? remote : base;
-
 	const merged: TrackerState = {
 		...prefSource,
 		d: mergedD,
@@ -141,6 +220,8 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		stat: mergedStat,
 		log: mergedLog,
 		todos: mergedTodos,
+		h: mergedH,
+		hd: Array.from(mergedHdMap.values()),
 		mocks: mergedMocks,
 		gamification: mergedGamification,
 		streakFreezes: {
@@ -174,6 +255,32 @@ async function onSignIn(userId: string) {
 	} catch (e) { console.error("Cloud pull failed:", e); syncStatus.set('error'); }
 }
 
+let lastPullTime = 0;
+/** Pulls latest cloud state and merges seamlessly without causing echo saves */
+export async function pullAndSync() {
+	if (!activeUserId) return;
+	const now = Date.now();
+	if (now - lastPullTime < 3500) return;
+	lastPullTime = now;
+
+	try {
+		const cloud = await pullState(activeUserId);
+		if (!cloud) return;
+		const local = get(tracker);
+		const merged = mergeTrackerStates(local, cloud);
+		replaceTracker(merged, false);
+		syncStatus.set('synced');
+	} catch (e) {
+		console.error("Auto pull & sync failed:", e);
+	}
+}
+
+function handleVisibilityOrFocus() {
+	if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+		void pullAndSync();
+	}
+}
+
 function onSignOut() {
 	activeUserId = null;
 	clearTimeout(pushTimer);
@@ -192,6 +299,10 @@ export function startSync() {
 	started = true;
 	setCloudSink(schedulePush);
 	initAuth(onSignIn, onSignOut);
+	if (typeof window !== 'undefined') {
+		window.addEventListener('visibilitychange', handleVisibilityOrFocus);
+		window.addEventListener('focus', handleVisibilityOrFocus);
+	}
 }
 
 export function stopSync() {
@@ -200,5 +311,9 @@ export function stopSync() {
 	setCloudSink(null);
 	clearTimeout(pushTimer);
 	activeUserId = null;
+	if (typeof window !== 'undefined') {
+		window.removeEventListener('visibilitychange', handleVisibilityOrFocus);
+		window.removeEventListener('focus', handleVisibilityOrFocus);
+	}
 	teardownAuth();
 }

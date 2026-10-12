@@ -25,16 +25,16 @@
 	let touchStartY = 0;
 	let hasMoved = false;
 
-	const pad = 6;
+	const pad = 5;
 	$: usableWidth = Math.max(0, navWidth - pad * 2);
 	$: tabWidth = usableWidth > 0 ? usableWidth / tabs.length : 0;
 
 	// Resting geometry
-	$: idlePillWidth = Math.max(0, tabWidth - 4);
-	$: idlePillLeft = pad + activeIdx * tabWidth + 2;
+	$: idlePillWidth = Math.max(0, tabWidth - 2);
+	$: idlePillLeft = pad + activeIdx * tabWidth + 1;
 
 	// Dragging geometry (stretches & gets big)
-	$: dragPillWidth = Math.max(0, tabWidth * 1.32);
+	$: dragPillWidth = Math.max(0, tabWidth * 1.38);
 	$: dragPillLeft = Math.max(pad, Math.min(navWidth - pad - dragPillWidth, dragX - dragPillWidth / 2));
 
 	$: pillLeft = isDragging ? dragPillLeft : idlePillLeft;
@@ -153,7 +153,7 @@
 			class:drag-target={isHovered}
 			on:click|preventDefault={() => handleTabClick(i, tab.href)}
 		>
-			<span class="icon-wrap"><NavIcon name={tab.icon} size={22} /></span>
+			<span class="icon-wrap"><NavIcon name={tab.icon} size={23} /></span>
 			<span class="label">{tab.label}</span>
 		</a>
 	{/each}
@@ -173,8 +173,8 @@
 			transform: translateX(-50%);
 			width: 94%;
 			max-width: 440px;
-			height: 64px;
-			padding: 6px;
+			height: 68px;
+			padding: 5px;
 			background: color-mix(in srgb, var(--surface-panel), transparent 45%);
 			backdrop-filter: var(--glass-filter, blur(28px) saturate(200%));
 			-webkit-backdrop-filter: var(--glass-filter, blur(28px) saturate(200%));
@@ -195,11 +195,11 @@
 			position: absolute;
 			top: 50%;
 			transform: translateY(-50%);
-			height: 48px;
+			height: 56px;
 			border-radius: 999px;
-			background: radial-gradient(circle at 50% 25%, color-mix(in srgb, var(--accent) 30%, rgba(255, 255, 255, 0.18)), color-mix(in srgb, var(--accent) 18%, transparent 40%));
-			border: 1px solid color-mix(in srgb, var(--accent) 45%, rgba(255, 255, 255, 0.35));
-			box-shadow: 0 6px 20px color-mix(in srgb, var(--accent) 35%, transparent), inset 0 1px 1.5px rgba(255, 255, 255, 0.45);
+			background: radial-gradient(circle at 50% 25%, color-mix(in srgb, var(--accent) 32%, rgba(255, 255, 255, 0.2)), color-mix(in srgb, var(--accent) 20%, transparent 40%));
+			border: 1px solid color-mix(in srgb, var(--accent) 50%, rgba(255, 255, 255, 0.4));
+			box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 40%, transparent), inset 0 1px 2px rgba(255, 255, 255, 0.5);
 			pointer-events: none;
 			z-index: 1;
 			transition: left 0.36s cubic-bezier(0.34, 1.56, 0.64, 1),
@@ -212,20 +212,20 @@
 
 		/* Stretches and enlarges with intense reactivity while dragging */
 		.active-pill.big {
-			height: 54px;
-			transform: translateY(-50%) scale(1.05);
-			background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 44%, rgba(255, 255, 255, 0.25)), color-mix(in srgb, var(--accent) 26%, transparent 20%));
-			border-color: color-mix(in srgb, var(--accent) 70%, rgba(255, 255, 255, 0.5));
-			box-shadow: 0 10px 32px color-mix(in srgb, var(--accent) 60%, transparent), inset 0 1.5px 2px rgba(255, 255, 255, 0.65);
+			height: 62px;
+			transform: translateY(-50%) scale(1.06);
+			background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 46%, rgba(255, 255, 255, 0.28)), color-mix(in srgb, var(--accent) 28%, transparent 20%));
+			border-color: color-mix(in srgb, var(--accent) 75%, rgba(255, 255, 255, 0.55));
+			box-shadow: 0 12px 36px color-mix(in srgb, var(--accent) 65%, transparent), inset 0 1.5px 2px rgba(255, 255, 255, 0.7);
 			transition: height 0.15s ease-out, transform 0.15s ease-out, box-shadow 0.15s ease, background 0.15s ease;
 		}
 
 		.pill-specular {
 			position: absolute;
 			inset: 1px 4px auto 4px;
-			height: 50%;
+			height: 52%;
 			border-radius: 999px 999px 0 0;
-			background: linear-gradient(180deg, rgba(255, 255, 255, 0.35) 0%, transparent 100%);
+			background: linear-gradient(180deg, rgba(255, 255, 255, 0.38) 0%, transparent 100%);
 			pointer-events: none;
 		}
 
@@ -239,7 +239,7 @@
 			flex-direction: column;
 			align-items: center;
 			justify-content: center;
-			gap: 3px;
+			gap: 2px;
 			text-decoration: none;
 			color: var(--text-secondary);
 			flex: 1;
@@ -276,9 +276,9 @@
 		}
 
 		.label {
-			font-size: 0.63rem;
-			font-weight: 750;
-			letter-spacing: 0.02em;
+			font-size: 0.67rem;
+			font-weight: 700;
+			letter-spacing: 0.01em;
 			transition: font-weight 0.15s ease, transform 0.2s ease;
 		}
 
