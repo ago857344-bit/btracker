@@ -2,8 +2,8 @@
 	import { fade } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import { page } from '$app/stores';
-	import NavIcon from '$lib/components/NavIcon.svelte';
-	import { THEME_PRESETS, isDarkTheme, presetOf, syncThemeWallpaper } from '$lib/state/themes';
+	import { onMount } from 'svelte';
+	import { THEME_PRESETS, isDarkTheme, presetOf, syncThemeWallpaper, resolveLiveWallpaper, isMobileDevice } from '$lib/state/themes';
 	import { celebration, customizingHome, setAccent, tracker, updateTracker } from '$lib/stores/tracker';
 	import { unlockCtx } from '$lib/stores/cosmetics';
 	import { reqLabel, reqMet, type UnlockCtx } from '$lib/state/cosmetics';
@@ -13,6 +13,21 @@
 
 	let open = false;
 	let node: HTMLDivElement;
+	let isMobile = false;
+
+	onMount(() => {
+		isMobile = isMobileDevice();
+	});
+
+	$: liveWallpaperActive = resolveLiveWallpaper($tracker.ui.liveWallpaper);
+
+	function handleLiveWpToggle(e: Event & { currentTarget: HTMLInputElement }) {
+		const enabled = e.currentTarget.checked;
+		updateTracker((state) => {
+			state.ui.liveWallpaper = enabled;
+		});
+		celebration.set(enabled ? 'Live wallpapers enabled.' : 'Live wallpapers disabled (lightweight mode).');
+	}
 
 	$: current = presetOf($tracker.theme);
 	const canUse = (preset: (typeof THEME_PRESETS)[number], ctx: UnlockCtx) => reqMet(preset.unlock, ctx);
@@ -89,6 +104,37 @@
 				{/each}
 			</div>
 
+			<!-- Live Wallpaper Tickbox -->
+			<div class="toggle-section">
+				<label class="toggle-label" for="live-wp-checkbox">
+					<div class="checkbox-box">
+						<input
+							type="checkbox"
+							id="live-wp-checkbox"
+							checked={liveWallpaperActive}
+							on:change={handleLiveWpToggle}
+						/>
+						<span class="custom-check">
+							{#if liveWallpaperActive}
+								<NavIcon name="check" size={11} />
+							{/if}
+						</span>
+					</div>
+					<div class="toggle-info">
+						<span class="toggle-name">Live Wallpapers</span>
+						<span class="toggle-sub">
+							{#if $tracker.ui.liveWallpaper === undefined}
+								{isMobile ? 'Off on mobile (Saves battery)' : 'On on laptops (Default)'}
+							{:else if liveWallpaperActive}
+								Video background enabled
+							{:else}
+								Static background (Fast & light)
+							{/if}
+						</span>
+					</div>
+				</label>
+			</div>
+
 			<p class="label">ACCENT</p>
 			<div class="accents">
 				{#each ACCENTS as color, i (i)}
@@ -126,6 +172,17 @@
 	.meta { display: grid; min-width: 0; }
 	.meta b { color: var(--text-primary); font-size: .74rem; font-weight: 750; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.meta small { color: var(--text-secondary); font-size: .62rem; line-height: 1.25; }
+	
+	.toggle-section { margin-top: .75rem; padding: .55rem .65rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); }
+	.toggle-label { display: flex; align-items: center; gap: .65rem; cursor: pointer; user-select: none; }
+	.checkbox-box { position: relative; width: 18px; height: 18px; flex-shrink: 0; }
+	.checkbox-box input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+	.custom-check { display: grid; place-items: center; width: 18px; height: 18px; border: 1.5px solid var(--border-subtle); border-radius: 5px; background: var(--surface-panel); color: #fff; transition: background .15s ease, border-color .15s ease; }
+	.checkbox-box input:checked + .custom-check { background: var(--accent); border-color: var(--accent); }
+	.toggle-info { display: flex; flex-direction: column; min-width: 0; }
+	.toggle-name { font-size: .76rem; font-weight: 750; color: var(--text-primary); }
+	.toggle-sub { font-size: .62rem; color: var(--text-secondary); line-height: 1.25; }
+
 	.accents { display: flex; flex-wrap: wrap; gap: .4rem; }
 	.swatch { width: 26px; height: 26px; border: 2px solid transparent; border-radius: 99px; }
 	.swatch.on { border-color: var(--text-primary); transform: scale(1.1); }

@@ -16,7 +16,7 @@
 	import { parseImportedProgress } from '$lib/services/progressImport';
 	import { longDateKey } from '$lib/state/dates';
 	import { onMount, onDestroy } from 'svelte';
-	import { THEME_PRESETS, presetOf, isDarkTheme, syncThemeWallpaper, isBuiltinWallpaper } from '$lib/state/themes';
+	import { THEME_PRESETS, presetOf, isDarkTheme, syncThemeWallpaper, isBuiltinWallpaper, resolveLiveWallpaper, isMobileDevice } from '$lib/state/themes';
 	import { unlockCtx } from '$lib/stores/cosmetics';
 	
 	import { itemOf, reqMet, reqLabel, reqStatus, reqProgress, AURORA_REQ, type UnlockCtx } from '$lib/state/cosmetics';
@@ -441,6 +441,22 @@
 			<h2><NavIcon name="tv" size={15} /> Wallpaper & Glass</h2>
 
 			<p class="muted">Add a background image URL, or upload one from your computer. Works best with abstract or aesthetic backgrounds.</p>
+
+			<label class="check" style="margin-bottom: 1.1rem;">
+				<input
+					type="checkbox"
+					checked={resolveLiveWallpaper($tracker.ui.liveWallpaper)}
+					on:change={(e) => {
+						const checked = e.currentTarget.checked;
+						updateTracker((s) => { s.ui.liveWallpaper = checked; });
+						celebration.set(checked ? 'Live wallpapers enabled.' : 'Live wallpapers disabled (lightweight mode).');
+					}}
+				/>
+				<span>
+					<strong>Live Video Wallpapers</strong><br/>
+					Enable dynamic animated video wallpapers. Default: On for laptops, off for mobile to ensure fast loading and save battery.
+				</span>
+			</label>
 			
 			<div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
 				<input type="url" placeholder="https://example.com/wallpaper.jpg" class="input" style="margin-bottom: 0;" bind:value={urlDraft} on:change={() => setWallpaper(urlDraft || null)} />

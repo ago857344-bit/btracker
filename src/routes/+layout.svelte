@@ -21,7 +21,7 @@
 	import ThemeMenu from '$lib/components/ThemeMenu.svelte';
 	import { hydrateTracker } from '$lib/services/hydrate';
 	import { startSync } from '$lib/services/sync';
-	import { THEME_PRESETS, isDarkTheme, wallpaperCss } from '$lib/state/themes';
+	import { THEME_PRESETS, isDarkTheme, wallpaperCss, resolveLiveWallpaper, isMobileDevice } from '$lib/state/themes';
 	import { authReady, authConfigured, currentUser, hasSkippedLogin } from '$lib/stores/auth';
 	import { saveStatus, tracker } from '$lib/stores/tracker';
 	import { loadout } from '$lib/stores/cosmetics';
@@ -173,14 +173,24 @@
 		}
 	}
 
+	let isMobile = false;
 	onMount(() => {
 		void hydrateTracker().then(() => startSync());
+		isMobile = isMobileDevice();
+		const onResize = () => { isMobile = isMobileDevice(); };
+		window.addEventListener('resize', onResize, { passive: true });
 		const stopTheme = tracker.subscribe(applyTheme);
 		const stopFx = loadout.subscribe((l) => document.documentElement.setAttribute('data-fx', l.fx));
-		return () => { stopTheme(); stopFx(); };
+		return () => {
+			window.removeEventListener('resize', onResize);
+			stopTheme();
+			stopFx();
+		};
 	});
+	$: liveWallpaperEnabled = resolveLiveWallpaper($tracker.ui.liveWallpaper);
 	$: currentWallpaperStr = $tracker.ui.wallpaper;
 	$: activeVideoUrl = (() => {
+		if (!liveWallpaperEnabled) return null;
 		if (!currentWallpaperStr) return null;
 		if (currentWallpaperStr.startsWith('data:video')) return currentWallpaperStr;
 		if (currentWallpaperStr.startsWith('builtin:')) {

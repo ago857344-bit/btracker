@@ -37,13 +37,40 @@ export const EXTRA_WALLPAPERS: { id: string; label: string; css: string; unlock:
 	}
 ];
 
+export const STATIC_THEME_GRADIENTS: Record<string, string> = {
+	aurora: 'radial-gradient(ellipse at 50% 15%, rgba(0, 229, 255, 0.22) 0%, transparent 65%), linear-gradient(175deg, #050b14 0%, #0a192f 50%, #040810 100%)',
+	initiate: 'radial-gradient(ellipse at 50% 25%, rgba(0, 229, 255, 0.18) 0%, transparent 60%), linear-gradient(175deg, #05090c 0%, #0a1318 60%, #030508 100%)',
+	master: 'radial-gradient(ellipse at 50% 20%, rgba(77, 171, 247, 0.2) 0%, transparent 60%), linear-gradient(175deg, #f0f7ff 0%, #e6f2ff 100%)',
+	'god-mode': 'radial-gradient(ellipse at 50% 15%, rgba(255, 215, 0, 0.22) 0%, transparent 65%), linear-gradient(175deg, #070602 0%, #14110a 60%, #030200 100%)',
+	catalyst: 'radial-gradient(ellipse at 50% 20%, rgba(163, 230, 53, 0.18) 0%, transparent 60%), linear-gradient(175deg, #040a05 0%, #0a150b 60%, #020503 100%)'
+};
+
+/**
+ * Detects whether the current device is mobile (screen <= 768px or matchMedia query).
+ */
+export const isMobileDevice = (): boolean => {
+	if (typeof window === 'undefined') return false;
+	return window.innerWidth <= 768 || (typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 768px)').matches);
+};
+
+/**
+ * Resolves whether live video wallpapers should be enabled.
+ * Default: true for laptop/desktop, false for mobile. User preference overrides default.
+ */
+export const resolveLiveWallpaper = (pref: boolean | undefined): boolean => {
+	if (pref !== undefined) return pref;
+	return !isMobileDevice();
+};
+
 /** Resolve a stored wallpaper value to a CSS background-image value (builtin ids → preset gradient, URLs wrapped). */
 export const wallpaperCss = (wp: string) => {
 	if (wp.startsWith("data:video")) return "none";
 	if (!wp.startsWith(BUILTIN)) return `url(${wp})`;
 	const id = wp.slice(BUILTIN.length);
 	const themeWp = THEME_PRESETS.find((t) => t.id === id)?.wallpaper ?? EXTRA_WALLPAPERS.find((w) => w.id === id)?.css ?? '';
-	if (themeWp && themeWp.endsWith('.mp4')) return 'none';
+	if (themeWp && themeWp.endsWith('.mp4')) {
+		return STATIC_THEME_GRADIENTS[id] ?? 'none';
+	}
 	return themeWp;
 };
 
