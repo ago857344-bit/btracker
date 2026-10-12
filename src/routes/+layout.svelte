@@ -6,8 +6,10 @@
 	import { fade, fly } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
+	import { injectSpeedInsights } from '@vercel/speed-insights/sveltekit';
 	
 	injectAnalytics({ mode: dev ? 'development' : 'production' });
+	injectSpeedInsights();
 
 	import AppSidebar from '$lib/components/AppSidebar.svelte';
 	import MobileBottomNav from '$lib/components/MobileBottomNav.svelte';

@@ -28,6 +28,7 @@
     "@tauri-apps/api": "^2.8.0",
     "@types/marked": "^5.0.2",
     "@vercel/analytics": "^1.6.1",
+    "@vercel/speed-insights": "^2.0.0",
     "canvas-confetti": "^1.9.4",
     "katex": "^0.18.10",
     "marked": "^18.1.0",
