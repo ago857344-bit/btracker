@@ -180,6 +180,9 @@ CRITICAL INSTRUCTIONS:
 
 <div class="mentor-wrapper">
 	{#if chatOpen}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="chat-backdrop" on:click={handleOrbClick}></div>
 		<div class="chat-panel" transition:fly={{ y: 20, duration: 300, opacity: 0 }}>
 			<div class="chat-header">
 				<div class="header-title">
@@ -278,11 +281,43 @@ CRITICAL INSTRUCTIONS:
 		transition: bottom 0.3s;
 	}
 	
+	.chat-backdrop {
+		display: none;
+	}
+
 	@media (max-width: 760px) {
+		.chat-backdrop {
+			display: block;
+			position: fixed;
+			inset: 0;
+			background: rgba(0, 0, 0, 0.45);
+			backdrop-filter: blur(4px);
+			-webkit-backdrop-filter: blur(4px);
+			z-index: 10000;
+			pointer-events: auto;
+		}
+
 		.mentor-wrapper {
-			/* Push above the mobile bottom nav (68px height + 20px bottom inset + 12px padding) */
-			bottom: calc(env(safe-area-inset-bottom, 20px) + 80px);
+			/* Push above the mobile bottom nav */
+			bottom: calc(max(env(safe-area-inset-bottom), 16px) + 78px);
 			right: 16px;
+		}
+
+		.chat-panel {
+			position: fixed !important;
+			left: 50% !important;
+			transform: translateX(-50%) !important;
+			bottom: calc(max(env(safe-area-inset-bottom), 16px) + 82px) !important;
+			width: min(calc(100vw - 24px), 420px) !important;
+			max-height: min(520px, calc(100dvh - max(env(safe-area-inset-top), 24px) - 160px)) !important;
+			height: 500px !important;
+			border-radius: 20px !important;
+			box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+			z-index: 10001 !important;
+		}
+
+		.mentor-bubble {
+			max-width: min(calc(100vw - 32px), 320px);
 		}
 	}
 	
