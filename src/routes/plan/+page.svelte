@@ -235,13 +235,28 @@
 								class:done={task.done}
 								class:missed={isMissed(task)}
 								draggable={!task.done}
-								on:dragstart={() => dragId = task.id}
+								on:dragstart={(e) => {
+									if ((e.target as HTMLElement)?.closest('button, input, [role="button"]')) {
+										e.preventDefault();
+										return;
+									}
+									dragId = task.id;
+								}}
 								on:dragend={() => dragId = null}
 								on:dragover|preventDefault={() => {}}
 								on:drop|preventDefault={() => { if (dragId && dragId !== task.id) { reorder(dragId, task.id); } dragId = null; }}
 							>
 								<span class="grip" aria-hidden="true"><NavIcon name="drag" size={14} /></span>
-								<button type="button" class="circle-check" class:checked={task.done} aria-label="Toggle task" on:click={() => onToggle(task.id)}>
+								<button
+									type="button"
+									class="circle-check"
+									class:checked={task.done}
+									aria-label="Toggle task"
+									draggable="false"
+									on:click|stopPropagation={() => onToggle(task.id)}
+									on:mousedown|stopPropagation
+									on:touchstart|stopPropagation
+								>
 									{#if task.done}<NavIcon name="check" size={12} />{/if}
 								</button>
 								<span class="color-bar" style="background: {TASK_COLORS[(task.col ?? 0) % TASK_COLORS.length]}"></span>
@@ -401,8 +416,8 @@
 	.task-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
 	.task-row { display: flex; align-items: center; gap: .55rem; padding: .55rem .6rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); }
 	.task-row:active { cursor: grabbing; }
-	.grip { color: var(--border-subtle); cursor: grab; }
-	.circle-check { display: grid; flex: 0 0 19px; place-items: center; width: 19px; height: 19px; border: 2px solid var(--border-subtle); border-radius: 99px; background: transparent; color: white; cursor: pointer; }
+	.circle-check { display: grid; flex: 0 0 22px; place-items: center; width: 22px; height: 22px; border: 2px solid var(--border-subtle); border-radius: 99px; background: transparent; color: white; cursor: pointer; touch-action: manipulation; transition: all .15s ease; }
+	.circle-check:hover { border-color: var(--accent); transform: scale(1.08); }
 	.circle-check.checked { border-color: #2f9e6e; background: #2f9e6e; }
 	.color-bar { flex: 0 0 4px; align-self: stretch; border-radius: 99px; }
 	.task-copy { display: grid; flex: 1; gap: .18rem; min-width: 0; border: 0; background: transparent; text-align: left; color: inherit; cursor: pointer; font-family: inherit; }

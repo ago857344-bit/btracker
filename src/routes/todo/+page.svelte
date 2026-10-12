@@ -194,14 +194,30 @@ async function runAiTriage() {
 						class="row"
 						class:done={item.done}
 						draggable={!item.done}
-						on:dragstart={() => (dragId = item.id)}
+						on:dragstart={(e) => {
+							if ((e.target as HTMLElement)?.closest('button, input, [role="button"]')) {
+								e.preventDefault();
+								return;
+							}
+							dragId = item.id;
+						}}
 						on:dragend={() => (dragId = null)}
 						on:dragover|preventDefault={() => {}}
 						on:drop|preventDefault={() => { if (dragId && dragId !== item.id) reorderTodo(dragId, item.id); dragId = null; }}
 					>
 						<span class="grip" aria-hidden="true"><NavIcon name="drag" size={15} /></span>
-						<button type="button" class="check" class:checked={item.done} aria-label="Toggle task" on:click={() => onToggle(item.id)}>
-							{#if item.done}<NavIcon name="check" size={12} />{/if}
+						<button
+							type="button"
+							class="check-btn"
+							aria-label="Toggle task"
+							draggable="false"
+							on:click|stopPropagation={() => onToggle(item.id)}
+							on:mousedown|stopPropagation
+							on:touchstart|stopPropagation
+						>
+							<span class="check-circle" class:checked={item.done}>
+								{#if item.done}<NavIcon name="check" size={12} />{/if}
+							</span>
 						</button>
 						{#if item.sub}<span class="dot" style="background: {subjectColor(item.sub)}" title={item.sub}></span>{/if}
 						<div class="title-wrap" style="flex: 1; cursor: pointer; display: flex; flex-direction: column;" on:click={() => expandedTodo = expandedTodo === item.id ? null : item.id} on:keydown={(e) => e.key === 'Enter' && (expandedTodo = expandedTodo === item.id ? null : item.id)} tabindex="0" role="button">
@@ -228,8 +244,18 @@ async function runAiTriage() {
 							{#if item.subtasks}
 								{#each item.subtasks as sub (sub.id)}
 									<div class="sub-row" class:done={sub.done}>
-										<button type="button" class="check" class:checked={sub.done} on:click={() => onSubToggle(item.id, sub.id)}>
-											{#if sub.done}<NavIcon name="check" size={10} />{/if}
+										<button
+											type="button"
+											class="check-btn sub-check-btn"
+											aria-label="Toggle subtask"
+											draggable="false"
+											on:click|stopPropagation={() => onSubToggle(item.id, sub.id)}
+											on:mousedown|stopPropagation
+											on:touchstart|stopPropagation
+										>
+											<span class="check-circle sub" class:checked={sub.done}>
+												{#if sub.done}<NavIcon name="check" size={10} />{/if}
+											</span>
 										</button>
 										<span class="sub-title">{sub.title}</span>
 										<button type="button" class="del" on:click={() => deleteTodoSubtask(item.id, sub.id)}><NavIcon name="x" size={12} /></button>
@@ -372,7 +398,45 @@ async function runAiTriage() {
 	.row { display: flex; align-items: center; gap: .6rem; padding: .75rem .9rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-panel); backdrop-filter: var(--glass-filter); -webkit-backdrop-filter: var(--glass-filter); transition: transform 0.15s ease, box-shadow 0.15s ease; }
 	.row:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
 	.row.done { opacity: .55; background: transparent; box-shadow: none; }
-	.grip { color: var(--border-subtle); cursor: grab; }
+	.grip { color: var(--border-subtle); cursor: grab; padding: 0 .2rem; }
+	.check-btn {
+		display: grid;
+		place-items: center;
+		width: 38px;
+		height: 38px;
+		min-width: 38px;
+		margin: -9px 0 -9px -6px;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		cursor: pointer;
+		border-radius: 99px;
+		touch-action: manipulation;
+		-webkit-tap-highlight-color: transparent;
+	}
+	.check-circle {
+		display: grid;
+		place-items: center;
+		width: 22px;
+		height: 22px;
+		border: 2px solid var(--border-subtle);
+		border-radius: 99px;
+		background: transparent;
+		color: #fff;
+		transition: all 0.15s ease;
+	}
+	.check-btn:hover .check-circle {
+		border-color: var(--accent);
+		transform: scale(1.08);
+	}
+	.check-circle.checked {
+		border-color: #2f9e6e;
+		background: #2f9e6e;
+	}
+	.check-circle.sub {
+		width: 18px;
+		height: 18px;
+	}
 	.check { display: grid; flex: 0 0 20px; place-items: center; width: 20px; height: 20px; border: 2px solid var(--border-subtle); border-radius: 99px; background: transparent; color: #fff; cursor: pointer; }
 	.check.checked { border-color: #2f9e6e; background: #2f9e6e; }
 	.dot { flex: 0 0 9px; width: 9px; height: 9px; border-radius: 99px; }
