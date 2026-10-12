@@ -38,11 +38,11 @@
 			max-width: 440px;
 			height: 68px;
 			padding: 0 0.5rem;
-			background: color-mix(in srgb, var(--surface-panel), transparent 35%);
-			backdrop-filter: var(--glass-filter);
-			-webkit-backdrop-filter: var(--glass-filter);
+			background: color-mix(in srgb, var(--surface-panel), transparent 65%);
+			backdrop-filter: var(--glass-filter, blur(24px) saturate(190%));
+			-webkit-backdrop-filter: var(--glass-filter, blur(24px) saturate(190%));
 			border-radius: 99px;
-			border: 1px solid color-mix(in srgb, rgba(255,255,255,0.4), var(--border-subtle) 80%);
+			border: 1px solid color-mix(in srgb, rgba(255,255,255,0.25), var(--border-subtle) 80%);
 			box-shadow: 0 16px 40px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255, 255, 255, 0.2);
 			z-index: 100;
 			justify-content: space-around;
