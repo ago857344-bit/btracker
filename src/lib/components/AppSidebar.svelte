@@ -162,9 +162,22 @@
 	aside::-webkit-scrollbar { display: none; }
 	aside { -ms-overflow-style: none; scrollbar-width: none; }
 	.brand-row { display: flex; align-items: center; gap: .45rem; min-height: 42px; padding: 0 .25rem .8rem; }
-	.brand { display: inline-flex; align-items: center; gap: .65rem; min-width: 0; color: var(--text-primary); text-decoration: none; font-weight: 800; letter-spacing: -.055em; font-size: 1.24rem; }
-	.brand-mark { display: grid; place-items: center; flex: 0 0 31px; width: 31px; height: 31px; border-radius: 10px; background: var(--accent); color: white; font-size: 1rem; letter-spacing: -.07em; box-shadow: 0 6px 14px color-mix(in srgb, var(--accent), transparent 65%), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
-	.brand-name, .nav-text, .nav-label, .profile-copy { white-space: nowrap; overflow: hidden; transition: opacity .18s ease; }
+	.brand-mark {
+		display: grid;
+		place-items: center;
+		flex: 0 0 31px;
+		width: 31px;
+		height: 31px;
+		border-radius: 9px;
+		background: #ffffff !important;
+		color: #000000 !important;
+		font-size: 1.05rem;
+		font-weight: 900;
+		letter-spacing: -.05em;
+		box-shadow: 0 3px 8px rgba(0, 0, 0, 0.16), 0 1px 2px rgba(0, 0, 0, 0.08), inset 0 0 0 0.5px rgba(0, 0, 0, 0.06);
+		transition: transform 0.2s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1));
+	}
+	.brand-mark:active { transform: scale(0.93); }
 	.collapse { display: grid; place-items: center; margin-left: auto; width: 30px; height: 30px; border: 0; border-radius: 9px; color: var(--text-secondary); background: transparent; transform: rotate(180deg); cursor: pointer; transition: all 0.2s var(--ease-ios-spring); } /* Points Left (<) when open */
 	.collapse:hover { color: var(--accent); background: var(--accent-soft); }
 	.collapse:active { transform: rotate(180deg) scale(0.9); }
