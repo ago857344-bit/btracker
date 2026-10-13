@@ -271,7 +271,7 @@ export function addSubtask(id: string, text: string) {
 
 /* To Do list --------------------------------------------------------- */
 
-export interface TodoDraft { title: string; sub?: string; ch?: number; source?: 'manual' | 'btest' }
+export interface TodoDraft { title: string; sub?: string; ch?: number; source?: 'manual' | 'btest' | 'brain-dump' }
 
 export const openTodos = derived(tracker, ($t) => $t.todos.filter((item) => !item.done));
 
@@ -279,7 +279,9 @@ export function addTodo(draft: TodoDraft) {
 	const title = draft.title.trim();
 	if (!title) return;
 	updateTracker((s) => {
-		s.todos.push({ id: uid(), title, done: false, created: Date.now(), sub: draft.sub, ch: draft.ch, source: draft.source ?? 'manual' });
+		const id = uid();
+		if (s.deletedTodos) delete s.deletedTodos[id];
+		s.todos.push({ id, title, done: false, created: Date.now(), updated: Date.now(), sub: draft.sub, ch: draft.ch, source: draft.source ?? 'manual' });
 	});
 }
 
@@ -294,7 +296,9 @@ export function addTodos(drafts: TodoDraft[]): number {
 			const key = d.title.toLowerCase();
 			if (seen.has(key)) continue;
 			seen.add(key);
-			s.todos.push({ id: uid(), title: d.title, done: false, created: Date.now(), sub: d.sub, ch: d.ch, source: d.source ?? 'btest' });
+			const id = uid();
+			if (s.deletedTodos) delete s.deletedTodos[id];
+			s.todos.push({ id, title: d.title, done: false, created: Date.now(), updated: Date.now(), sub: d.sub, ch: d.ch, source: d.source ?? 'btest' });
 			added += 1;
 		}
 	});
@@ -302,11 +306,21 @@ export function addTodos(drafts: TodoDraft[]): number {
 }
 
 export function toggleTodo(id: string) {
-	updateTracker((s) => { const item = s.todos.find((t) => t.id === id); if (item) item.done = !item.done; });
+	updateTracker((s) => {
+		const item = s.todos.find((t) => t.id === id);
+		if (item) {
+			item.done = !item.done;
+			item.updated = Date.now();
+		}
+	});
 }
 
 export function deleteTodo(id: string) {
-	updateTracker((s) => { s.todos = s.todos.filter((t) => t.id !== id); });
+	updateTracker((s) => {
+		s.deletedTodos ??= {};
+		s.deletedTodos[id] = Date.now();
+		s.todos = s.todos.filter((t) => t.id !== id);
+	});
 }
 
 /** Reorders the To Do list by moving dragId onto overId's position. */
@@ -365,7 +379,16 @@ export function deleteTodoSubtask(todoId: string, subtaskId: string) {
 }
 
 export function clearDoneTodos() {
-	updateTracker((s) => { s.todos = s.todos.filter((t) => !t.done); });
+	updateTracker((s) => {
+		s.deletedTodos ??= {};
+		const now = Date.now();
+		for (const t of s.todos) {
+			if (t.done) {
+				s.deletedTodos[t.id] = now;
+			}
+		}
+		s.todos = s.todos.filter((t) => !t.done);
+	});
 }
 
 /* chapter checklist -------------------------------------------------- */

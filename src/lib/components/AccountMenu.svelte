@@ -79,4 +79,10 @@
 	.sync.err i { background: var(--danger); }
 	.menu a, .menu button { display: flex; align-items: center; gap: .55rem; width: 100%; padding: .55rem .6rem; border: 0; border-radius: 10px; background: transparent; color: var(--text-primary); font-size: .82rem; font-weight: 600; text-decoration: none; text-align: left; }
 	.menu a:hover, .menu button:hover { background: var(--surface-subtle); color: var(--accent); }
+	:global(.sidebar-bottom) .menu {
+		top: auto;
+		bottom: calc(100% + .6rem);
+		left: 0;
+		right: auto;
+	}
 </style>

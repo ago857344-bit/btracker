@@ -99,7 +99,18 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 	const newerTime = Math.max(cloudTime, localTime);
 	const prefSource = cloudIsNewer ? remote : base;
 
-	// 5. Todos: Union by id with subtask merging and deletion synchronization
+	// 5. Todos: Union by id with subtask merging and distributed tombstone deletion
+	const mergedDeletedTodos: Record<string, number> = {
+		...(base.deletedTodos || {}),
+		...(remote.deletedTodos || {})
+	};
+	const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+	for (const id of Object.keys(mergedDeletedTodos)) {
+		if (mergedDeletedTodos[id] < thirtyDaysAgo) {
+			delete mergedDeletedTodos[id];
+		}
+	}
+
 	const locTodoMap = new Map((base.todos || []).map((t) => [t.id, t]));
 	const remTodoMap = new Map((remote.todos || []).map((t) => [t.id, t]));
 
@@ -110,7 +121,15 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 	const primaryTodos = cloudIsNewer ? (remote.todos || []) : (base.todos || []);
 	const secondaryMap = cloudIsNewer ? locTodoMap : remTodoMap;
 
+	const isTombstoned = (item: TodoItem) => {
+		const delTime = mergedDeletedTodos[item.id];
+		if (!delTime) return false;
+		const itemTime = item.updated || item.created || 0;
+		return itemTime <= delTime;
+	};
+
 	for (const prim of primaryTodos) {
+		if (isTombstoned(prim)) continue;
 		seenTodoIds.add(prim.id);
 		const sec = secondaryMap.get(prim.id);
 		if (!sec) {
@@ -136,7 +155,8 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 				...prim,
 				done: isDone || allSubsDone,
 				subtasks: mergedSubtasks.length > 0 ? mergedSubtasks : prim.subtasks,
-				roiTag: prim.roiTag || sec.roiTag
+				roiTag: prim.roiTag || sec.roiTag,
+				updated: Math.max(prim.updated || prim.created || 0, sec.updated || sec.created || 0)
 			});
 		}
 	}
@@ -144,6 +164,7 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 	// For items existing ONLY in secondary state:
 	for (const [id, sec] of secondaryMap.entries()) {
 		if (seenTodoIds.has(id)) continue;
+		if (isTombstoned(sec)) continue;
 		// If the older state has an item created before the newer state was saved,
 		// the newer state deliberately deleted/cleared it -> do not resurrect!
 		const createdTime = sec.created || 0;
@@ -226,6 +247,7 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		stat: mergedStat,
 		log: mergedLog,
 		todos: mergedTodos,
+		deletedTodos: mergedDeletedTodos,
 		h: mergedH,
 		hd: Array.from(mergedHdMap.values()),
 		mocks: mergedMocks,

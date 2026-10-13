@@ -69,6 +69,7 @@ export interface TodoItem {
 	ch?: number;
 	source?: 'manual' | 'btest' | 'brain-dump';
 	created: number;
+	updated?: number;
 	subtasks?: TodoSubtask[];
 	roiTag?: 'High ROI' | 'Time Trap' | 'Normal' | 'Core';
 }
@@ -292,6 +293,7 @@ export interface TrackerState {
 	lib: TaskRoutine[];
 	gt: TrackerGoal[];
 	todos: TodoItem[];
+	deletedTodos?: Record<string, number>;
 	chapterGrids: Record<string, ChapterGrid>;
 	refl: Record<DayKey, ReflectionEntry>;
 	sess: SubjectSession[];

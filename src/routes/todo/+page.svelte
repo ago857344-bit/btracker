@@ -9,7 +9,7 @@
 import { triageTodos } from '$lib/services/aiTriage';
 	import {
 		addChecklistColumn, addTodo, addTodos, celebration, CHECKLIST_DEFAULT_COLS, clearDoneTodos, deleteTodo,
-		removeChecklistColumn, reorderTodo, toggleChecklistCell, toggleTodo, tracker, addTodoSubtask, toggleTodoSubtask, deleteTodoSubtask
+		removeChecklistColumn, reorderTodo, toggleChecklistCell, toggleTodo, tracker, updateTracker, addTodoSubtask, toggleTodoSubtask, deleteTodoSubtask
 	} from '$lib/stores/tracker';
 
 	let tab: 'tasks' | 'checklist' | 'btest' = 'tasks';
@@ -27,11 +27,13 @@ async function runAiTriage() {
     try {
         const result = await triageTodos(openTodos, $tracker.gamification?.elo || { P: 1200, C: 1200, M: 1200 });
         
-        $tracker.todos = $tracker.todos.map(t => {
-            if (result[t.id]) {
-                return { ...t, roiTag: result[t.id] };
-            }
-            return t;
+        updateTracker(s => {
+            s.todos = s.todos.map(t => {
+                if (result[t.id]) {
+                    return { ...t, roiTag: result[t.id], updated: Date.now() };
+                }
+                return t;
+            });
         });
         uiSuccess();
     } catch (e) {

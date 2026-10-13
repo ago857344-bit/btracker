@@ -3,7 +3,7 @@
 	import { fade, scale } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import { isDarkTheme, presetOf, syncThemeWallpaper } from '$lib/state/themes';
-	import { updateTracker, formulaVaultOpen, customizingHome } from '$lib/stores/tracker';
+	import { updateTracker, addTodo, formulaVaultOpen, customizingHome } from '$lib/stores/tracker';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 
 	let open = false;
@@ -81,16 +81,7 @@
 			if (showBrainDump) {
 				const text = query.trim();
 				if (text) {
-					updateTracker((state) => {
-						if (!state.todos) state.todos = [];
-						state.todos.push({
-							id: crypto.randomUUID(),
-							title: text,
-							done: false,
-							created: Date.now(),
-							source: 'brain-dump'
-						});
-					});
+					addTodo({ title: text, source: 'brain-dump' });
 					open = false;
 				}
 			} else if (filteredCommands.length > 0) {
@@ -124,16 +115,7 @@
 					<button class="result-item selected" on:click={() => {
 						const text = query.trim();
 						if (text) {
-							updateTracker((state) => {
-								if (!state.todos) state.todos = [];
-								state.todos.push({
-									id: crypto.randomUUID(),
-									title: text,
-									done: false,
-									created: Date.now(),
-									source: 'brain-dump'
-								});
-							});
+							addTodo({ title: text, source: 'brain-dump' });
 							open = false;
 						}
 					}}>

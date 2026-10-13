@@ -134,7 +134,8 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 			elo: retroElo,
 			v3_elo: true
 		},
-		streakFreezes: saved.streakFreezes || base.streakFreezes || { available: 2, usedDates: [] }
+		streakFreezes: saved.streakFreezes || base.streakFreezes || { available: 2, usedDates: [] },
+		deletedTodos: saved.deletedTodos || base.deletedTodos || {}
 	};
 	const known = new Set(merged.ui.widgets.map((w) => w.id));
 	for (const widget of DEFAULT_WIDGETS) if (!known.has(widget.id)) merged.ui.widgets.push({ ...widget });
