@@ -17,13 +17,22 @@
 	let isSwiping = false;
 	let modalCardEl: HTMLElement | null = null;
 
+	$: if (!open) {
+		currentTranslateY = 0;
+		isSwiping = false;
+		touchStartY = 0;
+	}
+
 	function handleTouchStart(e: TouchEvent) {
 		if (e.touches.length === 0) return;
 		const target = e.target as HTMLElement | null;
-		const isHeaderOrHandle = target?.closest('header') || target?.classList.contains('bottom-sheet-handle');
-		const isAtTop = modalCardEl ? modalCardEl.scrollTop <= 0 : true;
+		const isHeaderOrHandle = Boolean(
+			target?.closest('header') ||
+			target?.classList.contains('bottom-sheet-handle') ||
+			(modalCardEl && (e.touches[0].clientY - modalCardEl.getBoundingClientRect().top < 56))
+		);
 
-		if (isHeaderOrHandle || isAtTop) {
+		if (isHeaderOrHandle) {
 			touchStartY = e.touches[0].clientY;
 			touchStartX = e.touches[0].clientX;
 			isSwiping = false;

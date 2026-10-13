@@ -32,7 +32,7 @@
 
 	let touchStartX = 0;
 	let touchStartY = 0;
-	const mainRoutes = ['/', '/plan', '/focus', '/review', '/revise'];
+	const mainRoutes = ['/', '/log', '/focus', '/todo', '/settings'];
 
 	function handleTouchStart(e: TouchEvent) {
 		touchStartX = e.changedTouches[0].screenX;
@@ -49,6 +49,7 @@
 
 		if (Math.abs(diffX) > 75 && Math.abs(diffY) < 50) {
 			let target = (e.target instanceof Element ? e.target : (e.target as Node)?.parentElement) as HTMLElement | null;
+			if (target?.closest('input, textarea, select, [contenteditable="true"], .slider, [role="slider"]')) return;
 			let isScrollable = false;
 			while (target && target !== e.currentTarget) {
 				if (target.classList && target.classList.contains('flashcard')) {

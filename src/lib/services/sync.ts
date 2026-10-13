@@ -4,6 +4,7 @@ import { normalizeState } from '$lib/services/hydrate';
 import { supabaseConfigured } from '$lib/services/supabase';
 import { authReady, initAuth, syncStatus, teardownAuth } from '$lib/stores/auth';
 import { replaceTracker, setCloudSink, tracker } from '$lib/stores/tracker';
+import { saveTrackerState } from '$lib/services/persistence';
 import type { TrackerState, TodoItem, HomeworkItem } from '$lib/types/tracker';
 
 let activeUserId: string | null = null;
@@ -92,9 +93,10 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		}
 	}
 
-	const cloudTime = remote.savedAt ? new Date(remote.savedAt).getTime() : 0;
-	const localTime = base.savedAt ? new Date(base.savedAt).getTime() : 0;
+	const cloudTime = remote.savedAt && !isNaN(new Date(remote.savedAt).getTime()) ? new Date(remote.savedAt).getTime() : 0;
+	const localTime = base.savedAt && !isNaN(new Date(base.savedAt).getTime()) ? new Date(base.savedAt).getTime() : 0;
 	const cloudIsNewer = cloudTime >= localTime;
+	const newerTime = Math.max(cloudTime, localTime);
 	const prefSource = cloudIsNewer ? remote : base;
 
 	// 5. Todos: Union by id with subtask merging and deletion synchronization
@@ -142,13 +144,11 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 	// For items existing ONLY in secondary state:
 	for (const [id, sec] of secondaryMap.entries()) {
 		if (seenTodoIds.has(id)) continue;
-		if (cloudIsNewer) {
-			// If cloud is newer, sec is local (phone).
-			// If created before cloudTime, laptop cleared/deleted it -> omit!
-			const createdTime = sec.created || 0;
-			if (cloudTime > 0 && createdTime < cloudTime) {
-				continue;
-			}
+		// If the older state has an item created before the newer state was saved,
+		// the newer state deliberately deleted/cleared it -> do not resurrect!
+		const createdTime = sec.created || 0;
+		if (newerTime > 0 && createdTime < newerTime) {
+			continue;
 		}
 		mergedTodos.push({ ...sec });
 		seenTodoIds.add(id);
@@ -166,14 +166,20 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		else if (item.fin && (!existing.fin || item.fin > existing.fin)) existing.fin = item.fin;
 	}
 
-	const mergedH: HomeworkItem[] = [];
-	const seenHIds = new Set<string>();
 	const primH = cloudIsNewer ? (remote.h || []) : (base.h || []);
 	const secH = cloudIsNewer ? (base.h || []) : (remote.h || []);
+
+	// If the authoritative newer state explicitly has an item pending in primH,
+	// it was unchecked on the newer device -> ensure it stays in active h
+	for (const item of primH) {
+		mergedHdMap.delete(item.id);
+	}
+
+	const mergedH: HomeworkItem[] = [];
+	const seenHIds = new Set<string>();
 	const secHMap = new Map(secH.map((i) => [i.id, i]));
 
 	for (const item of primH) {
-		if (mergedHdMap.has(item.id)) continue;
 		seenHIds.add(item.id);
 		const sec = secHMap.get(item.id);
 		mergedH.push(sec ? { ...item, ...sec } : { ...item });
@@ -228,6 +234,11 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 			available: Math.max(base.streakFreezes?.available ?? 2, remote.streakFreezes?.available ?? 2),
 			usedDates: Array.from(new Set([...(base.streakFreezes?.usedDates ?? []), ...(remote.streakFreezes?.usedDates ?? [])]))
 		},
+		ui: {
+			...prefSource.ui,
+			wallpaper: base.ui?.wallpaper || remote.ui?.wallpaper || null,
+			wallpaperHistory: Array.from(new Set([...(base.ui?.wallpaperHistory || []), ...(remote.ui?.wallpaperHistory || [])]))
+		},
 		savedAt: new Date().toISOString()
 	};
 
@@ -269,6 +280,7 @@ export async function pullAndSync() {
 		const local = get(tracker);
 		const merged = mergeTrackerStates(local, cloud);
 		replaceTracker(merged, false);
+		await saveTrackerState(merged);
 		syncStatus.set('synced');
 	} catch (e) {
 		console.error("Auto pull & sync failed:", e);
