@@ -321,15 +321,10 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		min-height: 80px;
-		padding: 1.15rem clamp(1.5rem, 4vw, 4rem);
-		border-bottom: 0.5px solid color-mix(in srgb, var(--border-subtle), transparent 45%);
-		background: color-mix(in srgb, var(--surface-canvas) 85%, transparent);
-		backdrop-filter: blur(20px) saturate(180%);
-		-webkit-backdrop-filter: blur(20px) saturate(180%);
-		position: sticky;
-		top: 0;
-		z-index: 15;
+		min-height: 88px;
+		padding: 1.25rem clamp(1.5rem, 4vw, 4rem);
+		border-bottom: 1px solid color-mix(in srgb, var(--border-subtle), transparent 32%);
+		background: transparent;
 	}
 	.page-heading, .topbar-actions { display: flex; align-items: center; }
 	.page-heading { gap: .85rem; }
