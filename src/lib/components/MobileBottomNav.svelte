@@ -171,16 +171,16 @@
 			bottom: max(env(safe-area-inset-bottom), 18px);
 			left: 50%;
 			transform: translateX(-50%);
-			width: 94%;
-			max-width: 440px;
+			width: 93%;
+			max-width: 430px;
 			height: 68px;
 			padding: 5px;
-			background: color-mix(in srgb, var(--surface-panel), transparent 45%);
-			backdrop-filter: var(--glass-filter, blur(28px) saturate(200%));
-			-webkit-backdrop-filter: var(--glass-filter, blur(28px) saturate(200%));
-			border-radius: 999px;
-			border: 1px solid color-mix(in srgb, rgba(255, 255, 255, 0.25), var(--border-subtle) 80%);
-			box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28), inset 0 1px 1.5px rgba(255, 255, 255, 0.25);
+			background: color-mix(in srgb, var(--surface-panel), transparent 42%);
+			backdrop-filter: blur(32px) saturate(210%) contrast(96%);
+			-webkit-backdrop-filter: blur(32px) saturate(210%) contrast(96%);
+			border-radius: 9999px;
+			border: 0.5px solid color-mix(in srgb, rgba(255, 255, 255, 0.35), var(--border-subtle) 75%);
+			box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.42), inset 0 1px 1.5px rgba(255, 255, 255, 0.32);
 			z-index: 100;
 			justify-content: space-around;
 			align-items: center;
@@ -196,16 +196,16 @@
 			top: 50%;
 			transform: translateY(-50%);
 			height: 56px;
-			border-radius: 999px;
-			background: radial-gradient(circle at 50% 25%, color-mix(in srgb, var(--accent) 32%, rgba(255, 255, 255, 0.2)), color-mix(in srgb, var(--accent) 20%, transparent 40%));
-			border: 1px solid color-mix(in srgb, var(--accent) 50%, rgba(255, 255, 255, 0.4));
-			box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 40%, transparent), inset 0 1px 2px rgba(255, 255, 255, 0.5);
+			border-radius: 9999px;
+			background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 36%, rgba(255, 255, 255, 0.24)), color-mix(in srgb, var(--accent) 18%, transparent 45%));
+			border: 0.5px solid color-mix(in srgb, var(--accent) 55%, rgba(255, 255, 255, 0.45));
+			box-shadow: 0 10px 28px -4px color-mix(in srgb, var(--accent) 45%, transparent), inset 0 1px 2px rgba(255, 255, 255, 0.55);
 			pointer-events: none;
 			z-index: 1;
-			transition: left 0.36s cubic-bezier(0.34, 1.56, 0.64, 1),
-						width 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
-						height 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
-						transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+			transition: left 0.38s cubic-bezier(0.32, 0.72, 0, 1),
+						width 0.34s cubic-bezier(0.32, 0.72, 0, 1),
+						height 0.25s cubic-bezier(0.32, 0.72, 0, 1),
+						transform 0.25s cubic-bezier(0.32, 0.72, 0, 1),
 						box-shadow 0.25s ease,
 						background 0.25s ease;
 		}
@@ -214,18 +214,18 @@
 		.active-pill.big {
 			height: 62px;
 			transform: translateY(-50%) scale(1.06);
-			background: radial-gradient(circle at 50% 20%, color-mix(in srgb, var(--accent) 46%, rgba(255, 255, 255, 0.28)), color-mix(in srgb, var(--accent) 28%, transparent 20%));
-			border-color: color-mix(in srgb, var(--accent) 75%, rgba(255, 255, 255, 0.55));
-			box-shadow: 0 12px 36px color-mix(in srgb, var(--accent) 65%, transparent), inset 0 1.5px 2px rgba(255, 255, 255, 0.7);
+			background: radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--accent) 48%, rgba(255, 255, 255, 0.3)), color-mix(in srgb, var(--accent) 26%, transparent 20%));
+			border-color: color-mix(in srgb, var(--accent) 75%, rgba(255, 255, 255, 0.6));
+			box-shadow: 0 14px 40px color-mix(in srgb, var(--accent) 68%, transparent), inset 0 1.5px 2px rgba(255, 255, 255, 0.72);
 			transition: height 0.15s ease-out, transform 0.15s ease-out, box-shadow 0.15s ease, background 0.15s ease;
 		}
 
 		.pill-specular {
 			position: absolute;
-			inset: 1px 4px auto 4px;
-			height: 52%;
-			border-radius: 999px 999px 0 0;
-			background: linear-gradient(180deg, rgba(255, 255, 255, 0.38) 0%, transparent 100%);
+			inset: 1px 5px auto 5px;
+			height: 48%;
+			border-radius: 9999px 9999px 0 0;
+			background: linear-gradient(180deg, rgba(255, 255, 255, 0.42) 0%, rgba(255, 255, 255, 0.08) 65%, transparent 100%);
 			pointer-events: none;
 		}
 
@@ -233,7 +233,7 @@
 			position: relative;
 			z-index: 2;
 			-webkit-tap-highlight-color: transparent;
-			border-radius: 999px;
+			border-radius: 9999px;
 			height: 100%;
 			display: flex;
 			flex-direction: column;
@@ -243,16 +243,16 @@
 			text-decoration: none;
 			color: var(--text-secondary);
 			flex: 1;
-			transition: color 0.18s ease, transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.18s ease;
+			transition: color 0.18s ease, transform 0.22s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.18s ease;
 			cursor: pointer;
 		}
 
 		.tab:active {
-			transform: scale(0.92);
+			transform: scale(0.93);
 		}
 
 		.bottom-nav.is-dragging .tab:not(.active) {
-			opacity: 0.6;
+			opacity: 0.55;
 			transform: scale(0.95);
 		}
 
@@ -272,18 +272,18 @@
 		.icon-wrap {
 			display: grid;
 			place-items: center;
-			transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+			transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
 		}
 
 		.label {
-			font-size: 0.67rem;
-			font-weight: 700;
-			letter-spacing: 0.01em;
+			font-size: 0.68rem;
+			font-weight: 650;
+			letter-spacing: -0.015em;
 			transition: font-weight 0.15s ease, transform 0.2s ease;
 		}
 
 		.tab.active .label {
-			font-weight: 850;
+			font-weight: 800;
 		}
 	}
 </style>

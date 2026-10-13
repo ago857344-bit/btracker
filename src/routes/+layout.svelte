@@ -336,13 +336,55 @@
 	.auth-loading { display: grid; min-height: 100vh; place-items: center; background: var(--surface-canvas); color: var(--text-secondary); font-size: .9rem; font-weight: 650; }
 	@media (max-width: 760px) {
 		.app-shell, .app-shell.sidebar-collapsed { padding-left: 0; }
-		.topbar { min-height: 76px; padding: max(env(safe-area-inset-top), 1rem) 1.15rem 1rem; }
-		.mobile-menu { display: grid; }
+		.topbar {
+			min-height: calc(max(env(safe-area-inset-top), 14px) + 56px);
+			padding: max(env(safe-area-inset-top), 14px) 1.15rem 0.8rem;
+			background: color-mix(in srgb, var(--surface-canvas), transparent 25%);
+			backdrop-filter: blur(24px) saturate(190%);
+			-webkit-backdrop-filter: blur(24px) saturate(190%);
+			position: sticky;
+			top: 0;
+			z-index: 15;
+			border-bottom: 0.5px solid color-mix(in srgb, var(--border-subtle), transparent 45%);
+		}
+		.mobile-menu {
+			display: grid;
+			width: 38px;
+			height: 38px;
+			border-radius: 50%;
+			border: 0.5px solid color-mix(in srgb, rgba(255, 255, 255, 0.2), var(--border-subtle) 80%);
+			background: color-mix(in srgb, var(--surface-panel), transparent 25%);
+			backdrop-filter: blur(16px);
+			-webkit-backdrop-filter: blur(16px);
+		}
+		.mobile-menu:active {
+			transform: scale(0.92);
+		}
 		.save-state { display: none; }
 		.quick-add span { display: none; }
-		.quick-add { width: 36px; justify-content: center; padding: 0; }
-		main { padding: 1rem .75rem 100px; }
-		.scrim { display: block; position: fixed; z-index: 10; inset: 0; border: 0; background: rgb(16 14 30 / 34%); backdrop-filter: blur(2px); pointer-events: none; }
+		.quick-add {
+			width: 36px;
+			height: 36px;
+			border-radius: 50%;
+			justify-content: center;
+			padding: 0;
+			box-shadow: 0 4px 14px color-mix(in srgb, var(--accent), transparent 60%);
+		}
+		.quick-add:active {
+			transform: scale(0.92);
+		}
+		main { padding: 1rem .85rem calc(max(env(safe-area-inset-bottom), 18px) + 84px); }
+		.scrim {
+			display: block;
+			position: fixed;
+			z-index: 10;
+			inset: 0;
+			border: 0;
+			background: rgb(0 0 0 / 42%);
+			backdrop-filter: blur(14px);
+			-webkit-backdrop-filter: blur(14px);
+			pointer-events: none;
+		}
 	}
 
 .live-wallpaper-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: -2; pointer-events: none; opacity: 0.85;  -webkit-transform: translateZ(0); transform: translateZ(0); }

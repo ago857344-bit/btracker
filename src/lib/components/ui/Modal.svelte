@@ -103,15 +103,16 @@
 {/if}
 
 <style>
-	.modal-backdrop { position: fixed; z-index: 120; inset: 0; display: grid; place-items: center; padding: 1.2rem; background: rgb(14 12 28 / 62%); backdrop-filter: var(--glass-filter); }
-	.modal-card { width: 100%; max-height: 86vh; overflow: hidden auto; border: 1px solid var(--border-subtle); border-radius: 20px; background: var(--surface-panel); box-shadow: var(--shadow-modal); transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.3, 1); }
+	.modal-backdrop { position: fixed; z-index: 120; inset: 0; display: grid; place-items: center; padding: 1.2rem; background: rgb(0 0 0 / 48%); backdrop-filter: blur(18px) saturate(180%); -webkit-backdrop-filter: blur(18px) saturate(180%); }
+	.modal-card { width: 100%; max-height: 86vh; overflow: hidden auto; border: 0.5px solid color-mix(in srgb, rgba(255, 255, 255, 0.25), var(--border-subtle) 80%); border-radius: 22px; background: var(--surface-panel); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), var(--shadow-modal); transition: transform 0.28s cubic-bezier(0.32, 0.72, 0, 1); -webkit-overflow-scrolling: touch; }
 	.modal-card.swiping { transition: none !important; }
-	header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.05rem 1.3rem; border-bottom: 1px solid var(--border-subtle); background: var(--surface-panel); backdrop-filter: var(--glass-filter); -webkit-backdrop-filter: var(--glass-filter); }
-	h3 { margin: 0; font-size: .98rem; font-weight: 800; letter-spacing: -.02em; }
-	.modal-x { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 9px; color: var(--text-secondary); background: transparent; }
-	.modal-x:hover { color: var(--text-primary); background: var(--surface-subtle); }
+	header { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1.05rem 1.3rem; border-bottom: 0.5px solid color-mix(in srgb, var(--border-subtle), transparent 30%); background: color-mix(in srgb, var(--surface-panel), transparent 15%); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); }
+	h3 { margin: 0; font-size: .98rem; font-weight: 750; letter-spacing: -.02em; }
+	.modal-x { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 50%; color: var(--text-secondary); background: color-mix(in srgb, var(--text-primary) 10%, transparent); transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease; cursor: pointer; }
+	.modal-x:hover { color: var(--text-primary); background: color-mix(in srgb, var(--text-primary) 18%, transparent); }
+	.modal-x:active { transform: scale(0.9); }
 	.modal-body { padding: 1.2rem 1.3rem; }
-	footer { display: flex; justify-content: flex-end; gap: .6rem; padding: 1rem 1.3rem; border-top: 1px solid var(--border-subtle); }
+	footer { display: flex; justify-content: flex-end; gap: .6rem; padding: 1rem 1.3rem; border-top: 0.5px solid color-mix(in srgb, var(--border-subtle), transparent 30%); }
 
 	@media (max-width: 760px) {
 		.modal-backdrop { padding: 0; align-items: flex-end; }
@@ -121,24 +122,24 @@
 			margin: 0; 
 			border-radius: 28px 28px 0 0; 
 			border-bottom: none; 
-			max-height: calc(100vh - 40px); 
+			max-height: calc(100dvh - 36px); 
+			padding-bottom: max(env(safe-area-inset-bottom), 16px);
+			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 -12px 36px rgba(0, 0, 0, 0.45);
 		}
-		header { padding-top: 1.4rem; position: relative; border-radius: 28px 28px 0 0; touch-action: none; cursor: grab; }
+		header { padding-top: 1.45rem; position: relative; border-radius: 28px 28px 0 0; touch-action: none; cursor: grab; }
 		.bottom-sheet-handle {
 			position: absolute;
 			top: 8px;
 			left: 50%;
 			transform: translateX(-50%);
-			width: 42px;
+			width: 38px;
 			height: 5px;
-			border-radius: 99px;
-			background: var(--text-secondary);
-			opacity: 0.38;
+			border-radius: 9999px;
+			background: color-mix(in srgb, var(--text-secondary), transparent 45%);
 			touch-action: none;
 		}
 	}
 
 	.modal-card.solid { background: var(--surface-canvas) !important; border: 1px solid var(--border-subtle); backdrop-filter: none; }
 	.modal-card.solid header { background: var(--surface-canvas) !important; backdrop-filter: none; -webkit-backdrop-filter: none; }
-
 </style>

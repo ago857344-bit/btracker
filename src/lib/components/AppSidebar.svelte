@@ -190,20 +190,27 @@
 
 	@media (max-width: 760px) {
 		aside {
-			width: min(280px, calc(100vw - 48px));
+			width: min(290px, calc(100vw - 44px));
 			transform: translateX(-102%);
-			box-shadow: var(--shadow-card);
-			padding-top: calc(max(env(safe-area-inset-top), 28px) + 0.85rem);
+			box-shadow: 18px 0 48px -6px rgba(0, 0, 0, 0.45);
+			padding-top: calc(max(env(safe-area-inset-top), 24px) + 0.9rem);
 			padding-bottom: calc(max(env(safe-area-inset-bottom), 16px) + 1.25rem);
+			border-radius: 0 26px 26px 0;
+			border-right: 0.5px solid color-mix(in srgb, rgba(255, 255, 255, 0.22), var(--border-subtle) 80%);
+			background: color-mix(in srgb, var(--surface-panel), transparent 8%);
+			backdrop-filter: blur(28px) saturate(190%);
+			-webkit-backdrop-filter: blur(28px) saturate(190%);
+			transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
 		}
 		aside.mobile-open {
 			transform: translateX(0);
 			z-index: 120;
 		}
 		aside.collapsed {
-			width: min(280px, calc(100vw - 48px));
-			padding-top: calc(max(env(safe-area-inset-top), 28px) + 0.85rem);
+			width: min(290px, calc(100vw - 44px));
+			padding-top: calc(max(env(safe-area-inset-top), 24px) + 0.9rem);
 			padding-bottom: calc(max(env(safe-area-inset-bottom), 16px) + 1.25rem);
+			border-radius: 0 26px 26px 0;
 		}
 		aside.collapsed .brand-name, aside.collapsed .nav-text, aside.collapsed .nav-label, aside.collapsed .profile-copy { width: auto; opacity: 1; }
 		aside.collapsed .collapse { position: static; transform: none; border: 0; background: transparent; }
@@ -212,25 +219,25 @@
 			display: grid;
 			place-items: center;
 			margin-left: auto;
-			width: 38px;
-			height: 38px;
-			min-width: 38px;
-			min-height: 38px;
-			border: 1px solid var(--border-subtle);
-			border-radius: 10px;
-			background: var(--surface-subtle);
+			width: 36px;
+			height: 36px;
+			min-width: 36px;
+			min-height: 36px;
+			border: 0;
+			border-radius: 50%;
+			background: color-mix(in srgb, var(--text-primary) 10%, transparent);
 			color: var(--text-secondary);
 			cursor: pointer;
 			touch-action: manipulation;
 			-webkit-tap-highlight-color: transparent;
-			transition: background 0.15s, color 0.15s, transform 0.1s;
+			transition: background 0.15s, color 0.15s, transform 0.15s;
 		}
 		.close-mobile-btn:hover {
 			color: var(--text-primary);
-			background: var(--surface-panel);
+			background: color-mix(in srgb, var(--text-primary) 18%, transparent);
 		}
 		.close-mobile-btn:active {
-			transform: scale(0.92);
+			transform: scale(0.9);
 		}
 	}
 

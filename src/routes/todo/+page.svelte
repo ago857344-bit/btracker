@@ -383,19 +383,87 @@ async function runAiTriage() {
 	header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 	h1 { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -.04em; }
 	header p { margin: .25rem 0 0; color: var(--text-secondary); font-size: .74rem; font-weight: 650; }
-	.tabs { display: inline-flex; gap: .3rem; padding: .28rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: transparent; }
-	.tabs button { height: 44px; padding: 0 1.1rem; border: 0; border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: .78rem; font-weight: 750; cursor: pointer; font-family: inherit; }
-	.tabs button.selected { color: #fff; background: var(--accent); }
+	.tabs {
+		display: inline-flex;
+		gap: 3px;
+		padding: 3px;
+		border-radius: 9999px;
+		background: color-mix(in srgb, var(--surface-subtle), transparent 30%);
+		border: 0.5px solid color-mix(in srgb, var(--border-subtle), transparent 50%);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+	}
+	.tabs button {
+		height: 36px;
+		padding: 0 1.1rem;
+		border: 0;
+		border-radius: 9999px;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: .78rem;
+		font-weight: 650;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all 0.22s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1));
+	}
+	.tabs button.selected {
+		color: #fff;
+		background: var(--accent);
+		box-shadow: 0 2px 10px color-mix(in srgb, var(--accent), transparent 60%), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+		font-weight: 750;
+	}
 
-	.add { display: flex; align-items: center; gap: .6rem; height: 46px; padding: 0 .5rem 0 .9rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: color-mix(in srgb, var(--surface-panel), transparent 55%); backdrop-filter: var(--glass-filter); -webkit-backdrop-filter: var(--glass-filter); color: var(--text-secondary); }
-	.add:focus-within { border-color: var(--accent); background: color-mix(in srgb, var(--surface-panel), transparent 35%); }
+	.add {
+		display: flex;
+		align-items: center;
+		gap: .65rem;
+		height: 48px;
+		padding: 0 .6rem 0 1rem;
+		border: 0.5px solid color-mix(in srgb, rgba(255, 255, 255, 0.2), var(--border-subtle) 80%);
+		border-radius: 16px;
+		background: color-mix(in srgb, var(--surface-panel), transparent 45%);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.08);
+		color: var(--text-secondary);
+		transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+	}
+	.add:focus-within {
+		border-color: var(--accent);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent), transparent 82%);
+	}
 	.add input { flex: 1; border: 0; background: transparent; color: var(--text-primary); font-size: .88rem; font-family: inherit; }
 	.add input:focus { outline: none; }
-	.add button { height: 44px; padding: 0 1.1rem; border: 0; border-radius: 10px; background: var(--accent); color: #fff; font-size: .8rem; font-weight: 750; font-family: inherit; }
+	.add button {
+		height: 36px;
+		padding: 0 1.1rem;
+		border: 0;
+		border-radius: 9999px;
+		background: var(--accent);
+		color: #fff;
+		font-size: .8rem;
+		font-weight: 750;
+		font-family: inherit;
+		box-shadow: 0 2px 8px color-mix(in srgb, var(--accent), transparent 60%);
+		transition: transform 0.14s var(--ease-ios-press, cubic-bezier(0.2, 0.9, 0.3, 1));
+	}
+	.add button:active:not(:disabled) { transform: scale(0.93); }
 	.add button:disabled { opacity: .45; cursor: default; }
 
 	.list { list-style: none; margin: 0; padding: 0; display: grid; gap: .65rem; background: transparent; }
-	.row { display: flex; align-items: center; gap: .6rem; padding: .75rem .9rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-panel); backdrop-filter: var(--glass-filter); -webkit-backdrop-filter: var(--glass-filter); transition: transform 0.15s ease, box-shadow 0.15s ease; }
+	.row {
+		display: flex;
+		align-items: center;
+		gap: .65rem;
+		padding: .8rem 1rem;
+		border: 0.5px solid color-mix(in srgb, rgba(255, 255, 255, 0.16), var(--border-subtle) 84%);
+		border-radius: 16px;
+		background: var(--surface-panel);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+		transition: transform 0.18s var(--ease-ios-press, cubic-bezier(0.2, 0.9, 0.3, 1)), box-shadow 0.18s ease;
+	}
 	.row:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
 	.row.done { opacity: .55; background: transparent; box-shadow: none; }
 	.grip { color: var(--border-subtle); cursor: grab; padding: 0 .2rem; }
@@ -419,11 +487,11 @@ async function runAiTriage() {
 		place-items: center;
 		width: 22px;
 		height: 22px;
-		border: 2px solid var(--border-subtle);
-		border-radius: 99px;
+		border: 1.5px solid color-mix(in srgb, var(--text-secondary), transparent 40%);
+		border-radius: 9999px;
 		background: transparent;
 		color: #fff;
-		transition: all 0.15s ease;
+		transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
 	.check-btn:hover .check-circle {
 		border-color: var(--accent);
@@ -432,6 +500,7 @@ async function runAiTriage() {
 	.check-circle.checked {
 		border-color: #2f9e6e;
 		background: #2f9e6e;
+		box-shadow: 0 2px 8px rgba(47, 158, 110, 0.35);
 	}
 	.check-circle.sub {
 		width: 18px;

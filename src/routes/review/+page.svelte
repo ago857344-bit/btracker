@@ -174,12 +174,50 @@
 	.flashcard-btn { cursor: pointer; color: var(--text-primary); transition: all .15s ease; }
 	.flashcard-btn:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent), transparent 85%); }
 	.flashcard-badge.saved { color: var(--success); border-color: color-mix(in srgb, var(--success), transparent 55%); background: color-mix(in srgb, var(--success), transparent 88%); }
-	.tabs { display: flex; gap: .35rem; padding: .35rem; width: fit-content; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-panel); }
-	.tabs button { display: inline-flex; align-items: center; gap: .45rem; min-height: 44px; padding: 0 .75rem; border: 0; border-radius: 9px; color: var(--text-secondary); background: transparent; font-size: .76rem; font-weight: 750; }
-	.tabs button:hover { color: var(--text-primary); background: var(--surface-subtle); }
-	.tabs button.active { color: var(--accent); background: var(--accent-soft); }
+	.tabs {
+		display: inline-flex;
+		gap: 3px;
+		padding: 3px;
+		width: fit-content;
+		border: 0.5px solid color-mix(in srgb, var(--border-subtle), transparent 50%);
+		border-radius: 9999px;
+		background: color-mix(in srgb, var(--surface-subtle), transparent 30%);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+	}
+	.tabs button {
+		display: inline-flex;
+		align-items: center;
+		gap: .45rem;
+		height: 36px;
+		padding: 0 .95rem;
+		border: 0;
+		border-radius: 9999px;
+		color: var(--text-secondary);
+		background: transparent;
+		font-size: .76rem;
+		font-weight: 650;
+		cursor: pointer;
+		transition: all 0.22s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1));
+	}
+	.tabs button:hover { color: var(--text-primary); }
+	.tabs button.active {
+		color: #fff;
+		background: var(--accent);
+		box-shadow: 0 2px 10px color-mix(in srgb, var(--accent), transparent 60%), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+		font-weight: 750;
+	}
 	.tabs button span { display: grid; min-width: 18px; height: 18px; place-items: center; padding: 0 .25rem; border-radius: 99px; color: inherit; background: color-mix(in srgb, currentColor, transparent 88%); font-size: .62rem; font-variant-numeric: tabular-nums; }
-	.question-list { display: grid; border: 1px solid var(--border-subtle); border-radius: 16px; overflow: hidden; background: var(--surface-panel); }
+	.question-list {
+		display: grid;
+		border: 0.5px solid color-mix(in srgb, rgba(255, 255, 255, 0.18), var(--border-subtle) 80%);
+		border-radius: 18px;
+		overflow: hidden;
+		background: var(--surface-panel);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+	}
 	.question { display: grid; grid-template-columns: 72px 1fr auto; align-items: center; gap: 1rem; min-height: 76px; padding: .85rem 1rem; border-top: 1px solid color-mix(in srgb, var(--border-subtle), transparent 45%); }
 	.question:first-child { border-top: 0; }
 	.number { color: var(--text-secondary); font-size: .76rem; font-weight: 800; font-variant-numeric: tabular-nums; }
