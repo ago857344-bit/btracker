@@ -95,7 +95,18 @@ export interface ReflectionEntry { post: string; mistakes: string; savedAt: stri
 
 export interface SubjectSession { id: string; day: DayKey; sub: string; ch: string; att: number; cor: number; at: number }
 
-export interface MetaState { name: string; exam: DayKey | null; weekGoalH: number; streakGoalH: number }
+export interface MetaState {
+	name: string;
+	exam: DayKey | null;
+	weekGoalH: number;
+	streakGoalH: number;
+	board?: 'cbse' | 'icse' | 'ib' | 'state' | '';
+	targetExams?: string[];
+	year?: '11' | '12' | 'dropper' | '';
+	weekdayHours?: number;
+	weekendHours?: number;
+	dailyQuestions?: number;
+}
 
 /** [started-at in epoch minutes, duration minutes, activity/topic, deadline id, speedrun flag?, target?, completed?, subject?, chapter?] */
 export type StudySession = [number, number, string, string | null, number?, number?, number?, string?, string?];
@@ -323,6 +334,7 @@ export interface TrackerState {
 		available: number;
 		usedDates: string[];
 	};
+	onboarded?: boolean;
 }
 
 export interface StateSnapshot {

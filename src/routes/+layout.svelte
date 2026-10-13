@@ -20,10 +20,11 @@
 	import StreakButton from '$lib/components/StreakButton.svelte';
 	import FormulaVault from '$lib/components/FormulaVault.svelte';
 	import PwaBanner from '$lib/components/PwaBanner.svelte';
+	import Onboarding from '$lib/components/Onboarding.svelte';
 	import { hydrateTracker } from '$lib/services/hydrate';
 	import { startSync } from '$lib/services/sync';
 	import { THEME_PRESETS, isDarkTheme, wallpaperCss, resolveLiveWallpaper, resolveEcoMode, isMobileDevice } from '$lib/state/themes';
-	import { authReady, authConfigured, currentUser, hasSkippedLogin } from '$lib/stores/auth';
+	import { authReady, authConfigured, currentUser, hasSkippedLogin, syncStatus } from '$lib/stores/auth';
 	import { saveStatus, tracker, formulaVaultOpen } from '$lib/stores/tracker';
 	import { loadout } from '$lib/stores/cosmetics';
 
@@ -223,6 +224,8 @@
 
 	let bgVideo: HTMLVideoElement;
 	$: if (bgVideo && activeVideoUrl) { bgVideo.load(); bgVideo.play().catch(() => {}); }
+
+	$: showOnboarding = !isAuthRoute && $authReady && $syncStatus !== 'pulling' && !!$currentUser && !$tracker.onboarded;
 </script>
 
 <svelte:head>
@@ -292,7 +295,10 @@
 			<video bind:this={bgVideo} src={activeVideoUrl} autoplay loop muted playsinline preload="auto" class="live-wallpaper-bg" on:loadeddata={(e) => e.currentTarget.play().catch(() => {})} on:canplay={(e) => e.currentTarget.play().catch(() => {})}></video>
 		{/if}
 
-			<CommandPalette />
+		<CommandPalette />
+		{#if showOnboarding}
+			<Onboarding />
+		{/if}
 	</div>
 {:else}
 	<div class="auth-loading" aria-live="polite">Checking your session…</div>

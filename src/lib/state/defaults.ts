@@ -105,7 +105,18 @@ export const createChapterRecallData = (
 	modalities: [],
 	scheduledSlots: []
 });
-export const createMeta = (): MetaState => ({ name: '', exam: null, weekGoalH: 40, streakGoalH: 1 });
+export const createMeta = (): MetaState => ({
+	name: '',
+	exam: null,
+	weekGoalH: 40,
+	streakGoalH: 1,
+	board: '',
+	targetExams: [],
+	year: '',
+	weekdayHours: 5,
+	weekendHours: 6,
+	dailyQuestions: 50
+});
 export const DEFAULT_WIDGETS: WidgetLayout[] = [
 	{ id: 'daily-progress', enabled: true, order: 0, span: 2 },
 	{ id: 'quote', enabled: true, order: 1, span: 1 },
@@ -128,5 +139,6 @@ export const createInitialTrackerState = (): TrackerState => ({
 	gamification: { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } },
 	settings: { focusPet: 'orb' },
 	streakFreezes: { available: 2, usedDates: [] },
+	onboarded: false,
 	theme: 'dark', pom: { ...DEFAULT_POMODORO }, ui: createUiPreferences(), savedAt: null
 });

@@ -1,7 +1,7 @@
 <script lang="ts">
 	export let name:
 		| 'home' | 'plan' | 'focus' | 'revise' | 'tests' | 'mastery' | 'friends' | 'stats' | 'reminders'
-		| 'menu' | 'plus' | 'minus' | 'sun' | 'moon' | 'settings' | 'chevron' | 'chevron-down' | 'x' | 'check'
+		| 'menu' | 'plus' | 'minus' | 'sun' | 'moon' | 'settings' | 'chevron' | 'chevron-down' | 'chevron-left' | 'chevron-right' | 'x' | 'check'
 		| 'check-circle' | 'circle' | 'share' | 'headphones' | 'expand' | 'lock' | 'sliders' | 'play' | 'pause'
 		| 'stop' | 'coffee' | 'sofa' | 'book' | 'flame' | 'layers' | 'target' | 'pulse' | 'bulb' | 'trash'
 		| 'drag' | 'search' | 'funnel' | 'library' | 'save' | 'sparkles' | 'crown' | 'brain' | 'sigma' | 'trend'
@@ -42,8 +42,10 @@
 		<path d="M20.5 15.5A8.5 8.5 0 0 1 8.5 3.5 8.5 8.5 0 1 0 20.5 15.5Z" />
 	{:else if name === 'settings'}
 		<circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-	{:else if name === 'chevron'}
+	{:else if name === 'chevron' || name === 'chevron-right'}
 		<path d="m9 18 6-6-6-6" />
+	{:else if name === 'chevron-left'}
+		<path d="m15 18-6-6 6-6" />
 	{:else if name === 'chevron-down'}
 		<path d="m6 9 6 6 6-6" />
 	{:else if name === 'x'}

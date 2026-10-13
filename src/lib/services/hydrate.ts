@@ -135,7 +135,17 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 			v3_elo: true
 		},
 		streakFreezes: saved.streakFreezes || base.streakFreezes || { available: 2, usedDates: [] },
-		deletedTodos: saved.deletedTodos || base.deletedTodos || {}
+		deletedTodos: saved.deletedTodos || base.deletedTodos || {},
+		meta: {
+			...base.meta,
+			...(saved.meta || {})
+		},
+		onboarded: saved.onboarded ?? (Boolean(
+			saved.savedAt ||
+			(saved.meta?.name && saved.meta.name.trim().length > 0) ||
+			(saved.log && saved.log.length > 0) ||
+			(saved.d && Object.keys(saved.d).length > 0)
+		))
 	};
 	const known = new Set(merged.ui.widgets.map((w) => w.id));
 	for (const widget of DEFAULT_WIDGETS) if (!known.has(widget.id)) merged.ui.widgets.push({ ...widget });

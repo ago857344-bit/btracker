@@ -248,6 +248,7 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		log: mergedLog,
 		todos: mergedTodos,
 		deletedTodos: mergedDeletedTodos,
+		onboarded: Boolean(base.onboarded || remote.onboarded),
 		h: mergedH,
 		hd: Array.from(mergedHdMap.values()),
 		mocks: mergedMocks,
