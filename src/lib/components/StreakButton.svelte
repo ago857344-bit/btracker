@@ -25,10 +25,12 @@
 	let seen: string[] | null = null;
 
 	$: yesterday = addDaysKey(todayKey(), -1);
+	$: dayBeforeYesterday = addDaysKey(todayKey(), -2);
 	$: streakNeed = ($tracker.meta?.streakGoalH || 1) * 60;
 	$: yesterdayMet = focusMinutesOn($tracker.log, yesterday) >= streakNeed;
+	$: dayBeforeMet = focusMinutesOn($tracker.log, dayBeforeYesterday) >= streakNeed;
 	$: yesterdayFrozen = ($tracker.streakFreezes?.usedDates || []).includes(yesterday);
-	$: canShieldYesterday = ($tracker.streakFreezes?.available ?? 0) > 0 && !yesterdayMet && !yesterdayFrozen;
+	$: canShieldYesterday = ($tracker.streakFreezes?.available ?? 0) > 0 && !yesterdayMet && !yesterdayFrozen && dayBeforeMet;
 
 	// Badges are derived from never-decreasing figures (best-ever streak, lifetime hours),
 	// so an unlock is permanent without persisting anything extra.

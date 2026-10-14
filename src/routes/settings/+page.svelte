@@ -7,7 +7,7 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import {
-		tracker, updateTracker, replaceTracker, celebration,
+		tracker, updateTracker, replaceTracker, celebration, targetsModalOpen,
 		setProfileName, setExamDate, setWeeklyGoalHours, setStreakGoalHours
 	} from '$lib/stores/tracker';
 	import { createInitialTrackerState } from '$lib/state/defaults';
@@ -38,6 +38,10 @@
 			devKeys = '';
 			updateTracker(s => { s.ui.devMode = !s.ui.devMode; });
 			celebration.set($tracker.ui.devMode ? 'Developer Mode activated! All cosmetics unlocked.' : 'Developer Mode disabled.');
+		} else if (devKeys.toLowerCase().includes('targets') || devKeys.toLowerCase().includes('target')) {
+			devKeys = '';
+			targetsModalOpen.set(true);
+			celebration.set('🎯 Opening JEE Target Setup Wizard…');
 		}
 	}
 
@@ -458,6 +462,15 @@
 					<span>STREAK GOAL (H/DAY)</span>
 					<input type="number" min="1" max="24" value={$tracker.meta.streakGoalH} on:change={(e) => setStreakGoalHours(Number(e.currentTarget.value))} />
 				</label>
+			</div>
+			<div style="margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: gap;">
+				<div>
+					<b style="display: block; font-size: 0.88rem; color: var(--text-primary);">JEE Target Setup Wizard</b>
+					<small style="color: var(--text-secondary); font-size: 0.74rem;">Re-run the full targets questionnaire (or type dev key: <code>targets</code>)</small>
+				</div>
+				<button type="button" class="btn accent" style="padding: 0.5rem 1rem; font-size: 0.8rem;" on:click={() => targetsModalOpen.set(true)}>
+					<NavIcon name="target" size={14} /> Open Targets
+				</button>
 			</div>
 		</div>
 

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { fade, fly, scale } from 'svelte/transition';
+	import { fade, fly } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
-	import { updateTracker } from '$lib/stores/tracker';
+	import { updateTracker, targetsModalOpen, celebration } from '$lib/stores/tracker';
 	import { createGoals } from '$lib/state/defaults';
 	import { currentUser } from '$lib/stores/auth';
 	import NavIcon from '$lib/components/NavIcon.svelte';
@@ -34,7 +34,6 @@
 
 	function toggleExam(id: string) {
 		if (targetExams.includes(id)) {
-			// keep at least 1 exam
 			if (targetExams.length > 1) {
 				targetExams = targetExams.filter(e => e !== id);
 			}
@@ -56,8 +55,34 @@
 	}
 	$: streakCount = streakDays.filter(Boolean).length;
 
-	// Step 7: Commitment
-	let signed = false;
+	// Step 7: Dream Destination & Mission Dossier (Original replacement for commitment)
+	let dreamCollege = 'IIT Bombay (CSE)';
+	const DREAM_OPTIONS = [
+		'IIT Bombay (CSE)',
+		'IIT Delhi',
+		'IIT Madras',
+		'BITS Pilani (CS)',
+		'IIT Kanpur',
+		'IIT Kharagpur',
+		'Top 500 AIR',
+		'Top 1000 AIR'
+	];
+	let isCustomDream = false;
+	let customDreamInput = '';
+
+	function selectDream(college: string) {
+		isCustomDream = false;
+		dreamCollege = college;
+	}
+
+	function enableCustomDream() {
+		isCustomDream = true;
+		if (customDreamInput.trim()) dreamCollege = customDreamInput.trim();
+	}
+
+	$: if (isCustomDream && customDreamInput.trim()) {
+		dreamCollege = customDreamInput.trim();
+	}
 
 	// Navigation
 	function canProceed(): boolean {
@@ -68,7 +93,7 @@
 			case 4: return targetExams.length > 0;
 			case 5: return weekdayHours > 0 && dailyQuestions > 0;
 			case 6: return true;
-			case 7: return true;
+			case 7: return Boolean(dreamCollege.trim());
 			default: return true;
 		}
 	}
@@ -88,12 +113,16 @@
 		}
 	}
 
+	function dismiss() {
+		targetsModalOpen.set(false);
+	}
+
 	function formatHours(h: number): string {
 		return `${h}h 0m`;
 	}
 
 	function finish() {
-		signed = true;
+		const college = dreamCollege.trim() || 'IIT Bombay';
 		updateTracker(s => {
 			s.meta.name = userName.trim();
 			s.meta.board = board;
@@ -102,6 +131,7 @@
 			s.meta.weekdayHours = weekdayHours;
 			s.meta.weekendHours = weekendHours;
 			s.meta.dailyQuestions = dailyQuestions;
+			s.meta.dreamCollege = college;
 			s.meta.weekGoalH = Math.round(weekdayHours * 5 + weekendHours * 2);
 			if (!s.goals) s.goals = createGoals();
 			s.goals.day.h = weekdayHours;
@@ -110,23 +140,19 @@
 			s.goals.week.q = dailyQuestions * 7;
 			s.onboarded = true;
 		});
+		targetsModalOpen.set(false);
+		celebration.set(`🚀 Battle Station Activated for ${userName.trim()} • Target: ${college}!`);
 	}
 
 	$: examLabels = targetExams
 		.map(id => EXAMS.find(e => e.id === id)?.label)
 		.filter(Boolean)
 		.join(', ');
-
-	$: todayFormatted = new Date().toLocaleDateString('en-US', {
-		month: 'long',
-		day: 'numeric',
-		year: 'numeric'
-	});
 </script>
 
-<div class="onboarding-overlay" transition:fade={{ duration: 250 }}>
+<div class="onboarding-overlay" transition:fade={{ duration: 240 }}>
 	<div class="onboarding-container">
-		<!-- Header / Progress bar -->
+		<!-- Header / Progress bar with Dev Exit Button -->
 		<header class="wizard-header">
 			<div class="dots-track">
 				{#each Array(TOTAL_STEPS) as _, i}
@@ -137,16 +163,23 @@
 					></span>
 				{/each}
 			</div>
-			<span class="step-counter">Step {step} / {TOTAL_STEPS}</span>
+			<div class="header-right">
+				<span class="step-counter">Step {step} / {TOTAL_STEPS}</span>
+				{#if $targetsModalOpen}
+					<button type="button" class="close-btn" title="Close Targets Wizard" on:click={dismiss}>
+						<NavIcon name="x" size={14} />
+					</button>
+				{/if}
+			</div>
 		</header>
 
-		<!-- Card Content area with transitions -->
+		<!-- Card Content Area with Ultra-Smooth Overlay Transitions -->
 		<div class="wizard-body">
 			{#key step}
 				<div
 					class="wizard-card"
-					in:fly={{ x: direction * 50, duration: 280, easing: quintOut, opacity: 0 }}
-					out:fly={{ x: direction * -50, duration: 200, easing: quintOut, opacity: 0 }}
+					in:fly={{ x: direction * 28, duration: 280, easing: quintOut, opacity: 0 }}
+					out:fly={{ x: direction * -28, duration: 200, easing: quintOut, opacity: 0 }}
 				>
 					<!-- STEP 1: Name -->
 					{#if step === 1}
@@ -394,7 +427,7 @@
 					{:else if step === 6}
 						<div class="card-header">
 							<h1>Keep your flame alive</h1>
-							<p class="subtitle">Each day with a session makes your streak grow. Rest days keep it safe.</p>
+							<p class="subtitle">Each day with a session makes your streak grow. Single missed days are shielded.</p>
 						</div>
 
 						<div class="flame-section">
@@ -425,46 +458,102 @@
 							</div>
 						</div>
 
-					<!-- STEP 7: Commitment -->
+					<!-- STEP 7: Original JEE Blueprint & Aspirant Dossier (Replaced Commitment Contract) -->
 					{:else if step === 7}
 						<div class="card-header">
-							<h1>{userName || 'Atharv'}, lock in your commitment</h1>
-							<p class="subtitle">Your signature turns this plan into your goal.</p>
+							<h1>{userName || 'Candidate'}, Your JEE Battle Station is Ready</h1>
+							<p class="subtitle">Lock in your dream destination and activate your command center.</p>
 						</div>
 
-						<div class="promise-box">
-							<div class="promise-badge">
-								<span class="badge-owl">🦉</span>
-								<span class="badge-title">My Study Promise</span>
+						<div class="dossier-wrapper">
+							<!-- Dream Target Selection -->
+							<div class="dream-picker">
+								<span class="picker-label">🎯 SELECT YOUR DREAM TARGET</span>
+								<div class="dream-chips">
+									{#each DREAM_OPTIONS as opt}
+										<button
+											type="button"
+											class="dream-chip"
+											class:active={!isCustomDream && dreamCollege === opt}
+											on:click={() => selectDream(opt)}
+										>
+											{opt}
+										</button>
+									{/each}
+									<button
+										type="button"
+										class="dream-chip custom"
+										class:active={isCustomDream}
+										on:click={enableCustomDream}
+									>
+										✍️ Custom Goal
+									</button>
+								</div>
+
+								{#if isCustomDream}
+									<div class="custom-input-wrap">
+										<input
+											type="text"
+											bind:value={customDreamInput}
+											placeholder="e.g. Top 100 AIR / IIIT Hyderabad CSE"
+											class="custom-dream-input"
+											autofocus
+										/>
+									</div>
+								{/if}
 							</div>
 
-							<p class="promise-statement">
-								I, <strong>{userName || 'Atharv'}</strong>, promise myself: I will study
-								<strong>{formatHours(weekdayHours)}</strong> on <strong>weekdays</strong> and
-								<strong>{formatHours(weekendHours)}</strong> on <strong>weekends</strong>,
-								solving <strong>{dailyQuestions} questions daily</strong>,
-								working toward <strong>{examLabels || 'JEE'}</strong>.
-							</p>
-
-							<!-- Signature Box -->
-							<button
-								type="button"
-								class="signature-box"
-								class:signed
-								on:click={() => signed = !signed}
-							>
-								{#if signed}
-									<span class="handwritten-signature" in:scale={{ start: 0.8, duration: 250 }}>
-										{userName || 'Atharv'}
+							<!-- Holographic Aspirant Dossier Pass -->
+							<div class="aspirant-pass">
+								<div class="pass-top">
+									<div class="pass-tag">
+										<span class="pulse-indicator"></span>
+										<span>BTRACKER CADET DOSSIER</span>
+									</div>
+									<span class="pass-cohort">
+										{year === 'dropper' ? 'DROPPER BATCH' : `CLASS ${year || '12'} COHORT`}
 									</span>
-								{:else}
-									<span class="sign-cue">Sign here</span>
-								{/if}
-							</button>
+								</div>
 
-							<div class="signature-footer">
-								<span class="signer-name">{userName || 'Atharv'}</span>
-								<span class="sign-date">{todayFormatted}</span>
+								<div class="pass-body">
+									<div class="pass-row main">
+										<div class="pass-item">
+											<small>ASPIRANT</small>
+											<b>{userName.toUpperCase() || 'ATHARV'}</b>
+										</div>
+										<div class="pass-item highlight">
+											<small>TARGET DESTINATION</small>
+											<b class="destination-text">{dreamCollege || 'IIT BOMBAY'}</b>
+										</div>
+									</div>
+
+									<div class="pass-row sub">
+										<div class="pass-item">
+											<small>PRIMARY FOCUS</small>
+											<span>{examLabels || 'JEE Mains & Advanced'}</span>
+										</div>
+										<div class="pass-item">
+											<small>BOARD</small>
+											<span>{board.toUpperCase() || 'CBSE'}</span>
+										</div>
+									</div>
+
+									<div class="pass-row stats">
+										<div class="pass-item">
+											<small>DAILY TARGET</small>
+											<span>{weekdayHours}h study &bull; {dailyQuestions} Qs/day</span>
+										</div>
+										<div class="pass-item">
+											<small>WEEKLY COMMITMENT</small>
+											<span>{weekdayHours * 5 + weekendHours * 2}h total focus</span>
+										</div>
+									</div>
+								</div>
+
+								<div class="pass-footer">
+									<span>● SYSTEM STATUS: INITIALIZED & READY FOR DAY 1</span>
+									<span>WAR ROOM</span>
+								</div>
 							</div>
 						</div>
 					{/if}
@@ -472,7 +561,7 @@
 			{/key}
 		</div>
 
-		<!-- Footer navigation -->
+		<!-- Footer Navigation -->
 		<footer class="wizard-footer">
 			{#if step > 1}
 				<button type="button" class="btn-back" on:click={back}>
@@ -494,13 +583,11 @@
 			{:else}
 				<button
 					type="button"
-					class="btn-commit"
+					class="btn-launch"
 					on:click={finish}
 				>
-					<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-						<polyline points="20 6 9 17 4 12"></polyline>
-					</svg>
-					I commit
+					<span>🚀</span>
+					Launch Battle Station
 				</button>
 			{/if}
 		</footer>
@@ -515,7 +602,9 @@
 		display: flex;
 		align-items: center;
 		justify-content: center;
-		background: var(--surface-canvas);
+		background: color-mix(in srgb, var(--surface-canvas), rgba(0, 0, 0, 0.7) 60%);
+		backdrop-filter: blur(14px);
+		-webkit-backdrop-filter: blur(14px);
 		padding: clamp(1rem, 3vw, 2.5rem);
 		overflow-y: auto;
 	}
@@ -529,7 +618,7 @@
 		background: var(--surface-panel);
 		border: 1px solid var(--border-subtle);
 		border-radius: 28px;
-		box-shadow: 0 24px 60px -15px rgba(0, 0, 0, 0.4);
+		box-shadow: 0 28px 70px -15px rgba(0, 0, 0, 0.5);
 		padding: 2.25rem clamp(1.5rem, 4vw, 3rem);
 		position: relative;
 	}
@@ -539,7 +628,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		margin-bottom: 2rem;
+		margin-bottom: 1.75rem;
 	}
 
 	.dots-track {
@@ -565,35 +654,63 @@
 		background: var(--accent);
 	}
 
+	.header-right {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+	}
+
 	.step-counter {
 		font-size: 0.78rem;
 		font-weight: 650;
 		color: var(--text-secondary);
 	}
 
-	/* Body & Card */
+	.close-btn {
+		background: transparent;
+		border: 1px solid var(--border-subtle);
+		border-radius: 8px;
+		color: var(--text-secondary);
+		display: grid;
+		place-items: center;
+		width: 26px;
+		height: 26px;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+
+	.close-btn:hover {
+		color: var(--text-primary);
+		border-color: var(--accent);
+	}
+
+	/* Body & Card - Overlapping grid cell for 100% smooth, non-jumping transitions */
 	.wizard-body {
 		flex: 1;
-		display: flex;
-		flex-direction: column;
-		justify-content: center;
+		display: grid;
+		grid-template-columns: 1fr;
+		grid-template-rows: 1fr;
 		position: relative;
-		min-height: 380px;
+		min-height: 420px;
+		align-items: center;
+		overflow-x: hidden;
 	}
 
 	.wizard-card {
+		grid-area: 1 / 1;
 		width: 100%;
 		display: flex;
 		flex-direction: column;
+		transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
 	.card-header {
 		text-align: left;
-		margin-bottom: 1.5rem;
+		margin-bottom: 1.4rem;
 	}
 
 	.card-header h1 {
-		margin: 0 0 0.4rem;
+		margin: 0 0 0.35rem;
 		font-size: 1.45rem;
 		font-weight: 800;
 		letter-spacing: -0.035em;
@@ -686,12 +803,17 @@
 		cursor: pointer;
 		font-family: inherit;
 		text-align: left;
-		transition: all 0.16s ease;
+		transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
 	.option-row:hover, .option-grid-item:hover {
 		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 40%);
 		background: color-mix(in srgb, var(--accent), transparent 96%);
+		transform: translateY(-1px);
+	}
+
+	.option-row:active, .option-grid-item:active {
+		transform: scale(0.985);
 	}
 
 	.option-row.selected, .option-grid-item.selected {
@@ -769,7 +891,7 @@
 	.targets-form {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
+		gap: 0.9rem;
 	}
 
 	.hours-split {
@@ -878,7 +1000,7 @@
 		text-align: center;
 		font-size: 0.82rem;
 		color: var(--text-secondary);
-		padding: 0.4rem;
+		padding: 0.3rem;
 	}
 
 	.summary-line strong {
@@ -969,92 +1091,180 @@
 		height: 18px;
 	}
 
-	/* Promise & Commitment (Step 7) */
-	.promise-box {
-		border: 1px solid var(--border-subtle);
-		border-radius: 20px;
-		background: color-mix(in srgb, var(--surface-panel), var(--surface-canvas) 25%);
-		padding: 1.5rem clamp(1.2rem, 3vw, 2rem);
+	/* STEP 7: Original JEE Blueprint & Aspirant Dossier */
+	.dossier-wrapper {
 		display: flex;
 		flex-direction: column;
-		gap: 1.15rem;
+		gap: 1.25rem;
 	}
 
-	.promise-badge {
+	.dream-picker {
 		display: flex;
-		align-items: center;
-		justify-content: center;
+		flex-direction: column;
 		gap: 0.5rem;
 	}
 
-	.badge-owl {
-		font-size: 1.2rem;
-	}
-
-	.badge-title {
-		font-size: 0.95rem;
-		font-weight: 800;
-		color: var(--text-primary);
-	}
-
-	.promise-statement {
-		font-size: 0.88rem;
-		line-height: 1.6;
-		color: var(--text-secondary);
-		margin: 0;
-		text-align: center;
-	}
-
-	.promise-statement strong {
-		color: var(--text-primary);
+	.picker-label {
+		font-size: 0.72rem;
 		font-weight: 750;
+		letter-spacing: 0.08em;
+		color: var(--text-secondary);
 	}
 
-	.signature-box {
-		height: 84px;
-		border: 1.5px dashed var(--border-subtle);
-		border-radius: 14px;
-		background: color-mix(in srgb, var(--surface-panel), transparent 40%);
-		display: grid;
-		place-items: center;
+	.dream-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.45rem;
+	}
+
+	.dream-chip {
+		padding: 0.4rem 0.75rem;
+		border-radius: 99px;
+		border: 1px solid var(--border-subtle);
+		background: color-mix(in srgb, var(--surface-panel), var(--surface-canvas) 30%);
+		color: var(--text-secondary);
+		font-size: 0.78rem;
+		font-weight: 650;
 		cursor: pointer;
-		transition: all 0.2s ease;
-		outline: none;
-		padding: 0;
+		transition: all 0.16s ease;
 		font-family: inherit;
 	}
 
-	.signature-box:hover {
+	.dream-chip:hover {
 		border-color: var(--accent);
+		color: var(--text-primary);
 	}
 
-	.signature-box.signed {
-		border-style: solid;
-		border-color: color-mix(in srgb, var(--accent), transparent 50%);
-		background: color-mix(in srgb, var(--accent), transparent 94%);
-	}
-
-	.sign-cue {
-		font-size: 1.1rem;
-		font-weight: 700;
-		color: color-mix(in srgb, var(--accent), var(--text-secondary) 40%);
-	}
-
-	.handwritten-signature {
-		font-family: 'Brush Script MT', 'Caveat', cursive, sans-serif;
-		font-size: 2.2rem;
+	.dream-chip.active {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent), transparent 88%);
 		color: var(--accent);
-		letter-spacing: 0.04em;
+		box-shadow: 0 0 0 1px var(--accent);
 	}
 
-	.signature-footer {
+	.custom-input-wrap {
+		margin-top: 0.25rem;
+	}
+
+	.custom-dream-input {
+		width: 100%;
+		padding: 0.6rem 0.85rem;
+		border: 1px solid var(--accent);
+		border-radius: 12px;
+		background: color-mix(in srgb, var(--surface-panel), transparent 40%);
+		color: var(--text-primary);
+		font-size: 0.88rem;
+		font-family: inherit;
+		outline: none;
+	}
+
+	/* Holographic Aspirant Dossier Card */
+	.aspirant-pass {
+		border-radius: 20px;
+		border: 1.5px solid color-mix(in srgb, var(--accent), var(--border-subtle) 40%);
+		background: linear-gradient(135deg, color-mix(in srgb, var(--accent), transparent 94%) 0%, color-mix(in srgb, var(--surface-panel), var(--surface-canvas) 20%) 100%);
+		padding: 1.4rem;
 		display: flex;
+		flex-direction: column;
+		gap: 1.15rem;
+		box-shadow: 0 16px 36px -10px rgba(0, 0, 0, 0.35);
+		position: relative;
+		overflow: hidden;
+	}
+
+	.aspirant-pass::before {
+		content: '';
+		position: absolute;
+		top: -50%;
+		left: -50%;
+		width: 200%;
+		height: 200%;
+		background: radial-gradient(circle at 30% 30%, color-mix(in srgb, var(--accent), transparent 88%) 0%, transparent 60%);
+		pointer-events: none;
+	}
+
+	.pass-top {
+		display: flex;
+		align-items: center;
 		justify-content: space-between;
-		font-size: 0.74rem;
-		font-weight: 650;
+		border-bottom: 1px solid color-mix(in srgb, var(--border-subtle), transparent 40%);
+		padding-bottom: 0.6rem;
+		font-size: 0.72rem;
+		font-weight: 750;
+		letter-spacing: 0.06em;
+	}
+
+	.pass-tag {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		color: var(--accent);
+	}
+
+	.pulse-indicator {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: #22c55e;
+		box-shadow: 0 0 8px #22c55e;
+	}
+
+	.pass-cohort {
 		color: var(--text-secondary);
-		border-top: 1px dotted var(--border-subtle);
+	}
+
+	.pass-body {
+		display: flex;
+		flex-direction: column;
+		gap: 0.9rem;
+	}
+
+	.pass-row {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.75rem;
+	}
+
+	.pass-item {
+		display: flex;
+		flex-direction: column;
+		gap: 0.18rem;
+	}
+
+	.pass-item small {
+		font-size: 0.64rem;
+		font-weight: 750;
+		letter-spacing: 0.08em;
+		color: var(--text-secondary);
+	}
+
+	.pass-item b {
+		font-size: 1.05rem;
+		color: var(--text-primary);
+		letter-spacing: -0.02em;
+	}
+
+	.destination-text {
+		color: var(--accent) !important;
+		font-weight: 850 !important;
+	}
+
+	.pass-item span {
+		font-size: 0.82rem;
+		font-weight: 650;
+		color: var(--text-primary);
+	}
+
+	.pass-footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		border-top: 1px dashed color-mix(in srgb, var(--border-subtle), transparent 40%);
 		padding-top: 0.6rem;
+		font-size: 0.68rem;
+		font-weight: 700;
+		color: var(--text-secondary);
+		letter-spacing: 0.04em;
 	}
 
 	/* Footer Navigation */
@@ -1062,7 +1272,7 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		margin-top: 2rem;
+		margin-top: 1.8rem;
 		padding-top: 1.25rem;
 		border-top: 1px solid color-mix(in srgb, var(--border-subtle), transparent 40%);
 	}
@@ -1125,26 +1335,31 @@
 		transform: none;
 	}
 
-	.btn-commit {
+	.btn-launch {
 		display: inline-flex;
 		align-items: center;
-		gap: 0.45rem;
-		padding: 0.7rem 1.6rem;
-		border-radius: 12px;
+		gap: 0.5rem;
+		padding: 0.75rem 1.65rem;
+		border-radius: 14px;
 		border: none;
-		background: #22c55e;
+		background: linear-gradient(135deg, #6366f1 0%, var(--accent) 50%, #4338ca 100%);
 		color: #ffffff;
-		font-size: 0.88rem;
-		font-weight: 750;
+		font-size: 0.92rem;
+		font-weight: 800;
 		cursor: pointer;
-		box-shadow: 0 4px 16px rgba(34, 197, 94, 0.4);
-		transition: all 0.16s ease;
+		box-shadow: 0 6px 20px rgba(99, 102, 241, 0.45);
+		transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 		font-family: inherit;
 	}
 
-	.btn-commit:hover {
-		background: #16a34a;
-		transform: translateY(-1px);
+	.btn-launch:hover {
+		filter: brightness(1.1);
+		transform: translateY(-2px);
+		box-shadow: 0 10px 28px rgba(99, 102, 241, 0.55);
+	}
+
+	.btn-launch:active {
+		transform: scale(0.98);
 	}
 
 	@media (max-width: 600px) {
@@ -1164,6 +1379,11 @@
 
 		.hours-split {
 			grid-template-columns: 1fr;
+		}
+
+		.pass-row {
+			grid-template-columns: 1fr;
+			gap: 0.5rem;
 		}
 
 		.week-pills {

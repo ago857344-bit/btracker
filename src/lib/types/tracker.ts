@@ -106,6 +106,7 @@ export interface MetaState {
 	weekdayHours?: number;
 	weekendHours?: number;
 	dailyQuestions?: number;
+	dreamCollege?: string;
 }
 
 /** [started-at in epoch minutes, duration minutes, activity/topic, deadline id, speedrun flag?, target?, completed?, subject?, chapter?] */

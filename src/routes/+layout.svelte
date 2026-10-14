@@ -25,7 +25,7 @@
 	import { startSync } from '$lib/services/sync';
 	import { THEME_PRESETS, isDarkTheme, wallpaperCss, resolveLiveWallpaper, resolveEcoMode, isMobileDevice } from '$lib/state/themes';
 	import { authReady, authConfigured, currentUser, hasSkippedLogin, syncStatus } from '$lib/stores/auth';
-	import { saveStatus, tracker, formulaVaultOpen } from '$lib/stores/tracker';
+	import { saveStatus, tracker, formulaVaultOpen, targetsModalOpen, autoCheckStreakFreeze } from '$lib/stores/tracker';
 	import { loadout } from '$lib/stores/cosmetics';
 
 	let collapsed = false;
@@ -193,7 +193,10 @@
 
 	let isMobile = false;
 	onMount(() => {
-		void hydrateTracker().then(() => startSync());
+		void hydrateTracker().then(() => {
+			startSync();
+			autoCheckStreakFreeze();
+		});
 		isMobile = isMobileDevice();
 		const onResize = () => { isMobile = isMobileDevice(); };
 		window.addEventListener('resize', onResize, { passive: true });
@@ -225,7 +228,7 @@
 	let bgVideo: HTMLVideoElement;
 	$: if (bgVideo && activeVideoUrl) { bgVideo.load(); bgVideo.play().catch(() => {}); }
 
-	$: showOnboarding = !isAuthRoute && $authReady && $syncStatus !== 'pulling' && !!$currentUser && !$tracker.onboarded;
+	$: showOnboarding = ((!isAuthRoute && $authReady && $syncStatus !== 'pulling' && !!$currentUser && !$tracker.onboarded)) || $targetsModalOpen;
 </script>
 
 <svelte:head>

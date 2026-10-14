@@ -13,6 +13,7 @@ import type {
 export const tracker = writable<TrackerState>(createInitialTrackerState());
 export const hydration = writable<'idle' | 'loading' | 'ready' | 'error'>('idle');
 export const saveStatus = writable<'saved' | 'saving' | 'error'>('saved');
+export const targetsModalOpen = writable(false);
 export const timer = writable<TimerState>({
 	running: false, mode: 'focus', kind: 'pomo', secondsRemaining: 25 * 60, elapsedSeconds: 0, totalSeconds: 25 * 60,
 	activityId: null, deadlineId: null, speedrun: { phase: 'setup', target: 10, minutes: 15, done: 0 },
@@ -606,25 +607,101 @@ export const weeklyFocusMinutes = derived(tracker, ($t) => lastNDays(7).reduce((
 
 export const streakDays = derived(tracker, ($t) => {
 	const need = ($t.meta?.streakGoalH || 1) * 60;
-	const usedDates = $t.streakFreezes?.usedDates || [];
-	const isFrozen = (key: string) => usedDates.includes(key);
-	const met = (key: string) => focusMinutesOn($t.log, key) >= need || isFrozen(key);
-	let cursor = todayKey();
-	if (!met(cursor)) cursor = addDaysKey(cursor, -1);
+	const usedDates = new Set($t.streakFreezes?.usedDates || []);
+	const studied = (key: string) => focusMinutesOn($t.log, key) >= need;
+
+	const today = todayKey();
+	const yesterday = addDaysKey(today, -1);
+	const dayBeforeYesterday = addDaysKey(today, -2);
+
+	let cursor: string;
+	if (studied(today)) {
+		cursor = today;
+	} else {
+		// Today is open. Check yesterday:
+		// If yesterday was skipped, it can ONLY be bridged if:
+		// 1) dayBeforeYesterday was actually studied (single day skip rule)
+		// 2) AND either yesterday is already in usedDates OR user has a freeze available
+		if (studied(yesterday)) {
+			cursor = yesterday;
+		} else if ((usedDates.has(yesterday) || ($t.streakFreezes?.available ?? 0) > 0) && studied(dayBeforeYesterday)) {
+			cursor = yesterday;
+		} else {
+			// Skipped more than 1 day or no freeze available -> streak is lost (0)!
+			return 0;
+		}
+	}
+
 	let count = 0;
-	while (count < 3650 && met(cursor)) { count += 1; cursor = addDaysKey(cursor, -1); }
+	let lastWasFrozen = false;
+
+	while (count < 3650) {
+		if (studied(cursor)) {
+			count += 1;
+			lastWasFrozen = false;
+			cursor = addDaysKey(cursor, -1);
+		} else if (usedDates.has(cursor) || (cursor === yesterday && ($t.streakFreezes?.available ?? 0) > 0)) {
+			// A freeze can ONLY bridge a single skipped day.
+			// If the day after/before was also frozen -> streak broken!
+			if (lastWasFrozen) {
+				break;
+			}
+			lastWasFrozen = true;
+			// Move to prior day; prior day MUST have been studied
+			cursor = addDaysKey(cursor, -1);
+			if (!studied(cursor)) {
+				// Consecutive missed days -> streak lost!
+				break;
+			}
+		} else {
+			// Day unstudied and unshielded -> streak ends
+			break;
+		}
+	}
+
 	return count;
 });
+
+export function autoCheckStreakFreeze() {
+	updateTracker((state) => {
+		if (!state.streakFreezes) state.streakFreezes = { available: 2, usedDates: [] };
+		const need = (state.meta?.streakGoalH || 1) * 60;
+		const yesterday = addDaysKey(todayKey(), -1);
+		const dayBeforeYesterday = addDaysKey(todayKey(), -2);
+
+		const yesterdayStudied = focusMinutesOn(state.log, yesterday) >= need;
+		const yesterdayFrozen = state.streakFreezes.usedDates.includes(yesterday);
+
+		if (yesterdayStudied || yesterdayFrozen) return;
+
+		// Only a SINGLE skipped day gets a streak freeze!
+		// Day before yesterday MUST have been studied.
+		const dayBeforeStudied = focusMinutesOn(state.log, dayBeforeYesterday) >= need;
+
+		if (dayBeforeStudied && state.streakFreezes.available > 0) {
+			state.streakFreezes.usedDates.push(yesterday);
+			state.streakFreezes.available = Math.max(0, state.streakFreezes.available - 1);
+			celebration.set('🛡️ Streak Freeze used! Your streak was saved for yesterday.');
+		}
+	});
+}
 
 export function useStreakFreeze(targetDateKey?: string) {
 	updateTracker((state) => {
 		if (!state.streakFreezes) state.streakFreezes = { available: 2, usedDates: [] };
 		if (state.streakFreezes.available <= 0) return;
 		const target = targetDateKey || addDaysKey(todayKey(), -1);
-		if (!state.streakFreezes.usedDates.includes(target)) {
-			state.streakFreezes.usedDates.push(target);
-			state.streakFreezes.available = Math.max(0, state.streakFreezes.available - 1);
-		}
+		if (state.streakFreezes.usedDates.includes(target)) return;
+
+		const need = (state.meta?.streakGoalH || 1) * 60;
+		if (focusMinutesOn(state.log, target) >= need) return;
+
+		// Day before target MUST have been studied (single day skip rule)
+		const dayBefore = addDaysKey(target, -1);
+		if (focusMinutesOn(state.log, dayBefore) < need) return;
+
+		state.streakFreezes.usedDates.push(target);
+		state.streakFreezes.available = Math.max(0, state.streakFreezes.available - 1);
 	});
 }
 

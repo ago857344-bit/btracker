@@ -115,7 +115,8 @@ export const createMeta = (): MetaState => ({
 	year: '',
 	weekdayHours: 5,
 	weekendHours: 6,
-	dailyQuestions: 50
+	dailyQuestions: 50,
+	dreamCollege: ''
 });
 export const DEFAULT_WIDGETS: WidgetLayout[] = [
 	{ id: 'daily-progress', enabled: true, order: 0, span: 2 },
