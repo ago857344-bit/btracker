@@ -47,13 +47,86 @@
 	let weekendHours = 8;
 	let dailyQuestions = 50;
 
-	// Step 6: Streak Demo
-	const DAYS = ['Wed', 'Thu', 'Fri', 'Sat', 'Sun', 'Mon', 'Tue'];
-	let streakDays = [true, true, true, false, true, true, false];
+	// Step 6: Interactive Streak Simulation & Single-Day Freeze Demo
+	const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+	// Demo: Mon-Wed studied, Thu missed (isolated single day -> gets freeze), Fri-Sun studied
+	let streakDemo = [true, true, true, false, true, true, true];
+
 	function toggleStreakDay(i: number) {
-		streakDays = streakDays.map((v, idx) => idx === i ? !v : v);
+		streakDemo = streakDemo.map((v, idx) => (idx === i ? !v : v));
 	}
-	$: streakCount = streakDays.filter(Boolean).length;
+
+	function setDemoPreset(preset: 'perfect' | 'freeze' | 'lost') {
+		if (preset === 'perfect') {
+			streakDemo = [true, true, true, true, true, true, true];
+		} else if (preset === 'freeze') {
+			// Thursday missed (isolated 1 day miss -> Streak Freeze applied)
+			streakDemo = [true, true, true, false, true, true, true];
+		} else if (preset === 'lost') {
+			// Thu & Fri missed (2+ consecutive missed days -> Streak Lost)
+			streakDemo = [true, true, true, false, false, true, true];
+		}
+	}
+
+	$: streakAnalysis = (() => {
+		// Evaluates each day in the 7-day demo:
+		// Rule: A missed day gets a streak freeze IF AND ONLY IF it is an isolated single missed day.
+		// If 2 or more consecutive days are missed, they lose their streak!
+		const statuses: Array<'studied' | 'frozen' | 'lost'> = [];
+		for (let i = 0; i < 7; i++) {
+			if (streakDemo[i]) {
+				statuses.push('studied');
+			} else {
+				const prevMissed = i > 0 && !streakDemo[i - 1];
+				const nextMissed = i < 6 && !streakDemo[i + 1];
+				if (prevMissed || nextMissed) {
+					statuses.push('lost');
+				} else {
+					statuses.push('frozen');
+				}
+			}
+		}
+
+		// Calculate the active streak ending at Sunday (index 6):
+		// If Sunday has 2+ consecutive missed days ending there -> streak is lost (0)!
+		let count = 0;
+		let streakIsLost = false;
+		let hasFreeze = false;
+
+		if (!streakDemo[6] && !streakDemo[5]) {
+			// Sunday and Saturday both missed -> 2+ missed days -> streak lost!
+			count = 0;
+			streakIsLost = true;
+		} else {
+			let cur = 6;
+			while (cur >= 0) {
+				if (streakDemo[cur]) {
+					count++;
+					cur--;
+				} else {
+					// Missed day
+					const prevMissed = cur > 0 && !streakDemo[cur - 1];
+					if (prevMissed) {
+						// 2+ consecutive missed days -> streak terminates!
+						break;
+					} else {
+						// Single isolated missed day -> gets Streak Freeze!
+						hasFreeze = true;
+						count++;
+						cur--;
+					}
+				}
+			}
+			if (count === 0) streakIsLost = true;
+		}
+
+		return {
+			statuses,
+			count,
+			streakIsLost,
+			hasFreeze
+		};
+	})();
 
 	// Step 7: Dream Destination & Mission Dossier (Original replacement for commitment)
 	let dreamCollege = 'IIT Bombay (CSE)';
@@ -423,38 +496,93 @@
 							</div>
 						</div>
 
-					<!-- STEP 6: Streak Demo -->
+					<!-- STEP 6: Streak Demo & Single-Day Freeze Simulation -->
 					{:else if step === 6}
 						<div class="card-header">
 							<h1>Keep your flame alive</h1>
-							<p class="subtitle">Each day with a session makes your streak grow. Single missed days are shielded.</p>
+							<p class="subtitle">Miss 1 day? You get a <strong>Streak Freeze</strong>. Miss more than 1 day? You <strong>lose your streak</strong>.</p>
 						</div>
 
 						<div class="flame-section">
-							<div class="flame-icon">🔥</div>
-							<div class="flame-counter">{streakCount} days in a row</div>
-							<p class="flame-sub">Tap a day and watch how your streak changes.</p>
+							<!-- Dynamic Animated Icon -->
+							<div class="flame-icon-wrap" class:lost={streakAnalysis.streakIsLost} class:frozen={!streakAnalysis.streakIsLost && streakAnalysis.hasFreeze}>
+								{#if streakAnalysis.streakIsLost}
+									<div class="flame-icon lost" title="Streak lost">💨</div>
+								{:else if streakAnalysis.hasFreeze}
+									<div class="flame-icon frozen" title="Shielded with Streak Freeze">🛡️</div>
+								{:else}
+									<div class="flame-icon fiery" title="Flame burning bright">🔥</div>
+								{/if}
+							</div>
 
+							<div class="flame-counter" class:lost={streakAnalysis.streakIsLost}>
+								{#if streakAnalysis.streakIsLost}
+									<span class="count-lost">0 Days &bull; Streak Lost!</span>
+								{:else}
+									<span>{streakAnalysis.count} days in a row</span>
+								{/if}
+							</div>
+
+							<!-- Dynamic Rule Feedback Banner -->
+							{#if streakAnalysis.streakIsLost}
+								<div class="streak-status-banner lost">
+									<span class="banner-badge lost">💔 STREAK LOST</span>
+									<span class="banner-msg">You missed <strong>2 or more consecutive days</strong> without studying. Your streak was broken and reset to 0.</span>
+								</div>
+							{:else if streakAnalysis.hasFreeze}
+								<div class="streak-status-banner frozen">
+									<span class="banner-badge frozen">🛡️ STREAK FREEZE APPLIED</span>
+									<span class="banner-msg">Single missed day detected! A <strong>Streak Freeze</strong> shielded your streak so your flame stays alive.</span>
+								</div>
+							{:else}
+								<div class="streak-status-banner active">
+									<span class="banner-badge active">🔥 ON FIRE</span>
+									<span class="banner-msg">Unbroken discipline! Single day skips are shielded by Streak Freeze, but missing 2+ days loses your streak.</span>
+								</div>
+							{/if}
+
+							<!-- Interactive Week Days -->
 							<div class="week-pills">
 								{#each DAYS as d, i}
 									<button
 										type="button"
-										class="day-circle"
-										class:active={streakDays[i]}
+										class="day-circle {streakAnalysis.statuses[i]}"
 										on:click={() => toggleStreakDay(i)}
+										title="Tap to toggle {d}: {streakAnalysis.statuses[i]}"
 									>
 										<span class="day-name">{d}</span>
-										<div class="circle-state" class:on={streakDays[i]}>
-											{#if streakDays[i]}
+										<div class="circle-state {streakAnalysis.statuses[i]}">
+											{#if streakAnalysis.statuses[i] === 'studied'}
 												<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
 													<polyline points="20 6 9 17 4 12"></polyline>
 												</svg>
+											{:else if streakAnalysis.statuses[i] === 'frozen'}
+												<span class="state-emoji">🛡️</span>
 											{:else}
-												<span>☕</span>
+												<span class="state-emoji">✕</span>
 											{/if}
 										</div>
+										<span class="day-status-pill {streakAnalysis.statuses[i]}">
+											{#if streakAnalysis.statuses[i] === 'studied'}
+												Done
+											{:else if streakAnalysis.statuses[i] === 'frozen'}
+												Freeze
+											{:else}
+												Lost
+											{/if}
+										</span>
 									</button>
 								{/each}
+							</div>
+
+							<!-- Quick Presets for Instant Testing -->
+							<div class="streak-presets">
+								<span class="presets-title">SIMULATE SCENARIOS:</span>
+								<div class="presets-btns">
+									<button type="button" class="preset-btn" on:click={() => setDemoPreset('perfect')}>🔥 Perfect Week</button>
+									<button type="button" class="preset-btn" on:click={() => setDemoPreset('freeze')}>🛡️ 1 Day Missed (Freeze)</button>
+									<button type="button" class="preset-btn" on:click={() => setDemoPreset('lost')}>💔 2+ Days Missed (Lost)</button>
+								</div>
 							</div>
 						</div>
 
@@ -1013,20 +1141,44 @@
 		flex-direction: column;
 		align-items: center;
 		text-align: center;
-		padding: 0.5rem 0;
+		padding: 0.2rem 0;
+	}
+
+	.flame-icon-wrap {
+		display: grid;
+		place-items: center;
+		margin-bottom: 0.35rem;
+		transition: all 0.25s ease;
 	}
 
 	.flame-icon {
 		font-size: 3.5rem;
 		line-height: 1;
-		margin-bottom: 0.5rem;
-		filter: drop-shadow(0 6px 12px rgba(245, 158, 11, 0.35));
+	}
+
+	.flame-icon.fiery {
+		filter: drop-shadow(0 6px 14px rgba(245, 158, 11, 0.45));
 		animation: pulse-flame 1.5s ease-in-out infinite alternate;
+	}
+
+	.flame-icon.frozen {
+		filter: drop-shadow(0 6px 14px rgba(56, 189, 248, 0.5));
+		animation: pulse-frost 1.8s ease-in-out infinite alternate;
+	}
+
+	.flame-icon.lost {
+		filter: grayscale(1) opacity(0.5);
+		animation: none;
 	}
 
 	@keyframes pulse-flame {
 		0% { transform: scale(1); }
-		100% { transform: scale(1.08) translateY(-2px); }
+		100% { transform: scale(1.08) translateY(-3px); }
+	}
+
+	@keyframes pulse-frost {
+		0% { transform: scale(1); }
+		100% { transform: scale(1.06) translateY(-2px); }
 	}
 
 	.flame-counter {
@@ -1036,16 +1188,77 @@
 		letter-spacing: -0.02em;
 	}
 
-	.flame-sub {
-		font-size: 0.8rem;
+	.flame-counter.lost {
+		color: #ef4444;
+	}
+
+	.streak-status-banner {
+		width: 100%;
+		max-width: 440px;
+		margin: 0.65rem 0 1.25rem;
+		padding: 0.65rem 0.95rem;
+		border-radius: 12px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: 0.78rem;
+		transition: all 0.2s ease;
+	}
+
+	.streak-status-banner.active {
+		border: 1px solid color-mix(in srgb, #f59e0b 35%, var(--border-subtle));
+		background: color-mix(in srgb, #f59e0b 8%, var(--surface-subtle));
+	}
+
+	.streak-status-banner.frozen {
+		border: 1px solid color-mix(in srgb, #38bdf8 45%, var(--border-subtle));
+		background: color-mix(in srgb, #38bdf8 12%, var(--surface-subtle));
+	}
+
+	.streak-status-banner.lost {
+		border: 1px solid color-mix(in srgb, #ef4444 45%, var(--border-subtle));
+		background: color-mix(in srgb, #ef4444 12%, var(--surface-subtle));
+	}
+
+	.banner-badge {
+		font-size: 0.68rem;
+		font-weight: 800;
+		letter-spacing: 0.05em;
+		padding: 2px 8px;
+		border-radius: 99px;
+	}
+
+	.banner-badge.active {
+		background: #f59e0b;
+		color: #1a0f00;
+	}
+
+	.banner-badge.frozen {
+		background: #38bdf8;
+		color: #071720;
+	}
+
+	.banner-badge.lost {
+		background: #ef4444;
+		color: #ffffff;
+	}
+
+	.banner-msg {
 		color: var(--text-secondary);
-		margin: 0.2rem 0 1.5rem;
+		line-height: 1.35;
+		text-align: center;
+	}
+
+	.banner-msg strong {
+		color: var(--text-primary);
 	}
 
 	.week-pills {
 		display: flex;
-		gap: clamp(0.4rem, 1.5vw, 0.75rem);
+		gap: clamp(0.35rem, 1.4vw, 0.7rem);
 		justify-content: center;
+		margin-bottom: 1.2rem;
 	}
 
 	.day-circle {
@@ -1054,10 +1267,19 @@
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 0.4rem;
+		gap: 0.35rem;
 		cursor: pointer;
 		font-family: inherit;
 		padding: 0.2rem;
+		transition: transform 0.15s ease;
+	}
+
+	.day-circle:hover {
+		transform: translateY(-2px);
+	}
+
+	.day-circle:active {
+		transform: scale(0.94);
 	}
 
 	.day-name {
@@ -1067,28 +1289,114 @@
 	}
 
 	.circle-state {
-		width: 38px;
-		height: 38px;
+		width: 40px;
+		height: 40px;
 		border-radius: 50%;
 		border: 1.5px solid var(--border-subtle);
 		background: color-mix(in srgb, var(--surface-panel), var(--surface-canvas) 40%);
 		display: grid;
 		place-items: center;
-		color: var(--text-secondary);
 		font-size: 0.85rem;
 		transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
-	.circle-state.on {
+	.circle-state.studied {
 		border-color: #22c55e;
 		background: #22c55e;
 		color: #ffffff;
 		box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
 	}
 
+	.circle-state.frozen {
+		border-color: #38bdf8;
+		background: color-mix(in srgb, #38bdf8 22%, var(--surface-panel));
+		box-shadow: 0 4px 14px rgba(56, 189, 248, 0.45);
+	}
+
+	.circle-state.lost {
+		border-color: #ef4444;
+		background: color-mix(in srgb, #ef4444 18%, var(--surface-panel));
+		color: #ef4444;
+		box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+	}
+
 	.circle-state svg {
 		width: 18px;
 		height: 18px;
+	}
+
+	.state-emoji {
+		font-size: 1.05rem;
+		line-height: 1;
+	}
+
+	.day-status-pill {
+		font-size: 0.62rem;
+		font-weight: 750;
+		letter-spacing: 0.02em;
+		text-transform: uppercase;
+		border-radius: 4px;
+		padding: 1px 5px;
+	}
+
+	.day-status-pill.studied {
+		color: #22c55e;
+		background: color-mix(in srgb, #22c55e 15%, transparent);
+	}
+
+	.day-status-pill.frozen {
+		color: #38bdf8;
+		background: color-mix(in srgb, #38bdf8 18%, transparent);
+	}
+
+	.day-status-pill.lost {
+		color: #ef4444;
+		background: color-mix(in srgb, #ef4444 15%, transparent);
+	}
+
+	.streak-presets {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.45rem;
+		padding-top: 0.4rem;
+	}
+
+	.presets-title {
+		font-size: 0.68rem;
+		font-weight: 750;
+		letter-spacing: 0.08em;
+		color: var(--text-tertiary);
+	}
+
+	.presets-btns {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 0.45rem;
+	}
+
+	.preset-btn {
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
+		color: var(--text-secondary);
+		border-radius: 8px;
+		padding: 0.35rem 0.65rem;
+		font-size: 0.72rem;
+		font-weight: 700;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all 0.15s ease;
+	}
+
+	.preset-btn:hover {
+		border-color: var(--accent);
+		color: var(--text-primary);
+		transform: translateY(-1px);
+	}
+
+	.preset-btn:active {
+		transform: scale(0.96);
 	}
 
 	/* STEP 7: Original JEE Blueprint & Aspirant Dossier */

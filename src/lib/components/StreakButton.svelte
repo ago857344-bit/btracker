@@ -56,20 +56,71 @@
 	const close = () => { open = false; };
 </script>
 
-<button class="streak-button" type="button" aria-label="Streak and badges" on:click={() => (open = true)}>
-	<span class="flame"><NavIcon name="flame" size={16} /></span>
+<button class="streak-button" class:lost={$streakDays === 0} class:frozen={$streakDays > 0 && (yesterdayFrozen || (!yesterdayMet && dayBeforeMet))} type="button" aria-label="Streak and badges" on:click={() => (open = true)}>
+	<span class="flame">
+		{#if $streakDays === 0}
+			<NavIcon name="flame" size={16} />
+		{:else if yesterdayFrozen || (!yesterdayMet && dayBeforeMet)}
+			<span style="font-size: 13px;">🛡️</span>
+		{:else}
+			<NavIcon name="flame" size={16} />
+		{/if}
+	</span>
 	<span class="count">{$streakDays}</span>
 </button>
 
 <Modal open={open} title="STREAK &amp; BADGES" width="560px" on:close={close}>
 	<div class="hero">
-		<div class="stat main">
-			<span class="flame big"><NavIcon name="flame" size={22} /></span>
+		<div class="stat main" class:lost={$streakDays === 0} class:frozen={$streakDays > 0 && (yesterdayFrozen || (!yesterdayMet && dayBeforeMet))}>
+			<span class="flame big">
+				{#if $streakDays === 0}
+					<NavIcon name="flame" size={22} />
+				{:else if yesterdayFrozen || (!yesterdayMet && dayBeforeMet)}
+					<span style="font-size: 18px;">🛡️</span>
+				{:else}
+					<NavIcon name="flame" size={22} />
+				{/if}
+			</span>
 			<div><b>{$streakDays}</b><small>day streak</small></div>
 		</div>
 		<div class="stat"><div><b>{$intelligence.maxStreak}</b><small>best ever</small></div></div>
 		<div class="stat"><div><b>{$intelligence.lifetimeHours}h</b><small>focused</small></div></div>
 	</div>
+
+	<!-- Live Streak Status Banner -->
+	{#if $streakDays === 0}
+		<div class="streak-alert lost">
+			<span class="alert-icon">💔</span>
+			<div>
+				<b>Streak Lost (0 Days)</b>
+				<small>You missed 2 or more consecutive days without studying. Log at least {$tracker.meta?.streakGoalH || 1}h of focus today to light a new streak!</small>
+			</div>
+		</div>
+	{:else if yesterdayFrozen || (!yesterdayMet && dayBeforeMet)}
+		<div class="streak-alert frozen">
+			<span class="alert-icon">🛡️</span>
+			<div>
+				<b>Streak Freeze Active</b>
+				<small>Yesterday was shielded with a Streak Freeze! Your {$streakDays}-day flame is safe. Complete today's goal to keep growing.</small>
+			</div>
+		</div>
+	{:else if focusMinutesOn($tracker.log, todayKey()) >= streakNeed}
+		<div class="streak-alert secured">
+			<span class="alert-icon">🔥</span>
+			<div>
+				<b>Today's Streak Secured!</b>
+				<small>You met today's goal ({focusMinutesOn($tracker.log, todayKey())}m focused). Your {$streakDays}-day streak is burning bright!</small>
+			</div>
+		</div>
+	{:else}
+		<div class="streak-alert active">
+			<span class="alert-icon">⚡</span>
+			<div>
+				<b>{$streakDays}-Day Streak on the Line</b>
+				<small>Study at least {$tracker.meta?.streakGoalH || 1}h today. Single missed days are shielded by Streak Freeze; missing 2+ days loses your streak.</small>
+			</div>
+		</div>
+	{/if}
 
 	<!-- Streak Freeze Protection Card -->
 	<div class="freeze-card">
@@ -77,7 +128,7 @@
 			<span class="shield-icon">🛡️</span>
 			<div>
 				<b>Streak Freeze Protection: {$tracker.streakFreezes?.available ?? 2} available</b>
-				<small>Protects your streak if you miss a day. Earned every 7-day streak.</small>
+				<small>Rule: 1 missed day is shielded by Streak Freeze. Missing 2+ consecutive days loses your streak.</small>
 			</div>
 		</div>
 		<div class="freeze-actions">
@@ -190,9 +241,69 @@
 		background: #38bdf8;
 		color: #071720;
 	}
-	.btn-freeze.shield {
-		background: #f59e0b;
-		color: #1a0f00;
-		border-color: #f59e0b;
+	.streak-button.lost {
+		border-color: var(--border-subtle);
+		opacity: 0.72;
 	}
+	.streak-button.lost .flame {
+		color: var(--text-tertiary);
+		filter: grayscale(1);
+	}
+	.streak-button.frozen {
+		border-color: #38bdf8;
+		background: color-mix(in srgb, #38bdf8 12%, var(--surface-panel));
+	}
+	.streak-button.frozen .count {
+		color: #38bdf8;
+	}
+
+	.stat.main.lost {
+		border-color: var(--border-subtle);
+		background: var(--surface-subtle);
+	}
+	.stat.main.lost .flame.big {
+		color: var(--text-tertiary);
+		filter: grayscale(1);
+	}
+	.stat.main.frozen {
+		border-color: color-mix(in srgb, #38bdf8, transparent 40%);
+		background: color-mix(in srgb, #38bdf8, transparent 90%);
+	}
+	.stat.main.frozen b {
+		color: #38bdf8;
+	}
+
+	.streak-alert {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.75rem 0.95rem;
+		border-radius: 12px;
+		margin: 0.75rem 0 0.25rem;
+		border: 1px solid var(--border-subtle);
+		background: var(--surface-subtle);
+	}
+	.streak-alert.lost {
+		border-color: color-mix(in srgb, #ef4444 40%, var(--border-subtle));
+		background: color-mix(in srgb, #ef4444 10%, var(--surface-subtle));
+	}
+	.streak-alert.lost b { color: #ef4444; }
+	.streak-alert.frozen {
+		border-color: color-mix(in srgb, #38bdf8 40%, var(--border-subtle));
+		background: color-mix(in srgb, #38bdf8 10%, var(--surface-subtle));
+	}
+	.streak-alert.frozen b { color: #38bdf8; }
+	.streak-alert.secured {
+		border-color: color-mix(in srgb, #22c55e 40%, var(--border-subtle));
+		background: color-mix(in srgb, #22c55e 10%, var(--surface-subtle));
+	}
+	.streak-alert.secured b { color: #22c55e; }
+	.streak-alert.active {
+		border-color: color-mix(in srgb, #f59e0b 40%, var(--border-subtle));
+		background: color-mix(in srgb, #f59e0b 10%, var(--surface-subtle));
+	}
+	.streak-alert.active b { color: #f59e0b; }
+	.alert-icon { font-size: 1.35rem; line-height: 1; flex-shrink: 0; }
+	.streak-alert b { display: block; font-size: 0.82rem; font-weight: 750; }
+	.streak-alert small { display: block; font-size: 0.72rem; color: var(--text-secondary); line-height: 1.35; }
 </style>
