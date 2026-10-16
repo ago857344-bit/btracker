@@ -17,7 +17,9 @@
 	import RecentActivityWidget from '$lib/components/widgets/RecentActivityWidget.svelte';
 	import YearlyHeatmapWidget from '$lib/components/widgets/YearlyHeatmapWidget.svelte';
 	import TargetsModal from '$lib/components/TargetsModal.svelte';
-	import { tracker, updateTracker, dashboardWidgets, updateWidget, reorderWidget, cycleWidgetSpan, customizingHome } from '$lib/stores/tracker';
+	import MinimalistLayout from '$lib/components/dashboard/MinimalistLayout.svelte';
+	import FocusLayout from '$lib/components/dashboard/FocusLayout.svelte';
+	import { tracker, updateTracker, dashboardWidgets, updateWidget, reorderWidget, cycleWidgetSpan, customizingHome, formulaVaultOpen } from '$lib/stores/tracker';
 	import { DEFAULT_WIDGETS } from '$lib/state/defaults';
 	import type { WidgetLayout } from '$lib/types/tracker';
 
@@ -55,6 +57,7 @@
 	$: hiddenCount = $tracker.ui.widgets.filter((w) => !w.enabled).length;
 	
 
+	$: dashboardLayout = $tracker.ui?.dashboardLayout || 'default';
 	$: name = $tracker.meta.name.trim();
 	const hour = new Date().getHours();
 	$: greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
@@ -69,59 +72,65 @@
 			<p class="sub">Your personalized command center — progress, targets, and what needs you next.</p>
 		</div>
 		<div class="hero-tools">
-			<button type="button" class="customize-toggle" class:active={$customizingHome} on:click={() => customizingHome.update((v) => !v)}>
-				<NavIcon name="settings" size={15} />
-				{$customizingHome ? 'Done Editing' : 'Customize Layout'}
-			</button>
-			<button type="button" class="targets" on:click={() => (targetsOpen = true)}>
-				<NavIcon name="target" size={16} /> Edit targets
+			{#if dashboardLayout === 'default'}
+				<button type="button" class="customize-toggle" class:active={$customizingHome} on:click={() => customizingHome.update((v) => !v)}>
+					<NavIcon name="settings" size={15} />
+					{$customizingHome ? 'Done Editing' : 'Customize Layout'}
+				</button>
+			{/if}
+			<button type="button" class="targets" on:click={() => formulaVaultOpen.set(true)}>
+				<NavIcon name="book" size={16} /> Formula Hub
 			</button>
 		</div>
 	</header>
 
-	{#if $customizingHome}
-		<div class="customize-banner" in:fly={{ y: -6, duration: 200 }}>
-			<div class="banner-info">
-				<b>Customizing Dashboard</b>
-				<span>Reorder with ↑ / ↓, resize with ↔, or toggle visibility with + / −.</span>
-			</div>
-			<div class="banner-actions">
-				{#if hiddenCount > 0}
-					<button type="button" class="btn-subtle" on:click={enableAllWidgets}>
-						Show All ({hiddenCount} hidden)
+	{#if dashboardLayout === 'minimalist'}
+		<MinimalistLayout />
+	{:else if dashboardLayout === 'focus'}
+		<FocusLayout />
+	{:else}
+		{#if $customizingHome}
+			<div class="customize-banner" in:fly={{ y: -6, duration: 200 }}>
+				<div class="banner-info">
+					<b>Customizing Dashboard</b>
+					<span>Reorder with ↑ / ↓, resize with ↔, or toggle visibility with + / −.</span>
+				</div>
+				<div class="banner-actions">
+					{#if hiddenCount > 0}
+						<button type="button" class="btn-subtle" on:click={enableAllWidgets}>
+							Show All ({hiddenCount} hidden)
+						</button>
+					{/if}
+					<button type="button" class="btn-subtle" on:click={resetDefaultLayout}>
+						Reset to Defaults
 					</button>
-				{/if}
-				<button type="button" class="btn-subtle" on:click={resetDefaultLayout}>
-					Reset to Defaults
-				</button>
-				<button type="button" class="btn-done" on:click={() => customizingHome.set(false)}>
-					Done Editing
-				</button>
+					<button type="button" class="btn-done" on:click={() => customizingHome.set(false)}>
+						Done Editing
+					</button>
+				</div>
 			</div>
+		{/if}
+
+		<div class="grid">
+			{#each visible as widget (widget.id)}
+				<div class="cell" class:span-2={widget.span === 2} class:span-3={widget.span === 3} animate:flip={{ duration: 260 }}>
+					<WidgetShell
+						title={registry[widget.id].title}
+						eyebrow={registry[widget.id].eyebrow}
+						icon={registry[widget.id].icon}
+						height={widget.height ?? 'md'}
+						enabled={widget.enabled}
+						editing={$customizingHome}
+						on:move={(e) => reorderWidget(widget.id, e.detail)}
+						on:toggle={() => updateWidget(widget.id, { enabled: !widget.enabled })}
+						on:resize={() => cycleWidgetSpan(widget.id)}
+					>
+						<svelte:component this={registry[widget.id].comp} />
+					</WidgetShell>
+				</div>
+			{/each}
 		</div>
 	{/if}
-
-	<div class="grid">
-		{#each visible as widget (widget.id)}
-			<div class="cell" class:span-2={widget.span === 2} class:span-3={widget.span === 3} animate:flip={{ duration: 260 }}>
-				<WidgetShell
-					title={registry[widget.id].title}
-					eyebrow={registry[widget.id].eyebrow}
-					icon={registry[widget.id].icon}
-					height={widget.height ?? 'md'}
-					enabled={widget.enabled}
-					editing={$customizingHome}
-					on:move={(e) => reorderWidget(widget.id, e.detail)}
-					on:toggle={() => updateWidget(widget.id, { enabled: !widget.enabled })}
-					on:resize={() => cycleWidgetSpan(widget.id)}
-				>
-					<svelte:component this={registry[widget.id].comp} />
-				</WidgetShell>
-			</div>
-		{/each}
-	</div>
-
-	
 </section>
 
 <TargetsModal bind:open={targetsOpen} />
@@ -134,11 +143,55 @@
 	h1 span { color: var(--text-secondary); }
 	.sub { max-width: 520px; margin: .55rem 0 0; color: var(--text-secondary); font-size: .98rem; line-height: 1.6; }
 	.hero-tools { display: flex; align-items: center; gap: .6rem; }
-	.customize-toggle { display: inline-flex; align-items: center; gap: .45rem; padding: .55rem .95rem; border: 1px solid var(--border-subtle); border-radius: 11px; color: var(--text-secondary); background: var(--surface-panel); font-size: .82rem; font-weight: 720; cursor: pointer; transition: all 0.15s ease; }
-	.customize-toggle:hover, .customize-toggle.active { border-color: var(--accent); color: var(--accent); }
-	.customize-toggle.active { background: color-mix(in srgb, var(--accent) 12%, var(--surface-panel)); }
-	.targets { display: inline-flex; align-items: center; gap: .45rem; padding: .55rem .95rem; border: 1px solid var(--border-subtle); border-radius: 11px; color: var(--text-primary); background: var(--surface-panel); font-size: .82rem; font-weight: 720; cursor: pointer; }
-	.targets:hover { border-color: var(--accent); color: var(--accent); }
+	.customize-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: .45rem;
+		padding: .55rem .95rem;
+		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
+		border-radius: 12px;
+		color: var(--text-secondary);
+		background: var(--vision-glass-bg, var(--surface-panel));
+		backdrop-filter: var(--vision-glass-blur, blur(16px));
+		-webkit-backdrop-filter: var(--vision-glass-blur, blur(16px));
+		box-shadow: var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.08));
+		font-size: .82rem;
+		font-weight: 720;
+		cursor: pointer;
+		transition: all 0.18s var(--ease-ios-spring);
+	}
+	.customize-toggle:hover, .customize-toggle.active {
+		border-color: var(--accent);
+		color: var(--accent);
+		transform: translateY(-1px);
+		box-shadow: 0 8px 20px -4px color-mix(in srgb, var(--accent) 30%, transparent), var(--vision-bevel-inner);
+	}
+	.customize-toggle.active {
+		background: color-mix(in srgb, var(--accent) 14%, var(--surface-panel));
+	}
+	.targets {
+		display: inline-flex;
+		align-items: center;
+		gap: .45rem;
+		padding: .55rem .95rem;
+		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
+		border-radius: 12px;
+		color: var(--text-primary);
+		background: var(--vision-glass-bg, var(--surface-panel));
+		backdrop-filter: var(--vision-glass-blur, blur(16px));
+		-webkit-backdrop-filter: var(--vision-glass-blur, blur(16px));
+		box-shadow: var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.08));
+		font-size: .82rem;
+		font-weight: 720;
+		cursor: pointer;
+		transition: all 0.18s var(--ease-ios-spring);
+	}
+	.targets:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+		transform: translateY(-1px);
+		box-shadow: 0 8px 20px -4px color-mix(in srgb, var(--accent) 30%, transparent), var(--vision-bevel-inner);
+	}
 	
 	.customize-banner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .85rem 1.15rem; border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border-subtle)); border-radius: 14px; background: color-mix(in srgb, var(--accent) 10%, var(--surface-panel)); flex-wrap: wrap; }
 	.banner-info b { display: block; font-size: .86rem; color: var(--accent); }

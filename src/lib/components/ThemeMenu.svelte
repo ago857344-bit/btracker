@@ -8,6 +8,7 @@
 	import { unlockCtx } from '$lib/stores/cosmetics';
 	import { reqLabel, reqMet, type UnlockCtx } from '$lib/state/cosmetics';
 	import NavIcon from '$lib/components/NavIcon.svelte';
+	import CosmeticsModal from '$lib/components/cosmetics/CosmeticsModal.svelte';
 	import type { ThemeId } from '$lib/types/tracker';
 
 	export let sidebar = false;
@@ -16,6 +17,7 @@
 	const ACCENTS = ['#6d5dfc', '#e0455a', '#d99a2b', '#2f9e6e', '#2b8ba6', '#2383e2', '#46a302', '#b44df0'];
 
 	let open = false;
+	let cosmeticsModalOpen = false;
 	let node: HTMLDivElement;
 	let isMobile = false;
 
@@ -30,6 +32,10 @@
 		const enabled = e.currentTarget.checked;
 		updateTracker((state) => {
 			state.ui.liveWallpaper = enabled;
+			if (enabled) {
+				state.ui.ecoMode = false;
+				syncThemeWallpaper(state);
+			}
 		});
 		celebration.set(enabled ? 'Live wallpapers enabled.' : 'Live wallpapers disabled (lightweight mode).');
 	}
@@ -59,6 +65,10 @@
 		updateTracker((state) => {
 			state.theme = id;
 			state.ui.accent = preset.accent;
+			if (preset.wallpaper?.endsWith('.mp4')) {
+				state.ui.liveWallpaper = true;
+				state.ui.ecoMode = false;
+			}
 			syncThemeWallpaper(state);
 		});
 	}
@@ -103,10 +113,15 @@
 		<div class="popover" transition:fade={{ duration: 140 }} role="dialog" aria-label="Appearance">
 			<div class="head">
 				<span><NavIcon name="palette" size={15} /> Appearance</span>
-				<button type="button" class="mode" on:click={toggleMode}>
-					<NavIcon name={isDarkTheme($tracker.theme) ? 'sun' : 'moon'} size={14} />
-					{isDarkTheme($tracker.theme) ? 'Light' : 'Dark'}
-				</button>
+				<div class="head-controls">
+					<button type="button" class="gear-btn" title="Cosmetics Loadout" aria-label="Cosmetics Loadout" on:click={() => (cosmeticsModalOpen = true)}>
+						<NavIcon name="settings" size={14} />
+					</button>
+					<button type="button" class="mode" on:click={toggleMode}>
+						<NavIcon name={isDarkTheme($tracker.theme) ? 'sun' : 'moon'} size={14} />
+						{isDarkTheme($tracker.theme) ? 'Light' : 'Dark'}
+					</button>
+				</div>
 			</div>
 
 			<p class="label">THEMES</p>
@@ -144,10 +159,12 @@
 					<div class="toggle-info">
 						<span class="toggle-name">Live Wallpapers</span>
 						<span class="toggle-sub">
-							{#if $tracker.ui.liveWallpaper === undefined}
-								{isMobile ? 'Off on mobile (Saves battery)' : 'On on laptops (Default)'}
+							{#if !current.wallpaper && !$tracker.ui.wallpaper}
+								"{current.label}" has no video (switch to Catalyst, Aurora, or God Mode)
+							{:else if $tracker.ui.liveWallpaper === undefined}
+								{isMobile ? 'Off on mobile (Check to enable video)' : 'On on laptops (Default)'}
 							{:else if liveWallpaperActive}
-								Video background enabled
+								Video background active
 							{:else}
 								Static background (Fast & light)
 							{/if}
@@ -205,7 +222,27 @@
 	{/if}
 </div>
 
+<CosmeticsModal bind:open={cosmeticsModalOpen} />
+
 <style>
+	.head-controls { display: flex; align-items: center; gap: .45rem; }
+	.gear-btn {
+		display: grid;
+		place-items: center;
+		width: 28px;
+		height: 28px;
+		border: 1px solid var(--border-subtle);
+		border-radius: 8px;
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		cursor: pointer;
+		transition: all 0.16s ease;
+	}
+	.gear-btn:hover {
+		color: var(--accent);
+		border-color: var(--accent);
+		transform: rotate(30deg);
+	}
 	.theme-menu { position: relative; }
 	.theme-menu.sidebar-mode { width: 100%; }
 	.icon-button { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid var(--border-subtle); border-radius: 11px; color: var(--text-secondary); background: var(--surface-panel); cursor: pointer; }
@@ -272,10 +309,12 @@
 		right: 0;
 		width: 320px;
 		padding: .95rem;
-		border: 1px solid var(--border-subtle);
+		border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
 		border-radius: 18px;
-		background: var(--surface-panel);
-		box-shadow: var(--shadow-card);
+		background: color-mix(in srgb, var(--surface-panel, #121020) 96%, transparent);
+		backdrop-filter: blur(36px) saturate(210%);
+		-webkit-backdrop-filter: blur(36px) saturate(210%);
+		box-shadow: 0 18px 48px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 	}
 
 	.sidebar-mode .popover {

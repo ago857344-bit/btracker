@@ -249,7 +249,16 @@ CRITICAL INSTRUCTIONS:
 	{/if}
 
 {#if $globalTimer.running && $page.url.pathname !== '/focus'}
-	<div class="mini-timer" transition:fly={{ y: 30, duration: 400, opacity: 0 }} class:break={$globalTimer.phase === 'break'} on:click={() => goto('/focus')}>
+	<div
+		class="mini-timer"
+		role="button"
+		tabindex="0"
+		aria-label="Open Focus Screen"
+		transition:fly={{ y: 30, duration: 400, opacity: 0 }}
+		class:break={$globalTimer.phase === 'break'}
+		on:click={() => goto('/focus')}
+		on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); goto('/focus'); } }}
+	>
 		<div class="mini-time">{formatClock($globalTimer.tab === 'stopwatch' ? $globalTimer.elapsed : $globalTimer.remaining)}</div>
 		<div class="mini-phase">{$globalTimer.tab === 'stopwatch' ? 'SW' : $globalTimer.phase === 'break' ? 'BREAK' : 'FOCUS'}</div>
 		<button class="mini-pause" aria-label="Pause" on:click|stopPropagation={$globalTimer.toggle}>
@@ -258,7 +267,7 @@ CRITICAL INSTRUCTIONS:
 	</div>
 {/if}
 
-	<button type="button" class="orb {orbState}" on:click={handleOrbClick}>
+	<button type="button" class="orb {orbState}" aria-label="AI Mentor Assistant" on:click={handleOrbClick}>
 		<div class="core"></div>
 		<div class="ring r1"></div>
 		<div class="ring r2"></div>
@@ -290,9 +299,9 @@ CRITICAL INSTRUCTIONS:
 			display: block;
 			position: fixed;
 			inset: 0;
-			background: rgba(0, 0, 0, 0.45);
-			backdrop-filter: blur(4px);
-			-webkit-backdrop-filter: blur(4px);
+			background: rgba(0, 0, 0, 0.60);
+			backdrop-filter: blur(28px) saturate(190%);
+			-webkit-backdrop-filter: blur(28px) saturate(190%);
 			z-index: 10000;
 			pointer-events: auto;
 		}
@@ -312,7 +321,7 @@ CRITICAL INSTRUCTIONS:
 			max-height: min(520px, calc(100dvh - max(env(safe-area-inset-top), 24px) - 160px)) !important;
 			height: 500px !important;
 			border-radius: 20px !important;
-			box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5) !important;
+			box-shadow: 0 24px 64px -8px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
 			z-index: 10001 !important;
 		}
 
@@ -325,12 +334,12 @@ CRITICAL INSTRUCTIONS:
 	.chat-panel { 
 		width: 380px; 
 		height: 520px;
-		background: var(--surface-panel-ai, var(--surface-panel)); 
-		backdrop-filter: var(--glass-filter, blur(24px) saturate(180%)); 
-		-webkit-backdrop-filter: var(--glass-filter, blur(24px) saturate(180%)); 
-		border: 1px solid var(--border-subtle); 
-		border-radius: 16px; 
-		box-shadow: 0 16px 40px rgba(0,0,0,0.2); 
+		background: color-mix(in srgb, var(--surface-panel, #121020) 96%, transparent); 
+		backdrop-filter: blur(36px) saturate(210%); 
+		-webkit-backdrop-filter: blur(36px) saturate(210%); 
+		border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16)); 
+		border-radius: 20px; 
+		box-shadow: 0 24px 64px -8px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14); 
 		pointer-events: auto; 
 		display: flex; 
 		flex-direction: column;

@@ -594,8 +594,6 @@ async function runAiTriage() {
 	
 	.subtasks-container { padding: 8px 12px 8px 48px; background: var(--surface-panel); border-bottom: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 6px; }
 	.sub-row { display: flex; align-items: center; gap: 12px; padding: 4px 0; }
-	.sub-row .check { width: 16px; height: 16px; border: 1.5px solid var(--text-secondary); border-radius: 4px; background: transparent; cursor: pointer; display: flex; align-items: center; justify-content: center; color: var(--surface-panel); padding: 0; flex-shrink: 0; }
-	.sub-row .check.checked { background: var(--accent); border-color: var(--accent); }
 	.sub-row .sub-title { font-size: 0.85rem; color: var(--text-primary); flex: 1; }
 	.sub-row.done .sub-title { color: var(--text-secondary); text-decoration: line-through; }
 	.sub-row .del { opacity: 0; background: none; border: none; color: var(--danger); cursor: pointer; padding: 2px; }

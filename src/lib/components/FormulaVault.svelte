@@ -257,9 +257,9 @@
 	.vault-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(8, 7, 18, 0.55);
-		backdrop-filter: blur(4px);
-		-webkit-backdrop-filter: blur(4px);
+		background: rgba(0, 0, 0, 0.60);
+		backdrop-filter: blur(28px) saturate(190%);
+		-webkit-backdrop-filter: blur(28px) saturate(190%);
 		z-index: 9998;
 	}
 
@@ -269,11 +269,11 @@
 		right: 0;
 		bottom: 0;
 		width: min(540px, 95vw);
-		background: var(--surface-panel);
-		backdrop-filter: var(--glass-filter);
-		-webkit-backdrop-filter: var(--glass-filter);
-		border-left: 1px solid var(--border-subtle);
-		box-shadow: -8px 0 36px rgba(0, 0, 0, 0.45);
+		background: color-mix(in srgb, var(--surface-panel, #121020) 96%, transparent);
+		backdrop-filter: blur(36px) saturate(210%);
+		-webkit-backdrop-filter: blur(36px) saturate(210%);
+		border-left: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
+		box-shadow: -16px 0 60px rgba(0, 0, 0, 0.65), inset 1px 0 0 rgba(255, 255, 255, 0.12);
 		z-index: 9999;
 		display: flex;
 		flex-direction: column;

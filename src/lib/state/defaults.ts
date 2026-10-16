@@ -116,6 +116,7 @@ export const createMeta = (): MetaState => ({
 	weekdayHours: 5,
 	weekendHours: 6,
 	dailyQuestions: 50,
+	dailyRevisionGoal: 3,
 	dreamCollege: ''
 });
 export const DEFAULT_WIDGETS: WidgetLayout[] = [
@@ -130,7 +131,7 @@ export const DEFAULT_WIDGETS: WidgetLayout[] = [
 	{ id: 'yearly-heatmap', enabled: true, order: 8, span: 3, height: 'md' },
 	{ id: 'standing', enabled: false, order: 9, span: 1 },
 ];
-export const createUiPreferences = (): UiPreferences => ({ accent: '#6d5dfc', widgets: DEFAULT_WIDGETS, reducedMotion: false, wallpaper: null, glassStrength: 100, haptics: true, sounds: true });
+export const createUiPreferences = (): UiPreferences => ({ accent: '#6d5dfc', widgets: DEFAULT_WIDGETS, reducedMotion: false, wallpaper: null, glassStrength: 100, haptics: true, sounds: true, cutoutStyle: 'auto', dashboardLayout: 'default' });
 export const createInitialTrackerState = (): TrackerState => ({
 	stateVersion: 5, d: {}, n: {}, r: {}, x: createCustomization(), h: [], hd: [], log: [], stat: {}, marks: createMarks(), dl: [],
 	norec: false, hwSort: 'loc', goals: createGoals(), col: [], bm: {}, notes: [], an: createAnalysis(), rev: createRevision(),

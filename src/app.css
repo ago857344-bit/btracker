@@ -29,6 +29,19 @@
   --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 14px 40px -4px rgb(0 0 0 / 30%);
   --shadow-modal: 0 24px 60px -8px rgb(0 0 0 / 60%), 0 12px 24px rgb(0 0 0 / 40%);
   --shadow-hover: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 24px 50px -8px rgb(0 0 0 / 40%);
+
+  /* Apple VisionOS / Smoked Acrylic Design Tokens (Phase 2) */
+  --vision-glass-bg: color-mix(in srgb, var(--surface-panel) 88%, transparent);
+  --vision-glass-blur: blur(24px) saturate(185%);
+  --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+  --vision-bevel-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(255, 255, 255, 0.12));
+  --vision-specular-sheen: rgba(255, 255, 255, 0.075);
+  --vision-specular-beam: color-mix(in srgb, var(--accent, #6d5dfc) 55%, rgba(255, 255, 255, 0.5));
+
+  /* Universal Smoked Acrylic Popup & Floating Overlay Token (Strict 96% Opacity) */
+  --surface-popup: rgba(18, 16, 32, 0.96);
+  --surface-popup-solid: #121020;
+  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
 }
 
 :root[data-theme='light'] {
@@ -42,6 +55,18 @@
   --shadow-card: 0 4px 6px -1px rgb(44 37 92 / 5%), 0 14px 40px -4px rgb(44 37 92 / 12%);
   --shadow-modal: 0 24px 60px -10px rgb(44 37 92 / 25%), 0 12px 24px rgb(44 37 92 / 15%);
   --shadow-hover: 0 10px 15px -3px rgb(44 37 92 / 6%), 0 24px 50px -8px rgb(44 37 92 / 18%);
+
+  /* Apple VisionOS / Light Acrylic Tokens */
+  --vision-glass-bg: color-mix(in srgb, #ffffff 88%, transparent);
+  --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  --vision-bevel-border: color-mix(in srgb, var(--border-subtle) 85%, rgba(0, 0, 0, 0.06));
+  --vision-specular-sheen: color-mix(in srgb, var(--accent, #6d5dfc) 10%, rgba(255, 255, 255, 0.55));
+  --vision-specular-beam: color-mix(in srgb, var(--accent, #6d5dfc) 40%, rgba(255, 255, 255, 0.75));
+
+  /* Light Acrylic Popup Token */
+  --surface-popup: rgba(255, 255, 255, 0.96);
+  --surface-popup-solid: #ffffff;
+  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08));
 }
 
 :root[data-theme='dark'] {
@@ -59,6 +84,8 @@
   --surface-canvas: #170f13;
   --surface-panel: #21161c;
   --surface-subtle: #2e1f27;
+  --surface-popup: rgba(33, 22, 28, 0.96);
+  --surface-popup-solid: #21161c;
   --text-primary: #fff2f5;
   --text-secondary: #d3aab5;
   --border-subtle: #3d2831;
@@ -72,6 +99,8 @@
   --surface-canvas: #0e1712;
   --surface-panel: #15211a;
   --surface-subtle: #1e2e24;
+  --surface-popup: rgba(21, 33, 26, 0.96);
+  --surface-popup-solid: #15211a;
   --text-primary: #eefbf2;
   --text-secondary: #a4c4ae;
   --border-subtle: #26392d;
@@ -89,6 +118,9 @@
   --surface-canvas: #fbfbfa;
   --surface-panel: #ffffff;
   --surface-subtle: #f4f3ef;
+  --surface-popup: rgba(255, 255, 255, 0.96);
+  --surface-popup-solid: #ffffff;
+  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08));
   --text-primary: #37352f;
   --text-secondary: #7b7a75;
   --border-subtle: #e9e8e3;
@@ -102,6 +134,9 @@
   --surface-canvas: #ffffff;
   --surface-panel: #ffffff;
   --surface-subtle: #f2f7ec;
+  --surface-popup: rgba(255, 255, 255, 0.96);
+  --surface-popup-solid: #ffffff;
+  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08));
   --text-primary: #3c3c3c;
   --text-secondary: #787d72;
   --border-subtle: #e4e8dd;
@@ -115,6 +150,9 @@
   --surface-canvas: #f5f8fb;
   --surface-panel: #ffffff;
   --surface-subtle: #eaf1f7;
+  --surface-popup: rgba(255, 255, 255, 0.96);
+  --surface-popup-solid: #ffffff;
+  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08));
   --text-primary: #1f2933;
   --text-secondary: #64707d;
   --border-subtle: #dce5ee;
@@ -128,6 +166,8 @@
   --surface-canvas: #1c1c28;
   --surface-panel: #232334;
   --surface-subtle: #2b2b40;
+  --surface-popup: rgba(35, 35, 52, 0.96);
+  --surface-popup-solid: #232334;
   --text-primary: #dcdce6;
   --text-secondary: #a2a2bb;
   --border-subtle: #34344c;
@@ -141,6 +181,8 @@
   --surface-canvas: #13203a;
   --surface-panel: #1b2c4d;
   --surface-subtle: #22355c;
+  --surface-popup: rgba(27, 44, 77, 0.96);
+  --surface-popup-solid: #1b2c4d;
   --text-primary: #eef3fc;
   --text-secondary: #a6b6d4;
   --border-subtle: #2c406a;
@@ -287,9 +329,143 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 }
 
 /* ========================================================================= */
+/* APPLE VISIONOS / SMOKED GLASS & SPECULAR CURSOR GLOW (PHASE 2)           */
+/* ========================================================================= */
+
+.specular-card,
+.widget,
+.panel,
+.sec,
+.r-card,
+.chapter-card,
+.kpi,
+.day-detail,
+.your-goals,
+.auth-card,
+.question-list {
+	position: relative;
+	background: var(--vision-glass-bg);
+	backdrop-filter: var(--vision-glass-blur);
+	-webkit-backdrop-filter: var(--vision-glass-blur);
+	border: 1px solid var(--vision-bevel-border);
+	box-shadow: var(--shadow-card), var(--vision-bevel-inner);
+	overflow: hidden;
+	transition:
+		transform 0.22s var(--ease-ios-spring),
+		box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+		border-color 0.28s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	/* Specular Surface Illumination Beam */
+	.specular-card::before,
+	.widget::before,
+	.panel::before,
+	.sec::before,
+	.r-card::before,
+	.chapter-card::before,
+	.kpi::before,
+	.day-detail::before,
+	.your-goals::before,
+	.auth-card::before,
+	.question-list::before {
+		content: "";
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		pointer-events: none;
+		z-index: 1;
+		opacity: 0;
+		transition: opacity 0.3s ease;
+		background: radial-gradient(
+			520px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
+			var(--vision-specular-sheen),
+			transparent 65%
+		);
+	}
+
+	/* Specular Machined Border Beam (Edge Refraction) */
+	.specular-card::after,
+	.widget::after,
+	.panel::after,
+	.sec::after,
+	.r-card::after,
+	.chapter-card::after,
+	.kpi::after,
+	.day-detail::after,
+	.your-goals::after,
+	.auth-card::after,
+	.question-list::after {
+		content: "";
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		padding: 1px;
+		pointer-events: none;
+		z-index: 2;
+		opacity: 0;
+		transition: opacity 0.35s ease;
+		background: radial-gradient(
+			380px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
+			var(--vision-specular-beam),
+			transparent 70%
+		);
+		-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+		mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+		-webkit-mask-composite: xor;
+		mask-composite: exclude;
+	}
+
+	.specular-card:hover::before,
+	.widget:hover::before,
+	.panel:hover::before,
+	.sec:hover::before,
+	.r-card:hover::before,
+	.chapter-card:hover::before,
+	.kpi:hover::before,
+	.day-detail:hover::before,
+	.your-goals:hover::before,
+	.auth-card:hover::before,
+	.question-list:hover::before {
+		opacity: 1;
+	}
+
+	.specular-card:hover::after,
+	.widget:hover::after,
+	.panel:hover::after,
+	.sec:hover::after,
+	.r-card:hover::after,
+	.chapter-card:hover::after,
+	.kpi:hover::after,
+	.day-detail:hover::after,
+	.your-goals:hover::after,
+	.auth-card:hover::after,
+	.question-list:hover::after {
+		opacity: 1;
+	}
+
+	/* Elevate content above specular shine layers */
+	.widget > *,
+	.panel > *,
+	.sec > *,
+	.r-card > *,
+	.chapter-card > *,
+	.kpi > *,
+	.day-detail > *,
+	.your-goals > *,
+	.auth-card > *,
+	.question-list > *,
+	.specular-card > * {
+		position: relative;
+		z-index: 3;
+	}
+}
+
+/* ========================================================================= */
 /* WALLPAPER MODE (ULTRA GLASSMORPHISM)                                      */
 /* ========================================================================= */
-:root[data-wallpaper="true"] {
+:root[data-wallpaper="true"],
+:root[data-live-wallpaper="true"] {
 	--surface-canvas: transparent;
 	/* Deep glass for dark modes: 45% black, 55% transparent */
 	--surface-panel: color-mix(in srgb, #0a0a10, transparent 8%);
@@ -300,7 +476,11 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 :root[data-theme="light"][data-wallpaper="true"], 
 :root[data-theme="duolingo"][data-wallpaper="true"], 
 :root[data-theme="anki"][data-wallpaper="true"], 
-:root[data-theme="notion"][data-wallpaper="true"], :root[data-theme="master"][data-wallpaper="true"] {
+:root[data-theme="notion"][data-wallpaper="true"], :root[data-theme="master"][data-wallpaper="true"],
+:root[data-theme="light"][data-live-wallpaper="true"], 
+:root[data-theme="duolingo"][data-live-wallpaper="true"], 
+:root[data-theme="anki"][data-live-wallpaper="true"], 
+:root[data-theme="notion"][data-live-wallpaper="true"], :root[data-theme="master"][data-live-wallpaper="true"] {
 	/* Frosted glass for light modes: 55% white, 45% transparent */
 	--surface-panel: color-mix(in srgb, #ffffff, transparent 12%);
 	--surface-subtle: color-mix(in srgb, #ffffff, transparent 20%);
@@ -316,6 +496,10 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	background-image: var(--user-wallpaper);
 	background-size: cover;
 	background-position: center;
+	transition: opacity 0.4s ease;
+}
+:root[data-live-wallpaper="true"] body::after {
+	opacity: 0;
 }
 
 /* Base Glass Effect */
@@ -346,7 +530,6 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 :root[data-wallpaper="true"] .widget,
 :root[data-wallpaper="true"] .auth-card,
 :root[data-wallpaper="true"] .question-list,
-:root[data-wallpaper="true"] aside,
 :root[data-wallpaper="true"] .celebration,
 :root[data-wallpaper="true"] .hint,
 :root[data-wallpaper="true"] .rec:not(.embedded) {
@@ -385,14 +568,9 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 :root[data-theme="light"][data-wallpaper="true"] .widget,
 :root[data-theme="light"][data-wallpaper="true"] .auth-card,
 :root[data-theme="light"][data-wallpaper="true"] .question-list,
-:root[data-theme="light"][data-wallpaper="true"] aside,
 :root[data-theme="light"][data-wallpaper="true"] .celebration,
 :root[data-theme="light"][data-wallpaper="true"] .hint,
 :root[data-theme="light"][data-wallpaper="true"] .rec:not(.embedded),
-:root[data-theme="duolingo"][data-wallpaper="true"] aside,
-:root[data-theme="anki"][data-wallpaper="true"] aside,
-:root[data-theme="notion"][data-wallpaper="true"] aside,
-:root[data-theme="master"][data-wallpaper="true"] aside,
 :root[data-theme="duolingo"][data-wallpaper="true"] .panel,
 :root[data-theme="anki"][data-wallpaper="true"] .panel,
 :root[data-theme="notion"][data-wallpaper="true"] .panel,
@@ -400,7 +578,8 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.5), inset 0 0 20px rgba(255,255,255,0.15), 0 8px 32px rgba(0, 0, 0, 0.1);
 }
 
-:root[data-wallpaper="true"] .app-shell { background: transparent !important; }
+:root[data-wallpaper="true"] .app-shell,
+:root[data-live-wallpaper="true"] .app-shell { background: transparent !important; }
 
 
 
@@ -503,21 +682,98 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 }
 
 /* ========================================================================= */
-/* POPUP / OVERLAY OPACITY BOOST (10% more opaque than global glass)         */
+/* UNIVERSAL APPLE SMOKED ACRYLIC: POPUPS, MENUS, MODALS & POPOVERS          */
+/* Eliminates text bleed-through while preserving luxurious frosted glass    */
 /* ========================================================================= */
-:root[data-wallpaper="true"] .selbar,
-:root[data-wallpaper="true"] .menu,
-:root[data-wallpaper="true"] .popover,
-:root[data-wallpaper="true"] .modal-card,
-:root[data-wallpaper="true"] .rangebar,
-:root[data-wallpaper="true"] .sheet,
-:root[data-wallpaper="true"] .bubble,
-:root[data-wallpaper="true"] .ai-report,
-:root[data-wallpaper="true"] [role="menu"],
-:root[data-wallpaper="true"] [role="dialog"]:not(.modal-backdrop) {
-	background: var(--surface-panel) !important;
-	backdrop-filter: var(--glass-filter) !important;
-	-webkit-backdrop-filter: var(--glass-filter) !important;
+
+/* 1. Backdrop Scrims: High-diffusion Gaussian blur dissolves underlying text */
+.modal-backdrop,
+.vault-backdrop,
+.gm-backdrop,
+.island-scrim,
+.overlay .backdrop,
+.tour-backdrop,
+.scrim {
+	background: rgba(0, 0, 0, 0.60) !important;
+	backdrop-filter: blur(28px) saturate(190%) !important;
+	-webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+}
+
+:root[data-theme='light'] .modal-backdrop,
+:root[data-theme='light'] .vault-backdrop,
+:root[data-theme='light'] .gm-backdrop,
+:root[data-theme='light'] .island-scrim,
+:root[data-theme='light'] .overlay .backdrop,
+:root[data-theme='light'] .scrim {
+	background: rgba(20, 16, 40, 0.42) !important;
+}
+
+/* 2. Popups, Menus, Modals, Drawers & Popovers Surface Acrylic */
+.modal-card,
+.menu,
+[role="menu"],
+.popover,
+[role="dialog"]:not(.modal-backdrop),
+.vault-drawer,
+.gm-card,
+.overlay .modal,
+.command-palette-modal,
+.celebration,
+.tour-tooltip,
+.tip-bubble,
+.sheet,
+.selbar,
+.rangebar,
+.ai-report,
+.bottom-nav,
+.profile-container,
+aside.mobile-open {
+	/* Dense 96% opacity prevents underlying text bleed-through while keeping glass depth */
+	background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
+	backdrop-filter: blur(36px) saturate(210%) !important;
+	-webkit-backdrop-filter: blur(36px) saturate(210%) !important;
+	border: 1px solid var(--surface-popup-border, color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16))) !important;
+	box-shadow:
+		0 24px 64px -8px rgba(0, 0, 0, 0.65),
+		0 8px 24px -4px rgba(0, 0, 0, 0.35),
+		inset 0 1px 0 rgba(255, 255, 255, 0.14),
+		inset 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Light Mode Acrylic Tokens */
+:root[data-theme='light'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
+:root[data-theme='notion'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
+:root[data-theme='duolingo'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
+:root[data-theme='anki'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
+:root[data-theme='master'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open) {
+	background: var(--surface-popup, rgba(255, 255, 255, 0.96)) !important;
+	border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08)) !important;
+	box-shadow:
+		0 24px 64px -8px rgba(44, 37, 92, 0.18),
+		0 8px 24px -4px rgba(44, 37, 92, 0.10),
+		inset 0 1px 0 rgba(255, 255, 255, 0.95),
+		inset 0 0 0 1px rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Sticky Headers inside Modals and Drawers */
+.modal-card header,
+.vault-header,
+.gm-head,
+.overlay .modal .input-wrap {
+	background: var(--surface-popup, rgba(18, 16, 32, 0.97)) !important;
+	backdrop-filter: blur(28px) saturate(190%) !important;
+	-webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+	border-bottom: 1px solid color-mix(in srgb, var(--border-subtle), transparent 30%) !important;
+}
+:root[data-theme='light'] .modal-card header,
+:root[data-theme='light'] .vault-header,
+:root[data-theme='light'] .gm-head,
+:root[data-theme='light'] .overlay .modal .input-wrap,
+:root[data-theme='notion'] .modal-card header,
+:root[data-theme='duolingo'] .modal-card header,
+:root[data-theme='anki'] .modal-card header,
+:root[data-theme='master'] .modal-card header {
+	background: var(--surface-popup, rgba(255, 255, 255, 0.97)) !important;
 }
 
 
@@ -827,19 +1083,16 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 }
 
 
-/* NUCLEAR OVERRIDE FOR 0% OPACITY */
+/* NUCLEAR OVERRIDE FOR 0% OPACITY (In-page cards and panels only) */
 :root[data-clear-glass="true"] * {
 	backdrop-filter: none !important;
 	-webkit-backdrop-filter: none !important;
 }
-:root[data-clear-glass="true"] .glass,
 :root[data-clear-glass="true"] .card,
 :root[data-clear-glass="true"] .panel,
 :root[data-clear-glass="true"] .glass-element,
-:root[data-clear-glass="true"] aside,
 :root[data-clear-glass="true"] nav a.active,
-:root[data-clear-glass="true"] .settings-link:hover,
-:root[data-clear-glass="true"] .modal {
+:root[data-clear-glass="true"] .settings-link:hover {
 	background: transparent !important;
 }
 :root[data-clear-glass="true"] {
@@ -852,14 +1105,13 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 	display: none !important;
 	animation: none !important;
 }
-:root[data-eco="true"] .live-wallpaper-bg {
+:root[data-eco="true"]:not([data-live-wallpaper="true"]) .live-wallpaper-bg {
 	display: none !important;
 }
 :root[data-eco="true"] * {
 	backdrop-filter: none !important;
 	-webkit-backdrop-filter: none !important;
 }
-:root[data-eco="true"] .glass,
 :root[data-eco="true"] .card,
 :root[data-eco="true"] .panel,
 :root[data-eco="true"] .glass-element {
@@ -867,3 +1119,68 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 	-webkit-backdrop-filter: none !important;
 }
 
+/* ========================================================================= */
+/* UNIVERSAL POPUP, MENU, SIDEBAR & BOTTOM-NAV IMMUNITY                      */
+/* Popups and floating overlays strictly maintain 96% dense smoked acrylic  */
+/* ========================================================================= */
+:root[data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .bottom-nav, .profile-container, aside.mobile-open),
+:root[data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .bottom-nav, .profile-container, aside.mobile-open) {
+	background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
+	backdrop-filter: blur(36px) saturate(210%) !important;
+	-webkit-backdrop-filter: blur(36px) saturate(210%) !important;
+	border: 1px solid var(--surface-popup-border, color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16))) !important;
+}
+
+:root[data-theme='light'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
+:root[data-theme='light'][data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
+:root[data-theme='notion'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
+:root[data-theme='duolingo'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
+:root[data-theme='anki'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
+:root[data-theme='master'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open) {
+	background: var(--surface-popup, rgba(255, 255, 255, 0.96)) !important;
+}
+
+/* Desktop Sidebar Glass with Wallpaper */
+:root[data-wallpaper="true"] aside:not(.mobile-open),
+:root[data-live-wallpaper="true"] aside:not(.mobile-open) {
+	background: color-mix(in srgb, var(--surface-panel) 65%, transparent) !important;
+	backdrop-filter: blur(28px) saturate(190%) !important;
+	-webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+}
+:root[data-clear-glass="true"] aside:not(.mobile-open) {
+	background: transparent !important;
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+
+/* Topbar Translucency: Never entirely opaque */
+:root[data-wallpaper="true"] .topbar,
+:root[data-live-wallpaper="true"] .topbar {
+	background: color-mix(in srgb, var(--surface-panel) 35%, transparent) !important;
+	backdrop-filter: blur(20px) saturate(180%) !important;
+	-webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+}
+:root[data-clear-glass="true"] .topbar {
+	background: transparent !important;
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+
+:root[data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
+:root[data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim) {
+	background: rgba(0, 0, 0, 0.60) !important;
+	backdrop-filter: blur(28px) saturate(190%) !important;
+	-webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+}
+
+:root[data-theme='light'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
+:root[data-theme='light'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim) {
+	background: rgba(20, 16, 40, 0.42) !important;
+}
+
+/* ========================================================================= */
+/* MODAL SHEET OPEN: PREVENT BACKGROUND SCROLL                              */
+/* ========================================================================= */
+body[data-sheet-open="true"] {
+	overflow: hidden;
+}

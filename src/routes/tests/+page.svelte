@@ -281,8 +281,8 @@
 	{:else}
 		<div class="filters glass">
 			<div class="filter-group">
-				<label>Subject</label>
-				<select bind:value={filterSubject}>
+				<label for="filterSubject">Subject</label>
+				<select id="filterSubject" bind:value={filterSubject}>
 					<option value="All">All</option>
 					<option value="Physics">Physics</option>
 					<option value="Chemistry">Chemistry</option>
@@ -290,8 +290,8 @@
 				</select>
 			</div>
 			<div class="filter-group">
-				<label>Type</label>
-				<select bind:value={filterType}>
+				<label for="filterType">Type</label>
+				<select id="filterType" bind:value={filterType}>
 					<option value="All">All</option>
 					<option value="Silly">Silly</option>
 					<option value="Formula">Formula</option>
@@ -399,16 +399,16 @@
 	<div class="modal-body-content">
 		<div class="form-row">
 			<div class="form-group">
-				<label>Subject</label>
-				<select bind:value={mistakeSubject}>
+				<label for="mistakeSubject">Subject</label>
+				<select id="mistakeSubject" bind:value={mistakeSubject}>
 					<option value="Physics">Physics</option>
 					<option value="Chemistry">Chemistry</option>
 					<option value="Maths">Maths</option>
 				</select>
 			</div>
 			<div class="form-group">
-				<label>Error Type</label>
-				<select bind:value={mistakeType}>
+				<label for="mistakeType">Error Type</label>
+				<select id="mistakeType" bind:value={mistakeType}>
 					<option value="Silly">Silly (Calculation/Reading)</option>
 					<option value="Formula">Formula (Forgot/Used Wrong)</option>
 					<option value="Conceptual">Conceptual (Didn't know)</option>
@@ -417,12 +417,12 @@
 			</div>
 		</div>
 		<div class="form-group">
-			<label>Test/Mock Name (Optional)</label>
-			<input type="text" bind:value={mistakeTestName} placeholder="e.g. BTest 3" />
+			<label for="mistakeTestName">Test/Mock Name (Optional)</label>
+			<input id="mistakeTestName" type="text" bind:value={mistakeTestName} placeholder="e.g. BTest 3" />
 		</div>
 		<div class="form-group">
-			<label>Description</label>
-			<textarea bind:value={description} placeholder="What did you get wrong and why?" rows="3"></textarea>
+			<label for="mistakeDesc">Description</label>
+			<textarea id="mistakeDesc" bind:value={description} placeholder="What did you get wrong and why?" rows="3"></textarea>
 		</div>
 	</div>
 	<svelte:fragment slot="footer">

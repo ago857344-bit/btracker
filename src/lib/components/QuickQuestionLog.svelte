@@ -171,10 +171,12 @@
 		right: 0;
 		width: 310px;
 		padding: 0.95rem;
-		border: 1px solid var(--border-subtle);
+		border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
 		border-radius: 18px;
-		background: var(--surface-panel);
-		box-shadow: var(--shadow-card);
+		background: color-mix(in srgb, var(--surface-panel, #121020) 96%, transparent);
+		backdrop-filter: blur(36px) saturate(210%);
+		-webkit-backdrop-filter: blur(36px) saturate(210%);
+		box-shadow: 0 18px 48px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.14);
 	}
 
 	.head {

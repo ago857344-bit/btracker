@@ -175,12 +175,12 @@
 			max-width: 430px;
 			height: 68px;
 			padding: 5px;
-			background: color-mix(in srgb, var(--surface-panel), transparent 42%);
-			backdrop-filter: blur(32px) saturate(210%) contrast(96%);
-			-webkit-backdrop-filter: blur(32px) saturate(210%) contrast(96%);
+			background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
+			backdrop-filter: blur(36px) saturate(210%);
+			-webkit-backdrop-filter: blur(36px) saturate(210%);
 			border-radius: 9999px;
-			border: 0.5px solid color-mix(in srgb, rgba(255, 255, 255, 0.35), var(--border-subtle) 75%);
-			box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.42), inset 0 1px 1.5px rgba(255, 255, 255, 0.32);
+			border: 1px solid var(--surface-popup-border, color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.18)));
+			box-shadow: 0 24px 64px -8px rgba(0, 0, 0, 0.65), inset 0 1px 1px rgba(255, 255, 255, 0.22);
 			z-index: 100;
 			justify-content: space-around;
 			align-items: center;
@@ -188,6 +188,16 @@
 			touch-action: none;
 			-webkit-user-select: none;
 			overflow: visible;
+		}
+
+		:global(:root[data-theme='light']) .bottom-nav,
+		:global(:root[data-theme='notion']) .bottom-nav,
+		:global(:root[data-theme='duolingo']) .bottom-nav,
+		:global(:root[data-theme='anki']) .bottom-nav,
+		:global(:root[data-theme='master']) .bottom-nav {
+			background: var(--surface-popup, rgba(255, 255, 255, 0.96)) !important;
+			border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08));
+			box-shadow: 0 24px 64px -8px rgba(44, 37, 92, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.95);
 		}
 
 		/* Active Glass Pill Indicator (Apple Music Style) */

@@ -36,7 +36,7 @@
 
 <div class="timeline-wrapper">
 	<div class="timeline-scroll">
-		<div class="timeline-track" on:click={handleEmptyClick}>
+		<div class="timeline-track" role="presentation" on:click={handleEmptyClick} on:keydown={() => {}}>
 			{#each hours as h}
 				<div class="hour-marker" style="left: {(h - 6) * 80}px">
 					<span>{h > 12 ? h - 12 : (h === 12 ? 12 : h)} {h >= 12 && h < 24 ? 'PM' : 'AM'}</span>

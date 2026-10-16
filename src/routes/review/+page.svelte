@@ -210,15 +210,29 @@
 	.tabs button span { display: grid; min-width: 18px; height: 18px; place-items: center; padding: 0 .25rem; border-radius: 99px; color: inherit; background: color-mix(in srgb, currentColor, transparent 88%); font-size: .62rem; font-variant-numeric: tabular-nums; }
 	.question-list {
 		display: grid;
-		border: 0.5px solid color-mix(in srgb, rgba(255, 255, 255, 0.18), var(--border-subtle) 80%);
-		border-radius: 18px;
+		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
+		border-radius: 20px;
 		overflow: hidden;
-		background: var(--surface-panel);
-		backdrop-filter: blur(16px);
-		-webkit-backdrop-filter: blur(16px);
-		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08), inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
+		background: var(--vision-glass-bg, var(--surface-panel));
+		backdrop-filter: var(--vision-glass-blur, blur(20px));
+		-webkit-backdrop-filter: var(--vision-glass-blur, blur(20px));
+		box-shadow: var(--shadow-card), var(--vision-bevel-inner);
 	}
-	.question { display: grid; grid-template-columns: 72px 1fr auto; align-items: center; gap: 1rem; min-height: 76px; padding: .85rem 1rem; border-top: 1px solid color-mix(in srgb, var(--border-subtle), transparent 45%); }
+	.question {
+		position: relative;
+		z-index: 3;
+		display: grid;
+		grid-template-columns: 72px 1fr auto;
+		align-items: center;
+		gap: 1rem;
+		min-height: 76px;
+		padding: .85rem 1.15rem;
+		border-top: 1px solid color-mix(in srgb, var(--border-subtle), transparent 45%);
+		transition: background 0.18s ease;
+	}
+	.question:hover {
+		background: color-mix(in srgb, var(--accent) 6%, transparent);
+	}
 	.question:first-child { border-top: 0; }
 	.number { color: var(--text-secondary); font-size: .76rem; font-weight: 800; font-variant-numeric: tabular-nums; }
 	.copy { display: grid; gap: .2rem; min-width: 0; }

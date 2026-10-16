@@ -5,10 +5,13 @@
 	import { createGoals } from '$lib/state/defaults';
 	import { currentUser } from '$lib/stores/auth';
 	import NavIcon from '$lib/components/NavIcon.svelte';
+	import type { DashboardLayout } from '$lib/types/tracker';
+	import DashboardPreviewModal from '$lib/components/dashboard/DashboardPreviewModal.svelte';
 
-	const TOTAL_STEPS = 7;
+	const TOTAL_STEPS = 8;
 	let step = 1;
 	let direction = 1; // 1 = forward, -1 = backward
+	const focusInput = (node: HTMLElement) => { node.focus(); };
 
 	// Step 1: Name
 	let userName = $currentUser?.name?.split(' ')[0] || '';
@@ -128,7 +131,42 @@
 		};
 	})();
 
-	// Step 7: Dream Destination & Mission Dossier (Original replacement for commitment)
+	// Step 7: Choose Your Dashboard Structure
+	let selectedLayout: DashboardLayout = 'default';
+	let previewModalOpen = false;
+	let previewLayout: DashboardLayout = 'default';
+
+	function openLayoutPreview(layoutId: DashboardLayout) {
+		previewLayout = layoutId;
+		previewModalOpen = true;
+	}
+
+	function handlePreviewSelect(e: CustomEvent<DashboardLayout>) {
+		selectedLayout = e.detail;
+	}
+
+	const LAYOUT_OPTIONS: Array<{ id: DashboardLayout; label: string; desc: string; badge: string }> = [
+		{
+			id: 'default',
+			label: 'Default',
+			desc: 'Balanced 3-column classic dashboard with full widget coverage.',
+			badge: 'Classic'
+		},
+		{
+			id: 'minimalist',
+			label: 'Minimalist',
+			desc: 'Flat & inline, borderless 2-column flow with thin 1px dividers.',
+			badge: 'Ultra Sleek'
+		},
+		{
+			id: 'focus',
+			label: 'Focus',
+			desc: '70/30 asymmetric split prioritizing timer & active tasks.',
+			badge: 'Deep Work'
+		}
+	];
+
+	// Step 8: Dream Destination & Mission Dossier (Original replacement for commitment)
 	let dreamCollege = 'IIT Bombay (CSE)';
 	const DREAM_OPTIONS = [
 		'IIT Bombay (CSE)',
@@ -166,7 +204,8 @@
 			case 4: return targetExams.length > 0;
 			case 5: return weekdayHours > 0 && dailyQuestions > 0;
 			case 6: return true;
-			case 7: return Boolean(dreamCollege.trim());
+			case 7: return true;
+			case 8: return Boolean(dreamCollege.trim());
 			default: return true;
 		}
 	}
@@ -190,11 +229,30 @@
 		targetsModalOpen.set(false);
 	}
 
+	function skipSetup() {
+		if (typeof window !== 'undefined') {
+			try {
+				localStorage.setItem('btracker_seen_setup_wizard_v1', 'true');
+			} catch {}
+		}
+		updateTracker(s => {
+			s.onboarded = true;
+			if (!s.ui.dashboardLayout) s.ui.dashboardLayout = selectedLayout || 'default';
+		});
+		targetsModalOpen.set(false);
+		celebration.set('Setup skipped. You can configure goals & layout anytime in Settings.');
+	}
+
 	function formatHours(h: number): string {
 		return `${h}h 0m`;
 	}
 
 	function finish() {
+		if (typeof window !== 'undefined') {
+			try {
+				localStorage.setItem('btracker_seen_setup_wizard_v1', 'true');
+			} catch {}
+		}
 		const college = dreamCollege.trim() || 'IIT Bombay';
 		updateTracker(s => {
 			s.meta.name = userName.trim();
@@ -211,6 +269,7 @@
 			s.goals.day.q = dailyQuestions;
 			s.goals.week.h = Math.round(weekdayHours * 5 + weekendHours * 2);
 			s.goals.week.q = dailyQuestions * 7;
+			s.ui.dashboardLayout = selectedLayout;
 			s.onboarded = true;
 		});
 		targetsModalOpen.set(false);
@@ -237,12 +296,11 @@
 				{/each}
 			</div>
 			<div class="header-right">
+				<button type="button" class="btn-skip-header" on:click={skipSetup} title="Skip Setup Wizard">
+					<span>Skip</span>
+					<NavIcon name="x" size={13} />
+				</button>
 				<span class="step-counter">Step {step} / {TOTAL_STEPS}</span>
-				{#if $targetsModalOpen}
-					<button type="button" class="close-btn" title="Close Targets Wizard" on:click={dismiss}>
-						<NavIcon name="x" size={14} />
-					</button>
-				{/if}
 			</div>
 		</header>
 
@@ -275,7 +333,7 @@
 								bind:value={userName}
 								placeholder="e.g. Atharv"
 								autocomplete="name"
-								autofocus
+								use:focusInput
 								class="text-input"
 								on:keydown={(e) => e.key === 'Enter' && next()}
 							/>
@@ -411,6 +469,7 @@
 									class="option-grid-item"
 									class:selected={targetExams.includes(ex.id)}
 									on:click={() => toggleExam(ex.id)}
+									on:dblclick={next}
 								>
 									<div class="radio-circle" class:checked={targetExams.includes(ex.id)}></div>
 									<div class="grid-content">
@@ -419,6 +478,13 @@
 									<span class="flag-icon">{ex.emoji}</span>
 								</button>
 							{/each}
+						</div>
+
+						<div class="step-action-bar">
+							<span class="selection-count">{targetExams.length} target exam{targetExams.length > 1 ? 's' : ''} selected</span>
+							<button type="button" class="btn-step-continue" on:click={next}>
+								Continue <NavIcon name="chevron-right" size={14} />
+							</button>
 						</div>
 
 					<!-- STEP 5: Study Hours & Daily Questions -->
@@ -586,8 +652,71 @@
 							</div>
 						</div>
 
-					<!-- STEP 7: Original JEE Blueprint & Aspirant Dossier (Replaced Commitment Contract) -->
+					<!-- STEP 7: Choose Your Dashboard Structure -->
 					{:else if step === 7}
+						<div class="card-header">
+							<h1>Choose Your Dashboard Structure</h1>
+							<p class="subtitle">Select how your battle station presents timers, missions, and analytics. You can change this anytime in Settings.</p>
+						</div>
+
+						<div class="layouts-wizard-grid">
+							{#each LAYOUT_OPTIONS as opt}
+								<div
+									role="button"
+									tabindex="0"
+									class="layout-wizard-card"
+									class:active={selectedLayout === opt.id}
+									on:click={() => (selectedLayout = opt.id)}
+									on:keydown={(e) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											selectedLayout = opt.id;
+										}
+									}}
+								>
+									<div class="layout-wireframe wireframe-{opt.id}">
+										{#if opt.id === 'default'}
+											<div class="wf-col wf-col-main"></div>
+											<div class="wf-col wf-col-side"></div>
+										{:else if opt.id === 'minimalist'}
+											<div class="wf-topbar"></div>
+											<div class="wf-row">
+												<div class="wf-cell"></div>
+												<div class="wf-cell"></div>
+											</div>
+											<div class="wf-bottombar"></div>
+										{:else if opt.id === 'focus'}
+											<div class="wf-row wf-focus-row">
+												<div class="wf-hero"></div>
+												<div class="wf-rail">
+													<div></div>
+													<div></div>
+												</div>
+											</div>
+										{/if}
+									</div>
+									<div class="layout-wizard-meta">
+										<div class="layout-wizard-head">
+											<span class="layout-wizard-title">{opt.label}</span>
+											<span class="layout-wizard-badge" class:active-badge={selectedLayout === opt.id}>{opt.badge}</span>
+										</div>
+										<p class="layout-wizard-desc">{opt.desc}</p>
+									</div>
+									<button
+										type="button"
+										class="btn-card-preview"
+										title="Preview {opt.label} Dashboard"
+										on:click|stopPropagation={() => openLayoutPreview(opt.id)}
+									>
+										<NavIcon name="tv" size={13} />
+										<span>Live Preview</span>
+									</button>
+								</div>
+							{/each}
+						</div>
+
+					<!-- STEP 8: Original JEE Blueprint & Aspirant Dossier -->
+					{:else if step === 8}
 						<div class="card-header">
 							<h1>{userName || 'Candidate'}, Your JEE Battle Station is Ready</h1>
 							<p class="subtitle">Lock in your dream destination and activate your command center.</p>
@@ -625,7 +754,7 @@
 											bind:value={customDreamInput}
 											placeholder="e.g. Top 100 AIR / IIIT Hyderabad CSE"
 											class="custom-dream-input"
-											autofocus
+											use:focusInput
 										/>
 									</div>
 								{/if}
@@ -691,19 +820,22 @@
 
 		<!-- Footer Navigation -->
 		<footer class="wizard-footer">
-			{#if step > 1}
-				<button type="button" class="btn-back" on:click={back}>
-					<NavIcon name="chevron-left" size={14} /> Back
+			<div class="footer-left">
+				{#if step > 1}
+					<button type="button" class="btn-back" on:click={back}>
+						<NavIcon name="chevron-left" size={14} /> Back
+					</button>
+				{/if}
+				<button type="button" class="btn-skip-footer" on:click={skipSetup} title="Skip Setup Wizard">
+					Skip Setup
 				</button>
-			{:else}
-				<div></div>
-			{/if}
+			</div>
 
 			{#if step < TOTAL_STEPS}
 				<button
 					type="button"
 					class="btn-continue"
-					disabled={!canProceed()}
+					disabled={step === 1 ? !userName.trim() : step === 2 ? !year : step === 3 ? !board : step === 4 ? targetExams.length === 0 : step === 5 ? (weekdayHours <= 0 || dailyQuestions <= 0) : step === 8 ? !dreamCollege.trim() : false}
 					on:click={next}
 				>
 					Continue <NavIcon name="chevron-right" size={14} />
@@ -721,6 +853,12 @@
 		</footer>
 	</div>
 </div>
+
+<DashboardPreviewModal
+	bind:open={previewModalOpen}
+	layout={previewLayout}
+	on:select={handlePreviewSelect}
+/>
 
 <style>
 	.onboarding-overlay {
@@ -810,6 +948,28 @@
 	.close-btn:hover {
 		color: var(--text-primary);
 		border-color: var(--accent);
+	}
+
+	.btn-skip-header {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		padding: 0.32rem 0.65rem;
+		border-radius: 8px;
+		border: 1px solid var(--border-subtle);
+		background: color-mix(in srgb, var(--surface-subtle) 80%, transparent);
+		color: var(--text-secondary);
+		font-size: 0.74rem;
+		font-weight: 650;
+		cursor: pointer;
+		transition: all 0.16s ease;
+		font-family: inherit;
+	}
+
+	.btn-skip-header:hover {
+		color: var(--text-primary);
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 12%, transparent);
 	}
 
 	/* Body & Card - Overlapping grid cell for 100% smooth, non-jumping transitions */
@@ -1585,6 +1745,36 @@
 		border-top: 1px solid color-mix(in srgb, var(--border-subtle), transparent 40%);
 	}
 
+	.footer-left {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+	}
+
+	.btn-skip-footer {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.65rem 0.95rem;
+		border-radius: 12px;
+		border: 1px solid transparent;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 0.82rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.16s ease;
+		font-family: inherit;
+		text-decoration: underline;
+		text-underline-offset: 3px;
+	}
+
+	.btn-skip-footer:hover {
+		color: var(--text-primary);
+		border-color: var(--border-subtle);
+		background: var(--surface-subtle);
+		text-decoration: none;
+	}
+
 	.btn-back {
 		display: inline-flex;
 		align-items: center;
@@ -1702,5 +1892,218 @@
 			width: 32px;
 			height: 32px;
 		}
+	}
+
+	/* Step 7 Layout Picker */
+	.layouts-wizard-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 0.85rem;
+		margin-top: 0.5rem;
+	}
+	@media (max-width: 680px) {
+		.layouts-wizard-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+	.layout-wizard-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+		padding: 0.9rem;
+		border-radius: 16px;
+		border: 1px solid var(--border-subtle);
+		background: var(--surface-subtle);
+		cursor: pointer;
+		text-align: left;
+		transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+		font-family: inherit;
+	}
+	.layout-wizard-card:hover {
+		border-color: var(--accent);
+		transform: translateY(-2px);
+	}
+	.layout-wizard-card.active {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 12%, var(--surface-subtle));
+		box-shadow: 0 0 0 1px var(--accent), 0 8px 24px color-mix(in srgb, var(--accent) 25%, transparent);
+	}
+	.layout-wireframe {
+		width: 100%;
+		height: 62px;
+		border-radius: 10px;
+		background: var(--surface-panel);
+		border: 1px solid var(--border-subtle);
+		padding: 6px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		box-sizing: border-box;
+		overflow: hidden;
+	}
+	/* Default wireframe */
+	.wireframe-default {
+		display: flex;
+		flex-direction: row;
+		gap: 4px;
+	}
+	.wf-col-main {
+		flex: 2;
+		background: color-mix(in srgb, var(--accent) 30%, var(--surface-subtle));
+		border-radius: 4px;
+	}
+	.wf-col-side {
+		flex: 1;
+		background: var(--surface-subtle);
+		border-radius: 4px;
+	}
+	/* Minimalist wireframe */
+	.wireframe-minimalist {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.wf-topbar {
+		height: 10px;
+		background: color-mix(in srgb, var(--accent) 40%, var(--surface-subtle));
+		border-radius: 3px;
+	}
+	.wireframe-minimalist .wf-row {
+		display: flex;
+		gap: 4px;
+		flex: 1;
+	}
+	.wireframe-minimalist .wf-cell {
+		flex: 1;
+		background: var(--surface-subtle);
+		border-radius: 3px;
+	}
+	.wf-bottombar {
+		height: 8px;
+		background: var(--surface-subtle);
+		border-radius: 2px;
+	}
+	/* Focus wireframe */
+	.wf-focus-row {
+		display: flex;
+		gap: 4px;
+		height: 100%;
+	}
+	.wf-hero {
+		flex: 7;
+		background: color-mix(in srgb, var(--accent) 45%, var(--surface-subtle));
+		border-radius: 4px;
+	}
+	.wf-rail {
+		flex: 3;
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+	}
+	.wf-rail div {
+		flex: 1;
+		background: var(--surface-subtle);
+		border-radius: 3px;
+	}
+	.layout-wizard-meta {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+	.layout-wizard-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+	.layout-wizard-title {
+		font-size: 0.88rem;
+		font-weight: 800;
+		color: var(--text-primary);
+	}
+	.layout-wizard-badge {
+		font-size: 0.62rem;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: 2px 7px;
+		border-radius: 99px;
+		background: var(--surface-panel);
+		border: 1px solid var(--border-subtle);
+		color: var(--text-secondary);
+	}
+	.layout-wizard-badge.active-badge {
+		background: var(--accent);
+		border-color: var(--accent);
+		color: #ffffff;
+	}
+	.layout-wizard-desc {
+		margin: 0;
+		font-size: 0.74rem;
+		line-height: 1.4;
+		color: var(--text-secondary);
+	}
+
+	.btn-card-preview {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.35rem;
+		padding: 0.38rem 0.75rem;
+		margin-top: 0.4rem;
+		border-radius: 9px;
+		border: 1px solid var(--border-subtle);
+		background: color-mix(in srgb, var(--accent) 8%, var(--surface-panel));
+		color: var(--accent);
+		font-size: 0.74rem;
+		font-weight: 750;
+		cursor: pointer;
+		transition: all 0.16s ease;
+		font-family: inherit;
+	}
+	.btn-card-preview:hover {
+		background: color-mix(in srgb, var(--accent) 18%, var(--surface-panel));
+		border-color: var(--accent);
+		transform: translateY(-1px);
+	}
+	.btn-card-preview:active {
+		transform: scale(0.97);
+	}
+
+	.step-action-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-top: 1.25rem;
+		padding: 0.75rem 1rem;
+		border-radius: 14px;
+		background: color-mix(in srgb, var(--accent) 8%, var(--surface-subtle));
+		border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border-subtle));
+	}
+	.selection-count {
+		font-size: 0.8rem;
+		font-weight: 750;
+		color: var(--text-primary);
+	}
+	.btn-step-continue {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.5rem 1rem;
+		border-radius: 10px;
+		border: none;
+		background: var(--accent);
+		color: #ffffff;
+		font-size: 0.82rem;
+		font-weight: 750;
+		cursor: pointer;
+		transition: all 0.16s ease;
+		font-family: inherit;
+	}
+	.btn-step-continue:hover {
+		filter: brightness(1.1);
+		transform: translateY(-1px);
+	}
+	.btn-step-continue:active {
+		transform: scale(0.97);
 	}
 </style>

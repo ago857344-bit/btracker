@@ -35,6 +35,7 @@
 		uiClick();
 		dispatch('close');
 	}
+	const focusInput = (node: HTMLElement) => { node.focus(); };
 </script>
 
 <Modal open={true} title="Add Custom Exercise" width="400px" on:close={close}>
@@ -45,7 +46,7 @@
 	<div class="form">
 		<label>
 			<span>Exercise Name</span>
-			<input type="text" bind:value={exName} placeholder="e.g. Resonance DPP" autofocus />
+			<input type="text" bind:value={exName} placeholder="e.g. Resonance DPP" use:focusInput />
 		</label>
 		<label>
 			<span>Number of Questions</span>

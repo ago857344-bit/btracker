@@ -88,8 +88,8 @@ Keep your responses concise and format them cleanly. DO NOT answer the question 
 </script>
 
 {#if mistake}
-<div class="gm-backdrop" on:click={close}>
-	<div class="gm-card" on:click|stopPropagation>
+<div class="gm-backdrop" role="presentation" on:click={close} on:keydown={(e) => { if (e.key === 'Escape') close(); }}>
+	<div class="gm-card" role="dialog" tabindex="-1" aria-modal="true" on:click|stopPropagation on:keydown|stopPropagation={() => {}}>
 		<div class="gm-head">
 			<div class="title-wrap">
 				<span class="flame"><NavIcon name="flame" size={18} /></span>
@@ -152,10 +152,10 @@ Keep your responses concise and format them cleanly. DO NOT answer the question 
 {/if}
 
 <style>
-	.gm-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 9999; display: grid; place-items: center; padding: 1rem; }
-	.gm-card { width: 100%; max-width: 500px; background: var(--surface-panel); border: 1px solid var(--border-subtle); border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.3); }
+	.gm-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.60); backdrop-filter: blur(28px) saturate(190%); -webkit-backdrop-filter: blur(28px) saturate(190%); z-index: 9999; display: grid; place-items: center; padding: 1rem; }
+	.gm-card { width: 100%; max-width: 500px; background: color-mix(in srgb, var(--surface-panel, #121020) 96%, transparent); backdrop-filter: blur(36px) saturate(210%); -webkit-backdrop-filter: blur(36px) saturate(210%); border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16)); border-radius: 22px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 64px -8px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255, 255, 255, 0.14); }
 	
-	.gm-head { display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 1.5rem; background: var(--surface-subtle); border-bottom: 1px solid var(--border-subtle); }
+	.gm-head { display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 1.5rem; background: color-mix(in srgb, var(--surface-subtle) 96%, transparent); backdrop-filter: blur(28px); border-bottom: 1px solid var(--border-subtle); }
 	.title-wrap { display: flex; align-items: center; gap: .6rem; }
 	.flame { color: #e0455a; }
 	.gm-head h3 { margin: 0; font-size: 1.2rem; font-weight: 800; color: var(--text-primary); }

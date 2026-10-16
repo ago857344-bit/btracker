@@ -2,8 +2,7 @@
 	import { page } from '$app/stores';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
-	import ThemeMenu from '$lib/components/ThemeMenu.svelte';
-	import { tracker, formulaVaultOpen } from '$lib/stores/tracker';
+	import { tracker } from '$lib/stores/tracker';
 	import { chaptersDueToday } from '$lib/stores/recall-selectors';
 	import { currentUser } from '$lib/stores/auth';
 	import { getLevelData, tierEloOf } from '$lib/state/gamification';
@@ -112,14 +111,9 @@
 				{/if}
 			</a>
 		{/each}
-		<button type="button" class="vault-nav-btn" on:click={() => { formulaVaultOpen.set(true); closeMobile(); }}>
-			<span class="nav-icon"><NavIcon name="book" size={22} /></span><span class="nav-text">Formula Hub</span>
-			<span class="vault-kbd">F</span>
-		</button>
 	</nav>
 
 	<div class="sidebar-bottom">
-		<ThemeMenu sidebar={true} {collapsed} />
 		<a class="settings-link" href="/settings" on:click={closeMobile}>
 			<span class="nav-icon"><NavIcon name="settings" size={22} /></span><span class="nav-text">Settings</span>
 		</a>
@@ -150,11 +144,11 @@
 		flex-direction: column;
 		width: clamp(250px, 22vw, 300px);
 		padding: 1.2rem 1rem 1rem;
-		background: color-mix(in srgb, var(--surface-panel) 92%, transparent);
-		backdrop-filter: blur(28px) saturate(190%);
-		-webkit-backdrop-filter: blur(28px) saturate(190%);
-		border-right: 0.5px solid color-mix(in srgb, rgba(255, 255, 255, 0.15), var(--border-subtle) 85%);
-		box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.04);
+		background: color-mix(in srgb, var(--surface-panel, #121020) 75%, transparent);
+		backdrop-filter: blur(36px) saturate(210%);
+		-webkit-backdrop-filter: blur(36px) saturate(210%);
+		border-right: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
+		box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08);
 		transition: width 0.28s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1)), transform 0.28s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1));
 		overflow-y: auto;
 		overflow-x: hidden;
@@ -233,8 +227,37 @@
 	.nav-icon { display: grid; flex: 0 0 24px; place-items: center; }
 	.due-badge { margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center; background: var(--accent); color: white; font-size: .62rem; font-weight: 800; }
 	.nav-divider { height: 1px; margin: clamp(0.5rem, 1.5vh, 1rem) .65rem clamp(0.1rem, 0.3vh, 0.2rem); background: var(--border-subtle); }
-	.sidebar-bottom { display: grid; gap: .55rem; margin-top: auto; min-width: 0; }
-	.profile-container { min-width: 0; max-width: 100%; padding: .7rem .65rem; border: 1px solid var(--border-subtle); border-radius: 16px; display: flex; align-items: center; gap: .55rem; background: color-mix(in srgb, var(--surface-subtle) 75%, transparent); backdrop-filter: blur(12px); margin-top: .3rem; box-shadow: 0 4px 14px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+	.sidebar-bottom { display: grid; gap: .55rem; margin-top: auto; min-width: 0; position: relative; }
+	.profile-container {
+		min-width: 0;
+		max-width: 100%;
+		padding: .7rem .65rem;
+		border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
+		border-radius: 16px;
+		display: flex;
+		align-items: center;
+		gap: .55rem;
+		background: var(--surface-popup, rgba(18, 16, 32, 0.96));
+		backdrop-filter: blur(36px) saturate(210%);
+		-webkit-backdrop-filter: blur(36px) saturate(210%);
+		margin-top: .3rem;
+		box-shadow:
+			0 12px 32px -4px rgba(0, 0, 0, 0.45),
+			inset 0 1px 0 rgba(255, 255, 255, 0.14),
+			inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+		transition: all 0.2s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1));
+	}
+	:global(:root[data-theme='light']) .profile-container,
+	:global(:root[data-theme='notion']) .profile-container,
+	:global(:root[data-theme='duolingo']) .profile-container,
+	:global(:root[data-theme='anki']) .profile-container,
+	:global(:root[data-theme='master']) .profile-container {
+		background: var(--surface-popup, rgba(255, 255, 255, 0.96));
+		border-color: color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08));
+		box-shadow:
+			0 12px 32px -4px rgba(44, 37, 92, 0.12),
+			inset 0 1px 0 rgba(255, 255, 255, 0.95);
+	}
 	.profile-copy { display: grid; gap: .1rem; min-width: 0; flex: 1; font-size: .77rem; }
 	.user-level-row { display: flex; align-items: center; gap: .35rem; min-width: 0; }
 	.user-level-row b { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -247,36 +270,12 @@
 	aside.collapsed .brand-row { justify-content: center; padding-inline: 0; }
 	aside.collapsed .brand { gap: 0; }
 	aside.collapsed .collapse { position: absolute; right: -12px; top: 24px; width: 24px; height: 24px; border: 1px solid var(--border-subtle); background: var(--surface-panel); transform: rotate(0deg); } /* Points Right (>) when closed */
-	aside.collapsed nav a, aside.collapsed .settings-link, aside.collapsed .vault-nav-btn, aside.collapsed :global(.theme-nav-btn) { justify-content: center; padding-inline: 0; gap: 0; }
-	aside.collapsed .vault-kbd { display: none; }
+	aside.collapsed nav a, aside.collapsed .settings-link { justify-content: center; padding-inline: 0; gap: 0; }
 	aside.collapsed .nav-divider { margin-inline: .3rem; }
 	aside.collapsed .profile-container { justify-content: center; padding-inline: 0; }
 	aside.collapsed :global(.signin span) { width: 0; opacity: 0; overflow: hidden; display: none; }
 	aside.collapsed :global(.signin) { justify-content: center; width: 36px; height: 36px; padding: 0; }
 	aside.collapsed :global(.signin svg) { margin: 0; }
-
-	.vault-nav-btn {
-		display: flex;
-		align-items: center;
-		gap: clamp(0.6rem, 1vw, 1rem);
-		height: clamp(40px, 6vh, 52px);
-		padding: 0 .75rem;
-		border-radius: 12px;
-		color: var(--text-secondary);
-		background: transparent;
-		border: none;
-		font-size: clamp(0.85rem, 1.2vh, 1rem);
-		font-weight: 650;
-		width: 100%;
-		text-align: left;
-		cursor: pointer;
-		transition: all 0.2s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1));
-		font-family: inherit;
-		-webkit-tap-highlight-color: transparent;
-	}
-	.vault-nav-btn:hover { color: var(--text-primary); background: var(--surface-subtle); }
-	.vault-nav-btn:active { transform: scale(0.975); }
-	.vault-kbd { margin-left: auto; padding: 0.1rem 0.4rem; border-radius: 5px; background: var(--surface-canvas); border: 1px solid var(--border-subtle); font-size: 0.65rem; font-weight: 800; color: var(--accent); }
 
 	
 	.close-mobile-btn { display: none; }
@@ -289,15 +288,17 @@
 			padding-top: calc(max(env(safe-area-inset-top), 24px) + 0.9rem);
 			padding-bottom: calc(max(env(safe-area-inset-bottom), 16px) + 1.25rem);
 			border-radius: 0 26px 26px 0;
-			border-right: 0.5px solid color-mix(in srgb, rgba(255, 255, 255, 0.22), var(--border-subtle) 80%);
-			background: color-mix(in srgb, var(--surface-panel), transparent 8%);
-			backdrop-filter: blur(28px) saturate(190%);
-			-webkit-backdrop-filter: blur(28px) saturate(190%);
+			border-right: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
+			background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
+			backdrop-filter: blur(36px) saturate(210%);
+			-webkit-backdrop-filter: blur(36px) saturate(210%);
+			box-shadow: 20px 0 64px -8px rgba(0, 0, 0, 0.65), inset -1px 0 0 rgba(255, 255, 255, 0.12);
 			transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
 		}
 		aside.mobile-open {
 			transform: translateX(0);
 			z-index: 120;
+			background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
 		}
 		aside.collapsed {
 			width: min(290px, calc(100vw - 44px));
@@ -307,7 +308,7 @@
 		}
 		aside.collapsed .brand-name, aside.collapsed .nav-text, aside.collapsed .nav-label, aside.collapsed .profile-copy { width: auto; opacity: 1; }
 		aside.collapsed .collapse { position: static; transform: none; border: 0; background: transparent; }
-		aside.collapsed nav a, aside.collapsed .settings-link, aside.collapsed .profile-container, aside.collapsed :global(.theme-nav-btn) { justify-content: flex-start; padding-inline: .75rem; }
+		aside.collapsed nav a, aside.collapsed .settings-link, aside.collapsed .profile-container { justify-content: flex-start; padding-inline: .75rem; }
 		.close-mobile-btn {
 			display: grid;
 			place-items: center;
@@ -346,7 +347,7 @@
 .avatar-ring { border-radius: 99px; padding: 0; transition: padding 0.3s ease; }
 .avatar-ring.active { padding: 2px; background: var(--ring-bg); background-size: 220% 220%; box-shadow: 0 4px 12px color-mix(in srgb, var(--text-primary) 8%, transparent); }
 .avatar-ring.animated { animation: ring-flow 4s linear infinite; }
-.rank-name.gradient-text { background: var(--frame); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-size: 220% 220%; }
+.rank-name.gradient-text { background: var(--frame); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; background-size: 220% 220%; }
 .avatar-ring.animated + .profile-copy .gradient-text { animation: ring-flow 4s linear infinite; }
 @keyframes ring-flow {
 	0% { background-position: 0% 50%; }

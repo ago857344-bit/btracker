@@ -12,16 +12,25 @@
 	export let enabled = true;
 
 	const dispatch = createEventDispatcher<{ move: -1 | 1; toggle: void; resize: void }>();
+
+	function handlePointerMove(e: PointerEvent) {
+		if (e.pointerType === 'touch') return;
+		const target = e.currentTarget as HTMLElement;
+		const rect = target.getBoundingClientRect();
+		target.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+		target.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+	}
 </script>
 
 <article
-	class="widget"
+	class="widget specular-card"
 	class:span-2={span === 2}
 	class:span-3={span === 3}
 	class:h-sm={height === 'sm'}
 	class:h-lg={height === 'lg'}
 	class:editing
 	style="--widget-accent: var(--accent)"
+	on:pointermove={handlePointerMove}
 >
 	<header class="widget-head">
 		<span class="widget-icon"><NavIcon name={icon} size={17} /></span>
@@ -46,21 +55,75 @@
 </article>
 
 <style>
-	.widget { display: flex; flex-direction: column; min-width: 0; padding: 1.15rem 1.25rem 1.3rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-card); background: var(--surface-panel); box-shadow: var(--shadow-card); transition: box-shadow .2s ease, border-color .2s ease, transform .2s ease; }
-	.widget:hover { border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 60%); }
-	.widget.editing { border-style: dashed; border-color: var(--accent); box-shadow: none; }
-	.widget-head { display: flex; align-items: center; gap: .7rem; margin-bottom: .95rem; }
-	.widget-icon { display: grid; place-items: center; width: 32px; height: 32px; flex: 0 0 32px; border-radius: 10px; color: var(--accent); background: var(--accent-soft); }
+	.widget {
+		position: relative;
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+		padding: 1.15rem 1.25rem 1.3rem;
+		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
+		border-radius: var(--radius-card);
+		background: var(--vision-glass-bg, var(--surface-panel));
+		backdrop-filter: var(--vision-glass-blur, blur(20px));
+		-webkit-backdrop-filter: var(--vision-glass-blur, blur(20px));
+		box-shadow: var(--shadow-card), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.08));
+		overflow: hidden;
+		transition: box-shadow .25s ease, border-color .25s ease, transform .22s var(--ease-ios-spring);
+	}
+	.widget:hover {
+		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 50%);
+		transform: translateY(-2px);
+		box-shadow: 0 16px 44px -6px rgba(0, 0, 0, 0.38), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.12));
+	}
+	.widget.editing {
+		border-style: dashed;
+		border-color: var(--accent);
+		box-shadow: none;
+	}
+	.widget-head {
+		position: relative;
+		z-index: 3;
+		display: flex;
+		align-items: center;
+		gap: .7rem;
+		margin-bottom: .95rem;
+	}
+	.widget-icon {
+		display: grid;
+		place-items: center;
+		width: 32px;
+		height: 32px;
+		flex: 0 0 32px;
+		border-radius: 10px;
+		color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+		box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 18%, transparent);
+	}
 	.widget-titles { min-width: 0; }
 	.eyebrow { margin: 0; color: var(--text-secondary); font-size: .66rem; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; }
 	h3 { margin: .1rem 0 0; font-size: .98rem; font-weight: 750; letter-spacing: -.03em; }
 	.widget-tools { display: flex; align-items: center; gap: .3rem; margin-left: auto; }
-	.tool { display: grid; place-items: center; width: 27px; height: 27px; border: 1px solid var(--border-subtle); border-radius: 8px; color: var(--text-secondary); background: var(--surface-panel); font-size: .95rem; line-height: 1; }
-	.tool:hover { color: var(--accent); border-color: var(--accent); }
+	.tool {
+		display: grid;
+		place-items: center;
+		width: 27px;
+		height: 27px;
+		border: 1px solid var(--border-subtle);
+		border-radius: 8px;
+		color: var(--text-secondary);
+		background: color-mix(in srgb, var(--surface-panel) 80%, transparent);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+		font-size: .95rem;
+		line-height: 1;
+		transition: all 0.16s ease;
+	}
+	.tool:hover { color: var(--accent); border-color: var(--accent); transform: scale(1.08); }
 	.tool.danger:hover { color: var(--danger); border-color: var(--danger); }
 	.tool.flip :global(svg) { transform: rotate(90deg); }
 	.resize-glyph { font-size: .82rem; }
-	.widget-body { flex: 1; min-height: 0; }
+	.widget-body { position: relative; z-index: 3; flex: 1; min-height: 0; }
 	.span-2 { grid-column: span 2; }
 	.span-3 { grid-column: span 3; }
 	.h-sm .widget-body { min-height: 92px; }

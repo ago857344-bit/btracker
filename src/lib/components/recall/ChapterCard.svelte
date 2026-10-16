@@ -309,15 +309,4 @@
 		color: var(--danger, #e0455a);
 		border-color: var(--danger, #e0455a);
 	}
-
-	.micro-challenge { margin: 0.2rem 0 0.8rem; min-height: 26px; }
-	.micro-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.4rem; padding: 0.4rem; border-radius: 8px; border: 1px dashed var(--border-subtle); background: transparent; color: var(--text-secondary); font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
-	.micro-btn:hover { border-style: solid; border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 5%, transparent); }
-	.micro-box { padding: 0.5rem 0.6rem; border-radius: 8px; background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--text-primary); font-size: 0.74rem; line-height: 1.4; text-align: left; position: relative; overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent); }
-	.micro-box.loading { min-height: 40px; background: var(--surface-subtle); border-color: var(--border-subtle); }
-	.micro-box .shimmer { position: absolute; inset: 0; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent); animation: shimmer 1.5s infinite; }
-	.micro-box .micro-q { font-weight: 850; color: var(--accent); margin-right: 0.2rem; }
-	@keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(100%); } }
-
-
 </style>

@@ -284,14 +284,14 @@
 								</p>
 							</div>
 							<div class="r-actions">
-								<div class="snooze-wrap" on:click|stopPropagation={() => {}}>
+								<div class="snooze-wrap" role="presentation" on:click|stopPropagation={() => {}} on:keydown|stopPropagation={() => {}}>
 									<button type="button" class="link snooze-btn" on:click={() => (snoozeMenu = snoozeMenu === card.id ? null : card.id)}>
 										<NavIcon name="clock" size={13} />
 										Snooze
 										<NavIcon name="chevron-down" size={12} />
 									</button>
 									{#if snoozeMenu === card.id}
-										<div class="snooze-pop" role="menu" on:click|stopPropagation={() => {}}>
+										<div class="snooze-pop" role="menu" tabindex="-1" on:click|stopPropagation={() => {}} on:keydown|stopPropagation={() => {}}>
 											{#each snoozeOptions as opt}
 												<button type="button" role="menuitem" on:click={() => { snooze(card.id, opt); snoozeMenu = null; }}>{opt}</button>
 											{/each}

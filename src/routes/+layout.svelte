@@ -18,8 +18,10 @@
 	import FocusScreen from '$lib/components/focus/FocusScreen.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
 	import StreakButton from '$lib/components/StreakButton.svelte';
+	import TriRingsButton from '$lib/components/ui/TriRingsButton.svelte';
 	import FormulaVault from '$lib/components/FormulaVault.svelte';
 	import PwaBanner from '$lib/components/PwaBanner.svelte';
+	import DynamicIsland from '$lib/components/ui/DynamicIsland.svelte';
 	import Onboarding from '$lib/components/Onboarding.svelte';
 	import { hydrateTracker } from '$lib/services/hydrate';
 	import { startSync } from '$lib/services/sync';
@@ -42,6 +44,7 @@
 
 	function handleTouchEnd(e: TouchEvent) {
 		if (mobileOpen) return;
+		if (typeof document !== 'undefined' && (document.body.dataset.sheetOpen || document.querySelector('.modal-backdrop, .gm-backdrop, .island-scrim'))) return;
 		const touchEndX = e.changedTouches[0].screenX;
 		const touchEndY = e.changedTouches[0].screenY;
 
@@ -82,7 +85,23 @@
 	}
 
 
-				
+	let pointerRaf: number | null = null;
+	function handleGlobalPointerMove(e: PointerEvent) {
+		if (e.pointerType === 'touch') return;
+		if (pointerRaf) return;
+		pointerRaf = requestAnimationFrame(() => {
+			pointerRaf = null;
+			const target = (e.target as HTMLElement | null)?.closest?.(
+				'.widget, .card, .panel, .sec, .r-card, .chapter-card, .kpi, .day-detail, .your-goals, .auth-card, .specular-card, .idle-stat-card, .question-list'
+			) as HTMLElement | null;
+			if (target) {
+				const rect = target.getBoundingClientRect();
+				target.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
+				target.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+			}
+		});
+	}
+
 	function handleGlobalPointerDown(e: Event) {
 		if (!mobileOpen) return;
 		const target = e.target as HTMLElement | null;
@@ -121,6 +140,14 @@
 		root.style.setProperty('--accent-strong', `color-mix(in srgb, ${state.ui.accent}, black 14%)`);
 		root.style.setProperty('--accent-soft', `color-mix(in srgb, ${state.ui.accent}, transparent ${isDarkTheme(state.theme) ? '82%' : '88%'})`);
 		
+		if (isDarkTheme(state.theme)) {
+			root.style.setProperty('--surface-popup', state.theme === 'catalyst' || state.theme === 'green' ? 'rgba(21, 33, 26, 0.96)' : 'rgba(18, 16, 32, 0.96)');
+			root.style.setProperty('--surface-popup-solid', state.theme === 'catalyst' || state.theme === 'green' ? '#15211a' : '#121020');
+		} else {
+			root.style.setProperty('--surface-popup', 'rgba(255, 255, 255, 0.96)');
+			root.style.setProperty('--surface-popup-solid', '#ffffff');
+		}
+		
 		const themeDef = THEME_PRESETS.find(t => t.id === state.theme);
 		if (themeDef && themeDef.confetti) {
 			root.style.setProperty('--aurora-1', themeDef.confetti[0] || state.ui.accent);
@@ -132,9 +159,12 @@
 			root.style.setProperty('--aurora-3', '#b197fc');
 		}
 		
-		if (state.ui.wallpaper) {
+		const themePreset = THEME_PRESETS.find(t => t.id === state.theme);
+		const effectiveWallpaper = state.ui.wallpaper || (themePreset?.wallpaper ? ('builtin:' + state.theme) : null);
+		
+		if (effectiveWallpaper) {
 			root.setAttribute('data-wallpaper', 'true');
-			root.style.setProperty('--user-wallpaper', wallpaperCss(state.ui.wallpaper));
+			root.style.setProperty('--user-wallpaper', wallpaperCss(effectiveWallpaper));
 			
 			// Inject dynamic glass opacity based on user preference
 			// @ts-ignore
@@ -183,8 +213,11 @@
 		}
 
 		// @ts-ignore
+		const liveWpExplicit = state.ui.liveWallpaper === true;
+		const themeHasVideo = Boolean(THEME_PRESETS.find(t => t.id === state.theme)?.wallpaper?.endsWith('.mp4'));
+		// @ts-ignore
 		const eco = resolveEcoMode(state.ui.ecoMode);
-		if (eco) {
+		if (eco && !liveWpExplicit && !themeHasVideo) {
 			root.setAttribute('data-eco', 'true');
 		} else {
 			root.removeAttribute('data-eco');
@@ -202,15 +235,29 @@
 		window.addEventListener('resize', onResize, { passive: true });
 		const stopTheme = tracker.subscribe(applyTheme);
 		const stopFx = loadout.subscribe((l) => document.documentElement.setAttribute('data-fx', l.fx));
+		const unlockVideo = () => {
+			if (bgVideo && bgVideo.paused && activeVideoUrl) {
+				bgVideo.muted = true;
+				bgVideo.play().catch(() => {});
+			}
+		};
+		window.addEventListener('click', unlockVideo, { passive: true });
+		window.addEventListener('touchstart', unlockVideo, { passive: true });
 		return () => {
 			window.removeEventListener('resize', onResize);
+			window.removeEventListener('click', unlockVideo);
+			window.removeEventListener('touchstart', unlockVideo);
+			if (pointerRaf) cancelAnimationFrame(pointerRaf);
 			stopTheme();
 			stopFx();
 		};
 	});
-	$: isEcoActive = resolveEcoMode($tracker.ui.ecoMode);
-	$: liveWallpaperEnabled = !isEcoActive && resolveLiveWallpaper($tracker.ui.liveWallpaper);
-	$: currentWallpaperStr = $tracker.ui.wallpaper;
+	$: currentThemePreset = THEME_PRESETS.find(t => t.id === $tracker.theme);
+	$: themeHasVideo = Boolean(currentThemePreset?.wallpaper?.endsWith('.mp4'));
+	$: isExplicitLiveWp = $tracker.ui.liveWallpaper === true;
+	$: isEcoActive = $tracker.ui.ecoMode === true || ($tracker.ui.ecoMode === undefined && !isExplicitLiveWp && isMobile);
+	$: liveWallpaperEnabled = isExplicitLiveWp || (themeHasVideo && $tracker.ui.liveWallpaper !== false) || (!isEcoActive && resolveLiveWallpaper($tracker.ui.liveWallpaper));
+	$: currentWallpaperStr = $tracker.ui.wallpaper || (currentThemePreset?.wallpaper ? ('builtin:' + currentThemePreset.id) : null);
 	$: activeVideoUrl = (() => {
 		if (!liveWallpaperEnabled) return null;
 		if (!currentWallpaperStr) return null;
@@ -219,14 +266,33 @@
 			const id = currentWallpaperStr.slice(8);
 			const preset = THEME_PRESETS.find(t => t.id === id);
 			if (preset && preset.wallpaper && preset.wallpaper.endsWith('.mp4')) {
-				return preset.wallpaper;
+				return encodeURI(preset.wallpaper);
 			}
+		}
+		if (currentWallpaperStr.endsWith('.mp4') || currentWallpaperStr.endsWith('.webm')) {
+			return encodeURI(currentWallpaperStr);
 		}
 		return null;
 	})();
 
+	$: if (typeof document !== 'undefined') {
+		if (activeVideoUrl) {
+			document.documentElement.setAttribute('data-live-wallpaper', 'true');
+		} else {
+			document.documentElement.removeAttribute('data-live-wallpaper');
+		}
+	}
+
 	let bgVideo: HTMLVideoElement;
-	$: if (bgVideo && activeVideoUrl) { bgVideo.load(); bgVideo.play().catch(() => {}); }
+	let lastLoadedVideoUrl: string | null = null;
+	$: if (bgVideo && activeVideoUrl && activeVideoUrl !== lastLoadedVideoUrl) {
+		lastLoadedVideoUrl = activeVideoUrl;
+		bgVideo.muted = true;
+		bgVideo.defaultMuted = true;
+		bgVideo.playsInline = true;
+		bgVideo.load();
+		bgVideo.play().catch(() => {});
+	}
 
 	$: showOnboarding = ((!isAuthRoute && $authReady && $syncStatus !== 'pulling' && !!$currentUser && !$tracker.onboarded)) || $targetsModalOpen;
 </script>
@@ -240,6 +306,7 @@
 <svelte:window
 	on:pointerdown={handleGlobalPointerDown}
 	on:touchstart={handleGlobalPointerDown}
+	on:pointermove={handleGlobalPointerMove}
 	on:keydown={(event) => {
 		if (event.key === 'Escape') mobileOpen = false;
 		if ((event.key === 'f' || event.key === 'F') && !event.ctrlKey && !event.metaKey && !event.altKey) {
@@ -257,10 +324,27 @@
 {#if isAuthRoute}
 	<slot />
 {:else if $authReady}
+	{#if activeVideoUrl}
+		<video
+			bind:this={bgVideo}
+			src={activeVideoUrl}
+			autoplay
+			loop
+			muted
+			playsinline
+			preload="auto"
+			class="live-wallpaper-bg"
+			on:loadedmetadata={(e) => { e.currentTarget.muted = true; e.currentTarget.play().catch(() => {}); }}
+			on:loadeddata={(e) => { e.currentTarget.muted = true; e.currentTarget.play().catch(() => {}); }}
+			on:canplay={(e) => { e.currentTarget.muted = true; e.currentTarget.play().catch(() => {}); }}
+		>
+			<source src={activeVideoUrl} type="video/mp4" />
+		</video>
+	{/if}
 	{@const themeIsCustom = THEME_PRESETS.find(t => t.id === $tracker.theme)?.unlock != null}
 	<div class:sidebar-collapsed={collapsed} class:aurora-on={$loadout.aurora || themeIsCustom} class="app-shell">
-		{#if $loadout.aurora || themeIsCustom}<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>{/if}
-		{#if mobileOpen}<div class="scrim" aria-hidden="true"></div>{/if}
+		{#if ($loadout.aurora || themeIsCustom) && !activeVideoUrl}<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>{/if}
+		{#if mobileOpen}<div class="scrim" role="button" tabindex="-1" on:click={() => (mobileOpen = false)} on:keydown={(e) => e.key === 'Escape' && (mobileOpen = false)} aria-label="Close navigation"></div>{/if}
 		<AppSidebar bind:collapsed bind:mobileOpen />
 		<div class="app-main">
 			<header class="topbar">
@@ -268,9 +352,13 @@
 					<button class="mobile-menu" type="button" aria-label="Open navigation" on:click={() => mobileOpen = true}><NavIcon name="menu" size={21} /></button>
 					<div><p class="breadcrumb">BTracker <span>/</span> {currentTitle}</p><h2>{currentTitle}</h2></div>
 				</div>
+				<div class="topbar-center">
+					<DynamicIsland />
+				</div>
 				<div class="topbar-actions">
 					<span class:error={$saveStatus === 'error'} class="save-state"><i></i>{saveLabel}</span>
 					<StreakButton />
+					<TriRingsButton />
 					<a class="quick-add" href="/plan?new=task"><NavIcon name="plus" size={17} /><span>New task</span></a>
 					<AccountMenu />
 				</div>
@@ -294,9 +382,6 @@
 		<AIOmentor />
 		<FormulaVault bind:open={$formulaVaultOpen} />
 		<PwaBanner />
-		{#if activeVideoUrl}
-			<video bind:this={bgVideo} src={activeVideoUrl} autoplay loop muted playsinline preload="auto" class="live-wallpaper-bg" on:loadeddata={(e) => e.currentTarget.play().catch(() => {})} on:canplay={(e) => e.currentTarget.play().catch(() => {})}></video>
-		{/if}
 
 		<CommandPalette />
 		{#if showOnboarding}
@@ -308,7 +393,11 @@
 {/if}
 
 <style>
-	.app-shell { min-height: 100vh; padding-left: 300px; background: var(--surface-canvas); transition: padding-left .24s ease; }
+	.app-shell { position: relative; z-index: 1; min-height: 100vh; padding-left: 300px; background: var(--surface-canvas); transition: padding-left .24s ease; }
+	:global(:root[data-wallpaper="true"]) .app-shell,
+	:global(:root[data-live-wallpaper="true"]) .app-shell {
+		background: transparent !important;
+	}
 	.app-shell.sidebar-collapsed { padding-left: 76px; }
 	/* Isolation keeps the z-index:-1 aurora above the shell background but below its content. */
 	.app-shell.aurora-on { isolation: isolate; }
@@ -340,25 +429,19 @@
 	.breadcrumb { margin: 0 0 .2rem; color: var(--text-secondary); font-size: .72rem; font-weight: 650; }
 	.breadcrumb span { margin: 0 .26rem; color: var(--border-subtle); }
 	h2 { margin: 0; font-size: 1.15rem; line-height: 1.1; letter-spacing: -.035em; font-weight: 750; }
+	.topbar-center {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		flex: 1;
+		min-width: 0;
+		padding: 0 1rem;
+		position: relative;
+	}
 	.topbar-actions { gap: .65rem; }
 	.save-state { display: inline-flex; align-items: center; gap: .42rem; color: var(--text-secondary); font-size: .74rem; font-weight: 650; }
 	.save-state i { display: block; width: 7px; height: 7px; border-radius: 99px; background: var(--success); }
 	.save-state.error i { background: var(--danger); }
-	.topbar-icon-btn {
-		display: grid;
-		place-items: center;
-		width: 36px;
-		height: 36px;
-		border-radius: 11px;
-		border: 1px solid var(--border-subtle);
-		background: var(--surface-panel);
-		color: var(--text-secondary);
-		cursor: pointer;
-		transition: all 0.18s var(--ease-ios-spring);
-		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-	}
-	.topbar-icon-btn:hover { border-color: var(--accent); color: var(--text-primary); }
-	.topbar-icon-btn:active { transform: scale(0.94); }
 	.quick-add {
 		display: inline-flex;
 		align-items: center;
@@ -382,16 +465,18 @@
 	.auth-loading { display: grid; min-height: 100vh; place-items: center; background: var(--surface-canvas); color: var(--text-secondary); font-size: .9rem; font-weight: 650; }
 	@media (max-width: 760px) {
 		.app-shell, .app-shell.sidebar-collapsed { padding-left: 0; }
+		.topbar-center { display: contents; }
 		.topbar {
 			min-height: calc(max(env(safe-area-inset-top), 14px) + 56px);
 			padding: max(env(safe-area-inset-top), 14px) 1.15rem 0.8rem;
-			background: color-mix(in srgb, var(--surface-canvas), transparent 25%);
-			backdrop-filter: blur(24px) saturate(190%);
-			-webkit-backdrop-filter: blur(24px) saturate(190%);
+			background: color-mix(in srgb, var(--surface-panel, #121020) 45%, transparent);
+			backdrop-filter: blur(28px) saturate(190%);
+			-webkit-backdrop-filter: blur(28px) saturate(190%);
 			position: sticky;
 			top: 0;
 			z-index: 15;
 			border-bottom: 0.5px solid color-mix(in srgb, var(--border-subtle), transparent 45%);
+			box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.2);
 		}
 		.mobile-menu {
 			display: grid;
@@ -423,17 +508,18 @@
 		.scrim {
 			display: block;
 			position: fixed;
-			z-index: 10;
+			z-index: 19;
 			inset: 0;
 			border: 0;
-			background: rgb(0 0 0 / 42%);
-			backdrop-filter: blur(14px);
-			-webkit-backdrop-filter: blur(14px);
-			pointer-events: none;
+			background: rgba(0, 0, 0, 0.60);
+			backdrop-filter: blur(28px) saturate(190%);
+			-webkit-backdrop-filter: blur(28px) saturate(190%);
+			pointer-events: auto;
+			cursor: pointer;
 		}
 	}
 
-.live-wallpaper-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: -2; pointer-events: none; opacity: 0.85;  -webkit-transform: translateZ(0); transform: translateZ(0); }
-::global(:root[data-theme*="-dark"]) .live-wallpaper-bg { opacity: 0.4; }
+.live-wallpaper-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 0; pointer-events: none; opacity: 0.95; -webkit-transform: translateZ(0); transform: translateZ(0); }
+:global(:root[data-theme*="-dark"]) .live-wallpaper-bg { opacity: 0.65; }
 </style>
 

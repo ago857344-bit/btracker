@@ -22,11 +22,47 @@
 	import { itemOf, reqMet, reqLabel, reqStatus, reqProgress, AURORA_REQ, type UnlockCtx } from '$lib/state/cosmetics';
 	import { COSMETIC_SLOTS, type Slot } from '$lib/state/cosmetics';
 
-	import type { ThemeId, TrackerState, StateSnapshot } from '$lib/types/tracker';
+	import type { ThemeId, TrackerState, StateSnapshot, DashboardLayout } from '$lib/types/tracker';
 	import { takeSnapshot, listSnapshots, restoreSnapshot, deleteSnapshot } from '$lib/services/persistence';
+	import CosmeticsModal from '$lib/components/cosmetics/CosmeticsModal.svelte';
+	import DashboardPreviewModal from '$lib/components/dashboard/DashboardPreviewModal.svelte';
 
 	const ACCENTS = ['#6d5dfc', '#e0455a', '#d99a2b', '#2f9e6e', '#2b8ba6', '#8b7bff', '#ff5c8a', '#b44df0'];
 	const THEMES = THEME_PRESETS;
+
+	let cosmeticsModalOpen = false;
+	let layoutPreviewOpen = false;
+	let previewLayout: DashboardLayout = 'default';
+
+	function openLayoutPreview(layout: DashboardLayout) {
+		previewLayout = layout;
+		layoutPreviewOpen = true;
+	}
+
+	const LAYOUT_OPTIONS: Array<{ id: DashboardLayout; label: string; desc: string }> = [
+		{
+			id: 'default',
+			label: 'Default',
+			desc: 'Balanced 3-column classic dashboard with full widget coverage.'
+		},
+		{
+			id: 'minimalist',
+			label: 'Minimalist',
+			desc: 'Flat & inline, borderless 2-column flow with thin 1px dividers.'
+		},
+		{
+			id: 'focus',
+			label: 'Focus',
+			desc: '70/30 asymmetric split prioritizing timer & active tasks.'
+		}
+	];
+
+	function setLayout(layout: DashboardLayout) {
+		updateTracker((s) => {
+			s.ui.dashboardLayout = layout;
+		});
+		celebration.set(`Switched dashboard layout to ${layout.charAt(0).toUpperCase() + layout.slice(1)}.`);
+	}
 
 	
 	let devKeys = '';
@@ -160,6 +196,8 @@
 				const data = event.target?.result as string;
 				updateTracker(s => { 
 					s.ui.wallpaper = data; 
+					s.ui.liveWallpaper = true;
+					s.ui.ecoMode = false;
 					if (!s.ui.wallpaperHistory) s.ui.wallpaperHistory = [];
 					if (!s.ui.wallpaperHistory.includes(data)) {
 						s.ui.wallpaperHistory = [data, ...s.ui.wallpaperHistory].slice(0, 10);
@@ -215,9 +253,14 @@
 
 	function commitName() { setProfileName(nameDraft.trim()); }
 	function setTheme(id: ThemeId) {
+		const preset = presetOf(id);
 		updateTracker((s) => {
 			s.theme = id;
-			s.ui.accent = presetOf(id).accent;
+			s.ui.accent = preset.accent;
+			if (preset.wallpaper?.endsWith('.mp4')) {
+				s.ui.liveWallpaper = true;
+				s.ui.ecoMode = false;
+			}
 			syncThemeWallpaper(s);
 		});
 	}
@@ -225,6 +268,10 @@
 	function setWallpaper(url: string | null) {
 		updateTracker(s => {
 			s.ui.wallpaper = url;
+			if (url && (url.endsWith('.mp4') || url.endsWith('.webm') || url.startsWith('data:video'))) {
+				s.ui.liveWallpaper = true;
+				s.ui.ecoMode = false;
+			}
 			if (url && !url.startsWith('data:')) {
 				if (!s.ui.wallpaperHistory) s.ui.wallpaperHistory = [];
 				if (!s.ui.wallpaperHistory.includes(url)) {
@@ -402,7 +449,7 @@
 			const input = legacyCode.trim();
 			// Saved .txt files can carry wrapper text or NUL bytes (UTF-16 re-saves),
 			// so find the "JEE-" marker instead of trusting the first characters.
-			const compact = input.replaceAll(/[($tracker.ui.glassStrength ?? 45)s($tracker.ui.glassStrength ?? 45)u0000]+/g, '');
+			const compact = input.replaceAll(/[\s\u0000]+/g, '');
 			const jeeAt = compact.startsWith('{') ? -1 : compact.indexOf('JEE-');
 			let next: TrackerState;
 			if (jeeAt >= 0) {
@@ -499,7 +546,11 @@
 					checked={resolveLiveWallpaper($tracker.ui.liveWallpaper)}
 					on:change={(e) => {
 						const checked = e.currentTarget.checked;
-						updateTracker((s) => { s.ui.liveWallpaper = checked; });
+						updateTracker((s) => {
+							s.ui.liveWallpaper = checked;
+							if (checked) s.ui.ecoMode = false;
+							syncThemeWallpaper(s);
+						});
 						celebration.set(checked ? 'Live wallpapers enabled.' : 'Live wallpapers disabled (lightweight mode).');
 					}}
 				/>
@@ -574,8 +625,19 @@
 				</div>
 			{/if}
 
-
-					</div>
+			<!-- Apple VisionOS / Smoked Acrylic Lighting (Phase 2) -->
+			<div class="vision-feature-card" style="margin-top: 1.25rem;">
+				<div class="vision-feature-head">
+					<span class="vision-pill">PHASE 2 ACTIVE</span>
+					<p class="label" style="margin: 0; display: inline-flex; align-items: center; gap: 0.35rem;">
+						✨ Apple VisionOS Smoked Glass & Specular Glow
+					</p>
+				</div>
+				<p class="muted" style="margin: 0.35rem 0 0; font-size: 0.76rem; line-height: 1.5;">
+					Multi-layer smoked acrylic with precision chamfered inner bevels and real-time interactive cursor beam tracking across cards.
+				</p>
+			</div>
+		</div>
 
 		
 		
@@ -655,6 +717,68 @@
 	</div>
 	<div class="settings-col">
 		<div class="panel">
+			<h2><NavIcon name="grid" size={15} /> Dashboard Layout</h2>
+			<p class="muted">Choose your preferred workspace structure. Switches instantaneously without disrupting active timers or tasks.</p>
+			<div class="layout-grid">
+				{#each LAYOUT_OPTIONS as opt (opt.id)}
+					<div
+						role="button"
+						tabindex="0"
+						class="layout-card"
+						class:on={($tracker.ui?.dashboardLayout || 'default') === opt.id}
+						on:click={() => setLayout(opt.id)}
+						on:keydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								setLayout(opt.id);
+							}
+						}}
+					>
+						<div class="layout-wireframe wireframe-{opt.id}">
+							{#if opt.id === 'default'}
+								<div class="wf-col wf-col-main"></div>
+								<div class="wf-col wf-col-side"></div>
+							{:else if opt.id === 'minimalist'}
+								<div class="wf-topbar"></div>
+								<div class="wf-row">
+									<div class="wf-cell"></div>
+									<div class="wf-cell"></div>
+								</div>
+								<div class="wf-bottombar"></div>
+							{:else if opt.id === 'focus'}
+								<div class="wf-row wf-focus-row">
+									<div class="wf-hero"></div>
+									<div class="wf-rail">
+										<div></div>
+										<div></div>
+									</div>
+								</div>
+							{/if}
+						</div>
+						<div class="layout-card-info">
+							<div class="layout-card-title">
+								<span class="layout-name">{opt.label}</span>
+								{#if ($tracker.ui?.dashboardLayout || 'default') === opt.id}
+									<span class="layout-active-badge">Active</span>
+								{/if}
+							</div>
+							<p class="layout-desc">{opt.desc}</p>
+							<button
+								type="button"
+								class="btn-card-preview"
+								title="Live Preview of {opt.label} Layout"
+								on:click|stopPropagation={() => openLayoutPreview(opt.id)}
+							>
+								<NavIcon name="tv" size={12} />
+								<span>Preview Layout</span>
+							</button>
+						</div>
+					</div>
+				{/each}
+			</div>
+		</div>
+
+		<div class="panel">
 			<h2><NavIcon name="palette" size={15} /> Appearance</h2>
 			
 			<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
@@ -669,7 +793,14 @@
 					<input type="color" value={$tracker.ui.accent} on:input={(e) => setAccent(e.currentTarget.value)} />
 				</label>
 			</div>
-			<p class="label">THEME</p>
+
+			<div class="theme-header-row">
+				<p class="label" style="margin: 0;">THEME</p>
+				<button type="button" class="btn-theme-gear" id="cosmetics" title="Cosmetics Loadout" on:click={() => (cosmeticsModalOpen = true)}>
+					<NavIcon name="sparkles" size={13} />
+					<span>Customize Loadout</span>
+				</button>
+			</div>
 			<div class="themes">
 				{#each THEMES as t, i (i)}
 					{@const usable = canUseTheme(t.id, $unlockCtx)}
@@ -713,43 +844,18 @@
 				</button>
 			</div>
 		</div>
-
-		<div class="panel" id="cosmetics">
-			<h2><NavIcon name="sparkles" size={15} /> Cosmetics Loadout</h2>
-			<p class="muted">Mix and match anything you've earned — independent of your theme. Elo unlocks are permanent (they track your all-time peak); streak effects stay active only while the streak lives.</p>
-			{#each COSMETIC_SLOTS as group (group.slot)}
-				<div class="slot">
-					<div class="slot-head"><p class="label">{group.label.toUpperCase()}</p><small>{group.hint}</small></div>
-					<div class="cos-grid">
-						{#if group.slot !== 'timer' && group.slot !== 'frame' && group.slot !== 'title'}
-							<button type="button" class="cos" class:on={!equipped[group.slot]} on:click={() => equip(group.slot, undefined)}>
-								<i class="sw match"><NavIcon name="palette" size={11} /></i><span>Match theme</span>
-							</button>
-						{/if}
-						{#each group.items as item (item.id)}
-							{@const open = reqMet(item.unlock, $unlockCtx)}
-							{@const isOn = (equipped[group.slot] ?? (group.slot === 'timer' ? 'classic' : group.slot === 'frame' ? 'none' : group.slot === 'title' ? 'level' : undefined)) === item.id}
-							<button type="button" class="cos" class:on={isOn} class:locked={!open}
-								title={open ? item.label : `${reqLabel(item.unlock!)} · ${reqStatus(item.unlock!, $unlockCtx)}`}
-								on:click={() => equip(group.slot, item.id)}>
-								<i class="sw" style="background: {item.swatch}; background-size: cover;">{#if !open}<NavIcon name="lock" size={10} />{/if}</i>
-								<span>{item.label}{#if !open}<small>{reqLabel(item.unlock!)}</small>{/if}</span>
-							</button>
-						{/each}
-					</div>
-				</div>
-			{/each}
-			
-			<label class="check" class:dim={!reqMet(AURORA_REQ, $unlockCtx)}>
-				<input type="checkbox" disabled={!reqMet(AURORA_REQ, $unlockCtx)} checked={reqMet(AURORA_REQ, $unlockCtx) && equipped.aurora !== false} on:change={(e) => setAurora(e.currentTarget.checked)} />
-				<span>Aurora backdrop {#if !reqMet(AURORA_REQ, $unlockCtx)}<NavIcon name="lock" size={11} />{/if}</span>
-				<small>{reqMet(AURORA_REQ, $unlockCtx) ? 'Slow-drifting northern lights behind the app, live while your streak holds.' : `Needs a ${reqLabel(AURORA_REQ)} — ${reqStatus(AURORA_REQ, $unlockCtx)}.`}</small>
-			</label>
-		</div>
 		
 	</div>
 	</div>
 </section>
+
+<CosmeticsModal bind:open={cosmeticsModalOpen} />
+
+<DashboardPreviewModal
+	bind:open={layoutPreviewOpen}
+	layout={previewLayout}
+	on:select={(e) => setLayout(e.detail)}
+/>
 
 <Modal bind:open={confirmClear} title="CLEAR ALL DATA?" width="420px">
 	<p class="warn">This permanently deletes every session, task, goal, revision plan and test record from this browser. Export a backup first if you might want it later.</p>
@@ -812,9 +918,42 @@
 
 	.panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr)); gap: 1.2rem; align-items: start; }
 	.settings-col { display: flex; flex-direction: column; gap: 1.2rem; }
-	.panel { padding: 1.3rem 1.4rem; border: 1px solid var(--border-subtle); border-radius: 20px; background: var(--surface-panel); box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.06); }
+	.panel {
+		padding: 1.3rem 1.4rem;
+		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
+		border-radius: 20px;
+		background: var(--vision-glass-bg, var(--surface-panel));
+		backdrop-filter: var(--vision-glass-blur, blur(20px));
+		-webkit-backdrop-filter: var(--vision-glass-blur, blur(20px));
+		box-shadow: var(--shadow-card), var(--vision-bevel-inner);
+	}
 	.panel h2 { display: flex; align-items: center; gap: .5rem; margin: 0 0 1.1rem; font-size: .95rem; font-weight: 800; letter-spacing: -.02em; }
 	.panel h2 :global(svg) { color: var(--accent); }
+
+	.vision-feature-card {
+		padding: 0.85rem 1rem;
+		border-radius: 14px;
+		background: color-mix(in srgb, var(--accent) 8%, var(--surface-subtle));
+		border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border-subtle));
+		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+	}
+	.vision-feature-head {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+	}
+	.vision-pill {
+		font-size: 0.64rem;
+		font-weight: 800;
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+		padding: 2px 7px;
+		border-radius: 6px;
+		background: var(--accent);
+		color: #ffffff;
+		box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 50%, transparent);
+	}
 
 	.field { display: grid; gap: .35rem; margin-bottom: .9rem; }
 	.field span, .label { color: var(--text-secondary); font-size: .62rem; font-weight: 800; letter-spacing: .09em; }
@@ -876,7 +1015,6 @@
 
 
 
-	.accent-locked-msg { padding: 0.8rem 1rem; background: var(--surface-subtle); border-radius: 8px; color: var(--text-secondary); font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1rem; }
 	.preview-banner { position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 9999; background: var(--surface-panel); border: 1px solid var(--accent); backdrop-filter: var(--glass-filter); -webkit-backdrop-filter: var(--glass-filter); border-radius: 99px; padding: 0.4rem 0.4rem 0.4rem 1.2rem; display: flex; align-items: center; gap: 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.4); color: var(--text-primary); font-size: 0.9rem; }
 	.pb-content { display: flex; align-items: center; gap: 0.6rem; }
 	.pb-icon { color: var(--accent); display: flex; animation: tick 1s infinite; }
@@ -886,20 +1024,12 @@
 
 
 
-	.slot { margin-bottom: 1.5rem; }
-	.slot-head { margin-bottom: 0.8rem; }
-	.slot-head .label { font-size: 0.65rem; color: var(--text-secondary); font-weight: 800; letter-spacing: 0.1em; margin: 0; }
-	.slot-head small { font-size: 0.72rem; color: var(--text-secondary); opacity: 0.8; display: block; margin-top: 0.2rem; }
 	.cos-grid { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 	.cos { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.8rem 0.4rem 0.4rem; border: 1px solid var(--border-subtle); border-radius: 99px; background: var(--surface-subtle); color: var(--text-primary); font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
 	.cos:hover:not(.locked) { border-color: var(--text-secondary); }
 	.cos.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, var(--surface-subtle)); }
 	.cos.locked { opacity: 0.6; cursor: not-allowed; background: var(--surface-panel); border-style: dashed; }
-	.sw { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 99px; flex-shrink: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1); color: #fff; }
-	.sw.match { background: transparent; border: 1px dashed var(--text-secondary); color: var(--text-secondary); box-shadow: none; }
 	.cos span { display: inline-flex; align-items: center; gap: 0.3rem; }
-	.cos small { font-size: 0.65rem; font-weight: 700; color: var(--text-secondary); opacity: 0.8; }
-	.check.dim { opacity: 0.5; }
 
 	.snapshot-vault { margin: 1.1rem 0 1.2rem; padding: 0.95rem 1rem; border-radius: 14px; background: var(--surface-subtle); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 0.75rem; }
 	.vault-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
@@ -919,4 +1049,202 @@
 	.btn-snap-restore:hover { border-color: var(--accent); color: var(--accent); }
 	.btn-snap-del { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border-subtle); background: transparent; color: var(--text-secondary); cursor: pointer; }
 	.btn-snap-del:hover { color: var(--danger, #e0455a); border-color: var(--danger, #e0455a); }
+
+	.theme-header-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin: 1.1rem 0 0.5rem;
+	}
+	.btn-theme-gear {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.35rem 0.75rem;
+		border-radius: 99px;
+		border: 1px solid var(--border-subtle);
+		background: color-mix(in srgb, var(--accent) 10%, var(--surface-subtle));
+		color: var(--accent);
+		font-size: 0.75rem;
+		font-weight: 750;
+		cursor: pointer;
+		transition: all 0.2s var(--ease-ios-spring);
+	}
+	.btn-theme-gear:hover {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 20%, var(--surface-subtle));
+		transform: translateY(-1px);
+	}
+	.btn-theme-gear:active {
+		transform: scale(0.96);
+	}
+
+	/* Dashboard Layout Options */
+	.layout-grid {
+		display: grid;
+		grid-template-columns: repeat(3, 1fr);
+		gap: 0.75rem;
+		margin-bottom: 0.5rem;
+	}
+	@media (max-width: 768px) {
+		.layout-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+	.layout-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+		padding: 0.85rem;
+		border-radius: 14px;
+		border: 1px solid var(--border-subtle);
+		background: var(--surface-subtle);
+		cursor: pointer;
+		text-align: left;
+		transition: all 0.2s var(--ease-ios-spring);
+		position: relative;
+	}
+	.layout-card:hover {
+		border-color: var(--text-secondary);
+		transform: translateY(-1px);
+	}
+	.layout-card.on {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 10%, var(--surface-subtle));
+		box-shadow: 0 0 0 1px var(--accent), 0 4px 14px color-mix(in srgb, var(--accent) 20%, transparent);
+	}
+	.layout-wireframe {
+		width: 100%;
+		height: 60px;
+		border-radius: 8px;
+		background: var(--surface-panel);
+		border: 1px solid var(--border-subtle);
+		padding: 6px;
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		box-sizing: border-box;
+		overflow: hidden;
+	}
+	/* Default wireframe */
+	.wireframe-default {
+		display: flex;
+		flex-direction: row;
+		gap: 4px;
+	}
+	.wf-col-main {
+		flex: 2;
+		background: color-mix(in srgb, var(--accent) 30%, var(--surface-subtle));
+		border-radius: 4px;
+	}
+	.wf-col-side {
+		flex: 1;
+		background: var(--surface-subtle);
+		border-radius: 4px;
+	}
+	/* Minimalist wireframe */
+	.wireframe-minimalist {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+	}
+	.wf-topbar {
+		height: 10px;
+		background: color-mix(in srgb, var(--accent) 40%, var(--surface-subtle));
+		border-radius: 3px;
+	}
+	.wireframe-minimalist .wf-row {
+		display: flex;
+		gap: 4px;
+		flex: 1;
+	}
+	.wireframe-minimalist .wf-cell {
+		flex: 1;
+		background: var(--surface-subtle);
+		border-radius: 3px;
+	}
+	.wf-bottombar {
+		height: 8px;
+		background: var(--surface-subtle);
+		border-radius: 2px;
+	}
+	/* Focus wireframe */
+	.wf-focus-row {
+		display: flex;
+		gap: 4px;
+		height: 100%;
+	}
+	.wf-hero {
+		flex: 7;
+		background: color-mix(in srgb, var(--accent) 45%, var(--surface-subtle));
+		border-radius: 4px;
+	}
+	.wf-rail {
+		flex: 3;
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+	}
+	.wf-rail div {
+		flex: 1;
+		background: var(--surface-subtle);
+		border-radius: 3px;
+	}
+	.layout-card-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+	.layout-card-title {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+	}
+	.layout-name {
+		font-size: 0.82rem;
+		font-weight: 750;
+		color: var(--text-primary);
+	}
+	.layout-active-badge {
+		font-size: 0.62rem;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: 2px 6px;
+		border-radius: 99px;
+		background: var(--accent);
+		color: #ffffff;
+	}
+	.layout-desc {
+		margin: 0;
+		font-size: 0.72rem;
+		line-height: 1.35;
+		color: var(--text-secondary);
+	}
+	.btn-card-preview {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.35rem;
+		padding: 0.35rem 0.7rem;
+		margin-top: 0.4rem;
+		border-radius: 8px;
+		border: 1px solid var(--border-subtle);
+		background: color-mix(in srgb, var(--accent) 8%, var(--surface-panel));
+		color: var(--accent);
+		font-size: 0.72rem;
+		font-weight: 750;
+		cursor: pointer;
+		transition: all 0.16s ease;
+		font-family: inherit;
+		width: 100%;
+	}
+	.btn-card-preview:hover {
+		background: color-mix(in srgb, var(--accent) 18%, var(--surface-panel));
+		border-color: var(--accent);
+		transform: translateY(-1px);
+	}
+	.btn-card-preview:active {
+		transform: scale(0.97);
+	}
 </style>

@@ -70,7 +70,7 @@
 	.initials { color: var(--accent); font-size: .76rem; font-weight: 800; letter-spacing: .02em; }
 	.signin { display: inline-flex; align-items: center; gap: .42rem; height: 36px; padding: 0 .8rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-panel); color: var(--text-secondary); font-size: .78rem; font-weight: 700; cursor: pointer; font-family: inherit; }
 	.signin:hover { color: var(--accent); border-color: var(--accent); }
-	.menu { position: absolute; z-index: 70; top: calc(100% + .5rem); right: 0; width: 230px; padding: .5rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-panel); box-shadow: var(--shadow-card); }
+	.menu { position: absolute; z-index: 70; top: calc(100% + .5rem); right: 0; width: 230px; padding: .5rem; border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16)); border-radius: 16px; background: color-mix(in srgb, var(--surface-panel, #121020) 96%, transparent); backdrop-filter: blur(36px) saturate(210%); -webkit-backdrop-filter: blur(36px) saturate(210%); box-shadow: 0 18px 48px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15); }
 	.who { display: grid; gap: .12rem; padding: .5rem .6rem .6rem; border-bottom: 1px solid var(--border-subtle); }
 	.who strong { color: var(--text-primary); font-size: .86rem; }
 	.who span { color: var(--text-secondary); font-size: .72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

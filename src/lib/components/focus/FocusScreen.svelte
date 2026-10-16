@@ -2,7 +2,6 @@
 
 <script lang="ts">
 	import { globalTimer } from '$lib/stores/timerState';
-	$: $globalTimer = { running, remaining, elapsed, tab, phase, toggle: primary, start: aiStart };
 
 	import { onDestroy } from 'svelte';
 	import { parseVoiceLog } from '$lib/services/voiceParsing';
@@ -160,6 +159,31 @@
 	$: goalPct = weekGoalH > 0 ? Math.min(100, Math.round(($weeklyFocusMinutes / (weekGoalH * 60)) * 100)) : 0;
 	$: clockTime = clock.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
 	$: clockDate = clock.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+	function addFiveMinutes() {
+		if (tab === 'focus') {
+			remaining += 300;
+			if (countdownEndsAt) countdownEndsAt += 300000;
+		}
+	}
+
+	$: globalTimer.set({
+		running,
+		remaining,
+		elapsed,
+		tab,
+		phase,
+		subject,
+		chapter: tab === 'stopwatch' ? swChapter : focusChapter,
+		activeLen,
+		ringProgress,
+		dialTime,
+		sessionStarted: running || elapsed > 0 || (tab !== 'stopwatch' && remaining < activeLen * 60),
+		toggle: primary,
+		addFive: addFiveMinutes,
+		stop: stopSession,
+		start: aiStart
+	});
 
 	function shouldChime(kind: 'focus' | 'break') {
 		if (pom.chime === 'both') return true;
@@ -553,7 +577,7 @@ function primary() {
 		{/each}
 	</div>
 
-	<div class="layout" on:touchstart={handleTouchStart} on:touchend={handleTouchEnd}>
+	<div class="layout" role="region" aria-label="Timer Stage" on:touchstart={handleTouchStart} on:touchend={handleTouchEnd}>
 		<div class="stage-wrapper">
 		{#key tab}
 			<div class="stage card">

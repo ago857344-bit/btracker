@@ -160,20 +160,26 @@
 	.backdrop {
 		position: absolute;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.2);
+		background: rgba(0, 0, 0, 0.60);
+		backdrop-filter: blur(28px) saturate(190%);
+		-webkit-backdrop-filter: blur(28px) saturate(190%);
 	}
 	.modal {
 		position: relative;
 		width: 100%;
 		max-width: 640px;
-		background: var(--surface-panel);
-		border: 1px solid var(--border-subtle, rgba(128, 128, 128, 0.2));
-		border-radius: 16px;
-		box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+		background: color-mix(in srgb, var(--surface-panel, #121020) 96%, transparent);
+		border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
+		border-radius: 20px;
+		box-shadow:
+			0 24px 64px -8px rgba(0, 0, 0, 0.65),
+			inset 0 1px 0 rgba(255, 255, 255, 0.14),
+			inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 		overflow: hidden;
 		display: flex;
 		flex-direction: column;
-		backdrop-filter: var(--glass-filter, blur(10px));
+		backdrop-filter: blur(36px) saturate(210%);
+		-webkit-backdrop-filter: blur(36px) saturate(210%);
 	}
 	.input-wrap {
 		display: flex;
