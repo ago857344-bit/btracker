@@ -1,6 +1,7 @@
 <svelte:head><title>Reminders · BTracker</title></svelte:head>
 
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
@@ -35,6 +36,28 @@
 	let draftTime = '09:00';
 	let draftBlurb = '';
 	let customReminders: ReminderCard[] = [];
+
+	onMount(() => {
+		try {
+			const saved = localStorage.getItem('btracker_custom_reminders');
+			if (saved) {
+				const parsed = JSON.parse(saved);
+				if (Array.isArray(parsed)) {
+					customReminders = parsed;
+				}
+			}
+		} catch (e) {
+			console.error('Failed to load custom reminders from localStorage:', e);
+		}
+	});
+
+	function saveCustomReminders() {
+		try {
+			localStorage.setItem('btracker_custom_reminders', JSON.stringify(customReminders));
+		} catch (e) {
+			console.error('Failed to save custom reminders to localStorage:', e);
+		}
+	}
 
 	const snoozeOptions = ['10 min', '1 hour', 'Tomorrow'] as const;
 	let snoozeMenu: string | null = null;
@@ -120,8 +143,21 @@
 			})
 			.filter((c) => c !== null) as ReminderCard[];
 
+		const refreshedCustom = customReminders
+			.filter((c) => !c.dismissed)
+			.map((c) => {
+				const datePart = c.when.slice(0, 10);
+				const isOverdue = datePart < today;
+				const isToday = datePart === today;
+				return {
+					...c,
+					group: (isOverdue ? 'overdue' : isToday ? 'today' : 'week') as 'overdue' | 'today' | 'week',
+					tone: (isOverdue ? 'danger' : isToday ? 'accent' : 'warning') as 'danger' | 'accent' | 'warning'
+				};
+			});
+
 		allCards = [
-			...customReminders.filter((c) => !c.dismissed),
+			...refreshedCustom,
 			...revCards,
 			...hwCards,
 			...dlCards
@@ -148,6 +184,7 @@
 				if (found) found.keep = true;
 			});
 			customReminders = customReminders.map((c) => c.id === id ? { ...c, dismissed: true } : c);
+			saveCustomReminders();
 			return;
 		}
 		if (id.startsWith('dl-')) {
@@ -159,10 +196,37 @@
 			return;
 		}
 		customReminders = customReminders.map((c) => c.id === id ? { ...c, dismissed: true } : c);
+		saveCustomReminders();
 		snoozeMenu = null;
 	}
 
-	function snooze(id: string, _option: typeof snoozeOptions[number]) {
+	function deleteCustom(id: string) {
+		customReminders = customReminders.filter((c) => c.id !== id);
+		saveCustomReminders();
+	}
+
+	function snooze(id: string, option: typeof snoozeOptions[number]) {
+		const targetCard = customReminders.find((c) => c.id === id);
+		if (targetCard) {
+			const dateObj = new Date();
+			let newWhen = targetCard.when;
+			if (option === '10 min') {
+				dateObj.setMinutes(dateObj.getMinutes() + 10);
+				newWhen = `${dayKeyOf(dateObj)}T${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+			} else if (option === '1 hour') {
+				dateObj.setHours(dateObj.getHours() + 1);
+				newWhen = `${dayKeyOf(dateObj)}T${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+			} else if (option === 'Tomorrow') {
+				dateObj.setDate(dateObj.getDate() + 1);
+				newWhen = `${dayKeyOf(dateObj)}T09:00`;
+			}
+			customReminders = customReminders.map((c) =>
+				c.id === id ? { ...c, when: newWhen, dismissed: false } : c
+			);
+			saveCustomReminders();
+			snoozeMenu = null;
+			return;
+		}
 		dismiss(id);
 	}
 
@@ -216,6 +280,7 @@
 			createdAt: Date.now()
 		};
 		customReminders = [...customReminders, card];
+		saveCustomReminders();
 		newOpen = false;
 		draftTitle = ''; draftBlurb = ''; draftWhen = ''; draftSub = ''; draftTime = '09:00'; draftKind = 'nudge';
 	}
@@ -304,10 +369,15 @@
 										</a>
 									{/if}
 									<button type="button" class="link dismiss" on:click={() => dismiss(card.id)}>
-									<NavIcon name="x" size={13} />
-									Dismiss
-								</button>
-							</div>
+										<NavIcon name="x" size={13} />
+										Dismiss
+									</button>
+									{#if card.source === 'custom'}
+										<button type="button" class="link dismiss del-btn" title="Delete reminder" on:click={() => deleteCustom(card.id)}>
+											<NavIcon name="trash" size={13} />
+										</button>
+									{/if}
+								</div>
 						</article>
 					{/each}
 				</div>
