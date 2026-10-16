@@ -50,7 +50,7 @@ export function scheduleSave() {
 export const activeHomework = derived(tracker, ($tracker) => $tracker.h.filter((item) => !item.done));
 export const dueRevision = derived(tracker, ($tracker) => {
 	const today = todayKey();
-	return Object.entries($tracker.rev.items).filter(([, item]) => item.remindDate && item.remindDate <= today && !item.remindDone);
+	return Object.entries($tracker.rev.items).filter(([, item]) => item.last && item.remindDate && item.remindDate <= today && !item.remindDone);
 });
 export const dashboardWidgets = derived(tracker, ($tracker) => $tracker.ui.widgets.filter((widget) => widget.enabled).sort((a, b) => a.order - b.order));
 export function updateWidget(id: WidgetLayout['id'], patch: Partial<WidgetLayout>) {
@@ -171,6 +171,11 @@ export function setAccent(color: string) {
 	updateTracker((state) => { state.ui.accent = color; });
 }
 
+let sessionBoostHandler: ((sub: string, ch: string, duration: number) => void) | null = null;
+export function setSessionBoostHandler(fn: (sub: string, ch: string, duration: number) => void) {
+	sessionBoostHandler = fn;
+}
+
 /** Append a completed focus session to the study log. */
 export function logStudySession(session: StudySession) {
 	updateTracker((state) => {
@@ -179,11 +184,20 @@ export function logStudySession(session: StudySession) {
 		state.gamification.xp += session[1] * 10;
 		// Level calculation will be derived dynamically, or we can update it here.
 	});
+	const sub = session[7];
+	const ch = session[8];
+	if (sub && ch && sessionBoostHandler) {
+		sessionBoostHandler(sub, ch, session[1]);
+	}
 }
 
 /** Convenience wrapper that builds a StudySession tuple from timer results. */
 export function recordFocus(opts: { startedEpochMinutes: number; durationMinutes: number; activity: string; deadlineId: string | null; speedrun?: number; target?: number; completed?: number; subject?: string | null; chapter?: string | null }) {
-	logStudySession([opts.startedEpochMinutes, Math.max(1, Math.round(opts.durationMinutes)), opts.activity, opts.deadlineId, opts.speedrun, opts.target, opts.completed, opts.subject ?? undefined, opts.chapter ?? undefined]);
+	const dur = Math.max(1, Math.round(opts.durationMinutes));
+	logStudySession([opts.startedEpochMinutes, dur, opts.activity, opts.deadlineId, opts.speedrun, opts.target, opts.completed, opts.subject ?? undefined, opts.chapter ?? undefined]);
+	if (opts.subject && opts.chapter && sessionBoostHandler) {
+		sessionBoostHandler(opts.subject, opts.chapter, dur);
+	}
 }
 
 export const sessionsToday = derived(tracker, ($tracker) => $tracker.log.filter((session) => sessionDayKey(session) === todayKey()));

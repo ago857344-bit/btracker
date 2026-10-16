@@ -1,4 +1,4 @@
-import { tracker, scheduleSave } from "./tracker";
+import { tracker, scheduleSave, setSessionBoostHandler } from "./tracker";
 
 function _updateAndSave(updater: (state: TrackerState) => TrackerState) {
     tracker.update(updater);
@@ -14,7 +14,8 @@ import type { TrackerState,
 import { createChapterRecallData } from '$lib/state/defaults';
 import { updateDecayAfterRevision } from '$lib/state/decay';
 import { recordSubtopicRevision, addSubtopicToChapter } from '$lib/state/subtopics';
-import { todayKey, dayKeyOf } from '$lib/state/dates';
+import { todayKey, dayKeyOf, addDaysKey } from '$lib/state/dates';
+import { intervalFor } from '$lib/state/subjects';
 
 /**
  * Actions for managing the Active Recall Hub state
@@ -499,44 +500,97 @@ export function bulkAddChaptersToRecall(chapterKeys: string[], defaultWeightage:
 	});
 }
 
-export function boostChapterFromPractice(chapterKey: string) {
+export function boostChapterFromPractice(chapterKey: string, durationMinutes: number = 25) {
 	_updateAndSave(($tracker) => {
-		const chapter = $tracker.rev.chapters[chapterKey];
-		if (!chapter) {
-			// Doesn't exist, so add it fresh
-			return {
-				...$tracker,
-				rev: {
-					...$tracker.rev,
-					chapters: {
-						...$tracker.rev.chapters,
-						[chapterKey]: createChapterRecallData(chapterKey, 2)
-					}
-				}
-			};
-		}
-
-		// Already exists. Did they already boost it today?
 		const today = todayKey();
-		const lastRevDate = chapter.decay.lastRevisionAt ? dayKeyOf(new Date(chapter.decay.lastRevisionAt)) : 0;
+		const chapter = $tracker.rev.chapters[chapterKey];
 		
-		if (lastRevDate === today) {
-			return $tracker; // Already boosted today, prevent half-life explosion from logging 50 questions
+		let updatedChapters = { ...$tracker.rev.chapters };
+		let updatedChapter: ChapterRecallData;
+
+		if (!chapter) {
+			// Doesn't exist, so add it fresh with 100% initial retention
+			const newCh = createChapterRecallData(chapterKey, 2);
+			newCh.decay = {
+				r0: 100,
+				halfLife: 7,
+				currentScore: 100,
+				lastRevisionAt: Date.now(),
+				history: [{ date: today, score: 100 }]
+			};
+			// Spaced repetition: first review scheduled for tomorrow
+			newCh.nextRevisionDate = addDaysKey(today, 1);
+			updatedChapter = newCh;
+			updatedChapters[chapterKey] = newCh;
+		} else {
+			// Already exists
+			const lastRevDate = chapter.decay.lastRevisionAt ? dayKeyOf(new Date(chapter.decay.lastRevisionAt)) : 0;
+			
+			const newDecay = lastRevDate === today
+				? { ...chapter.decay, currentScore: 100, r0: 100, lastRevisionAt: Date.now() }
+				: updateDecayAfterRevision(chapter.decay, 'good');
+
+			const daysToAdd = Math.max(1, Math.min(14, Math.round((newDecay.halfLife || 7) * 0.5)));
+			const nextDate = addDaysKey(today, daysToAdd);
+
+			updatedChapter = {
+				...chapter,
+				decay: newDecay,
+				nextRevisionDate: nextDate
+			};
+			updatedChapters[chapterKey] = updatedChapter;
 		}
 
-		// Reset to 100% and scale half-life like a "Good" rating
+		// Also synchronize rev.items for the legacy / dueRevision / modal systems
+		const [sub, ...rest] = chapterKey.split(/[-:]/);
+		const chName = rest.join('-').trim();
+		const colonKey = `${sub}:${chName}`;
+		const existingItem = $tracker.rev.items[colonKey];
+		const nextStep = existingItem ? (existingItem.step ?? 1) + 1 : 1;
+		const nextInterval = intervalFor(existingItem?.method ?? 'steady', nextStep, existingItem?.ef ?? 2.5);
+		const remindDate = addDaysKey(today, nextInterval);
+
+		const updatedItems = {
+			...$tracker.rev.items,
+			[colonKey]: {
+				weight: 2,
+				last: Date.now(),
+				method: existingItem?.method ?? 'steady',
+				step: nextStep,
+				sub,
+				ch: chName,
+				ef: existingItem?.ef ?? 2.5,
+				remindDate,
+				remindDone: false
+			}
+		};
+
+		// Also update daily heatmap
+		const todayData = $tracker.rev.dailyHeatmap[today] || { revisedCount: 0, totalTimeMinutes: 0 };
+		const updatedHeatmap = {
+			...$tracker.rev.dailyHeatmap,
+			[today]: {
+				revisedCount: todayData.revisedCount + 1,
+				totalTimeMinutes: todayData.totalTimeMinutes + durationMinutes
+			}
+		};
+
 		return {
 			...$tracker,
 			rev: {
 				...$tracker.rev,
-				chapters: {
-					...$tracker.rev.chapters,
-					[chapterKey]: {
-						...chapter,
-						decay: updateDecayAfterRevision(chapter.decay, 'good')
-					}
-				}
+				chapters: updatedChapters,
+				items: updatedItems,
+				dailyHeatmap: updatedHeatmap
 			}
 		};
 	});
 }
+
+// Automatically register with tracker store so logStudySession triggers boostChapterFromPractice
+if (typeof setSessionBoostHandler === 'function') {
+	setSessionBoostHandler((sub, ch, duration) => {
+		boostChapterFromPractice(`${sub}-${ch}`, duration);
+	});
+}
+

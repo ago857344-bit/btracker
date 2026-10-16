@@ -214,7 +214,7 @@
 
 	function logSession(minutes: number, activity: string) {
 		if (subject && focusChapter) {
-			boostChapterFromPractice(`${subject}-${focusChapter}`);
+			boostChapterFromPractice(`${subject}-${focusChapter}`, minutes);
 		}
 		recordFocus({
 			startedEpochMinutes: sessionStartedEpochMin || Math.floor(Date.now() / 60000) - minutes,
@@ -354,12 +354,13 @@ function primary() {
 	function onSaveReport(event: CustomEvent<StopwatchReport>) {
 		const savedReport = event.detail;
 		stopwatchReports.update((list) => [savedReport, ...list]);
+		const mins = Math.max(1, Math.round(savedReport.seconds / 60));
 		if (savedReport.sub && swChapter) {
-			boostChapterFromPractice(`${savedReport.sub}-${swChapter}`);
+			boostChapterFromPractice(`${savedReport.sub}-${swChapter}`, mins);
 		}
 		recordFocus({
 			startedEpochMinutes: sessionStartedEpochMin || Math.floor(savedReport.at / 60000),
-			durationMinutes: Math.max(1, Math.round(savedReport.seconds / 60)),
+			durationMinutes: mins,
 			activity: savedReport.kind === 'questions' ? 'Stopwatch · Questions' : savedReport.kind === 'revision' ? 'Stopwatch · Revision' : 'Stopwatch · Theory',
 			deadlineId: null, subject: savedReport.sub, chapter: swChapter || undefined
 		});
@@ -373,7 +374,7 @@ function primary() {
 		const minutes = Math.max(1, Math.round(Number(logMinutes) || 0));
 		logManualMinutes(minutes, logSubject, logChapter || undefined);
 		if (logSubject && logChapter) {
-			boostChapterFromPractice(`${logSubject}-${logChapter}`);
+			boostChapterFromPractice(`${logSubject}-${logChapter}`, minutes);
 		}
 		celebration.set(`${minutes} min logged!`);
 		logOpen = false;

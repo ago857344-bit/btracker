@@ -2,9 +2,10 @@
 	import { onMount } from 'svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
-	import { celebration, completeRevision, dueRevision, snoozeRevision } from '$lib/stores/tracker';
+	import { celebration, completeRevision, dueRevision, snoozeRevision, tracker } from '$lib/stores/tracker';
 	import { todayKey } from '$lib/state/dates';
 	import { SPACING_METHODS, subjectColor, subjectName } from '$lib/state/subjects';
+	import { isChapterStudied } from '$lib/state/decay';
 
 	// Per-device once-a-day auto-popup marker, written the moment the modal triggers so it
 	// only opens on the first load of the day (keeps the UI marker out of synced tracker state).
@@ -23,13 +24,15 @@
 	let entries: Entry[] = [];
 	let open = false;
 	$: today = todayKey();
-	$: entries = $dueRevision.map(([key, item]) => ({
-		key,
-		sub: item.sub ?? key.split(':')[0],
-		ch: item.ch ?? key.split(':').slice(1).join(':'),
-		method: item.method ?? 'steady',
-		overdue: (item.remindDate ?? today) < today
-	}));
+	$: entries = $dueRevision
+		.filter(([key, item]) => Boolean(item.last) && isChapterStudied($tracker, key))
+		.map(([key, item]) => ({
+			key,
+			sub: item.sub ?? key.split(':')[0],
+			ch: item.ch ?? key.split(':').slice(1).join(':'),
+			method: item.method ?? 'steady',
+			overdue: (item.remindDate ?? today) < today
+		}));
 	$: if (ready && !open && shownOn !== today && entries.length > 0) {
 		open = true;
 		shownOn = today;

@@ -7,8 +7,9 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import { subjectColor, subjectName, SUBJECTS } from '$lib/state/subjects';
 	import { addDaysKey, dayKeyOf, parseKey, todayKey } from '$lib/state/dates';
-	import { tracker, updateTracker } from '$lib/stores/tracker';
-	import { chaptersDueToday } from '$lib/stores/recall-selectors';
+	import { tracker, updateTracker, celebration } from '$lib/stores/tracker';
+	import { allRevisionReminders } from '$lib/stores/recall-selectors';
+	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
 
 	type IconKind = 'reminders' | 'clock' | 'calendar-check' | 'brain' | 'target' | 'flame';
 
@@ -74,22 +75,29 @@
 	let overdue: ReminderCard[] = [];
 	let todayGroup: ReminderCard[] = [];
 	let week: ReminderCard[] = [];
+	let dismissedIds = new Set<string>();
 
 	$: {
-		revCards = $chaptersDueToday.map((item) => {
-				const chParts = item.chapterKey.split('-');
-				const s = chParts[0] ?? '';
-				const ch = chParts[1] ?? '';
-				const overdue_ = item.currentScore < 30;
+		revCards = $allRevisionReminders
+			.filter((item) => !dismissedIds.has(item.id))
+			.map((item) => {
+				const isOverdue = item.group === 'overdue';
+				const isToday = item.group === 'today';
+				const tone: ReminderCard['tone'] = isOverdue ? 'danger' : isToday ? 'warning' : 'accent';
+				const scoreStr = Math.round(item.currentScore);
+				const blurb = item.group === 'week'
+					? `Spaced repetition reminder · Memory retention: ${scoreStr}% (${item.health === 'fresh' ? 'Fresh' : 'Good'})`
+					: `Spaced repetition nudge — Retention is at ${scoreStr}% (Health: ${isOverdue ? 'Critical' : 'Fading'})`;
+
 				return {
-					id: `rev-${item.chapterKey}`,
-					group: overdue_ ? 'overdue' : 'today',
+					id: item.id,
+					group: item.group,
 					icon: 'brain' as IconKind,
-					tone: overdue_ ? 'danger' : 'warning',
-					title: `Revise ${subjectName(s) || s} · Ch. ${ch}`,
-					blurb: `Spaced repetition nudge — Score is at ${Math.round(item.currentScore)}% (Health: ${overdue_ ? 'Critical' : 'Fading'})`,
-					when: today,
-					sub: s,
+					tone,
+					title: `Revise ${subjectName(item.subject) || item.subject} · Ch. ${item.chapterName}`,
+					blurb,
+					when: item.dueDate,
+					sub: item.subject,
 					source: 'revision',
 					linkId: item.chapterKey
 				} as ReminderCard;
@@ -169,12 +177,29 @@
 	}
 
 	/* ---------------- actions ---------------- */
+	function markRevisionComplete(key: string) {
+		boostChapterFromPractice(key);
+		celebration.set('Revision marked complete! Memory restored to 100%');
+	}
+
 	function dismiss(id: string) {
-		if (id.startsWith('rev-') && id.includes(':')) {
-			const key = id.slice(4);
+		if (id.startsWith('rev-')) {
+			const rawKey = id.slice(4);
+			const parts = rawKey.split(/[-:]/);
+			const sub = parts[0];
+			const ch = parts.slice(1).join('-');
+			const colonKey = `${sub}:${ch}`;
+			const hyphenKey = `${sub}-${ch}`;
+
 			updateTracker((s) => {
-				if (s.rev.items[key]) s.rev.items[key].remindDone = true;
+				if (s.rev.items[colonKey]) s.rev.items[colonKey].remindDone = true;
+				if (s.rev.items[hyphenKey]) s.rev.items[hyphenKey].remindDone = true;
+				const chap = s.rev.chapters[hyphenKey] || s.rev.chapters[colonKey];
+				if (chap) {
+					chap.nextRevisionDate = addDaysKey(todayKey(), 1);
+				}
 			});
+			dismissedIds = new Set([...dismissedIds, id]);
 			return;
 		}
 		if (id.startsWith('hw-')) {
@@ -206,6 +231,31 @@
 	}
 
 	function snooze(id: string, option: typeof snoozeOptions[number]) {
+		if (id.startsWith('rev-')) {
+			const rawKey = id.slice(4);
+			const parts = rawKey.split(/[-:]/);
+			const sub = parts[0];
+			const ch = parts.slice(1).join('-');
+			const colonKey = `${sub}:${ch}`;
+			const hyphenKey = `${sub}-${ch}`;
+
+			const daysToAdd = option === 'Tomorrow' ? 1 : 1;
+			const nextDate = addDaysKey(todayKey(), daysToAdd);
+
+			updateTracker((s) => {
+				if (s.rev.items[colonKey]) s.rev.items[colonKey].remindDate = nextDate;
+				if (s.rev.items[hyphenKey]) s.rev.items[hyphenKey].remindDate = nextDate;
+				const chap = s.rev.chapters[hyphenKey] || s.rev.chapters[colonKey];
+				if (chap) {
+					chap.nextRevisionDate = nextDate;
+				}
+			});
+			snoozeMenu = null;
+			dismissedIds = new Set([...dismissedIds, id]);
+			celebration.set(`Revision snoozed until ${nextDate}`);
+			return;
+		}
+
 		const targetCard = customReminders.find((c) => c.id === id);
 		if (targetCard) {
 			const dateObj = new Date();
@@ -364,10 +414,13 @@
 									{/if}
 								</div>
 								{#if card.source === 'revision'}
-										<a href="/revise" class="link snooze-btn" style="color: var(--accent); font-weight: 700; text-decoration: none;">
-											<NavIcon name="arrow-right" size={13} /> Open Hub
-										</a>
-									{/if}
+									<button type="button" class="link snooze-btn" style="color: var(--success); font-weight: 700;" on:click={() => markRevisionComplete(card.linkId || card.id.slice(4))}>
+										<NavIcon name="check" size={13} /> Mark revised
+									</button>
+									<a href="/revise" class="link snooze-btn" style="color: var(--accent); font-weight: 700; text-decoration: none;">
+										<NavIcon name="arrow-right" size={13} /> Open Hub
+									</a>
+								{/if}
 									<button type="button" class="link dismiss" on:click={() => dismiss(card.id)}>
 										<NavIcon name="x" size={13} />
 										Dismiss

@@ -218,3 +218,61 @@ export function daysUntilThreshold(
 
 	return Math.max(0, daysUntil);
 }
+
+/**
+ * Check if a chapter has actually been studied or revised by the user
+ * (has recorded focus/pomodoro time, practice questions, or completed revisions).
+ * Ensures phantom / unstudied topics never trigger false revision reminders.
+ */
+export function isChapterStudied(state: any, chapterKey: string): boolean {
+	if (!state || !chapterKey) return false;
+	const parts = chapterKey.split(/[-:]/);
+	const sub = parts[0]?.trim();
+	const chRaw = parts.slice(1).join('-').trim();
+	if (!sub || !chRaw) return false;
+
+	const chLower = chRaw.toLowerCase();
+
+	// 1. Check logged focus sessions (Pomodoro, Stopwatch, manual logs)
+	const logs = state.log;
+	if (Array.isArray(logs)) {
+		const foundInLog = logs.some((s: any) => {
+			if (!Array.isArray(s)) return false;
+			const sSub = s[7];
+			const sCh = s[8];
+			if (!sSub || !sCh) return false;
+			if (sSub !== sub) return false;
+			const targetLower = String(sCh).trim().toLowerCase();
+			return targetLower === chLower || chLower.includes(targetLower) || targetLower.includes(chLower);
+		});
+		if (foundInLog) return true;
+	}
+
+	// 2. Check subject practice sessions
+	const sess = state.sess;
+	if (Array.isArray(sess)) {
+		const foundInSess = sess.some((s: any) => {
+			if (!s || s.sub !== sub || !s.ch) return false;
+			const targetLower = String(s.ch).trim().toLowerCase();
+			return targetLower === chLower || chLower.includes(targetLower) || targetLower.includes(chLower);
+		});
+		if (foundInSess) return true;
+	}
+
+	// 3. Check active recall chapter data: must have actual revision timestamp > 0 AND revision history
+	const chap = state.rev?.chapters?.[chapterKey];
+	if (chap?.decay?.lastRevisionAt && chap.decay.lastRevisionAt > 0) {
+		if (Array.isArray(chap.decay.history) && chap.decay.history.length > 1) {
+			return true;
+		}
+	}
+
+	// 4. Check spaced revision items
+	const colonKey = `${sub}:${chRaw}`;
+	const item = state.rev?.items?.[colonKey] || state.rev?.items?.[chapterKey];
+	if (item?.last && item.last > 0) {
+		return true;
+	}
+
+	return false;
+}

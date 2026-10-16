@@ -188,6 +188,8 @@ export interface ChapterRecallData {
 		end: string; // ISO datetime string
 		parentBlockId?: string; // If nested inside a larger study block
 	}>;
+	/** Next scheduled spaced revision date (YYYY-MM-DD) */
+	nextRevisionDate?: string;
 }
 
 export interface StudyBlock {

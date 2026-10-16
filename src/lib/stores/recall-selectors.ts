@@ -6,10 +6,11 @@ import {
 	calculateCurrentScore,
 	calculateHealthStatus,
 	sortByPriority,
-	daysUntilThreshold
+	daysUntilThreshold,
+	isChapterStudied
 } from '$lib/state/decay';
 import { getSubtopicsSorted, getStaleSubtopics } from '$lib/state/subtopics';
-import { todayKey } from '$lib/state/dates';
+import { todayKey, addDaysKey } from '$lib/state/dates';
 
 /**
  * Derived store: All chapter recall data
@@ -21,19 +22,23 @@ export const chaptersRecallData = derived(tracker, ($tracker) => $tracker.rev.ch
  */
 export const chaptersByPriority = derived(tracker, ($tracker) => {
 	const chapters = Object.values($tracker.rev.chapters);
-	const priorities = chapters.map((ch) =>
-		calculateChapterPriority(ch.chapterKey, ch.weightage, ch.decay)
-	);
+	const priorities = chapters
+		.filter((ch) => isChapterStudied($tracker, ch.chapterKey))
+		.map((ch) =>
+			calculateChapterPriority(ch.chapterKey, ch.weightage, ch.decay)
+		);
 	return sortByPriority(priorities);
 });
 
 /**
  * Derived store: Chapters due today (score below fading threshold)
+ * Excludes unstudied / phantom chapters.
  */
 export const chaptersDueToday = derived(tracker, ($tracker) => {
 	const chapters = Object.values($tracker.rev.chapters);
 	return chapters
 		.filter((ch) => {
+			if (!isChapterStudied($tracker, ch.chapterKey)) return false;
 			const score = calculateCurrentScore(ch.decay);
 			return score < 60; // Below fading threshold
 		})
@@ -43,17 +48,127 @@ export const chaptersDueToday = derived(tracker, ($tracker) => {
 
 /**
  * Derived store: Chapters in critical state (score below critical threshold)
+ * Excludes unstudied / phantom chapters.
  */
 export const criticalChapters = derived(tracker, ($tracker) => {
 	const chapters = Object.values($tracker.rev.chapters);
 	return chapters
 		.filter((ch) => {
+			if (!isChapterStudied($tracker, ch.chapterKey)) return false;
 			const score = calculateCurrentScore(ch.decay);
 			return score < 30; // Below critical threshold
 		})
 		.map((ch) => calculateChapterPriority(ch.chapterKey, ch.weightage, ch.decay))
 		.sort((a, b) => a.currentScore - b.currentScore);
 });
+
+export interface RevisionReminderItem {
+	id: string;
+	chapterKey: string;
+	subject: string;
+	chapterName: string;
+	currentScore: number;
+	health: 'fresh' | 'fading' | 'critical';
+	dueDate: string;
+	group: 'overdue' | 'today' | 'week';
+	weightage: 1 | 2 | 3;
+	lastRevisionAt: number | null;
+	step?: number;
+}
+
+/**
+ * Derived store: All active revision reminders across Overdue, Today, and This Week.
+ * Accurately schedules upcoming reviews for chapters studied via Focus / Pomodoro,
+ * and strictly omits unstudied chapters.
+ */
+export const allRevisionReminders = derived(tracker, ($tracker) => {
+	const today = todayKey();
+	const weekEnd = addDaysKey(today, 6);
+	const itemsMap = new Map<string, RevisionReminderItem>();
+
+	// 1. Process studied chapters from Active Recall ($tracker.rev.chapters)
+	for (const ch of Object.values($tracker.rev.chapters)) {
+		if (!isChapterStudied($tracker, ch.chapterKey)) continue;
+
+		const [s, ...rest] = ch.chapterKey.split(/[-:]/);
+		const chName = rest.join('-').trim();
+		const currentScore = calculateCurrentScore(ch.decay);
+		const health = calculateHealthStatus(currentScore);
+
+		let dueDate: string;
+		if (ch.nextRevisionDate) {
+			dueDate = ch.nextRevisionDate;
+		} else if (currentScore < 60) {
+			dueDate = today;
+		} else {
+			const daysLeft = daysUntilThreshold(ch.decay, 60);
+			dueDate = addDaysKey(today, Math.max(1, Math.round(daysLeft)));
+		}
+
+		let group: 'overdue' | 'today' | 'week' | null = null;
+		if (dueDate < today || currentScore < 30) {
+			group = 'overdue';
+		} else if (dueDate === today || currentScore < 60) {
+			group = 'today';
+		} else if (dueDate <= weekEnd) {
+			group = 'week';
+		}
+
+		if (group) {
+			const normKey = `${s}-${chName.toLowerCase()}`;
+			itemsMap.set(normKey, {
+				id: `rev-${ch.chapterKey}`,
+				chapterKey: ch.chapterKey,
+				subject: s,
+				chapterName: chName,
+				currentScore,
+				health,
+				dueDate,
+				group,
+				weightage: ch.weightage,
+				lastRevisionAt: ch.decay.lastRevisionAt
+			});
+		}
+	}
+
+	// 2. Process spaced revision items ($tracker.rev.items)
+	for (const [key, item] of Object.entries($tracker.rev.items)) {
+		if (!item.last || item.last <= 0 || item.remindDone) continue;
+
+		const s = item.sub || key.split(/[-:]/)[0];
+		const chName = item.ch || key.split(/[-:]/).slice(1).join('-');
+		const normKey = `${s}-${chName.toLowerCase()}`;
+		const dueDate = item.remindDate || today;
+
+		let group: 'overdue' | 'today' | 'week' | null = null;
+		if (dueDate < today) {
+			group = 'overdue';
+		} else if (dueDate === today) {
+			group = 'today';
+		} else if (dueDate <= weekEnd) {
+			group = 'week';
+		}
+
+		if (group && !itemsMap.has(normKey)) {
+			itemsMap.set(normKey, {
+				id: `rev-${s}-${chName}`,
+				chapterKey: `${s}-${chName}`,
+				subject: s,
+				chapterName: chName,
+				currentScore: 80,
+				health: group === 'overdue' ? 'critical' : group === 'today' ? 'fading' : 'fresh',
+				dueDate,
+				group,
+				weightage: (item.weight as 1 | 2 | 3) || 2,
+				lastRevisionAt: item.last,
+				step: item.step
+			});
+		}
+	}
+
+	return Array.from(itemsMap.values()).sort((a, b) => a.dueDate.localeCompare(b.dueDate));
+});
+
 
 /**
  * Derived store: Get chapter recall data by key
