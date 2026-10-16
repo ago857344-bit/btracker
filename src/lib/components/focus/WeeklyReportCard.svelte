@@ -5,6 +5,7 @@
 	import { startOfWeek, weekRangeLabel, dayKeyOf, formatMinutes } from '$lib/state/dates';
 	import { logTotals, accuracyOf } from '$lib/state/questions';
 	import { buildWeekReport } from '$lib/state/weekly';
+	import { isChapterStudied } from '$lib/state/decay';
 
 	$: log = $tracker.log;
 	$: report = buildWeekReport($tracker);
@@ -49,7 +50,7 @@
 
 	$: startOfWeekMs = startOfWeek().getTime();
 	$: chaptersRevised = Object.values($tracker.rev.chapters).filter(
-		ch => ch.decay && ch.decay.lastRevisionAt && ch.decay.lastRevisionAt >= startOfWeekMs
+		ch => isChapterStudied($tracker, ch.chapterKey) && ch.decay && ch.decay.lastRevisionAt && ch.decay.lastRevisionAt >= startOfWeekMs
 	).length;
 
 	$: currentStreak = $streakDays;

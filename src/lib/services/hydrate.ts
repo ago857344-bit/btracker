@@ -4,6 +4,7 @@ import { getLevelData, recordPeaks } from '$lib/state/gamification';
 import { rolloverWeekSnapshot } from '$lib/state/weekly';
 import { todayKey } from '$lib/state/dates';
 import { hydration, replaceTracker } from '$lib/stores/tracker';
+import { isChapterStudied } from '$lib/state/decay';
 import type { TrackerState } from '$lib/types/tracker';
 
 /**
@@ -115,9 +116,26 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 		rev: {
 			...base.rev,
 			...saved.rev,
-			chapters: saved.rev?.chapters && Object.keys(saved.rev.chapters).length > 0
-				? { ...base.rev.chapters, ...saved.rev.chapters }
-				: base.rev.chapters,
+			items: (() => {
+				const raw = saved.rev?.items || base.rev.items;
+				const clean: Record<string, any> = {};
+				for (const [k, v] of Object.entries(raw)) {
+					if (v && v.last && isChapterStudied(saved, k)) {
+						clean[k] = v;
+					}
+				}
+				return clean;
+			})(),
+			chapters: (() => {
+				const raw = saved.rev?.chapters || base.rev.chapters;
+				const clean: Record<string, any> = {};
+				for (const [k, v] of Object.entries(raw)) {
+					if (v && isChapterStudied(saved, k)) {
+						clean[k] = v;
+					}
+				}
+				return clean;
+			})(),
 			dailyHeatmap: saved.rev?.dailyHeatmap && Object.keys(saved.rev.dailyHeatmap).length > 0
 				? { ...base.rev.dailyHeatmap, ...saved.rev.dailyHeatmap }
 				: base.rev.dailyHeatmap
@@ -204,7 +222,7 @@ export async function hydrateTracker() {
 	hydration.set('loading');
 	try {
 		const saved = await loadTrackerState();
-		if (saved) replaceTracker(normalizeState(saved), false);
+		if (saved) replaceTracker(normalizeState(saved), true);
 		hydration.set('ready');
 	} catch { hydration.set('error'); }
 }

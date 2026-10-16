@@ -15,7 +15,7 @@
 	import { chaptersByPriority, chaptersDueToday, criticalChapters, heatmapData } from '$lib/stores/recall-selectors';
 	import { removeChapterFromRecall } from '$lib/stores/recall-actions';
 	import { createRevision } from '$lib/state/defaults';
-	import { calculateCurrentScore, calculatePriorityScore } from '$lib/state/decay';
+	import { calculateCurrentScore, calculatePriorityScore, isChapterStudied } from '$lib/state/decay';
 	import type { ChapterRecallData } from '$lib/types/tracker';
 
 	type RevTab = 'due' | 'critical' | 'all';
@@ -58,7 +58,7 @@
 		.sort((a, b) => (a.remindDate || '9999').localeCompare(b.remindDate || '9999'));
 
 	// Active Recall Hub data
-	$: recallChapters = Object.values($tracker.rev.chapters);
+	$: recallChapters = Object.values($tracker.rev.chapters).filter((ch) => isChapterStudied($tracker, ch.chapterKey));
 	$: dueChapters = $chaptersDueToday;
 	$: criticalChaptersList = $criticalChapters;
 	$: heatmap = $heatmapData;
@@ -151,7 +151,7 @@
 	</div>
 
 	<div class="kpis">
-		<div class="kpi"><b>{Object.keys(recallChapters).length}</b><span>CHAPTERS TRACKED</span></div>
+		<div class="kpi"><b>{recallChapters.length}</b><span>CHAPTERS TRACKED</span></div>
 		<div class="kpi due"><b>{dueChapters.length}</b><span>DUE TODAY</span></div>
 		<div class="kpi"><b>{$revisedToday}</b><span>REVISED TODAY</span></div>
 	</div>
@@ -159,7 +159,7 @@
 	<div class="tabs" role="tablist">
 		<button type="button" role="tab" class:active={tab === 'due'} on:click={() => (tab = 'due')}>Due ({dueChapters.length})</button>
 		<button type="button" role="tab" class:active={tab === 'critical'} on:click={() => (tab = 'critical')}>Critical ({criticalChaptersList.length})</button>
-		<button type="button" role="tab" class:active={tab === 'all'} on:click={() => (tab = 'all')}>All ({Object.keys(recallChapters).length})</button>
+		<button type="button" role="tab" class:active={tab === 'all'} on:click={() => (tab = 'all')}>All ({recallChapters.length})</button>
 	</div>
 
 	<div class="filters">
