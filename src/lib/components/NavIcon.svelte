@@ -7,7 +7,7 @@
 		| 'drag' | 'search' | 'funnel' | 'library' | 'save' | 'sparkles' | 'crown' | 'brain' | 'sigma' | 'trend'
 		| 'clock' | 'calendar-check' | 'history' | 'download' | 'arrow-right' | 'atom' | 'bolt' | 'calculator'
 		| 'tv' | 'info' | 'edit' | 'list' | 'quote' | 'reddit' | 'palette' | 'shield' | 'trophy' | 'sunrise' | 'grid'
-		| 'bookmark' | 'copy' = 'home';
+		| 'bookmark' | 'copy' | 'help' | 'alert' = 'home';
 	export let size = 20;
 </script>
 
@@ -154,6 +154,10 @@
 		<path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" />
 	{:else if name === 'copy'}
 		<rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+	{:else if name === 'help'}
+		<circle cx="12" cy="12" r="9" /><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-2.9 2.5-2.9 4" /><circle cx="12" cy="17" r="0.8" fill="currentColor" stroke="none" />
+	{:else if name === 'alert'}
+		<path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3Z" /><path d="M12 9v4" /><circle cx="12" cy="17" r="0.8" fill="currentColor" stroke="none" />
 	{:else}
 		<path d="m9 18 6-6-6-6" />
 	{/if}

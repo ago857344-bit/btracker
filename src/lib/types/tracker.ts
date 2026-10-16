@@ -247,7 +247,7 @@ export interface PomodoroSettings {
 
 export interface WidgetLayout {
 	id: 'quote' | 'weekly-standing' | 'new-target' | 'daily-progress' | 'due-homework'
-		| 'subjects' | 'standing' | 'up-next' | 'activity' | 'yearly-heatmap';
+		| 'subjects' | 'standing' | 'up-next' | 'activity' | 'yearly-heatmap' | 'brain-dump';
 	enabled: boolean; order: number; span: 1 | 2 | 3; height?: 'sm' | 'md' | 'lg';
 }
 /** Equipped cosmetics; an absent slot means "match the active theme". */
@@ -319,6 +319,7 @@ export interface TrackerState {
 	mocks: MockTest[];
 	mistakes: MistakeLog[];
 	flashcards?: Flashcard[];
+	brainDump?: string;
 	gamification?: {
 		xp: number;
 		level: number;

@@ -17,6 +17,7 @@
 	let starredIds: string[] = [];
 	let copiedId: string | null = null;
 	let copyTimeout: ReturnType<typeof setTimeout> | undefined;
+	let collapsedGroups: Record<string, boolean> = {};
 
 	onMount(() => {
 		try {
@@ -66,6 +67,30 @@
 		)
 	).sort();
 
+	interface ChapterInfo {
+		chapter: string;
+		count: number;
+		subject: 'P' | 'C' | 'M';
+	}
+
+	$: chapterPills = (() => {
+		const list: ChapterInfo[] = [];
+		for (const ch of availableChapters) {
+			const matching = JEE_FORMULAS.filter((f) => {
+				if (selectedSubject !== 'ALL' && f.subject !== selectedSubject) return false;
+				return f.chapterName === ch;
+			});
+			if (matching.length > 0) {
+				list.push({
+					chapter: ch,
+					count: matching.length,
+					subject: matching[0].subject
+				});
+			}
+		}
+		return list;
+	})();
+
 	$: filteredFormulas = JEE_FORMULAS.filter((f) => {
 		if (selectedSubject !== 'ALL' && f.subject !== selectedSubject) return false;
 		if (selectedChapter !== 'ALL' && f.chapterName !== selectedChapter) return false;
@@ -82,25 +107,67 @@
 		return true;
 	});
 
+	interface ChapterGroup {
+		key: string;
+		subject: 'P' | 'C' | 'M';
+		chapterName: string;
+		formulas: FormulaItem[];
+	}
+
+	$: chapterGroups = (() => {
+		const map = new Map<string, ChapterGroup>();
+		for (const f of filteredFormulas) {
+			const key = `${f.subject}__${f.chapterName}`;
+			if (!map.has(key)) {
+				map.set(key, {
+					key,
+					subject: f.subject,
+					chapterName: f.chapterName,
+					formulas: []
+				});
+			}
+			map.get(key)!.formulas.push(f);
+		}
+		return Array.from(map.values());
+	})();
+
+	function selectSingleChapter(chapter: string) {
+		uiClick();
+		selectedChapter = chapter;
+	}
+
+	function resetChapter() {
+		uiClick();
+		selectedChapter = 'ALL';
+	}
+
+	function toggleGroupCollapse(key: string) {
+		uiClick();
+		collapsedGroups[key] = !collapsedGroups[key];
+		collapsedGroups = { ...collapsedGroups };
+	}
+
 	function close() {
 		open = false;
 		dispatch('close');
 	}
 </script>
 
+<svelte:window on:keydown={(e) => { if (open && e.key === 'Escape') close(); }} />
+
 {#if open}
 	<!-- Backdrop -->
 	<div class="vault-backdrop" transition:fade={{ duration: 180 }} on:click={close} on:keydown={(e) => e.key === 'Escape' && close()} role="button" tabindex="-1"></div>
 
 	<!-- Drawer -->
-	<aside class="vault-drawer" transition:fly={{ x: 420, duration: 240 }} aria-label="Formula Vault">
+	<aside class="vault-drawer" transition:fly={{ x: 480, duration: 240 }} aria-label="Formula Vault">
 		<header class="vault-header">
 			<div class="header-top">
 				<div class="title-wrap">
 					<div class="vault-icon"><NavIcon name="book" size={17} /></div>
 					<div>
 						<h3>Formula Vault</h3>
-						<p class="sub">High-yield JEE quick-sheet <span class="hotkey-pill">F</span></p>
+						<p class="sub">Complete JEE Chapter-Wise Formulas <span class="hotkey-pill">F</span></p>
 					</div>
 				</div>
 				<button type="button" class="close-btn" aria-label="Close" on:click={close}>
@@ -113,7 +180,7 @@
 				<NavIcon name="search" size={15} />
 				<input
 					type="search"
-					placeholder="Search formulas, chapters, topics..."
+					placeholder="Search formulas, chapters, topics, LaTeX..."
 					bind:value={search}
 				/>
 				{#if search}
@@ -172,9 +239,36 @@
 				</button>
 			</div>
 
-			<!-- Chapter Selector -->
+			<!-- Chapter Quick-Nav Horizontal Rail -->
+			<div class="chapter-rail-container">
+				<div class="chapter-rail" role="tablist" aria-label="Chapter Filter">
+					<button
+						type="button"
+						class="ch-pill"
+						class:active={selectedChapter === 'ALL'}
+						on:click={resetChapter}
+					>
+						<span>All Chapters</span>
+						<span class="count-badge">{filteredFormulas.length}</span>
+					</button>
+					{#each chapterPills as item (item.chapter)}
+						<button
+							type="button"
+							class="ch-pill {item.subject}"
+							class:active={selectedChapter === item.chapter}
+							on:click={() => selectSingleChapter(item.chapter)}
+						>
+							<span>{item.chapter}</span>
+							<span class="count-badge">{item.count}</span>
+						</button>
+					{/each}
+				</div>
+			</div>
+
+			<!-- Alphabetical Chapter Dropdown Jump -->
 			{#if availableChapters.length > 1}
-				<div class="chapter-row">
+				<div class="chapter-dropdown-row">
+					<span class="dropdown-label">Jump to chapter:</span>
 					<select bind:value={selectedChapter} class="chapter-select">
 						<option value="ALL">All Chapters ({availableChapters.length})</option>
 						{#each availableChapters as ch}
@@ -191,14 +285,29 @@
 				<div class="empty-state">
 					<div class="empty-icon"><NavIcon name="book" size={28} /></div>
 					<h4>No formulas found</h4>
-					<p>Try clearing your search or switching subjects.</p>
+					<p>Try clearing your search query or choosing another chapter/subject.</p>
 					{#if search || selectedChapter !== 'ALL' || starredOnly}
 						<button type="button" class="reset-filter-btn" on:click={() => { search = ''; selectedSubject = 'ALL'; selectedChapter = 'ALL'; starredOnly = false; }}>
-							Reset filters
+							Reset all filters
 						</button>
 					{/if}
 				</div>
-			{:else}
+			{:else if selectedChapter !== 'ALL'}
+				<!-- Focused Single Chapter Mode -->
+				<div class="focused-chapter-header">
+					<div class="hero-info">
+						<span class="sub-badge {filteredFormulas[0]?.subject}">
+							{filteredFormulas[0]?.subject === 'P' ? 'Physics' : filteredFormulas[0]?.subject === 'C' ? 'Chemistry' : 'Maths'}
+						</span>
+						<h2 class="focused-title">{selectedChapter}</h2>
+						<span class="count-tag">{filteredFormulas.length} Formulas Available</span>
+					</div>
+					<button type="button" class="all-chapters-btn" on:click={resetChapter}>
+						<span>All Chapters</span>
+						<NavIcon name="arrow-right" size={13} />
+					</button>
+				</div>
+
 				<div class="formula-grid">
 					{#each filteredFormulas as item (item.id)}
 						{@const isStarred = starredIds.includes(item.id)}
@@ -245,7 +354,114 @@
 							{#if item.description}
 								<p class="formula-desc">{item.description}</p>
 							{/if}
+
+							{#if item.tags && item.tags.length > 0}
+								<div class="formula-tags">
+									{#each item.tags as tag}
+										<span class="tag-pill">#{tag}</span>
+									{/each}
+								</div>
+							{/if}
 						</article>
+					{/each}
+				</div>
+			{:else}
+				<!-- Multi-Chapter Grouped Mode -->
+				<div class="chapter-groups-container">
+					{#each chapterGroups as group (group.key)}
+						{@const isCollapsed = collapsedGroups[group.key]}
+						<section class="chapter-section {group.subject}">
+							<div class="chapter-section-header">
+								<button
+									type="button"
+									class="chapter-header-left"
+									on:click={() => toggleGroupCollapse(group.key)}
+									title={isCollapsed ? 'Expand Chapter' : 'Collapse Chapter'}
+								>
+									<span class="ch-indicator-dot {group.subject}"></span>
+									<h4 class="chapter-group-title">{group.chapterName}</h4>
+									<span class="chapter-count-pill">{group.formulas.length}</span>
+								</button>
+								<div class="chapter-header-right">
+									<button
+										type="button"
+										class="focus-btn"
+										title="View only this chapter"
+										on:click={() => selectSingleChapter(group.chapterName)}
+									>
+										Focus
+									</button>
+									<button
+										type="button"
+										class="collapse-btn"
+										on:click={() => toggleGroupCollapse(group.key)}
+										title={isCollapsed ? 'Expand' : 'Collapse'}
+									>
+										<NavIcon name={isCollapsed ? 'chevron-down' : 'chevron-right'} size={14} />
+									</button>
+								</div>
+							</div>
+
+							{#if !isCollapsed}
+								<div class="formula-grid">
+									{#each group.formulas as item (item.id)}
+										{@const isStarred = starredIds.includes(item.id)}
+										<article class="formula-card {item.subject}">
+											<div class="card-header">
+												<div class="badges">
+													<span class="sub-badge {item.subject}">
+														{item.subject === 'P' ? 'Physics' : item.subject === 'C' ? 'Chemistry' : 'Maths'}
+													</span>
+													<span class="ch-badge">{item.chapterName}</span>
+												</div>
+												<div class="card-actions">
+													<button
+														type="button"
+														class="action-btn"
+														class:active={isStarred}
+														title={isStarred ? 'Remove from bookmarks' : 'Bookmark formula'}
+														on:click={() => toggleStar(item.id)}
+													>
+														<NavIcon name="bookmark" size={14} />
+													</button>
+													<button
+														type="button"
+														class="action-btn"
+														class:copied={copiedId === item.id}
+														title="Copy LaTeX"
+														on:click={() => copyLatex(item)}
+													>
+														{#if copiedId === item.id}
+															<NavIcon name="check" size={14} />
+														{:else}
+															<NavIcon name="copy" size={14} />
+														{/if}
+													</button>
+												</div>
+											</div>
+
+											<h4 class="formula-title">{item.title}</h4>
+
+											<div class="math-render">
+												{@html renderMath(item.latex)}
+											</div>
+
+											{#if item.description}
+												<p class="formula-desc">{item.description}</p>
+											{/if}
+
+											{#if item.tags && item.tags.length > 0}
+												<div class="formula-tags">
+													{#each item.tags as tag}
+														<span class="tag-pill">#{tag}</span>
+													{/each}
+												</div>
+											{/if}
+										</article>
+									{/each}
+								</div>
+							{/if}
+						</section>
 					{/each}
 				</div>
 			{/if}
@@ -257,7 +473,7 @@
 	.vault-backdrop {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.60);
+		background: rgba(0, 0, 0, 0.65);
 		backdrop-filter: blur(28px) saturate(190%);
 		-webkit-backdrop-filter: blur(28px) saturate(190%);
 		z-index: 9998;
@@ -268,7 +484,7 @@
 		top: 0;
 		right: 0;
 		bottom: 0;
-		width: min(540px, 95vw);
+		width: min(600px, 95vw);
 		background: color-mix(in srgb, var(--surface-panel, #121020) 96%, transparent);
 		backdrop-filter: blur(36px) saturate(210%);
 		-webkit-backdrop-filter: blur(36px) saturate(210%);
@@ -463,20 +679,103 @@
 		background: color-mix(in srgb, #f59e0b 15%, transparent);
 	}
 
-	.chapter-row {
+	/* Chapter Pill Rail */
+	.chapter-rail-container {
+		width: 100%;
+		overflow: hidden;
+	}
+
+	.chapter-rail {
 		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+		overflow-x: auto;
+		padding-bottom: 0.2rem;
+		scrollbar-width: none;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	.chapter-rail::-webkit-scrollbar {
+		display: none;
+	}
+
+	.ch-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.26rem 0.6rem;
+		border-radius: 7px;
+		border: 1px solid var(--border-subtle);
+		background: var(--surface-canvas);
+		color: var(--text-secondary);
+		font-size: 0.72rem;
+		font-weight: 600;
+		white-space: nowrap;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+
+	.ch-pill:hover {
+		border-color: color-mix(in srgb, var(--accent) 50%, var(--border-subtle));
+		color: var(--text-primary);
+	}
+
+	.ch-pill.active {
+		background: color-mix(in srgb, var(--accent) 18%, var(--surface-canvas));
+		color: var(--accent);
+		border-color: var(--accent);
+		font-weight: 700;
+	}
+
+	.ch-pill.P.active {
+		background: color-mix(in srgb, #4cc9f0 18%, var(--surface-canvas));
+		color: #4cc9f0;
+		border-color: #4cc9f0;
+	}
+
+	.ch-pill.C.active {
+		background: color-mix(in srgb, #ff70a6 18%, var(--surface-canvas));
+		color: #ff70a6;
+		border-color: #ff70a6;
+	}
+
+	.ch-pill.M.active {
+		background: color-mix(in srgb, #a78bfa 18%, var(--surface-canvas));
+		color: #a78bfa;
+		border-color: #a78bfa;
+	}
+
+	.count-badge {
+		display: inline-block;
+		font-size: 0.64rem;
+		padding: 0.05rem 0.32rem;
+		border-radius: 999px;
+		background: color-mix(in srgb, currentColor 14%, transparent);
+	}
+
+	.chapter-dropdown-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.dropdown-label {
+		font-size: 0.72rem;
+		font-weight: 600;
+		color: var(--text-secondary);
+		white-space: nowrap;
 	}
 
 	.chapter-select {
-		width: 100%;
-		height: 32px;
-		border-radius: 8px;
+		flex: 1;
+		height: 30px;
+		border-radius: 7px;
 		border: 1px solid var(--border-subtle);
 		background: var(--surface-canvas);
 		color: var(--text-primary);
-		font-size: 0.78rem;
+		font-size: 0.76rem;
 		font-family: inherit;
-		padding: 0 0.6rem;
+		padding: 0 0.5rem;
 		outline: none;
 		cursor: pointer;
 	}
@@ -484,9 +783,166 @@
 	.vault-body {
 		flex: 1;
 		overflow-y: auto;
-		padding: 1rem 1.25rem 2rem;
+		padding: 1rem 1.25rem 2.5rem;
 	}
 
+	/* Focused Single Chapter Header Banner */
+	.focused-chapter-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.9rem 1.15rem;
+		background: color-mix(in srgb, var(--surface-subtle) 80%, transparent);
+		border: 1px solid var(--border-subtle);
+		border-radius: 12px;
+		margin-bottom: 1rem;
+		gap: 0.75rem;
+	}
+
+	.hero-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+	}
+
+	.focused-title {
+		margin: 0;
+		font-size: 1.1rem;
+		font-weight: 800;
+		letter-spacing: -0.01em;
+		color: var(--text-primary);
+	}
+
+	.count-tag {
+		font-size: 0.72rem;
+		color: var(--text-secondary);
+		font-weight: 600;
+	}
+
+	.all-chapters-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.4rem 0.75rem;
+		border-radius: 8px;
+		background: var(--surface-canvas);
+		border: 1px solid var(--border-subtle);
+		color: var(--text-secondary);
+		font-size: 0.74rem;
+		font-weight: 700;
+		cursor: pointer;
+		white-space: nowrap;
+		transition: all 0.15s;
+	}
+
+	.all-chapters-btn:hover {
+		color: var(--text-primary);
+		border-color: var(--accent);
+	}
+
+	/* Chapter Groups */
+	.chapter-groups-container {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+	}
+
+	.chapter-section {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.chapter-section-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.45rem 0.6rem;
+		background: color-mix(in srgb, var(--surface-subtle) 90%, transparent);
+		border-radius: 9px;
+		border: 1px solid var(--border-subtle);
+	}
+
+	.chapter-header-left {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		background: transparent;
+		border: none;
+		padding: 0;
+		cursor: pointer;
+		text-align: left;
+	}
+
+	.ch-indicator-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+	}
+
+	.ch-indicator-dot.P { background: #4cc9f0; box-shadow: 0 0 8px rgba(76, 201, 240, 0.5); }
+	.ch-indicator-dot.C { background: #ff70a6; box-shadow: 0 0 8px rgba(255, 112, 166, 0.5); }
+	.ch-indicator-dot.M { background: #a78bfa; box-shadow: 0 0 8px rgba(167, 139, 250, 0.5); }
+
+	.chapter-group-title {
+		margin: 0;
+		font-size: 0.88rem;
+		font-weight: 750;
+		color: var(--text-primary);
+		letter-spacing: -0.01em;
+	}
+
+	.chapter-count-pill {
+		font-size: 0.68rem;
+		font-weight: 700;
+		color: var(--text-secondary);
+		background: var(--surface-canvas);
+		padding: 0.08rem 0.4rem;
+		border-radius: 999px;
+		border: 1px solid var(--border-subtle);
+	}
+
+	.chapter-header-right {
+		display: flex;
+		align-items: center;
+		gap: 0.35rem;
+	}
+
+	.focus-btn {
+		font-size: 0.68rem;
+		font-weight: 700;
+		color: var(--text-secondary);
+		background: var(--surface-canvas);
+		border: 1px solid var(--border-subtle);
+		padding: 0.2rem 0.55rem;
+		border-radius: 6px;
+		cursor: pointer;
+		transition: all 0.15s;
+	}
+
+	.focus-btn:hover {
+		color: var(--accent);
+		border-color: var(--accent);
+	}
+
+	.collapse-btn {
+		width: 24px;
+		height: 24px;
+		display: grid;
+		place-items: center;
+		background: transparent;
+		border: none;
+		color: var(--text-secondary);
+		cursor: pointer;
+		padding: 0;
+		border-radius: 4px;
+	}
+
+	.collapse-btn:hover {
+		color: var(--text-primary);
+	}
+
+	/* Formula Cards */
 	.formula-grid {
 		display: flex;
 		flex-direction: column;
@@ -595,10 +1051,25 @@
 	}
 
 	.formula-desc {
-		margin: 0;
+		margin: 0 0 0.55rem;
 		font-size: 0.76rem;
 		color: var(--text-secondary);
 		line-height: 1.45;
+	}
+
+	.formula-tags {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+	}
+
+	.tag-pill {
+		font-size: 0.65rem;
+		color: var(--text-secondary);
+		background: color-mix(in srgb, var(--surface-panel) 60%, transparent);
+		padding: 0.1rem 0.35rem;
+		border-radius: 4px;
+		border: 1px solid color-mix(in srgb, var(--border-subtle) 50%, transparent);
 	}
 
 	.empty-state {
@@ -652,6 +1123,10 @@
 		}
 		.vault-body {
 			padding: 0.85rem 1rem calc(max(env(safe-area-inset-bottom), 0px) + 2rem);
+		}
+		.focused-chapter-header {
+			flex-direction: column;
+			align-items: flex-start;
 		}
 	}
 </style>

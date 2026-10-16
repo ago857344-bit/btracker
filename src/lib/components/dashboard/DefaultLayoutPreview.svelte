@@ -10,6 +10,7 @@
 	import UpNextWidget from '$lib/components/widgets/UpNextWidget.svelte';
 	import RecentActivityWidget from '$lib/components/widgets/RecentActivityWidget.svelte';
 	import YearlyHeatmapWidget from '$lib/components/widgets/YearlyHeatmapWidget.svelte';
+	import BrainDumpWidget from '$lib/components/widgets/BrainDumpWidget.svelte';
 
 	export let deviceMode: 'auto' | 'desktop' | 'tablet' | 'mobile' = 'auto';
 </script>
@@ -23,6 +24,11 @@
 	<div class="cell">
 		<WidgetShell title="Daily quote" eyebrow="Motivation" icon="quote" height="md">
 			<QuoteWidget />
+		</WidgetShell>
+	</div>
+	<div class="cell span-2">
+		<WidgetShell title="Brain Dump & Scratchpad" eyebrow="Quick Notes" icon="edit" height="md">
+			<BrainDumpWidget />
 		</WidgetShell>
 	</div>
 	<div class="cell">

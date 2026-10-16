@@ -16,6 +16,7 @@
 	import UpNextWidget from '$lib/components/widgets/UpNextWidget.svelte';
 	import RecentActivityWidget from '$lib/components/widgets/RecentActivityWidget.svelte';
 	import YearlyHeatmapWidget from '$lib/components/widgets/YearlyHeatmapWidget.svelte';
+	import BrainDumpWidget from '$lib/components/widgets/BrainDumpWidget.svelte';
 	import TargetsModal from '$lib/components/TargetsModal.svelte';
 	import MinimalistLayout from '$lib/components/dashboard/MinimalistLayout.svelte';
 	import FocusLayout from '$lib/components/dashboard/FocusLayout.svelte';
@@ -32,6 +33,7 @@
 		subjects: { title: 'Subject hubs', eyebrow: 'Questions solved', icon: 'layers', comp: SubjectCardsWidget },
 		standing: { title: 'Daily standing', eyebrow: 'Output', icon: 'trophy', comp: DailyStandingWidget },
 		'up-next': { title: 'Up next', eyebrow: 'Planner', icon: 'list', comp: UpNextWidget },
+		'brain-dump': { title: 'Brain Dump & Scratchpad', eyebrow: 'Quick Notes', icon: 'edit', comp: BrainDumpWidget },
 		activity: { title: 'Recent activity', eyebrow: 'Feed', icon: 'history', comp: RecentActivityWidget },
 		'yearly-heatmap': { title: '365-Day Study Matrix', eyebrow: 'Yearly Consistency', icon: 'history', comp: YearlyHeatmapWidget }
 	};
