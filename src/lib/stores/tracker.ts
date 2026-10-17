@@ -371,6 +371,7 @@ export function addTodoSubtask(todoId: string, title: string) {
 			if (!todo.subtasks) todo.subtasks = [];
 			todo.subtasks.push({ id: uid(), title, done: false });
 			todo.done = false; // automatically uncheck parent if a new subtask is added
+			todo.updated = Date.now();
 		}
 	});
 }
@@ -391,6 +392,7 @@ export function toggleTodoSubtask(todoId: string, subtaskId: string) {
 			} else {
 				todo.done = false;
 			}
+			todo.updated = Date.now();
 		}
 	});
 	return parentCompleted;
@@ -401,6 +403,7 @@ export function deleteTodoSubtask(todoId: string, subtaskId: string) {
 		const todo = s.todos.find(t => t.id === todoId);
 		if (todo && todo.subtasks) {
 			todo.subtasks = todo.subtasks.filter(st => st.id !== subtaskId);
+			todo.updated = Date.now();
 		}
 	});
 }

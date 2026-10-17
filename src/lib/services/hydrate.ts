@@ -153,7 +153,19 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 			v3_elo: true
 		},
 		streakFreezes: saved.streakFreezes || base.streakFreezes || { available: 2, usedDates: [] },
-		deletedTodos: saved.deletedTodos || base.deletedTodos || {},
+		deletedTodos: (() => {
+			const raw = { ...(base.deletedTodos || {}), ...(saved.deletedTodos || {}) };
+			const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+			for (const id of Object.keys(raw)) {
+				if (raw[id] < cutoff) delete raw[id];
+			}
+			return raw;
+		})(),
+		todos: (() => {
+			const raw = saved.todos || base.todos || [];
+			const delMap = saved.deletedTodos || base.deletedTodos || {};
+			return raw.filter((t) => !delMap[t.id]);
+		})(),
 		meta: {
 			...base.meta,
 			...(saved.meta || {})

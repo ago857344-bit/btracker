@@ -122,10 +122,7 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 	const secondaryMap = cloudIsNewer ? locTodoMap : remTodoMap;
 
 	const isTombstoned = (item: TodoItem) => {
-		const delTime = mergedDeletedTodos[item.id];
-		if (!delTime) return false;
-		const itemTime = item.updated || item.created || 0;
-		return itemTime <= delTime;
+		return Boolean(mergedDeletedTodos[item.id]);
 	};
 
 	for (const prim of primaryTodos) {
@@ -135,8 +132,12 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		if (!sec) {
 			mergedTodos.push({ ...prim });
 		} else {
-			// Item exists in both: merge completion status and subtasks
-			const isDone = Boolean(prim.done || sec.done);
+			// Item exists in both: merge completion status by latest update timestamp and union subtasks
+			const primTime = prim.updated || prim.created || 0;
+			const secTime = sec.updated || sec.created || 0;
+			const isDone = primTime !== secTime
+				? (primTime > secTime ? prim.done : sec.done)
+				: Boolean(prim.done || sec.done);
 
 			// Merge subtasks
 			const subMap = new Map((prim.subtasks || []).map((s) => [s.id, { ...s }]));
@@ -156,7 +157,7 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 				done: isDone || allSubsDone,
 				subtasks: mergedSubtasks.length > 0 ? mergedSubtasks : prim.subtasks,
 				roiTag: prim.roiTag || sec.roiTag,
-				updated: Math.max(prim.updated || prim.created || 0, sec.updated || sec.created || 0)
+				updated: Math.max(primTime, secTime)
 			});
 		}
 	}
@@ -236,6 +237,48 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		v3_elo: true
 	};
 
+	// 8. Chapter checklist grids: Union columns, data marks, and started flags
+	const allGridSubs = new Set([
+		...Object.keys(base.chapterGrids || {}),
+		...Object.keys(remote.chapterGrids || {})
+	]);
+	const mergedGrids: Record<string, any> = {};
+	for (const sub of allGridSubs) {
+		const baseG = base.chapterGrids?.[sub];
+		const remG = remote.chapterGrids?.[sub];
+		if (!baseG && !remG) continue;
+		if (!baseG) {
+			mergedGrids[sub] = structuredClone(remG);
+			continue;
+		}
+		if (!remG) {
+			mergedGrids[sub] = structuredClone(baseG);
+			continue;
+		}
+		const cols = [...(prefSource.chapterGrids?.[sub]?.cols || baseG.cols || [])];
+		const otherCols = prefSource === remote ? (baseG.cols || []) : (remG.cols || []);
+		for (const c of otherCols) {
+			if (!cols.includes(c)) cols.push(c);
+		}
+		const allRowKeys = new Set([...Object.keys(baseG.data || {}), ...Object.keys(remG.data || {})]);
+		const data: Record<string, string[]> = {};
+		for (const rk of allRowKeys) {
+			const bRow = baseG.data?.[rk] || [];
+			const rRow = remG.data?.[rk] || [];
+			const maxLen = Math.max(cols.length, bRow.length, rRow.length);
+			const rowArr: string[] = [];
+			for (let i = 0; i < maxLen; i++) {
+				rowArr[i] = (bRow[i] === '✓' || rRow[i] === '✓') ? '✓' : '';
+			}
+			data[rk] = rowArr;
+		}
+		const started: Record<string, boolean> = {
+			...(baseG.started || {}),
+			...(remG.started || {})
+		};
+		mergedGrids[sub] = { cols, data, started };
+	}
+
 	const merged: TrackerState = {
 		...prefSource,
 		d: mergedD,
@@ -248,6 +291,7 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		log: mergedLog,
 		todos: mergedTodos,
 		deletedTodos: mergedDeletedTodos,
+		chapterGrids: Object.keys(mergedGrids).length > 0 ? mergedGrids : prefSource.chapterGrids || {},
 		onboarded: Boolean(base.onboarded || remote.onboarded),
 		h: mergedH,
 		hd: Array.from(mergedHdMap.values()),
@@ -304,6 +348,7 @@ export async function pullAndSync() {
 		const merged = mergeTrackerStates(local, cloud);
 		replaceTracker(merged, false);
 		await saveTrackerState(merged);
+		schedulePush(merged);
 		syncStatus.set('synced');
 	} catch (e) {
 		console.error("Auto pull & sync failed:", e);

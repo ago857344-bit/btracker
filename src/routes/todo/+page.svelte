@@ -44,9 +44,12 @@ async function runAiTriage() {
     }
 }
 
+	let taskFilter: 'all' | 'open' | 'done' = 'all';
+
 	$: todos = $tracker.todos;
 	$: open = todos.filter((t) => !t.done);
 	$: done = todos.filter((t) => t.done);
+	$: displayedTodos = taskFilter === 'open' ? open : taskFilter === 'done' ? done : todos;
 
 	function submit() {
 		const title = draft.trim();
@@ -208,15 +211,27 @@ async function runAiTriage() {
 			<button type="submit" disabled={!draft.trim()}>Add</button>
 		</form>
         
-        <div style="display: flex; justify-content: flex-end; margin-top: -0.2rem; margin-bottom: 0.2rem;">
+		<div class="task-toolbar">
+			<div class="task-filters">
+				<button type="button" class="filter-pill" class:active={taskFilter === 'all'} on:click={() => (taskFilter = 'all')}>
+					All ({todos.length})
+				</button>
+				<button type="button" class="filter-pill" class:active={taskFilter === 'open'} on:click={() => (taskFilter = 'open')}>
+					Active ({open.length})
+				</button>
+				<button type="button" class="filter-pill" class:active={taskFilter === 'done'} on:click={() => (taskFilter = 'done')}>
+					Completed ({done.length})
+				</button>
+			</div>
             <button type="button" class="btn-triage" class:loading={triaging} on:click={runAiTriage} disabled={triaging || !todos.some(t => !t.done)}>
                 <NavIcon name="sparkles" size={13} /> {triaging ? 'Triaging...' : 'AI Smart Triage'}
             </button>
         </div>
 
 		{#if todos.length}
-			<ul class="list">
-				{#each todos as item (item.id)}
+			{#if displayedTodos.length}
+				<ul class="list">
+					{#each displayedTodos as item (item.id)}
 					<li
 						class="row"
 						class:done={item.done}
@@ -296,7 +311,13 @@ async function runAiTriage() {
 						</div>
 					{/if}
 				{/each}
-			</ul>
+				</ul>
+			{:else}
+				<div class="empty" style="padding: 1.6rem 1rem;">
+					<b>No {taskFilter === 'open' ? 'active' : 'completed'} tasks</b>
+					<p>{taskFilter === 'open' ? 'All caught up! Great job.' : 'No tasks marked completed yet.'}</p>
+				</div>
+			{/if}
 			{#if done.length}
 				<button type="button" class="clear" on:click={clearDoneTodos}><NavIcon name="trash" size={13} /> Clear {done.length} completed</button>
 			{/if}
@@ -819,5 +840,43 @@ async function runAiTriage() {
 	.roi-tag.time-trap { background: color-mix(in srgb, var(--warning) 20%, transparent); color: var(--warning); border: 1px solid color-mix(in srgb, var(--warning) 40%, transparent); }
 	.roi-tag.core { background: color-mix(in srgb, var(--accent) 20%, transparent); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); }
 	.roi-tag.normal { display: none; }
+
+	.task-toolbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: .5rem;
+		margin-top: -0.2rem;
+		margin-bottom: 0.35rem;
+	}
+	.task-filters {
+		display: flex;
+		align-items: center;
+		gap: .35rem;
+		flex-wrap: wrap;
+	}
+	.filter-pill {
+		display: inline-flex;
+		align-items: center;
+		padding: .26rem .65rem;
+		font-size: .72rem;
+		font-weight: 700;
+		color: var(--text-secondary);
+		background: var(--surface-panel);
+		border: 1px solid var(--border-subtle);
+		border-radius: 999px;
+		cursor: pointer;
+		transition: all .15s ease;
+	}
+	.filter-pill:hover {
+		color: var(--text-primary);
+		border-color: var(--accent);
+	}
+	.filter-pill.active {
+		background: var(--accent);
+		color: #fff;
+		border-color: var(--accent);
+	}
 
 </style>
