@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tracker, updateTracker, celebration } from '$lib/stores/tracker';
+	import { tracker, updateTracker, celebration, addTodos } from '$lib/stores/tracker';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { uiClick } from '$lib/utils/feedback';
 
@@ -91,23 +91,7 @@
 
 		if (lines.length === 0) return;
 
-		let addedCount = 0;
-		updateTracker((draft) => {
-			if (!draft.todos) draft.todos = [];
-			for (const line of lines) {
-				// Don't add duplicate if already in todos
-				if (!draft.todos.some((t) => t.title.toLowerCase() === line.toLowerCase())) {
-					draft.todos.unshift({
-						id: 'todo_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
-						title: line,
-						done: false,
-						created: Date.now(),
-						source: 'brain-dump'
-					});
-					addedCount++;
-				}
-			}
-		});
+		const addedCount = addTodos(lines.map((l) => ({ title: l, source: 'brain-dump' })));
 
 		if (addedCount > 0) {
 			celebration.set(`Converted ${addedCount} item${addedCount > 1 ? 's' : ''} to To-Do list!`);

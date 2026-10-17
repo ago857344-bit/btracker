@@ -458,7 +458,7 @@
 				next = {
 					...importLegacyCode(compact.slice(jeeAt)),
 					ui: $tracker.ui, meta: $tracker.meta, lib: $tracker.lib,
-					gt: $tracker.gt, todos: $tracker.todos, refl: $tracker.refl, sess: $tracker.sess
+					gt: $tracker.gt, todos: $tracker.todos, deletedTodos: $tracker.deletedTodos, chapterGrids: $tracker.chapterGrids, refl: $tracker.refl, sess: $tracker.sess
 				};
 			} else {
 				next = mergeImportedProgress(parseImportedProgress<Partial<TrackerState>>(input), $tracker);

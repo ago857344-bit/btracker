@@ -56,6 +56,7 @@ async function runAiTriage() {
 		if (!title) return;
 		addTodo({ title });
 		draft = '';
+		if (taskFilter === 'done') taskFilter = 'all';
 	}
 
 	
@@ -185,6 +186,7 @@ async function runAiTriage() {
 		const added = addTodos(chosen.map((m) => ({ title: `${m.subName}: ${m.name}`, sub: m.code, ch: m.no, source: 'btest' as const })));
 		celebration.set(added ? `${added} chapter task${added > 1 ? 's' : ''} added` : 'No new tasks (already added)');
 		tab = 'tasks';
+		taskFilter = 'all';
 		matches = []; selected = new Set(); scanned = false; fileName = '';
 	}
 </script>

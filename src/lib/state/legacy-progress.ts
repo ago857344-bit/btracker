@@ -1,4 +1,5 @@
 import type { TrackerState } from '$lib/types/tracker';
+import { normalizeState } from '$lib/services/hydrate';
 
 /**
  * TrackerState sections a legacy export is allowed to overwrite. `ui`,
@@ -6,7 +7,7 @@ import type { TrackerState } from '$lib/types/tracker';
  */
 const IMPORTABLE_KEYS = [
 	'd', 'n', 'r', 'x', 'h', 'hd', 'log', 'stat', 'marks', 'dl', 'norec', 'hwSort',
-	'goals', 'col', 'bm', 'notes', 'an', 'rev', 'meta', 'lib', 'gt', 'todos', 'refl',
+	'goals', 'col', 'bm', 'notes', 'an', 'rev', 'meta', 'lib', 'gt', 'todos', 'deletedTodos', 'refl',
 	'sess', 'theme', 'pom', 'chapterGrids'
 ] as const satisfies readonly (keyof TrackerState)[];
 
@@ -30,5 +31,5 @@ export function mergeImportedProgress(parsed: unknown, base: TrackerState): Trac
 	const next = structuredClone(base);
 	for (const key of recognized) (next as Record<ImportableKey, unknown>)[key] = structuredClone(source[key]);
 	next.savedAt = new Date().toISOString();
-	return next;
+	return normalizeState(next);
 }

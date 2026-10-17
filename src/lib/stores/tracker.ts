@@ -338,6 +338,11 @@ export function toggleTodo(id: string) {
 		if (item) {
 			item.done = !item.done;
 			item.updated = Date.now();
+			if (item.subtasks && item.subtasks.length > 0) {
+				for (const st of item.subtasks) {
+					st.done = item.done;
+				}
+			}
 		}
 	});
 }
