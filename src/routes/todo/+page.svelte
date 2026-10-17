@@ -9,7 +9,7 @@
 import { triageTodos } from '$lib/services/aiTriage';
 	import {
 		addChecklistColumn, addTodo, addTodos, celebration, CHECKLIST_DEFAULT_COLS, clearDoneTodos, deleteTodo,
-		removeChecklistColumn, reorderTodo, toggleChecklistCell, toggleTodo, tracker, updateTracker, addTodoSubtask, toggleTodoSubtask, deleteTodoSubtask
+		removeChecklistColumn, reorderTodo, toggleChecklistCell, toggleChapterStarted, toggleTodo, tracker, updateTracker, addTodoSubtask, toggleTodoSubtask, deleteTodoSubtask
 	} from '$lib/stores/tracker';
 
 	let tab: 'tasks' | 'checklist' | 'btest' = 'tasks';
@@ -91,11 +91,36 @@ async function runAiTriage() {
 
 	/* checklist -------------------------------------------------------- */
 	let clSub = SYLLABUS[0]?.code ?? 'P';
+	let clFilter: 'all' | 'started' | 'done' | 'unstarted' = 'all';
 
 	$: grids = $tracker.chapterGrids;
 	$: clGrid = grids?.[clSub];
 	$: clCols = clGrid?.cols ?? CHECKLIST_DEFAULT_COLS;
 	$: clChapters = allChapters(clSub);
+
+	$: isChStarted = (chNo: number) => {
+		const hasManualStart = Boolean(clGrid?.started?.[chNo]);
+		const hasCheckedCell = Boolean(clGrid?.data[chNo]?.some((v: string) => v === '✓'));
+		return hasManualStart || hasCheckedCell;
+	};
+
+	$: isChDone = (chNo: number) => {
+		if (!clCols.length) return false;
+		return clCols.every((_, i) => clGrid?.data[chNo]?.[i] === '✓');
+	};
+
+	$: ongoingCount = clChapters.filter((ch) => isChStarted(ch.no) && !isChDone(ch.no)).length;
+	$: doneCount = clChapters.filter((ch) => isChDone(ch.no)).length;
+	$: unstartedCount = clChapters.filter((ch) => !isChStarted(ch.no)).length;
+
+	$: displayedChapters = clChapters.filter((ch) => {
+		const started = isChStarted(ch.no);
+		const done = isChDone(ch.no);
+		if (clFilter === 'started') return started && !done;
+		if (clFilter === 'done') return done;
+		if (clFilter === 'unstarted') return !started;
+		return true;
+	});
 
 	const checklistPct = (subCode: string, source: typeof grids) => {
 		const chapters = allChapters(subCode);
@@ -296,12 +321,29 @@ async function runAiTriage() {
 				{/each}
 			</div>
 
-			<div class="tabs subtabs" role="tablist">
-				{#each SYLLABUS as sub (sub.code)}
-					<button type="button" role="tab" aria-selected={clSub === sub.code} class:selected={clSub === sub.code} on:click={() => (clSub = sub.code)}>
-						<i style="background: {sub.accent}"></i>{sub.name}
+			<div class="cl-toolbar">
+				<div class="tabs subtabs" role="tablist">
+					{#each SYLLABUS as sub (sub.code)}
+						<button type="button" role="tab" aria-selected={clSub === sub.code} class:selected={clSub === sub.code} on:click={() => (clSub = sub.code)}>
+							<i style="background: {sub.accent}"></i>{sub.name}
+						</button>
+					{/each}
+				</div>
+
+				<div class="cl-filter-group">
+					<button type="button" class="cl-filter-btn" class:active={clFilter === 'all'} on:click={() => (clFilter = 'all')}>
+						All ({clChapters.length})
 					</button>
-				{/each}
+					<button type="button" class="cl-filter-btn ongoing" class:active={clFilter === 'started'} on:click={() => (clFilter = 'started')}>
+						<span class="indicator-dot ongoing"></span> Started ({ongoingCount})
+					</button>
+					<button type="button" class="cl-filter-btn done" class:active={clFilter === 'done'} on:click={() => (clFilter = 'done')}>
+						<span class="indicator-dot done"></span> Done ({doneCount})
+					</button>
+					<button type="button" class="cl-filter-btn" class:active={clFilter === 'unstarted'} on:click={() => (clFilter = 'unstarted')}>
+						Unstarted ({unstartedCount})
+					</button>
+				</div>
 			</div>
 
 			<div class="tblwrap">
@@ -316,9 +358,38 @@ async function runAiTriage() {
 						</tr>
 					</thead>
 					<tbody>
-						{#each clChapters as ch (ch.no)}
-							<tr>
-								<td class="chcol">{ch.no}. {ch.name}</td>
+						{#each displayedChapters as ch (ch.no)}
+							{@const started = isChStarted(ch.no)}
+							{@const done = isChDone(ch.no)}
+							<tr class:row-ongoing={started && !done} class:row-done={done}>
+								<td class="chcol">
+									<div class="ch-cell">
+										<button
+											type="button"
+											class="start-btn"
+											class:started={started && !done}
+											class:done={done}
+											title={done ? "Chapter fully completed!" : started ? "Chapter in progress · Click to toggle" : "Mark as started (lectures/study began)"}
+											on:click={() => { uiPop(); toggleChapterStarted(clSub, ch.no); }}
+										>
+											{#if done}
+												<NavIcon name="check" size={13} />
+											{:else if started}
+												<span class="ongoing-dot"></span>
+											{:else}
+												<span class="idle-ring"></span>
+											{/if}
+										</button>
+										<div class="ch-title-wrap">
+											<span class="ch-title-text">{ch.no}. {ch.name}</span>
+											{#if done}
+												<span class="status-pill done">Done</span>
+											{:else if started}
+												<span class="status-pill ongoing">Started</span>
+											{/if}
+										</div>
+									</div>
+								</td>
 								{#each clCols as _, i (i)}
 									<td>
 										<button
@@ -560,6 +631,142 @@ async function runAiTriage() {
 	.pbar-track { height: 7px; border-radius: 99px; background: var(--surface-subtle); overflow: hidden; }
 	.pbar-fill { height: 100%; border-radius: inherit; transition: width .3s ease; }
 
+	.cl-toolbar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		flex-wrap: wrap;
+		gap: .75rem;
+	}
+	.cl-filter-group {
+		display: flex;
+		align-items: center;
+		gap: .35rem;
+		flex-wrap: wrap;
+	}
+	.cl-filter-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: .35rem;
+		padding: .28rem .65rem;
+		font-size: .72rem;
+		font-weight: 700;
+		color: var(--text-secondary);
+		background: var(--surface-panel);
+		border: 1px solid var(--border-subtle);
+		border-radius: 999px;
+		cursor: pointer;
+		transition: all .15s ease;
+	}
+	.cl-filter-btn:hover {
+		color: var(--text-primary);
+		border-color: var(--accent);
+	}
+	.cl-filter-btn.active {
+		background: var(--accent);
+		color: #fff;
+		border-color: var(--accent);
+	}
+	.indicator-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		display: inline-block;
+	}
+	.indicator-dot.ongoing { background: var(--accent); }
+	.indicator-dot.done { background: #2f9e6e; }
+	.cl-filter-btn.active .indicator-dot { background: #fff; }
+
+	.ch-cell {
+		display: flex;
+		align-items: center;
+		gap: .65rem;
+	}
+	.start-btn {
+		display: inline-grid;
+		place-items: center;
+		width: 24px;
+		height: 24px;
+		border: 1.5px solid var(--border-subtle);
+		border-radius: 7px;
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		cursor: pointer;
+		flex-shrink: 0;
+		transition: all .14s ease;
+		padding: 0;
+	}
+	.start-btn:hover {
+		border-color: var(--accent);
+		transform: scale(1.08);
+	}
+	.start-btn.started {
+		background: color-mix(in srgb, var(--accent) 18%, transparent);
+		border-color: var(--accent);
+		color: var(--accent);
+		box-shadow: 0 0 8px -2px color-mix(in srgb, var(--accent) 40%, transparent);
+	}
+	.start-btn.done {
+		background: #2f9e6e;
+		border-color: #2f9e6e;
+		color: #fff;
+	}
+	.idle-ring {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		border: 1.5px solid currentColor;
+		opacity: .55;
+	}
+	.ongoing-dot {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--accent);
+		box-shadow: 0 0 6px var(--accent);
+	}
+	.ch-title-wrap {
+		display: inline-flex;
+		align-items: center;
+		gap: .45rem;
+		min-width: 0;
+		flex: 1;
+	}
+	.ch-title-text {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.status-pill {
+		font-size: .62rem;
+		font-weight: 750;
+		padding: .08rem .4rem;
+		border-radius: 4px;
+		letter-spacing: .03em;
+		text-transform: uppercase;
+		flex-shrink: 0;
+	}
+	.status-pill.ongoing {
+		background: color-mix(in srgb, var(--accent) 16%, transparent);
+		color: var(--accent);
+	}
+	.status-pill.done {
+		background: color-mix(in srgb, #2f9e6e 16%, transparent);
+		color: #2f9e6e;
+	}
+	.row-ongoing td {
+		background: color-mix(in srgb, var(--accent) 2.5%, var(--surface-panel));
+	}
+	.row-ongoing td.chcol {
+		background: color-mix(in srgb, var(--accent) 4.5%, var(--surface-panel));
+	}
+	.row-done td {
+		background: color-mix(in srgb, #2f9e6e 2.5%, var(--surface-panel));
+	}
+	.row-done td.chcol {
+		background: color-mix(in srgb, #2f9e6e 4.5%, var(--surface-panel));
+	}
+
 	.subtabs button { display: inline-flex; align-items: center; gap: .45rem; }
 	.subtabs i { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
 
@@ -569,7 +776,7 @@ async function runAiTriage() {
 	.sheet th:last-child, .sheet td:last-child { border-right: 0; }
 	.sheet tbody tr:last-child td { border-bottom: 0; }
 	.sheet thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-panel); font-size: .72rem; font-weight: 800; letter-spacing: .02em; color: var(--text-secondary); text-transform: uppercase; }
-	.chcol { position: sticky; left: 0; z-index: 2; background: var(--surface-panel); text-align: left !important; min-width: 210px; font-weight: 600; color: var(--text-primary); box-shadow: 1px 0 0 var(--border-subtle); }
+	.chcol { position: sticky; left: 0; z-index: 2; background: var(--surface-panel); text-align: left !important; min-width: 240px; font-weight: 600; color: var(--text-primary); box-shadow: 1px 0 0 var(--border-subtle); }
 	thead .chcol { z-index: 3; text-transform: none !important; font-size: .78rem !important; color: var(--text-primary) !important; }
 	.coldel { margin-left: .4rem; padding: 0 .25rem; border: 0; background: transparent; color: var(--text-secondary); font-size: .85rem; line-height: 1; cursor: pointer; border-radius: 6px; }
 	.coldel:hover { color: var(--danger, #e0455a); background: var(--surface-subtle); }
@@ -582,7 +789,7 @@ async function runAiTriage() {
 
 	@media (max-width: 760px) {
 		.tblwrap { max-height: none; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-		.chcol { position: sticky; left: 0; min-width: 140px; }
+		.chcol { position: sticky; left: 0; min-width: 170px; }
 	}
 
 	.sub-progress { display: flex; align-items: center; gap: 8px; margin-top: 4px; }

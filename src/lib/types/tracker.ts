@@ -75,7 +75,7 @@ export interface TodoItem {
 }
 
 /** Per-subject chapter checklist grid: custom columns, ✓ marks keyed by chapter no. */
-export interface ChapterGrid { cols: string[]; data: Record<string, string[]> }
+export interface ChapterGrid { cols: string[]; data: Record<string, string[]>; started?: Record<string | number, boolean>; }
 
 export interface GoalMilestone { id: string; t: string; done: boolean }
 export interface TrackerGoal {

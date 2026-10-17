@@ -423,7 +423,8 @@ export const CHECKLIST_DEFAULT_COLS = ['Read Theory', 'Solved PYQs', 'Short Note
 
 const checklistGrid = (s: TrackerState, sub: string) => {
 	s.chapterGrids ??= {};
-	s.chapterGrids[sub] ??= { cols: [...CHECKLIST_DEFAULT_COLS], data: {} };
+	s.chapterGrids[sub] ??= { cols: [...CHECKLIST_DEFAULT_COLS], data: {}, started: {} };
+	s.chapterGrids[sub].started ??= {};
 	return s.chapterGrids[sub];
 };
 
@@ -432,6 +433,18 @@ export function toggleChecklistCell(sub: string, chNo: number, colIdx: number) {
 		const grid = checklistGrid(s, sub);
 		const row = (grid.data[chNo] ??= []);
 		row[colIdx] = row[colIdx] === '✓' ? '' : '✓';
+		if (row[colIdx] === '✓') {
+			grid.started ??= {};
+			grid.started[chNo] = true;
+		}
+	});
+}
+
+export function toggleChapterStarted(sub: string, chNo: number) {
+	updateTracker((s) => {
+		const grid = checklistGrid(s, sub);
+		grid.started ??= {};
+		grid.started[chNo] = !grid.started[chNo];
 	});
 }
 
