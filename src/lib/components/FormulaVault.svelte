@@ -5,6 +5,7 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { JEE_FORMULAS, type FormulaItem } from '$lib/data/formulas';
 	import { uiClick } from '$lib/utils/feedback';
+	import { formulaVaultFilter } from '$lib/stores/tracker';
 
 	export let open = false;
 
@@ -18,6 +19,16 @@
 	let copiedId: string | null = null;
 	let copyTimeout: ReturnType<typeof setTimeout> | undefined;
 	let collapsedGroups: Record<string, boolean> = {};
+
+	$: if (open && $formulaVaultFilter) {
+		const filter = $formulaVaultFilter;
+		if (filter.search !== undefined || filter.chapter !== undefined || filter.subject !== undefined) {
+			if (filter.search !== undefined) search = filter.search;
+			if (filter.chapter !== undefined) selectedChapter = filter.chapter;
+			if (filter.subject !== undefined) selectedSubject = filter.subject;
+			formulaVaultFilter.set({});
+		}
+	}
 
 	onMount(() => {
 		try {

@@ -213,6 +213,19 @@ export const celebration = writable<string | null>(null);
 export const plannerPrompt = writable<string | null>(null);
 export const customizingHome = writable(false);
 export const formulaVaultOpen = writable(false);
+export interface FormulaVaultFilter {
+	search?: string;
+	chapter?: string;
+	subject?: 'ALL' | 'P' | 'C' | 'M';
+}
+export const formulaVaultFilter = writable<FormulaVaultFilter>({});
+
+export function openFormulaVault(params?: FormulaVaultFilter) {
+	if (params) {
+		formulaVaultFilter.set(params);
+	}
+	formulaVaultOpen.set(true);
+}
 
 export function setProfileName(name: string) { updateTracker((s) => { s.meta.name = name; }); }
 export function setExamDate(date: string | null) { updateTracker((s) => { s.meta.exam = date; }); }
