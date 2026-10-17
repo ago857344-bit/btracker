@@ -12,7 +12,7 @@ import type { TrackerState,
 	FocusSession
 } from '$lib/types/tracker';
 import { createChapterRecallData } from '$lib/state/defaults';
-import { updateDecayAfterRevision } from '$lib/state/decay';
+import { updateDecayAfterRevision, daysUntilThreshold } from '$lib/state/decay';
 import { recordSubtopicRevision, addSubtopicToChapter } from '$lib/state/subtopics';
 import { todayKey, dayKeyOf, addDaysKey } from '$lib/state/dates';
 import { intervalFor } from '$lib/state/subjects';
@@ -33,13 +33,37 @@ export function addChapterToRecall(chapterKey: string, weightage: 1 | 2 | 3 = 2)
 			return $tracker; // Already exists
 		}
 
+		const today = todayKey();
+		const newCh = createChapterRecallData(chapterKey, weightage);
+		newCh.userAdded = true;
+		newCh.nextRevisionDate = today;
+
+		const [sub, ...rest] = chapterKey.split(/[-:]/);
+		const chName = rest.join('-').trim();
+		const colonKey = `${sub}:${chName}`;
+
 		return {
 			...$tracker,
 			rev: {
 				...$tracker.rev,
 				chapters: {
 					...$tracker.rev.chapters,
-					[chapterKey]: createChapterRecallData(chapterKey, weightage)
+					[chapterKey]: newCh
+				},
+				items: {
+					...$tracker.rev.items,
+					[colonKey]: {
+						weight: weightage,
+						last: null,
+						method: 'steady',
+						step: 1,
+						sub,
+						ch: chName,
+						ef: 2.5,
+						remindDate: today,
+						remindDone: false,
+						userAdded: true
+					}
 				}
 			}
 		};
@@ -90,24 +114,54 @@ export function recordChapterRevision(
 	timeSpentMinutes: number = 0
 ) {
 	_updateAndSave(($tracker) => {
-		const chapter = $tracker.rev.chapters[chapterKey];
-		if (!chapter) return $tracker;
+		const chapter = $tracker.rev.chapters[chapterKey] || createChapterRecallData(chapterKey, 2);
+		chapter.userAdded = true;
+
+		const newDecay = updateDecayAfterRevision(chapter.decay, confidence);
+		const today = todayKey();
+
+		// Schedule next revision based on confidence and new half-life
+		const daysLeft = Math.max(1, Math.round(daysUntilThreshold(newDecay, 60)));
+		const nextDate = addDaysKey(today, daysLeft);
 
 		const updatedChapter: ChapterRecallData = {
 			...chapter,
-			decay: updateDecayAfterRevision(chapter.decay, confidence),
-			modalities: [...new Set([...chapter.modalities, ...modalities])] as ModalityTag[]
+			decay: newDecay,
+			modalities: [...new Set([...chapter.modalities, ...modalities])] as ModalityTag[],
+			nextRevisionDate: nextDate
+		};
+
+		// Also synchronize rev.items
+		const [sub, ...rest] = chapterKey.split(/[-:]/);
+		const chName = rest.join('-').trim();
+		const colonKey = `${sub}:${chName}`;
+		const existingItem = $tracker.rev.items[colonKey] || $tracker.rev.items[chapterKey];
+		const nextStep = existingItem ? (existingItem.step ?? 1) + 1 : 1;
+		
+		const updatedItems = {
+			...$tracker.rev.items,
+			[colonKey]: {
+				weight: chapter.weightage,
+				last: Date.now(),
+				method: existingItem?.method ?? 'steady',
+				step: nextStep,
+				sub,
+				ch: chName,
+				ef: existingItem?.ef ?? 2.5,
+				remindDate: nextDate,
+				remindDone: false,
+				userAdded: true
+			}
 		};
 
 		// Update daily heatmap
-		const today = todayKey();
 		const todayData = $tracker.rev.dailyHeatmap[today] || { revisedCount: 0, totalTimeMinutes: 0 };
 
 		// Gamification Update
 		let xpGain = timeSpentMinutes > 0 ? timeSpentMinutes * 10 : 50; // baseline for quick revisions
 		const accMap: Record<ConfidenceRating, number> = { 'again': 40, 'hard': 70, 'good': 85, 'easy': 100 };
 		const accuracy = accMap[confidence] || 70;
-		const subCode = chapterKey.split(/[-:]/)[0] || 'P';
+		const subCode = sub || 'P';
 		
 		const gamification = structuredClone($tracker.gamification || { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } });
 		gamification.xp += xpGain;
@@ -122,6 +176,7 @@ export function recordChapterRevision(
 					...$tracker.rev.chapters,
 					[chapterKey]: updatedChapter
 				},
+				items: updatedItems,
 				dailyHeatmap: {
 					...$tracker.rev.dailyHeatmap,
 					[today]: {

@@ -6,8 +6,10 @@ import { SUBJECTS, dayPartOf, intervalFor, subjectColor } from '$lib/state/subje
 import { cellKey, questionCount, questionKey } from '$lib/state/syllabus';
 import { isDone, isFlag, resultOf, setDone, setFlag, setResult, setStars, starsOf, subjectStats } from '$lib/state/questions';
 import { applyEloResult } from '$lib/state/gamification';
+import { updateDecayAfterRevision } from '$lib/state/decay';
 import type {
-	GoalTarget, HomeworkItem, StudySession, TimerState, TrackerGoal, TrackerState, WidgetLayout
+	GoalTarget, HomeworkItem, StudySession, TimerState, TrackerGoal, TrackerState, WidgetLayout,
+	ConfidenceRating
 } from '$lib/types/tracker';
 
 export const tracker = writable<TrackerState>(createInitialTrackerState());
@@ -195,9 +197,6 @@ export function logStudySession(session: StudySession) {
 export function recordFocus(opts: { startedEpochMinutes: number; durationMinutes: number; activity: string; deadlineId: string | null; speedrun?: number; target?: number; completed?: number; subject?: string | null; chapter?: string | null }) {
 	const dur = Math.max(1, Math.round(opts.durationMinutes));
 	logStudySession([opts.startedEpochMinutes, dur, opts.activity, opts.deadlineId, opts.speedrun, opts.target, opts.completed, opts.subject ?? undefined, opts.chapter ?? undefined]);
-	if (opts.subject && opts.chapter && sessionBoostHandler) {
-		sessionBoostHandler(opts.subject, opts.chapter, dur);
-	}
 }
 
 export const sessionsToday = derived(tracker, ($tracker) => $tracker.log.filter((session) => sessionDayKey(session) === todayKey()));
@@ -540,8 +539,21 @@ export function completeRevision(key: string, rating?: number) {
 		item.step = step;
 		item.ef = ef;
 		item.remindDone = false;
-		item.remindDate = addDaysKey(todayKey(), intervalFor(method, step, ef));
+		const nextDate = addDaysKey(todayKey(), intervalFor(method, step, ef));
+		item.remindDate = nextDate;
 		
+		// Synchronize corresponding rev.chapters item if it exists
+		const sub = item.sub || key.split(/[-:]/)[0];
+		const ch = item.ch || key.split(/[-:]/).slice(1).join('-');
+		const hyphenKey = `${sub}-${ch}`;
+		const chapter = s.rev.chapters[hyphenKey] || s.rev.chapters[key];
+		if (chapter) {
+			const confidenceMap: Record<number, ConfidenceRating> = { 1: 'again', 3: 'hard', 4: 'good', 5: 'easy' };
+			const conf: ConfidenceRating = (rating && confidenceMap[rating]) ? confidenceMap[rating] : 'good';
+			chapter.decay = updateDecayAfterRevision(chapter.decay, conf);
+			chapter.nextRevisionDate = nextDate;
+		}
+
 		// Gamification Update
 		if (!s.gamification) s.gamification = { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } };
 		s.gamification.xp += 50; // Flat XP for quick inline revisions

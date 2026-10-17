@@ -190,6 +190,8 @@ export interface ChapterRecallData {
 	}>;
 	/** Next scheduled spaced revision date (YYYY-MM-DD) */
 	nextRevisionDate?: string;
+	/** Explicitly added by user */
+	userAdded?: boolean;
 }
 
 export interface StudyBlock {
@@ -226,6 +228,8 @@ export interface RevisionItem {
 	weight: number; last: number | null; remindDate?: DayKey; remindDone?: boolean;
 	remindEvery?: 'week' | 'month'; note?: string;
 	method?: 'steady' | 'fast' | 'smart'; step?: number; sub?: string; ch?: string; ef?: number;
+	/** Explicitly added by user */
+	userAdded?: boolean;
 }
 
 export interface RevisionState {

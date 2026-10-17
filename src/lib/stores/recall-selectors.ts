@@ -31,32 +31,36 @@ export const chaptersByPriority = derived(tracker, ($tracker) => {
 });
 
 /**
- * Derived store: Chapters due today (score below fading threshold)
+ * Derived store: Chapters due today (score below fading threshold OR scheduled due date reached)
  * Excludes unstudied / phantom chapters.
  */
 export const chaptersDueToday = derived(tracker, ($tracker) => {
+	const today = todayKey();
 	const chapters = Object.values($tracker.rev.chapters);
 	return chapters
 		.filter((ch) => {
 			if (!isChapterStudied($tracker, ch.chapterKey)) return false;
 			const score = calculateCurrentScore(ch.decay);
-			return score < 60; // Below fading threshold
+			const isScheduledDue = Boolean(ch.nextRevisionDate && ch.nextRevisionDate <= today);
+			return isScheduledDue || score < 60; // Scheduled due date reached OR score below fading threshold
 		})
 		.map((ch) => calculateChapterPriority(ch.chapterKey, ch.weightage, ch.decay))
 		.sort((a, b) => a.currentScore - b.currentScore); // Sort by lowest score first
 });
 
 /**
- * Derived store: Chapters in critical state (score below critical threshold)
+ * Derived store: Chapters in critical state (score below critical threshold OR overdue scheduled date)
  * Excludes unstudied / phantom chapters.
  */
 export const criticalChapters = derived(tracker, ($tracker) => {
+	const today = todayKey();
 	const chapters = Object.values($tracker.rev.chapters);
 	return chapters
 		.filter((ch) => {
 			if (!isChapterStudied($tracker, ch.chapterKey)) return false;
 			const score = calculateCurrentScore(ch.decay);
-			return score < 30; // Below critical threshold
+			const isOverdue = Boolean(ch.nextRevisionDate && ch.nextRevisionDate < today);
+			return isOverdue || score < 30; // Overdue scheduled date OR score below critical threshold
 		})
 		.map((ch) => calculateChapterPriority(ch.chapterKey, ch.weightage, ch.decay))
 		.sort((a, b) => a.currentScore - b.currentScore);
