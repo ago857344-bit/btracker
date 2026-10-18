@@ -23,7 +23,7 @@
 	import {
 		tracker, updateTracker, recordFocus, logManualMinutes, addSubjectSession, stopwatchReports,
 		weeklyFocusMinutes, peakProductivity, subjectHealth, setWeeklyGoalHours, setStreakGoalHours,
-		celebration, type StopwatchReport
+		celebration, openFeynmanDuck, type StopwatchReport
 	} from '$lib/stores/tracker';
 	import { addDaysKey, focusMinutesOn, formatClock, formatMinutes, lastNDays, sessionDayKey, todayKey } from '$lib/state/dates';
 	import { SUBJECTS, chaptersOf, subjectColor, subjectName } from '$lib/state/subjects';
@@ -564,6 +564,7 @@ function primary() {
 		<button type="button" class="tb" on:click={share}><NavIcon name="share" size={14} /> SHARE</button>
 		<button type="button" class="tb accent" on:click={() => (logOpen = true)}><NavIcon name="plus" size={14} /> LOG</button>
 		<button type="button" class="tb" class:on={deepWorkMode} disabled={tab === 'stopwatch' ? !swValid : !focusValid} title={tab === 'stopwatch' && !swValid ? 'Select subject and chapter to enter Deep Work' : !focusValid ? 'Select subject and chapter to enter Deep Work' : 'Deep Work Mode'} on:click={() => (deepWorkMode = !deepWorkMode)}><NavIcon name="expand" size={14} /> DEEP WORK</button>
+		<button type="button" class="tb" style="color: #f59e0b; border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.08);" title="Rubber Duck Study Companion (Explain to Learn)" on:click={() => openFeynmanDuck({ subject: subject || 'P', chapter: focusChapter || (tab === 'stopwatch' ? swChapter : ''), concept: focusChapter ? `${focusChapter} Core Principles` : 'Current Study Session' })}>🦆 TEACH DUCK</button>
 		{#if tab === 'stopwatch'}
 			<button type="button" class="tb" on:click={() => (reportsOpen = true)}><NavIcon name="history" size={14} /> REPORTS</button>
 		{/if}

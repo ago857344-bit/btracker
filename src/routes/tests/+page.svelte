@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tracker, updateTracker, celebration } from '$lib/stores/tracker';
+	import { tracker, updateTracker, celebration, openFeynmanDuck } from '$lib/stores/tracker';
 	import type { MockTest, MistakeLog, Flashcard } from '$lib/types/tracker';
 	import { applyEloResult } from '$lib/state/gamification';
 	import Modal from '$lib/components/ui/Modal.svelte';
@@ -324,6 +324,9 @@
 							{/if}
 							<button class="icon-btn" style="color: #e0455a;" title="Grill Me on this mistake" on:click={() => (grillingMistake = mistake)}>
 								<NavIcon name="flame" size={14} />
+							</button>
+							<button class="icon-btn" style="color: #f59e0b; font-size: 0.95rem; line-height: 1;" title="Explain mistake to Feynman Duck" on:click={() => openFeynmanDuck({ subject: mistake.subject.charAt(0).toUpperCase(), chapter: mistake.testName || 'Mistake Analysis', concept: `${mistake.errorType} Error: ${mistake.description}` })}>
+								🦆
 							</button>
 							<button class="icon-btn danger" on:click={() => deleteMistake(mistake.id)}>
 								<NavIcon name="trash" size={14} />
