@@ -243,8 +243,10 @@
 	.empty { padding: 3.5rem 1.25rem; border: 1px dashed var(--border-subtle); border-radius: 18px; color: var(--text-secondary); text-align: center; }
 	.empty h2 { margin: 0 0 .45rem; color: var(--text-primary); font-size: 1.05rem; }
 	.empty p { margin: 0; font-size: .82rem; }
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.hero { align-items: start; flex-direction: column; }
+		.tabs { width: 100%; display: flex; }
+		.tabs button { flex: 1; justify-content: center; padding: 0 .4rem; font-size: 0.74rem; }
 		.summary { justify-content: flex-start; }
 		.question { grid-template-columns: 58px 1fr; gap: .7rem; }
 		.marks { grid-column: 2; justify-content: flex-start; }

@@ -28,6 +28,7 @@
 	import { addDaysKey, focusMinutesOn, formatClock, formatMinutes, lastNDays, sessionDayKey, todayKey } from '$lib/state/dates';
 	import { SUBJECTS, chaptersOf, subjectColor, subjectName } from '$lib/state/subjects';
 	import { playChime } from '$lib/services/chime';
+	import { DEFAULT_POMODORO } from '$lib/state/defaults';
 
 	type Tab = 'focus' | 'stopwatch' | 'short' | 'long';
 	const TABS: { id: Tab; label: string }[] = [
@@ -37,8 +38,8 @@
 
 	let tab: Tab = 'focus';
 	let subject: string | null = null;
-	let focusLen = 25; let shortLen = 5; let longLen = 15;
-	let customOpen = false; let customValue = 25;
+	let focusLen = $tracker?.pom?.focus || 25; let shortLen = 5; let longLen = 15;
+	let customOpen = false; let customValue = focusLen;
 	let deepWorkMode = false;
 
 	let running = false;
@@ -169,6 +170,20 @@
 		}
 	}
 
+	function setPomodoroMinutes(minutes: number) {
+		if (running || locked) return;
+		const mins = Math.max(1, Math.min(240, Math.round(minutes)));
+		focusLen = mins;
+		if (phase === 'focus') {
+			remaining = mins * 60;
+			countdownEndsAt = null;
+		}
+		updateTracker(s => {
+			if (!s.pom) s.pom = { ...DEFAULT_POMODORO };
+			s.pom.focus = mins;
+		});
+	}
+
 	$: globalTimer.set({
 		running,
 		remaining,
@@ -184,7 +199,8 @@
 		toggle: primary,
 		addFive: addFiveMinutes,
 		stop: stopSession,
-		start: aiStart
+		start: aiStart,
+		setTime: setPomodoroMinutes
 	});
 
 	function shouldChime(kind: 'focus' | 'break') {
@@ -709,10 +725,8 @@ function primary() {
 			</div>
 		</div>
 		{/key}
+			</div>
 		</div>
-
-		<GhostPacer activeSessionSeconds={currentActiveSeconds} {accent} />
-	</div>
 
 		<div class="side">
 			<div class="stat-grid">
@@ -784,10 +798,11 @@ function primary() {
 	</div>
 
 	<div class="analytics">
+		<GhostPacer activeSessionSeconds={currentActiveSeconds} {accent} />
 		<DailyActivity />
 		<ActivityMap />
-		<StudyAnalysis />
 		<SubjectLeaderboard />
+		<StudyAnalysis />
 		<WeeklyReportCard />
 	</div>
 </section>
@@ -936,10 +951,10 @@ function primary() {
 		box-shadow: 0 3px 12px rgba(43, 139, 166, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 	}
 
-	.layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
-	.timer-column { display: flex; flex-direction: column; gap: 1.2rem; width: 100%; min-width: 0; }
+	.layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 1.2rem; align-items: stretch; }
+	.timer-column { display: flex; flex-direction: column; gap: 1.2rem; width: 100%; min-width: 0; height: 100%; }
 	.card { padding: 1.3rem 1.4rem; border: 1px solid var(--border-subtle); border-radius: 20px; background: var(--surface-panel); box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.06); }
-	.stage { display: grid; justify-items: center; gap: 1.05rem; text-align: center; }
+	.stage { display: grid; justify-items: center; align-content: center; gap: 1.05rem; text-align: center; height: 100%; box-sizing: border-box; }
 
 	.settings { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .8rem; width: 100%; padding: .9rem 1rem; border: 1px dashed var(--border-subtle); border-radius: 14px; background: var(--surface-subtle); text-align: left; }
 	.field { display: grid; gap: .3rem; }
@@ -1053,8 +1068,8 @@ function primary() {
 	.goal-foot { display: flex; align-items: center; justify-content: space-between; font-size: .68rem; font-weight: 750; }
 	.sliders-btn { display: inline-flex; align-items: center; gap: .35rem; padding: .35rem .7rem; border: 1px solid rgb(255 255 255 / 45%); border-radius: 9px; color: #fff; background: rgb(255 255 255 / 12%); font-size: .66rem; font-weight: 800; }
 
-	.analytics { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 1.2rem; align-items: stretch; }
-	.analytics > :global(*) { padding: 1.3rem 1.4rem; height: 100%; box-sizing: border-box; }
+	.analytics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem; align-items: stretch; }
+	.analytics > :global(*) { height: 100%; box-sizing: border-box; }
 
 	.report-list { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
 	.report-list li { display: flex; align-items: center; gap: .6rem; padding: .6rem .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; }
@@ -1074,24 +1089,30 @@ function primary() {
 	.bump { flex: 1; padding: .5rem; border: 1px solid var(--border-subtle); border-radius: 10px; color: var(--accent); background: var(--accent-soft); font-size: .76rem; font-weight: 800; }
 
 	@media (max-width: 1020px) { .layout { grid-template-columns: minmax(0, 1fr); } .stat-grid { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); } }
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.layout { grid-template-columns: 1fr !important; }
-		.page-head { flex-direction: column; gap: .6rem; }
-		.clockbox { text-align: left; }
-		.dial .time { font-size: 2.4rem; }
-		.toolbar { flex-wrap: wrap; width: 100% !important; }
+		.page-head { flex-direction: column; align-items: flex-start; gap: .75rem; }
+		.clockbox { text-align: left; align-items: flex-start; }
+		.dial .time { font-size: 2.6rem; }
+		.toolbar { flex-wrap: wrap; width: 100% !important; gap: .4rem; }
 		.spacer { display: none !important; }
 		.toolbar .tb, .toolbar .ic { flex: 1 1 auto; justify-content: center; min-width: 0; }
 		.tabs { width: 100% !important; display: flex !important; }
 		.tab { flex: 1; text-align: center; padding-inline: .4rem !important; font-size: .68rem !important; }
-		.presets, .sw-setup { max-width: none !important; }
-		.theory-card { max-width: none !important; }
-		.card { width: 100% !important; box-sizing: border-box; padding: 1rem 0.5rem !important; }
+		.presets, .sw-setup { max-width: none !important; width: 100%; }
+		.theory-card { max-width: none !important; width: 100%; }
+		.card { width: 100% !important; box-sizing: border-box; padding: 1.15rem 1rem !important; }
+		.stat-grid { grid-template-columns: 1fr 1fr; gap: .65rem; }
+		.stat.card { padding: 0.85rem .75rem !important; }
 		.settings { grid-template-columns: 1fr 1fr !important; width: 100% !important; }
 		.chip { flex: 1 1 auto; justify-content: center; }
-		.analytics { grid-template-columns: 1fr !important; }
-		.stat-grid { grid-template-columns: 1fr 1fr; }
+		.analytics { grid-template-columns: 1fr !important; gap: 1rem; }
 		.stage { width: 100% !important; box-sizing: border-box; }
+	}
+	@media (max-width: 440px) {
+		.stat-grid { grid-template-columns: 1fr; }
+		.settings { grid-template-columns: 1fr !important; }
+		.controls .primary, .controls .stop, .controls .ghost { flex: 1 1 auto; min-width: 90px; text-align: center; justify-content: center; }
 	}
 
 	.stage-wrapper {
@@ -1099,6 +1120,7 @@ function primary() {
 		grid-template-columns: 1fr;
 		grid-template-rows: 1fr;
 		width: 100%;
+		height: 100%;
 		overflow: hidden; /* prevent horizontal scrollbars during animation */
 	}
 	.stage-wrapper > * {

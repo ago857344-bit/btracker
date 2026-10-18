@@ -144,9 +144,9 @@
 		flex-direction: column;
 		width: clamp(250px, 22vw, 300px);
 		padding: 1.2rem 1rem 1rem;
-		background: color-mix(in srgb, var(--surface-panel, #121020) 75%, transparent);
-		backdrop-filter: blur(36px) saturate(210%);
-		-webkit-backdrop-filter: blur(36px) saturate(210%);
+		background: var(--surface-panel);
+		backdrop-filter: var(--glass-filter, blur(36px) saturate(210%));
+		-webkit-backdrop-filter: var(--glass-filter, blur(36px) saturate(210%));
 		border-right: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
 		box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.08);
 		transition: width 0.28s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1)), transform 0.28s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1));

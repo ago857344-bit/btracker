@@ -175,5 +175,16 @@
 	.insight-icon { display: grid; place-items: center; flex-shrink: 0; width: 22px; height: 22px; border-radius: 7px; background: color-mix(in srgb, var(--accent), transparent 86%); color: var(--accent); margin-top: .05rem; }
 	.insight b { color: var(--text-primary); }
 
-	@media (max-width: 640px) { .week { gap: .25rem; } .wm { font-size: .55rem; } .sub-row { grid-template-columns: 8px 4.5rem 1fr auto; } .sub-pct { display: none; } }
+	@media (max-width: 760px) {
+		.map { padding: 1.15rem 1rem; }
+		header { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+		.grans { width: 100%; justify-content: space-between; }
+		.grans button { flex: 1; text-align: center; padding: .38rem .4rem; }
+	}
+	@media (max-width: 640px) {
+		.week { gap: .25rem; }
+		.wm { font-size: .55rem; }
+		.sub-row { grid-template-columns: 8px 4.5rem 1fr auto; }
+		.sub-pct { display: none; }
+	}
 </style>

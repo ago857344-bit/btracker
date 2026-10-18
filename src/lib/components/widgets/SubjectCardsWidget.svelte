@@ -42,7 +42,14 @@
 
 <style>
 	.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem; height: 100%; }
-	@media (max-width: 720px) { .cards { grid-template-columns: 1fr; } }
+	@media (max-width: 768px) { .cards { grid-template-columns: 1fr; } }
+	:global(.mode-mobile) .cards,
+	:global(.is-phone) .cards {
+		grid-template-columns: 1fr !important;
+	}
+	@container (max-width: 540px) {
+		.cards { grid-template-columns: 1fr !important; }
+	}
 	.subject-card {
 		position: relative;
 		display: grid;
@@ -62,6 +69,23 @@
 		overflow: hidden;
 		transition: transform 0.22s var(--ease-ios-spring), border-color 0.25s ease, box-shadow 0.25s ease;
 		min-height: 160px;
+	}
+	:global(.mode-mobile) .subject-card,
+	:global(.is-phone) .subject-card {
+		min-height: auto;
+		padding: 0.95rem 1rem;
+	}
+	@media (max-width: 768px) {
+		.subject-card {
+			min-height: auto;
+			padding: 0.95rem 1rem;
+		}
+	}
+	@container (max-width: 540px) {
+		.subject-card {
+			min-height: auto;
+			padding: 0.95rem 1rem;
+		}
 	}
 	.subject-tint {
 		position: absolute;
@@ -84,7 +108,7 @@
 	.subject-card:hover .subject-tint { opacity: 1; }
 	.subject-card > * { position: relative; z-index: 3; }
 	.icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; color: white; background: var(--sub); margin-bottom: .45rem; }
-	.name { font-size: .84rem; font-weight: 800; letter-spacing: -.01em; }
+	.name { font-size: .84rem; font-weight: 800; letter-spacing: -.01em; max-width: calc(100% - 90px); }
 	.goal { color: var(--text-secondary); font-size: .62rem; font-weight: 750; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; }
 	.solved-wrap { display: flex; align-items: baseline; gap: .4rem; margin: .3rem 0 .5rem; }
 	.solved { font-size: 1.9rem; font-weight: 850; letter-spacing: -.05em; line-height: 1; color: var(--sub); }

@@ -459,31 +459,28 @@
 	}
 
 	.dynamic-island-anchor {
-		position: relative;
-		left: auto;
-		transform: none;
-		z-index: 50;
+		position: fixed;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 9995;
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		justify-content: center;
 		pointer-events: none;
-		height: 38px;
-		width: clamp(210px, 22vw, 290px);
+		top: 18px;
+		bottom: auto;
+		width: auto;
+		height: auto;
 		transition:
 			top 0.4s cubic-bezier(0.32, 0.72, 0, 1),
 			bottom 0.4s cubic-bezier(0.32, 0.72, 0, 1);
 	}
 
-	/* Dock mode on desktop floats at bottom of screen */
+	/* Dock mode floats at bottom of screen */
 	.dynamic-island-anchor.cutout-dock {
-		position: fixed;
-		left: 50%;
-		transform: translateX(-50%);
 		top: auto;
 		bottom: 24px;
-		z-index: 9995;
-		width: auto;
-		height: auto;
+		align-items: flex-end;
 	}
 
 	.dynamic-island {
@@ -618,7 +615,7 @@
 
 	/* COMPACT PILL SIZING */
 	.dynamic-island:not(.expanded) {
-		width: 100%;
+		width: clamp(230px, 22vw, 300px);
 		height: 38px;
 		box-shadow:
 			0 10px 28px -4px rgba(0, 0, 0, 0.65),
@@ -669,10 +666,8 @@
 
 	/* EXPANDED SIZING */
 	.dynamic-island.expanded {
-		position: absolute;
-		top: -4px;
-		left: 50%;
-		transform: translateX(-50%);
+		position: relative;
+		margin: 0 auto;
 		z-index: 9996;
 		width: min(92vw, 420px);
 		height: 350px;
@@ -690,8 +685,7 @@
 	}
 
 	.dynamic-island.dock-mode.expanded {
-		top: auto;
-		bottom: 0;
+		transform-origin: center bottom;
 	}
 
 	/* MORPHING STAGE */
@@ -1372,7 +1366,7 @@
 		transition: width 0.4s ease;
 	}
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.dynamic-island-anchor {
 			position: fixed;
 			left: 50%;

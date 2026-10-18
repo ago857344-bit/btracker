@@ -34,5 +34,38 @@
 	.bar { height: 7px; border-radius: 99px; background: var(--surface-subtle); overflow: hidden; }
 	.bar i { display: block; height: 100%; border-radius: 99px; background: var(--accent); transition: width .5s cubic-bezier(.4, 0, .2, 1); }
 	.bar i.alt { background: var(--success); }
-	@media (max-width: 460px) { .daily { flex-direction: column; align-items: stretch; } }
+
+	@media (max-width: 768px) {
+		.daily {
+			flex-direction: column;
+			align-items: center;
+			gap: 1.15rem;
+		}
+		.metrics {
+			width: 100%;
+			gap: 0.75rem;
+		}
+	}
+	:global(.mode-mobile) .daily,
+	:global(.is-phone) .daily {
+		flex-direction: column !important;
+		align-items: center !important;
+		gap: 1.15rem !important;
+	}
+	:global(.mode-mobile) .metrics,
+	:global(.is-phone) .metrics {
+		width: 100% !important;
+		gap: 0.75rem !important;
+	}
+	@container (max-width: 440px) {
+		.daily {
+			flex-direction: column !important;
+			align-items: center !important;
+			gap: 1.15rem !important;
+		}
+		.metrics {
+			width: 100% !important;
+			gap: 0.75rem !important;
+		}
+	}
 </style>

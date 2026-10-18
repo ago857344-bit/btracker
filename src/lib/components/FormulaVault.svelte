@@ -1115,9 +1115,10 @@
 		cursor: pointer;
 	}
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.vault-drawer {
 			width: 100vw;
+			max-width: 100vw;
 		}
 		.vault-header {
 			padding-top: calc(max(env(safe-area-inset-top), 24px) + 1.25rem);

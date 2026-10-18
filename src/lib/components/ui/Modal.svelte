@@ -186,7 +186,7 @@
 		overflow: hidden auto;
 		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
 		border-radius: 24px;
-		background: color-mix(in srgb, var(--surface-panel, #121020) 96%, transparent);
+		background: var(--surface-popup-solid, #121020);
 		backdrop-filter: blur(36px) saturate(210%);
 		-webkit-backdrop-filter: blur(36px) saturate(210%);
 		box-shadow: var(--shadow-modal), var(--vision-bevel-inner);
@@ -206,7 +206,7 @@
 		gap: 1rem;
 		padding: 1.15rem 1.35rem;
 		border-bottom: 0.5px solid color-mix(in srgb, var(--border-subtle), transparent 30%);
-		background: color-mix(in srgb, var(--surface-panel), transparent 4%);
+		background: var(--surface-popup-solid, #121020);
 		backdrop-filter: blur(28px) saturate(190%);
 		-webkit-backdrop-filter: blur(28px) saturate(190%);
 	}
@@ -247,7 +247,7 @@
 		border-top: 0.5px solid color-mix(in srgb, var(--border-subtle), transparent 30%);
 	}
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.modal-backdrop {
 			padding: 0;
 			align-items: flex-end;
@@ -291,6 +291,13 @@
 		}
 		header:active .bottom-sheet-handle {
 			background: color-mix(in srgb, var(--text-primary), transparent 25%);
+		}
+		footer {
+			flex-wrap: wrap;
+			padding: 0.85rem 1.15rem;
+		}
+		footer :global(button) {
+			min-height: 40px;
 		}
 	}
 

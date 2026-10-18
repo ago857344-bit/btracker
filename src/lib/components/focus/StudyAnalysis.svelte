@@ -149,4 +149,15 @@
 	.seg + .seg { margin-bottom: 2px; }
 	.seg.flat { background: var(--accent); }
 	.bl { color: var(--text-secondary); font-size: .62rem; font-weight: 800; letter-spacing: .04em; }
+
+	@media (max-width: 760px) {
+		.analysis { padding: 1.15rem 1rem; }
+		header { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+		.tools { width: 100%; justify-content: space-between; }
+		.bars { height: 160px; }
+	}
+	@media (max-width: 440px) {
+		.kpis { grid-template-columns: 1fr; gap: .4rem; }
+		.kpis div { padding: .55rem .7rem; }
+	}
 </style>

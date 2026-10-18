@@ -16,6 +16,7 @@ export interface GlobalTimerState {
 	addFive: () => void;
 	stop: () => void;
 	start: (subject: string, seconds: number, chapter: string, mode?: 'timer' | 'stopwatch') => void;
+	setTime: (minutes: number) => void;
 }
 
 export const globalTimer = writable<GlobalTimerState>({
@@ -33,5 +34,18 @@ export const globalTimer = writable<GlobalTimerState>({
 	toggle: () => {},
 	addFive: () => {},
 	stop: () => {},
-	start: () => {}
+	start: () => {},
+	setTime: (minutes: number) => {
+		globalTimer.update(s => {
+			const mins = Math.max(1, Math.min(240, Math.round(minutes)));
+			s.activeLen = mins;
+			if (!s.running && s.phase === 'focus') {
+				s.remaining = mins * 60;
+				const m = Math.floor(s.remaining / 60);
+				const sec = s.remaining % 60;
+				s.dialTime = `${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+			}
+			return s;
+		});
+	}
 });

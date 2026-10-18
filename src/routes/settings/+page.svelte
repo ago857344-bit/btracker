@@ -485,8 +485,8 @@
 	</header>
 
 	<div class="panels">
-		
 	<div class="settings-col">
+		<!-- 1. Profile -->
 		<div class="panel">
 			<h2><NavIcon name="settings" size={15} /> Profile</h2>
 			<label class="field">
@@ -521,20 +521,59 @@
 			</div>
 		</div>
 
-		
-		
+		<!-- 2. Appearance -->
 		<div class="panel">
-			<h2><NavIcon name="bolt" size={15} /> Feedback & Feel</h2>
-			<p class="sub">Native app interactions and feedback.</p>
+			<h2><NavIcon name="palette" size={15} /> Appearance</h2>
+			
+			<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+				<p class="label" style="margin: 0;">ACCENT COLOR</p>
+				<span style="font-size: 0.75rem; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); padding: 0.2rem 0.6rem; border-radius: 99px;">Preview</span>
+			</div>
+			<div class="swatches">
+				{#each ACCENTS as color, i (i)}
+					<button type="button" class="swatch" class:on={$tracker.ui.accent === color} style="background: {color}" aria-label="Accent {color}" on:click={() => setAccent(color)}></button>
+				{/each}
+				<label class="swatch custom" title="Custom color">
+					<input type="color" value={$tracker.ui.accent} on:input={(e) => setAccent(e.currentTarget.value)} />
+				</label>
+			</div>
+
+			<div class="theme-header-row">
+				<p class="label" style="margin: 0;">THEME</p>
+				<button type="button" class="btn-theme-gear" id="cosmetics" title="Cosmetics Loadout" on:click={() => (cosmeticsModalOpen = true)}>
+					<NavIcon name="sparkles" size={13} />
+					<span>Customize Loadout</span>
+				</button>
+			</div>
+			<div class="themes">
+				{#each THEMES as t, i (i)}
+					{@const usable = canUseTheme(t.id, $unlockCtx)}
+					<button type="button"
+						class="theme {usable ? '' : 'locked'} {t.unlock && usable ? 'tier-unlocked' : ''}"
+						class:on={$tracker.theme === t.id}
+						on:click={() => handleThemeClick(t)}>
+						<span class="theme-top">
+							{#if !usable}<NavIcon name="lock" size={14} />
+							{:else if t.unlock}<NavIcon name="sparkles" size={14} />
+							{:else}<NavIcon name={t.dark ? 'moon' : 'sun'} size={14} />{/if}
+							{t.label}
+						</span>
+						{#if t.unlock && !usable}
+							<span class="unlock-track"><i style="width: {Math.round(reqProgress(t.unlock, $unlockCtx) * 100)}%"></i></span>
+							<small class="unlock-copy">{reqStatus(t.unlock, $unlockCtx)}{t.unlock.kind === 'subject' ? ` · ${t.unlock.sub === 'P' ? 'Physics' : t.unlock.sub === 'C' ? 'Chemistry' : 'Maths'}` : ''}</small>
+						{/if}
+					</button>
+				{/each}
+			</div>
+
 			<label class="check">
-				<input type="checkbox" checked={$tracker.ui.haptics ?? true} on:change={(e) => updateTracker(s => { s.ui.haptics = e.currentTarget.checked; })} />
-				<span><strong>Haptic Feedback</strong><br/>Physical vibrations on mobile devices</span>
-			</label>
-			<label class="check">
-				<input type="checkbox" checked={$tracker.ui.sounds ?? true} on:change={(e) => updateTracker(s => { s.ui.sounds = e.currentTarget.checked; })} />
-				<span><strong>Micro-Sounds</strong><br/>Subtle UI audio pops and clicks</span>
+				<input type="checkbox" checked={$tracker.ui.reducedMotion} on:change={(e) => { const v = e.currentTarget.checked; updateTracker((s) => { s.ui.reducedMotion = v; }); }} />
+				<span>Reduce motion</span>
+				<small>Tones down transitions and animations.</small>
 			</label>
 		</div>
+
+		<!-- 3. Wallpaper & Glass -->
 		<div class="panel">
 			<h2><NavIcon name="tv" size={15} /> Wallpaper & Glass</h2>
 
@@ -603,27 +642,24 @@
 				</div>
 			{/if}
 
-			{#if $tracker.ui.wallpaper}
-				
-				<div style="margin-top: 1.2rem;">
-					<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-						<p class="label" style="margin: 0;">GLASS OPACITY</p>
-						<span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 700;">{$tracker.ui.glassStrength ||($tracker.ui.glassStrength ?? 45)}%</span>
-					</div>
-					<input 
-						type="range" 
-						min="0" 
-						max="100" 
-						value={($tracker.ui.glassStrength ?? 45)} 
-						on:input={(e) => {
-							const val = parseInt(e.currentTarget.value);
-							updateTracker(s => { s.ui.glassStrength = val; });
-						}}
-						style="width: 100%; accent-color: var(--accent);"
-					/>
-					<p class="muted" style="margin-top: 0.3rem;">Lower for clear glass, higher for solid legibility.</p>
+			<div style="margin-top: 1.2rem;">
+				<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+					<p class="label" style="margin: 0;">GLASS OPACITY</p>
+					<span style="font-size: 0.75rem; color: var(--text-secondary); font-weight: 700;">{$tracker.ui.glassStrength ||($tracker.ui.glassStrength ?? 45)}%</span>
 				</div>
-			{/if}
+				<input 
+					type="range" 
+					min="0" 
+					max="100" 
+					value={($tracker.ui.glassStrength ?? 45)} 
+					on:input={(e) => {
+						const val = parseInt(e.currentTarget.value);
+						updateTracker(s => { s.ui.glassStrength = val; });
+					}}
+					style="width: 100%; accent-color: var(--accent);"
+				/>
+				<p class="muted" style="margin-top: 0.3rem;">Lower for clear glass, higher for solid legibility.</p>
+			</div>
 
 			<!-- Apple VisionOS / Smoked Acrylic Lighting (Phase 2) -->
 			<div class="vision-feature-card" style="margin-top: 1.25rem;">
@@ -638,10 +674,104 @@
 				</p>
 			</div>
 		</div>
+	</div>
 
-		
-		
-	
+	<div class="settings-col">
+		<!-- 4. Dashboard Layout -->
+		<div class="panel">
+			<h2><NavIcon name="grid" size={15} /> Dashboard Layout</h2>
+			<p class="muted">Choose your preferred workspace structure. Switches instantaneously without disrupting active timers or tasks.</p>
+			<div class="layout-grid">
+				{#each LAYOUT_OPTIONS as opt (opt.id)}
+					<div
+						role="button"
+						tabindex="0"
+						class="layout-card"
+						class:on={($tracker.ui?.dashboardLayout || 'default') === opt.id}
+						on:click={() => setLayout(opt.id)}
+						on:keydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								setLayout(opt.id);
+							}
+						}}
+					>
+						<div class="layout-wireframe wireframe-{opt.id}">
+							{#if opt.id === 'default'}
+								<div class="wf-col wf-col-main"></div>
+								<div class="wf-col wf-col-side"></div>
+							{:else if opt.id === 'minimalist'}
+								<div class="wf-topbar"></div>
+								<div class="wf-row">
+									<div class="wf-cell"></div>
+									<div class="wf-cell"></div>
+								</div>
+								<div class="wf-bottombar"></div>
+							{:else if opt.id === 'focus'}
+								<div class="wf-row wf-focus-row">
+									<div class="wf-hero"></div>
+									<div class="wf-rail">
+										<div></div>
+										<div></div>
+									</div>
+								</div>
+							{/if}
+						</div>
+						<div class="layout-card-info">
+							<div class="layout-card-title">
+								<span class="layout-name">{opt.label}</span>
+								{#if ($tracker.ui?.dashboardLayout || 'default') === opt.id}
+									<span class="layout-active-badge">Active</span>
+								{/if}
+							</div>
+							<p class="layout-desc">{opt.desc}</p>
+							<button
+								type="button"
+								class="btn-card-preview"
+								title="Live Preview of {opt.label} Layout"
+								on:click|stopPropagation={() => openLayoutPreview(opt.id)}
+							>
+								<NavIcon name="tv" size={12} />
+								<span>Preview Layout</span>
+							</button>
+						</div>
+					</div>
+				{/each}
+			</div>
+		</div>
+
+		<!-- 5. Feedback & Feel -->
+		<div class="panel">
+			<h2><NavIcon name="bolt" size={15} /> Feedback & Feel</h2>
+			<p class="sub">Native app interactions and feedback.</p>
+			<label class="check">
+				<input type="checkbox" checked={$tracker.ui.haptics ?? true} on:change={(e) => updateTracker(s => { s.ui.haptics = e.currentTarget.checked; })} />
+				<span><strong>Haptic Feedback</strong><br/>Physical vibrations on mobile devices</span>
+			</label>
+			<label class="check">
+				<input type="checkbox" checked={$tracker.ui.sounds ?? true} on:change={(e) => updateTracker(s => { s.ui.sounds = e.currentTarget.checked; })} />
+				<span><strong>Micro-Sounds</strong><br/>Subtle UI audio pops and clicks</span>
+			</label>
+		</div>
+
+		<!-- 6. Focus Gamification -->
+		<div class="panel">
+			<h2><NavIcon name="brain" size={15} /> Focus Gamification</h2>
+			<p class="muted">Choose a visual companion to sit in the center of your deep work timer.</p>
+			<div class="cos-grid">
+				<button type="button" class="cos" class:on={($tracker.settings?.focusPet || 'orb') === 'orb'} on:click={() => updateTracker(s => { s.settings = s.settings || {}; s.settings.focusPet = 'orb'; })}>
+					<span>Orb</span>
+				</button>
+				<button type="button" class="cos" class:on={$tracker.settings?.focusPet === 'crystal'} on:click={() => updateTracker(s => { s.settings = s.settings || {}; s.settings.focusPet = 'crystal'; })}>
+					<span>Crystal</span>
+				</button>
+				<button type="button" class="cos" class:on={$tracker.settings?.focusPet === 'flame'} on:click={() => updateTracker(s => { s.settings = s.settings || {}; s.settings.focusPet = 'flame'; })}>
+					<span>Flame</span>
+				</button>
+			</div>
+		</div>
+
+		<!-- 7. Data & Local Snapshot Vault -->
 		<div class="panel">
 			<h2><NavIcon name="shield" size={15} /> Data</h2>
 			<p class="muted">Everything lives locally in your browser (IndexedDB). Backups are plain JSON files.</p>
@@ -714,137 +844,6 @@
 				<button type="button" class="btn accent" on:click={importCode}><NavIcon name="download" size={14} /> Import code</button>
 			</div>
 		</div>
-	</div>
-	<div class="settings-col">
-		<div class="panel">
-			<h2><NavIcon name="grid" size={15} /> Dashboard Layout</h2>
-			<p class="muted">Choose your preferred workspace structure. Switches instantaneously without disrupting active timers or tasks.</p>
-			<div class="layout-grid">
-				{#each LAYOUT_OPTIONS as opt (opt.id)}
-					<div
-						role="button"
-						tabindex="0"
-						class="layout-card"
-						class:on={($tracker.ui?.dashboardLayout || 'default') === opt.id}
-						on:click={() => setLayout(opt.id)}
-						on:keydown={(e) => {
-							if (e.key === 'Enter' || e.key === ' ') {
-								e.preventDefault();
-								setLayout(opt.id);
-							}
-						}}
-					>
-						<div class="layout-wireframe wireframe-{opt.id}">
-							{#if opt.id === 'default'}
-								<div class="wf-col wf-col-main"></div>
-								<div class="wf-col wf-col-side"></div>
-							{:else if opt.id === 'minimalist'}
-								<div class="wf-topbar"></div>
-								<div class="wf-row">
-									<div class="wf-cell"></div>
-									<div class="wf-cell"></div>
-								</div>
-								<div class="wf-bottombar"></div>
-							{:else if opt.id === 'focus'}
-								<div class="wf-row wf-focus-row">
-									<div class="wf-hero"></div>
-									<div class="wf-rail">
-										<div></div>
-										<div></div>
-									</div>
-								</div>
-							{/if}
-						</div>
-						<div class="layout-card-info">
-							<div class="layout-card-title">
-								<span class="layout-name">{opt.label}</span>
-								{#if ($tracker.ui?.dashboardLayout || 'default') === opt.id}
-									<span class="layout-active-badge">Active</span>
-								{/if}
-							</div>
-							<p class="layout-desc">{opt.desc}</p>
-							<button
-								type="button"
-								class="btn-card-preview"
-								title="Live Preview of {opt.label} Layout"
-								on:click|stopPropagation={() => openLayoutPreview(opt.id)}
-							>
-								<NavIcon name="tv" size={12} />
-								<span>Preview Layout</span>
-							</button>
-						</div>
-					</div>
-				{/each}
-			</div>
-		</div>
-
-		<div class="panel">
-			<h2><NavIcon name="palette" size={15} /> Appearance</h2>
-			
-			<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
-				<p class="label" style="margin: 0;">ACCENT COLOR</p>
-				<span style="font-size: 0.75rem; font-weight: 700; color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); padding: 0.2rem 0.6rem; border-radius: 99px;">Preview</span>
-			</div>
-			<div class="swatches">
-				{#each ACCENTS as color, i (i)}
-					<button type="button" class="swatch" class:on={$tracker.ui.accent === color} style="background: {color}" aria-label="Accent {color}" on:click={() => setAccent(color)}></button>
-				{/each}
-				<label class="swatch custom" title="Custom color">
-					<input type="color" value={$tracker.ui.accent} on:input={(e) => setAccent(e.currentTarget.value)} />
-				</label>
-			</div>
-
-			<div class="theme-header-row">
-				<p class="label" style="margin: 0;">THEME</p>
-				<button type="button" class="btn-theme-gear" id="cosmetics" title="Cosmetics Loadout" on:click={() => (cosmeticsModalOpen = true)}>
-					<NavIcon name="sparkles" size={13} />
-					<span>Customize Loadout</span>
-				</button>
-			</div>
-			<div class="themes">
-				{#each THEMES as t, i (i)}
-					{@const usable = canUseTheme(t.id, $unlockCtx)}
-					<button type="button"
-						class="theme {usable ? '' : 'locked'} {t.unlock && usable ? 'tier-unlocked' : ''}"
-						class:on={$tracker.theme === t.id}
-						on:click={() => handleThemeClick(t)}>
-						<span class="theme-top">
-							{#if !usable}<NavIcon name="lock" size={14} />
-							{:else if t.unlock}<NavIcon name="sparkles" size={14} />
-							{:else}<NavIcon name={t.dark ? 'moon' : 'sun'} size={14} />{/if}
-							{t.label}
-						</span>
-						{#if t.unlock && !usable}
-							<span class="unlock-track"><i style="width: {Math.round(reqProgress(t.unlock, $unlockCtx) * 100)}%"></i></span>
-							<small class="unlock-copy">{reqStatus(t.unlock, $unlockCtx)}{t.unlock.kind === 'subject' ? ` · ${t.unlock.sub === 'P' ? 'Physics' : t.unlock.sub === 'C' ? 'Chemistry' : 'Maths'}` : ''}</small>
-						{/if}
-					</button>
-				{/each}
-			</div>
-
-			<label class="check">
-				<input type="checkbox" checked={$tracker.ui.reducedMotion} on:change={(e) => { const v = e.currentTarget.checked; updateTracker((s) => { s.ui.reducedMotion = v; }); }} />
-				<span>Reduce motion</span>
-				<small>Tones down transitions and animations.</small>
-			</label>
-		</div>
-		
-		<div class="panel">
-			<h2><NavIcon name="brain" size={15} /> Focus Gamification</h2>
-			<p class="muted">Choose a visual companion to sit in the center of your deep work timer.</p>
-			<div class="cos-grid">
-				<button type="button" class="cos" class:on={($tracker.settings?.focusPet || 'orb') === 'orb'} on:click={() => updateTracker(s => { s.settings = s.settings || {}; s.settings.focusPet = 'orb'; })}>
-					<span>Orb</span>
-				</button>
-				<button type="button" class="cos" class:on={$tracker.settings?.focusPet === 'crystal'} on:click={() => updateTracker(s => { s.settings = s.settings || {}; s.settings.focusPet = 'crystal'; })}>
-					<span>Crystal</span>
-				</button>
-				<button type="button" class="cos" class:on={$tracker.settings?.focusPet === 'flame'} on:click={() => updateTracker(s => { s.settings = s.settings || {}; s.settings.focusPet = 'flame'; })}>
-					<span>Flame</span>
-				</button>
-			</div>
-		</div>
-		
 	</div>
 	</div>
 </section>
@@ -1246,5 +1245,46 @@
 	}
 	.btn-card-preview:active {
 		transform: scale(0.97);
+	}
+
+	@media (max-width: 768px) {
+		.panel {
+			padding: 1.15rem 1rem;
+		}
+		.theme-header-row {
+			flex-wrap: wrap;
+			gap: 0.5rem;
+		}
+		.vault-head {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 0.5rem;
+		}
+		.btn-snap-create {
+			width: 100%;
+			justify-content: center;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.snap-row {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 0.5rem;
+		}
+		.snap-btns {
+			width: 100%;
+			justify-content: flex-end;
+		}
+		.preview-banner {
+			width: calc(100% - 1.5rem);
+			gap: 0.5rem;
+			font-size: 0.76rem;
+			padding: 0.35rem 0.35rem 0.35rem 0.75rem;
+		}
+		.pb-btn {
+			padding: 0.35rem 0.75rem;
+			font-size: 0.72rem;
+		}
 	}
 </style>

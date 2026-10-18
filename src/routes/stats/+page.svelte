@@ -387,7 +387,7 @@
 	.sec-body { padding: 0 1.2rem 1.2rem; }
 	
 	.rank-body { display: grid; grid-template-columns: 1fr 1.5fr; gap: 1rem; }
-	@media (max-width: 600px) { .rank-body { grid-template-columns: 1fr; } }
+	@media (max-width: 768px) { .rank-body { grid-template-columns: 1fr; } }
 	.level-box, .elo-box { padding: 1.2rem; border-radius: 16px; background: var(--surface-subtle); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; justify-content: center; }
 	.lv-label { color: var(--text-secondary); font-size: .65rem; font-weight: 800; letter-spacing: .12em; margin-bottom: .4rem; }
 	.lv-title { font-size: 1.8rem; font-weight: 850; letter-spacing: -.03em; color: var(--accent); line-height: 1.1; margin-bottom: .2rem; }
@@ -403,7 +403,7 @@
 
 	.gamification-manual { grid-column: 1 / -1; margin-top: .4rem; }
 	.manual-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-	@media (max-width: 600px) { .manual-grid { grid-template-columns: 1fr; } }
+	@media (max-width: 768px) { .manual-grid { grid-template-columns: 1fr; } }
 	.manual-card { display: flex; gap: .8rem; padding: 1.2rem; border-radius: 14px; background: var(--surface-subtle); border: 1px dashed var(--border-subtle); }
 	.m-icon { flex: 0 0 32px; width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; color: var(--accent); background: color-mix(in srgb, var(--accent) 15%, transparent); }
 	.m-text { display: flex; flex-direction: column; gap: .3rem; }
@@ -481,4 +481,11 @@
 	.vfill.acc { background: var(--accent); }
 	.vrow b { font-size: .82rem; font-variant-numeric: tabular-nums; }
 	.up { color: var(--success, #2f9e6e); font-weight: 750; }
+
+	@media (max-width: 768px) {
+		.grid4 { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
+		.cell { padding: 0.75rem 0.65rem; }
+		.cell b { font-size: 1.15rem; }
+		.prow b { min-width: 60px; font-size: 0.76rem; }
+	}
 </style>

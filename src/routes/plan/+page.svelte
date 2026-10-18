@@ -516,4 +516,56 @@
 	.lib-list small { color: var(--text-secondary); font-size: .68rem; }
 	.apply { margin-left: auto; height: 44px; padding: 0 .75rem; border: 0; border-radius: 9px; background: var(--accent); color: white; font-size: .72rem; font-weight: 750; cursor: pointer; }
 	.lib-empty { margin: 0; color: var(--text-secondary); font-size: .8rem; line-height: 1.6; }
+
+	@media (max-width: 768px) {
+		.tabs {
+			width: 100%;
+			display: flex;
+		}
+		.tabs button {
+			flex: 1;
+			width: auto;
+		}
+		.week-strip {
+			gap: 0.25rem;
+		}
+		.day-cell {
+			padding: 0.55rem 0.15rem;
+			min-height: 75px;
+			border-radius: 12px;
+		}
+		.day-cell .num {
+			width: 26px;
+			height: 26px;
+			font-size: 0.78rem;
+		}
+		.day-cell small {
+			font-size: 0.56rem;
+		}
+		.count {
+			padding: 0.08rem 0.35rem;
+			font-size: 0.55rem;
+		}
+		.plan-day {
+			font-size: 0.5rem;
+			padding: 0.1rem 0.35rem;
+		}
+		.day-detail header {
+			flex-wrap: wrap;
+		}
+		.day-actions {
+			width: 100%;
+			justify-content: flex-end;
+		}
+		.list-tools {
+			flex-direction: column;
+		}
+		.search {
+			min-width: 0;
+			width: 100%;
+		}
+		.funnel {
+			width: 100%;
+		}
+	}
 </style>

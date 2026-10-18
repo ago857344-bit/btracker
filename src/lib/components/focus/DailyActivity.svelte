@@ -90,4 +90,13 @@
 	.empty { display: grid; gap: .25rem; justify-items: center; margin-top: 1.2rem; padding: 1.4rem 1rem; border: 1px dashed var(--border-subtle); border-radius: 14px; text-align: center; }
 	.empty p { margin: 0; font-size: .85rem; font-weight: 700; }
 	.empty span { color: var(--text-secondary); font-size: .74rem; }
+
+	@media (max-width: 760px) {
+		.daily { padding: 1.15rem 1rem; }
+		header { gap: 0.6rem; }
+	}
+	@media (max-width: 480px) {
+		header { flex-direction: column; align-items: flex-start; }
+		.pager { width: 100%; justify-content: space-between; }
+	}
 </style>

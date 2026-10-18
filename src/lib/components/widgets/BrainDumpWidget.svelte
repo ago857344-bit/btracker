@@ -349,4 +349,50 @@
 		background: #10b981;
 		display: inline-block;
 	}
+
+	@media (max-width: 480px) {
+		.snippet-bar {
+			gap: 0.3rem;
+		}
+		.snippet-pill {
+			font-size: 0.68rem;
+			padding: 0.2rem 0.45rem;
+		}
+		.toolbar-actions {
+			width: 100%;
+			justify-content: space-between;
+			margin-top: 0.2rem;
+		}
+	}
+
+	:global(.mode-mobile) .snippet-bar,
+	:global(.is-phone) .snippet-bar {
+		gap: 0.3rem;
+	}
+	:global(.mode-mobile) .snippet-pill,
+	:global(.is-phone) .snippet-pill {
+		font-size: 0.68rem;
+		padding: 0.2rem 0.45rem;
+	}
+	:global(.mode-mobile) .toolbar-actions,
+	:global(.is-phone) .toolbar-actions {
+		width: 100%;
+		justify-content: space-between;
+		margin-top: 0.2rem;
+	}
+
+	@container (max-width: 420px) {
+		.snippet-bar {
+			gap: 0.3rem;
+		}
+		.snippet-pill {
+			font-size: 0.68rem;
+			padding: 0.2rem 0.45rem;
+		}
+		.toolbar-actions {
+			width: 100%;
+			justify-content: space-between;
+			margin-top: 0.2rem;
+		}
+	}
 </style>

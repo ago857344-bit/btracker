@@ -81,7 +81,13 @@
 		width: 100%;
 	}
 	.cell {
+		display: flex;
 		min-width: 0;
+		width: 100%;
+	}
+	.cell :global(.widget) {
+		flex: 1;
+		width: 100%;
 	}
 	.cell.span-2 {
 		grid-column: span 2;
@@ -103,19 +109,21 @@
 	.default-preview-grid.mode-tablet .cell.span-3 {
 		grid-column: span 2;
 	}
-	@media (max-width: 767px) {
+	@media (max-width: 768px) {
 		.default-preview-grid {
 			grid-template-columns: 1fr;
+			gap: 0.85rem;
 		}
 		.cell.span-2, .cell.span-3 {
-			grid-column: span 1;
+			grid-column: span 1 !important;
 		}
 	}
 	.default-preview-grid.mode-mobile {
 		grid-template-columns: 1fr;
+		gap: 0.85rem;
 	}
 	.default-preview-grid.mode-mobile .cell.span-2,
 	.default-preview-grid.mode-mobile .cell.span-3 {
-		grid-column: span 1;
+		grid-column: span 1 !important;
 	}
 </style>

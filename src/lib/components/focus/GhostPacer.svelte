@@ -296,13 +296,15 @@
 		padding: 1.15rem 1.25rem;
 		background: var(--surface-panel);
 		border: 1px solid var(--border-subtle);
-		border-radius: 18px;
+		border-radius: 20px;
 		backdrop-filter: blur(16px);
 		-webkit-backdrop-filter: blur(16px);
-		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+		box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 		position: relative;
 		overflow: hidden;
 		transition: all 0.25s ease;
+		height: 100%;
+		box-sizing: border-box;
 	}
 
 	.ghost-pacer.compact {
@@ -632,10 +634,14 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	@media (max-width: 600px) {
+	@media (max-width: 760px) {
+		.ghost-pacer {
+			padding: 1.15rem 1rem;
+		}
 		.gp-head {
 			flex-direction: column;
 			align-items: flex-start;
+			gap: 0.6rem;
 		}
 		.gp-actions {
 			width: 100%;
@@ -643,6 +649,20 @@
 		}
 		.track-footer {
 			grid-template-columns: repeat(2, 1fr);
+			gap: 0.5rem;
+		}
+	}
+
+	@media (max-width: 400px) {
+		.track-footer {
+			grid-template-columns: 1fr;
+		}
+		.mode-toggles {
+			width: 100%;
+		}
+		.mode-btn {
+			flex: 1;
+			text-align: center;
 		}
 	}
 </style>

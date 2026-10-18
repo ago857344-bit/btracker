@@ -156,6 +156,70 @@
 	.log-form small { color: var(--text-secondary); font-size: .64rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
 	.log-form input, .log-form select { height: 38px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-subtle); color: var(--text-primary); font-size: .84rem; font-family: inherit; }
 	.btn { height: 36px; padding: 0 1rem; border-radius: 11px; font-size: .78rem; font-weight: 750; border: 1px solid transparent; cursor: pointer; }
-	.btn.ghost { color: var(--text-secondary); border-color: var(--border-subtle); background: transparent; }
 	.btn.solid { color: white; background: var(--accent); }
+
+	@media (max-width: 480px) {
+		.head-row {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0.45rem;
+		}
+		.filter-tabs {
+			width: 100%;
+			justify-content: space-between;
+		}
+		.tab-chip {
+			flex: 1;
+			text-align: center;
+		}
+		.log-btn {
+			width: 100%;
+			justify-content: center;
+			margin-left: 0;
+		}
+	}
+
+	:global(.mode-mobile) .head-row,
+	:global(.is-phone) .head-row {
+		flex-direction: column;
+		align-items: stretch;
+		gap: 0.45rem;
+	}
+	:global(.mode-mobile) .filter-tabs,
+	:global(.is-phone) .filter-tabs {
+		width: 100%;
+		justify-content: space-between;
+	}
+	:global(.mode-mobile) .tab-chip,
+	:global(.is-phone) .tab-chip {
+		flex: 1;
+		text-align: center;
+	}
+	:global(.mode-mobile) .log-btn,
+	:global(.is-phone) .log-btn {
+		width: 100%;
+		justify-content: center;
+		margin-left: 0;
+	}
+
+	@container (max-width: 420px) {
+		.head-row {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0.45rem;
+		}
+		.filter-tabs {
+			width: 100%;
+			justify-content: space-between;
+		}
+		.tab-chip {
+			flex: 1;
+			text-align: center;
+		}
+		.log-btn {
+			width: 100%;
+			justify-content: center;
+			margin-left: 0;
+		}
+	}
 </style>

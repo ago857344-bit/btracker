@@ -163,11 +163,14 @@
 	.card {
 		background: var(--surface-panel);
 		border: 1px solid var(--border-subtle);
-		border-radius: 16px;
+		border-radius: 20px;
+		box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 		padding: 20px;
 		display: flex;
 		flex-direction: column;
 		gap: 20px;
+		height: 100%;
+		box-sizing: border-box;
 	}
 	.header {
 		display: flex;
@@ -189,7 +192,12 @@
 	.grid {
 		display: grid;
 		grid-template-columns: repeat(2, 1fr);
-		gap: 16px;
+		gap: 12px;
+	}
+	@media (max-width: 520px) {
+		.grid {
+			grid-template-columns: 1fr;
+		}
 	}
 	.metric {
 		background: var(--surface-bg);
@@ -250,5 +258,27 @@
 		font-size: 13px;
 		color: var(--text-secondary);
 		line-height: 1.4;
+	}
+
+	@media (max-width: 760px) {
+		.card {
+			padding: 1.15rem 1rem;
+			gap: 16px;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.grid {
+			grid-template-columns: 1fr;
+			gap: 8px;
+		}
+		.header {
+			flex-direction: column;
+			align-items: flex-start;
+			gap: 4px;
+		}
+		.overall .grade {
+			font-size: 26px;
+		}
 	}
 </style>

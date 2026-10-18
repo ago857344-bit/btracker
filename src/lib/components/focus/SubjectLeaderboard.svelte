@@ -110,11 +110,14 @@
 	.card {
 		background: var(--surface-panel);
 		border: 1px solid var(--border-subtle);
-		border-radius: 16px;
+		border-radius: 20px;
+		box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.06);
 		padding: 20px;
 		display: flex;
 		flex-direction: column;
 		gap: 20px;
+		height: 100%;
+		box-sizing: border-box;
 	}
 	.header {
 		display: flex;
@@ -207,5 +210,33 @@
 		height: 100%;
 		border-radius: 4px;
 		transition: width 0.3s ease;
+	}
+
+	@media (max-width: 760px) {
+		.card {
+			padding: 1.15rem 1rem;
+			gap: 16px;
+		}
+	}
+
+	@media (max-width: 480px) {
+		.row {
+			gap: 8px;
+		}
+		.rank {
+			font-size: 20px;
+			width: 26px;
+		}
+		.name {
+			font-size: 13px;
+		}
+		.stats {
+			gap: 6px;
+			font-size: 12px;
+		}
+		.delta {
+			font-size: 11px;
+			padding: 1px 4px;
+		}
 	}
 </style>

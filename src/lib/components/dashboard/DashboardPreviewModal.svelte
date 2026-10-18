@@ -391,6 +391,10 @@
 		min-height: 480px;
 	}
 
+	.device-frame.is-phone .frame-content {
+		padding: 0.85rem 0.65rem;
+	}
+
 	/* Footer */
 	.preview-footer {
 		display: flex;
@@ -455,6 +459,15 @@
 	}
 
 	@media (max-width: 768px) {
+		.preview-modal-backdrop {
+			padding: 0;
+		}
+		.preview-modal-card {
+			height: 100dvh;
+			max-height: 100dvh;
+			border-radius: 0;
+			border: none;
+		}
 		.preview-header {
 			flex-direction: column;
 			align-items: flex-start;

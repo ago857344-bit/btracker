@@ -273,4 +273,13 @@
 	.primary { height: 44px; padding: 0 1rem; border: 0; border-radius: 11px; background: var(--accent); color: white; font-size: .82rem; font-weight: 750; }
 	.msg { margin: .6rem 0 0; color: var(--danger); font-size: .78rem; font-weight: 650; }
 	.emptywide { color: var(--text-secondary); font-size: .86rem; }
+
+	@media (max-width: 768px) {
+		.g2, .g3 { grid-template-columns: 1fr; }
+		.totalcard { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
+		.row { flex-direction: column; align-items: stretch; }
+		.row input { width: 100%; }
+		.primary { width: 100%; }
+		.card-top { flex-wrap: wrap; }
+	}
 </style>

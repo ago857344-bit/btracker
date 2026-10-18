@@ -45,4 +45,37 @@
 	.row b { font-size: .78rem; letter-spacing: -.01em; }
 	.qs { font-size: 1.05rem; font-weight: 800; letter-spacing: -.03em; color: var(--accent); text-align: center; }
 	.time { color: var(--text-secondary); font-size: .82rem; font-weight: 700; text-align: center; }
+
+	@media (max-width: 480px) {
+		.cols {
+			grid-template-columns: 65px 1fr 1fr;
+			padding: 0.45rem 0.35rem;
+			gap: 0.3rem;
+		}
+		.qs { font-size: 0.95rem; }
+		.time { font-size: 0.76rem; }
+	}
+	:global(.mode-mobile) .cols,
+	:global(.is-phone) .cols {
+		grid-template-columns: 65px 1fr 1fr;
+		padding: 0.45rem 0.35rem;
+		gap: 0.3rem;
+	}
+	:global(.mode-mobile) .qs,
+	:global(.is-phone) .qs {
+		font-size: 0.95rem;
+	}
+	:global(.mode-mobile) .time,
+	:global(.is-phone) .time {
+		font-size: 0.76rem;
+	}
+	@container (max-width: 420px) {
+		.cols {
+			grid-template-columns: 65px 1fr 1fr;
+			padding: 0.45rem 0.35rem;
+			gap: 0.3rem;
+		}
+		.qs { font-size: 0.95rem; }
+		.time { font-size: 0.76rem; }
+	}
 </style>

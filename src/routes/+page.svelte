@@ -74,6 +74,8 @@
 			<p class="sub">Your personalized command center — progress, targets, and what needs you next.</p>
 		</div>
 		<div class="hero-tools">
+
+
 			{#if dashboardLayout === 'default'}
 				<button type="button" class="customize-toggle" class:active={$customizingHome} on:click={() => customizingHome.update((v) => !v)}>
 					<NavIcon name="settings" size={15} />
@@ -143,8 +145,8 @@
 	.eyebrow { margin: 0 0 .35rem; color: var(--accent); font-size: .76rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
 	h1 { margin: 0; font-size: clamp(1.9rem, 4vw, 2.7rem); line-height: 1.18; letter-spacing: -.04em; padding-top: 0.12em; }
 	h1 span { color: var(--text-secondary); }
-	.sub { max-width: 520px; margin: .55rem 0 0; color: var(--text-secondary); font-size: .98rem; line-height: 1.6; }
-	.hero-tools { display: flex; align-items: center; gap: .6rem; }
+	.hero-tools { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+
 	.customize-toggle {
 		display: inline-flex;
 		align-items: center;
@@ -215,9 +217,16 @@
 		.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } 
 		.cell.span-3 { grid-column: span 2; } 
 	}
-	@media (max-width: 760px) { 
-		.grid { grid-template-columns: minmax(0, 1fr); } 
-		.cell.span-2, .cell.span-3 { grid-column: span 1; } 
+	@media (max-width: 768px) { 
+		.home { gap: 1.15rem; }
+		.hero { gap: 0.85rem; }
+		h1 { font-size: clamp(1.45rem, 5.5vw, 1.85rem); line-height: 1.22; word-break: break-word; }
+		.grid { grid-template-columns: minmax(0, 1fr); gap: 0.95rem; } 
+		.cell.span-2, .cell.span-3 { grid-column: span 1 !important; } 
 		.hero-tools { width: 100%; justify-content: space-between; } 
+		.hero-tools button { flex: 1; justify-content: center; font-size: 0.78rem; padding: 0.55rem 0.65rem; }
+		.customize-banner { flex-direction: column; align-items: stretch; gap: 0.75rem; padding: 0.75rem 0.9rem; }
+		.banner-actions { flex-wrap: wrap; width: 100%; }
+		.banner-actions button { flex: 1; text-align: center; justify-content: center; }
 	}
 </style>

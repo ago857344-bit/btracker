@@ -203,7 +203,11 @@ body[data-deep-work="true"] .layout-shell { grid-template-columns: 1fr !importan
 body[data-deep-work="true"] .page-head,
 body[data-deep-work="true"] .toolbar,
 body[data-deep-work="true"] .tabs,
-body[data-deep-work="true"] .layout {
+body[data-deep-work="true"] .layout,
+body[data-deep-work="true"] .topbar,
+body[data-deep-work="true"] .mentor-wrapper,
+body[data-deep-work="true"] .dynamic-island-anchor,
+body[data-deep-work="true"] .mobile-bottom-nav {
 	opacity: 0 !important;
 	visibility: hidden !important;
 	pointer-events: none !important;
@@ -227,7 +231,7 @@ body[data-deep-work="true"] .layout {
 
 /* Global generic glass */
 .glass {
-	background: color-mix(in srgb, var(--surface-panel), transparent 15%) !important;
+	background: var(--surface-panel);
 	backdrop-filter: var(--glass-filter, blur(20px) saturate(180%));
 	-webkit-backdrop-filter: var(--glass-filter, blur(20px) saturate(180%));
 }
@@ -1218,30 +1222,25 @@ aside.mobile-open {
 	background: var(--surface-popup, rgba(255, 255, 255, 0.96)) !important;
 }
 
-/* Desktop Sidebar Glass with Wallpaper */
-:root[data-wallpaper="true"] aside:not(.mobile-open),
-:root[data-live-wallpaper="true"] aside:not(.mobile-open) {
-	background: color-mix(in srgb, var(--surface-panel) 65%, transparent) !important;
-	backdrop-filter: blur(28px) saturate(190%) !important;
-	-webkit-backdrop-filter: blur(28px) saturate(190%) !important;
+/* Desktop Sidebar Glass: Follows dynamic opacity slider across all themes */
+aside.glass:not(.mobile-open) {
+	background: var(--surface-panel) !important;
+	backdrop-filter: var(--glass-filter) !important;
+	-webkit-backdrop-filter: var(--glass-filter) !important;
 }
-:root[data-clear-glass="true"] aside:not(.mobile-open) {
+:root[data-clear-glass="true"] aside.glass:not(.mobile-open) {
 	background: transparent !important;
 	backdrop-filter: none !important;
 	-webkit-backdrop-filter: none !important;
 }
 
-/* Topbar Translucency: Never entirely opaque */
-:root[data-wallpaper="true"] .topbar,
-:root[data-live-wallpaper="true"] .topbar {
-	background: color-mix(in srgb, var(--surface-panel) 35%, transparent) !important;
-	backdrop-filter: blur(20px) saturate(180%) !important;
-	-webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-}
-:root[data-clear-glass="true"] .topbar {
+/* Topbar: Entirely transparent floating header over any wallpaper/canvas */
+.topbar {
 	background: transparent !important;
 	backdrop-filter: none !important;
 	-webkit-backdrop-filter: none !important;
+	border-bottom: 1px solid transparent !important;
+	box-shadow: none !important;
 }
 
 :root[data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),

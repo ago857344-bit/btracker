@@ -117,43 +117,49 @@
 
 	<div class="content">
 		<div class="dial-container" class:running style="--dial-color: {phase === 'break' ? 'var(--success, #2f9e6e)' : accent}">
-			<StatRing value={ringProgress} size={320} stroke={18} skin={phase === 'break' ? 'classic' : $loadout.timer} color={phase === 'break' ? 'var(--success, #2f9e6e)' : accent}>
-				
-				<div class="focus-pet-container" class:shatter={isShattering} style="--pet-scale: {1 + (ringProgress / 100) * 0.3}">
-					{#if focusPet === 'orb'}
-						<div class="pet-orb">
-							<div class="orb-core"></div>
-							<div class="orb-aura"></div>
-						</div>
-					{:else if focusPet === 'crystal'}
-						<div class="pet-crystal">
-							<svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-								<path d="M12 2L4 10l8 12 8-12-8-10z" fill="color-mix(in srgb, var(--accent) 70%, white)" />
-								<path d="M12 2v20l8-12-8-10z" fill="var(--accent)" opacity="0.6"/>
-							</svg>
-							<div class="crystal-glow"></div>
-						</div>
-					{:else if focusPet === 'flame'}
-						<div class="pet-flame">
-							<svg width="60" height="60" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-								<path d="M12 2c0 0-5 6-5 11a5 5 0 0 0 10 0c0-5-5-11-5-11z" fill="var(--accent)" opacity="0.6" class="flame-outer" />
-								<path d="M12 8c0 0-2.5 3-2.5 6a2.5 2.5 0 0 0 5 0c0-3-2.5-6-2.5-6z" fill="#fff" class="flame-inner" />
-							</svg>
-							<div class="flame-glow"></div>
+			<StatRing value={ringProgress} size={330} stroke={18} skin={phase === 'break' ? 'classic' : $loadout.timer} color={phase === 'break' ? 'var(--success, #2f9e6e)' : accent}>
+				<div class="ring-stack">
+					<div class="focus-pet-container" class:shatter={isShattering} style="--pet-scale: {1 + (ringProgress / 100) * 0.3}">
+						{#if focusPet === 'orb'}
+							<div class="pet-orb">
+								<div class="orb-core"></div>
+								<div class="orb-aura"></div>
+							</div>
+						{:else if focusPet === 'crystal'}
+							<div class="pet-crystal">
+								<svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+									<path d="M12 2L4 10l8 12 8-12-8-10z" fill="color-mix(in srgb, var(--accent) 70%, white)" />
+									<path d="M12 2v20l8-12-8-10z" fill="var(--accent)" opacity="0.6"/>
+								</svg>
+								<div class="crystal-glow"></div>
+							</div>
+						{:else if focusPet === 'flame'}
+							<div class="pet-flame">
+								<svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+									<path d="M12 2c0 0-5 6-5 11a5 5 0 0 0 10 0c0-5-5-11-5-11z" fill="var(--accent)" opacity="0.6" class="flame-outer" />
+									<path d="M12 8c0 0-2.5 3-2.5 6a2.5 2.5 0 0 0 5 0c0-3-2.5-6-2.5-6z" fill="#fff" class="flame-inner" />
+								</svg>
+								<div class="flame-glow"></div>
+							</div>
+						{/if}
+					</div>
+
+					<div class="timer-text-wrap">
+						<span class="time font-mono">{dialTime}</span>
+						<span class="phase" style="color: {phase === 'break' ? 'var(--success, #2f9e6e)' : accent}">
+							{phase === 'break' ? 'BREAK' : 'FOCUS'}
+						</span>
+					</div>
+
+					{#if subject}
+						<div class="subject-line" title="{subject}{chapter ? ` · ${chapter}` : ''}">
+							<span class="sub-name">{subject}</span>
+							{#if chapter}<span class="chap-dot">·</span><span class="chap-name">{chapter}</span>{/if}
 						</div>
 					{/if}
-				</div>
 
-				<div class="timer-text-wrap">
-					<span class="time">{dialTime}</span>
-					<span class="phase" style="color: {phase === 'break' ? 'var(--success, #2f9e6e)' : accent}">
-						{phase === 'break' ? 'BREAK' : 'FOCUS'}
-					</span>
+					<span class="kind-badge font-mono">{focusKind.toUpperCase()}</span>
 				</div>
-				{#if subject}
-					<span class="subject-line">{subject}{chapter ? ` · ${chapter}` : ''}</span>
-				{/if}
-				<span class="kind-badge">{focusKind.toUpperCase()}</span>
 			</StatRing>
 		</div>
 
@@ -215,17 +221,17 @@
 	.overlay {
 		position: fixed;
 		inset: 0;
-		z-index: 9999;
-		background: rgba(10, 10, 16, 0.3) !important;
-		backdrop-filter: var(--glass-filter) !important;
-		-webkit-backdrop-filter: var(--glass-filter) !important;
+		z-index: 10005;
+		background: radial-gradient(circle at center, rgba(10, 10, 16, 0.94), rgba(6, 6, 12, 0.98)) !important;
+		backdrop-filter: blur(32px) saturate(180%) !important;
+		-webkit-backdrop-filter: blur(32px) saturate(180%) !important;
 		display: flex;
 		flex-direction: column;
 		transition: background-color 0.5s ease;
 	}
 
 	.overlay.break {
-		background: color-mix(in srgb, var(--success, #2f9e6e), rgba(10, 10, 16, 0.3) 85%) !important;
+		background: radial-gradient(circle at center, color-mix(in srgb, var(--success, #2f9e6e) 25%, rgba(10, 10, 16, 0.95)), rgba(6, 6, 12, 0.98)) !important;
 	}
 
 	.header {
@@ -284,35 +290,65 @@
 		animation: pulse-glow 3s infinite ease-in-out;
 	}
 
+	.ring-stack {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		width: 250px;
+		max-width: 250px;
+		text-align: center;
+		position: relative;
+		pointer-events: auto;
+	}
+
 	.time {
-		font-size: 3.5rem;
-		font-family: monospace;
-		font-weight: bold;
+		font-size: 3.4rem;
+		font-family: var(--font-mono, monospace);
+		font-weight: 850;
 		line-height: 1;
+		letter-spacing: -0.03em;
+		color: #ffffff;
 	}
 
 	.phase {
-		font-size: 1.2rem;
-		font-weight: 800;
-		letter-spacing: 0.2em;
-		margin-top: 0.5rem;
+		font-size: 0.82rem;
+		font-weight: 850;
+		letter-spacing: 0.22em;
+		text-transform: uppercase;
+		margin-top: 0.4rem;
+		line-height: 1;
 	}
 
 	.subject-line {
-		font-size: 0.9rem;
-		color: var(--text-secondary);
-		margin-top: 0.25rem;
+		margin: 0.45rem 0 0;
+		font-size: 0.78rem;
+		font-weight: 600;
+		color: var(--text-secondary, #a3a3a3);
+		max-width: 230px;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		line-height: 1.25;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.35rem;
+	}
+	.chap-dot {
+		opacity: 0.5;
 	}
 
 	.kind-badge {
-		margin-top: 0.75rem;
-		padding: 0.2rem 0.6rem;
-		background: var(--surface-subtle);
+		margin-top: 0.45rem;
+		padding: 0.2rem 0.65rem;
+		background: var(--surface-subtle, rgba(255, 255, 255, 0.08));
+		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.1));
 		border-radius: 999px;
-		font-size: 0.7rem;
+		font-size: 0.62rem;
 		font-weight: 800;
 		letter-spacing: 0.1em;
-		color: var(--text-secondary);
+		color: var(--text-secondary, #d4d4d4);
 	}
 
 	.action-btn {
@@ -359,7 +395,7 @@
 		flex-direction: column;
 		align-items: flex-end;
 		gap: 1rem;
-		z-index: 10;
+		z-index: 10010;
 	}
 
 	.sound-menu {
@@ -468,26 +504,26 @@
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
-		transform: translateY(20px);
+		transform: none;
 	}
 
 	.focus-pet-container {
-		position: absolute;
-		top: -45px;
-		left: 50%;
-		transform: translateX(-50%) scale(var(--pet-scale, 1));
-		transform-origin: bottom center;
-		transition: transform 0.3s ease;
-		z-index: 3;
-		pointer-events: none;
+		position: relative;
+		height: 48px;
 		display: flex;
 		justify-content: center;
 		align-items: center;
+		margin-bottom: 0.25rem;
+		transform: scale(var(--pet-scale, 1));
+		transform-origin: center bottom;
+		transition: transform 0.3s ease;
+		pointer-events: none;
+		z-index: 3;
 	}
 
 	.pet-orb {
 		position: relative;
-		width: 60px; height: 60px;
+		width: 48px; height: 48px;
 		display: flex; justify-content: center; align-items: center;
 	}
 	.orb-core {

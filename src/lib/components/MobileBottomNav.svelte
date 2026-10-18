@@ -164,7 +164,7 @@
 		display: none;
 	}
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.bottom-nav {
 			display: flex;
 			position: fixed;

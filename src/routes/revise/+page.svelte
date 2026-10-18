@@ -301,8 +301,6 @@
 	}
 	.sample-btn:hover { border-color: var(--accent); color: var(--accent); }
 	.sample-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-	@media (max-width: 760px) { .kpis { grid-template-columns: 1fr; } }
-
 	.view-toggle { display: flex; gap: 0.5rem; margin-bottom: 2rem; background: var(--surface-subtle); padding: 0.4rem; border-radius: 12px; width: fit-content; border: 1px solid var(--border-subtle); }
 	.view-toggle button { padding: 0.6rem 1.2rem; border-radius: 8px; border: none; background: transparent; color: var(--text-secondary); font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
 	.view-toggle button:hover { color: var(--text-primary); }
@@ -328,5 +326,16 @@
 		color: #ffffff;
 		transform: translateY(-1px);
 		box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+	}
+
+	@media (max-width: 768px) {
+		.kpis { grid-template-columns: 1fr; }
+		.view-toggle { width: 100%; }
+		.view-toggle button { flex: 1; text-align: center; font-size: 0.8rem; padding: 0.5rem; }
+		.tabs { width: 100%; display: flex; }
+		.tabs button { flex: 1; text-align: center; padding: 0.45rem 0.5rem; font-size: 0.72rem; }
+		.cards { grid-template-columns: 1fr; }
+		.search { min-width: 0; width: 100%; }
+		.subsel { width: 100%; }
 	}
 </style>

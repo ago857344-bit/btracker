@@ -812,7 +812,11 @@ async function runAiTriage() {
 	.tick:hover { border-color: var(--accent); }
 	.tick.on { border-color: #2f9e6e; background: #2f9e6e; color: #fff; }
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
+		.tabs { width: 100%; display: flex; }
+		.tabs button { flex: 1; padding: 0 0.5rem; text-align: center; }
+		.task-toolbar { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+		.btn-triage { width: 100%; justify-content: center; }
 		.tblwrap { max-height: none; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 		.chcol { position: sticky; left: 0; min-width: 170px; }
 	}

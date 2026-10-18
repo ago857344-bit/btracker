@@ -166,30 +166,27 @@
 		if (effectiveWallpaper) {
 			root.setAttribute('data-wallpaper', 'true');
 			root.style.setProperty('--user-wallpaper', wallpaperCss(effectiveWallpaper));
-			
-			// Inject dynamic glass opacity based on user preference
-			// @ts-ignore
-			const opacity = state.ui.glassStrength ?? 45;
-			const t = 100 - opacity;
-			const st = Math.min(100, t + 7);
-			const blurVal = Math.max(0, (opacity / 45) * 20); // 0 at 0%, 20px at 45%
-			const filterStr = opacity === 0 ? 'none' : `blur(${blurVal}px) saturate(180%)`;
-			root.style.setProperty('--glass-filter', filterStr);
-			if (opacity === 0) {
-				root.setAttribute('data-clear-glass', 'true');
-			} else {
-				root.removeAttribute('data-clear-glass');
-			}
-			if (opacity === 0) {
-				root.style.setProperty('--surface-panel', 'transparent', 'important');
-				root.style.setProperty('--surface-subtle', 'transparent', 'important');
-			}
-			
-			if (opacity === 0) {
-				root.style.setProperty('--surface-panel', 'transparent');
-				root.style.setProperty('--surface-subtle', 'transparent');
-				root.style.setProperty('--surface-panel-ai', 'transparent');
-			} else if (isDarkTheme(state.theme)) {
+		} else {
+			root.removeAttribute('data-wallpaper');
+			root.style.removeProperty('--user-wallpaper');
+		}
+
+		// Inject dynamic glass opacity based on user preference
+		// @ts-ignore
+		const opacity = state.ui.glassStrength ?? 45;
+		const t = 100 - opacity;
+		const st = Math.min(100, t + 7);
+		const blurVal = Math.max(0, (opacity / 45) * 20); // 0 at 0%, 20px at 45%
+		const filterStr = opacity === 0 ? 'none' : `blur(${blurVal}px) saturate(180%)`;
+		root.style.setProperty('--glass-filter', filterStr);
+		if (opacity === 0) {
+			root.setAttribute('data-clear-glass', 'true');
+			root.style.setProperty('--surface-panel', 'transparent');
+			root.style.setProperty('--surface-subtle', 'transparent');
+			root.style.setProperty('--surface-panel-ai', 'transparent');
+		} else {
+			root.removeAttribute('data-clear-glass');
+			if (isDarkTheme(state.theme)) {
 				root.style.setProperty('--surface-panel', `color-mix(in srgb, #0a0a10, transparent ${t}%)`);
 				root.style.setProperty('--surface-panel-ai', `color-mix(in srgb, #0a0a10, transparent ${Math.min(t, 15)}%)`);
 				root.style.setProperty('--surface-subtle', `color-mix(in srgb, #0a0a10, transparent ${st}%)`);
@@ -198,12 +195,6 @@
 				root.style.setProperty('--surface-panel-ai', `color-mix(in srgb, #ffffff, transparent ${Math.min(t, 15)}%)`);
 				root.style.setProperty('--surface-subtle', `color-mix(in srgb, #ffffff, transparent ${st}%)`);
 			}
-		} else {
-			root.style.removeProperty('--surface-panel');
-			root.style.removeProperty('--surface-subtle');
-			root.style.removeProperty('--glass-filter');
-			root.removeAttribute('data-wallpaper');
-			root.style.removeProperty('--user-wallpaper');
 		}
 		
 		// @ts-ignore
@@ -353,9 +344,7 @@
 					<button class="mobile-menu" type="button" aria-label="Open navigation" on:click={() => mobileOpen = true}><NavIcon name="menu" size={21} /></button>
 					<div><p class="breadcrumb">BTracker <span>/</span> {currentTitle}</p><h2>{currentTitle}</h2></div>
 				</div>
-				<div class="topbar-center">
-					<DynamicIsland />
-				</div>
+				<div class="topbar-center" aria-hidden="true"></div>
 				<div class="topbar-actions">
 					<span class:error={$saveStatus === 'error'} class="save-state"><i></i>{saveLabel}</span>
 					<StreakButton />
@@ -380,6 +369,7 @@
 
 		<MobileBottomNav />
 		<GlobalOverlays />
+		<DynamicIsland />
 		<AIOmentor />
 		<FormulaVault bind:open={$formulaVaultOpen} />
 		<PwaBanner />
@@ -395,11 +385,7 @@
 {/if}
 
 <style>
-	.app-shell { position: relative; z-index: 1; min-height: 100vh; padding-left: 300px; background: var(--surface-canvas); transition: padding-left .24s ease; }
-	:global(:root[data-wallpaper="true"]) .app-shell,
-	:global(:root[data-live-wallpaper="true"]) .app-shell {
-		background: transparent !important;
-	}
+	.app-shell { position: relative; z-index: 1; min-height: 100vh; padding-left: 300px; background: transparent; transition: padding-left .24s ease; }
 	.app-shell.sidebar-collapsed { padding-left: 76px; }
 	/* Isolation keeps the z-index:-1 aurora above the shell background but below its content. */
 	.app-shell.aurora-on { isolation: isolate; }
@@ -421,16 +407,22 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		min-height: 88px;
+		min-height: 80px;
 		padding: 1.25rem clamp(1.5rem, 4vw, 4rem);
-		border-bottom: 1px solid color-mix(in srgb, var(--border-subtle), transparent 32%);
-		background: transparent;
+		border-bottom: 1px solid transparent !important;
+		background: transparent !important;
+		backdrop-filter: none !important;
+		-webkit-backdrop-filter: none !important;
+		box-shadow: none !important;
+		position: sticky;
+		top: 0;
+		z-index: 30;
 	}
 	.page-heading, .topbar-actions { display: flex; align-items: center; }
 	.page-heading { gap: .85rem; }
-	.breadcrumb { margin: 0 0 .2rem; color: var(--text-secondary); font-size: .72rem; font-weight: 650; }
-	.breadcrumb span { margin: 0 .26rem; color: var(--border-subtle); }
-	h2 { margin: 0; font-size: 1.15rem; line-height: 1.1; letter-spacing: -.035em; font-weight: 750; }
+	.breadcrumb { margin: 0 0 .2rem; color: rgba(255, 255, 255, 0.78); font-size: .72rem; font-weight: 650; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85); }
+	.breadcrumb span { margin: 0 .26rem; color: rgba(255, 255, 255, 0.35); }
+	h2 { margin: 0; font-size: 1.15rem; line-height: 1.1; letter-spacing: -.035em; font-weight: 800; color: #ffffff; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9); }
 	.topbar-center {
 		display: flex;
 		align-items: center;
@@ -440,55 +432,124 @@
 		padding: 0 1rem;
 		position: relative;
 	}
-	.topbar-actions { gap: .65rem; }
-	.save-state { display: inline-flex; align-items: center; gap: .42rem; color: var(--text-secondary); font-size: .74rem; font-weight: 650; }
-	.save-state i { display: block; width: 7px; height: 7px; border-radius: 99px; background: var(--success); }
-	.save-state.error i { background: var(--danger); }
+	.topbar-actions { display: flex; align-items: center; gap: .65rem; }
+	.save-state {
+		display: inline-flex;
+		align-items: center;
+		gap: .42rem;
+		height: 36px;
+		padding: 0 .85rem;
+		border-radius: 999px;
+		background: rgba(0, 0, 0, 0.42);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		border: 1px solid rgba(255, 255, 255, 0.16);
+		color: #ffffff;
+		font-size: .74rem;
+		font-weight: 700;
+		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+	}
+	.save-state i { display: block; width: 7px; height: 7px; border-radius: 99px; background: var(--success); box-shadow: 0 0 6px var(--success); }
+	.save-state.error i { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
+
+	.topbar-actions :global(.streak-button),
+	.topbar-actions :global(.tri-rings-btn),
+	.topbar-actions :global(.signin),
+	.topbar-actions :global(.avatar-btn) {
+		background: rgba(0, 0, 0, 0.42) !important;
+		backdrop-filter: blur(16px) !important;
+		-webkit-backdrop-filter: blur(16px) !important;
+		border: 1px solid rgba(255, 255, 255, 0.16) !important;
+		color: #ffffff !important;
+		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28) !important;
+		transition: all 0.2s var(--ease-ios-spring) !important;
+	}
+	.topbar-actions :global(.streak-button:hover),
+	.topbar-actions :global(.tri-rings-btn:hover),
+	.topbar-actions :global(.signin:hover),
+	.topbar-actions :global(.avatar-btn:hover) {
+		border-color: rgba(255, 255, 255, 0.35) !important;
+		background: rgba(0, 0, 0, 0.62) !important;
+		box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45) !important;
+		transform: translateY(-1px) !important;
+	}
+	.topbar-actions :global(.streak-button .count),
+	.topbar-actions :global(.tri-rings-btn .count-pill),
+	.topbar-actions :global(.signin) {
+		color: #ffffff !important;
+	}
+
 	.quick-add {
 		display: inline-flex;
 		align-items: center;
 		gap: .42rem;
-		height: 38px;
-		padding: 0 .9rem;
+		height: 36px;
+		padding: 0 1rem;
 		border-radius: 12px;
-		color: white;
+		color: #ffffff;
 		background: var(--accent);
-		box-shadow: 0 4px 14px color-mix(in srgb, var(--accent), transparent 50%), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+		border: 1px solid rgba(255, 255, 255, 0.25);
+		box-shadow: 0 4px 16px color-mix(in srgb, var(--accent), transparent 30%), 0 2px 6px rgba(0, 0, 0, 0.3);
 		font-size: .78rem;
-		font-weight: 700;
+		font-weight: 750;
 		text-decoration: none;
 		transition: all 0.2s var(--ease-ios-spring);
 		-webkit-tap-highlight-color: transparent;
 	}
+	.quick-add:hover {
+		transform: translateY(-1px);
+		filter: brightness(1.1);
+		box-shadow: 0 6px 20px color-mix(in srgb, var(--accent), transparent 20%), 0 3px 8px rgba(0, 0, 0, 0.4);
+	}
 	.quick-add:active { transform: scale(0.96); }
+
 	main { width: min(100%, 1560px); margin: 0 auto; padding: clamp(1.5rem, 3.5vw, 3.5rem) clamp(1.5rem, 4vw, 4rem) 4rem; }
-	.mobile-menu { display: none; width: 37px; height: 37px; place-items: center; border: 1px solid var(--border-subtle); border-radius: 11px; color: var(--text-primary); background: var(--surface-panel); }
+	.mobile-menu {
+		display: none;
+		width: 38px;
+		height: 38px;
+		place-items: center;
+		border: 1px solid rgba(255, 255, 255, 0.18);
+		border-radius: 11px;
+		color: #ffffff;
+		background: rgba(0, 0, 0, 0.42);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+	}
 	.scrim { display: none; }
 	.auth-loading { display: grid; min-height: 100vh; place-items: center; background: var(--surface-canvas); color: var(--text-secondary); font-size: .9rem; font-weight: 650; }
-	@media (max-width: 760px) {
+	
+	@media (max-width: 768px) {
 		.app-shell, .app-shell.sidebar-collapsed { padding-left: 0; }
 		.topbar-center { display: contents; }
 		.topbar {
 			min-height: calc(max(env(safe-area-inset-top), 14px) + 56px);
 			padding: max(env(safe-area-inset-top), 14px) 1.15rem 0.8rem;
-			background: color-mix(in srgb, var(--surface-panel, #121020) 45%, transparent);
-			backdrop-filter: blur(28px) saturate(190%);
-			-webkit-backdrop-filter: blur(28px) saturate(190%);
+			background: transparent !important;
+			backdrop-filter: none !important;
+			-webkit-backdrop-filter: none !important;
 			position: sticky;
 			top: 0;
 			z-index: 15;
-			border-bottom: 0.5px solid color-mix(in srgb, var(--border-subtle), transparent 45%);
-			box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.2);
+			border-bottom: 1px solid transparent !important;
+			box-shadow: none !important;
 		}
+		.breadcrumb { display: none; }
+		.page-heading { gap: 0.6rem; min-width: 0; flex: 1; }
+		.page-heading h2 { font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+		.topbar-actions { gap: 0.35rem; flex-shrink: 0; }
 		.mobile-menu {
 			display: grid;
 			width: 38px;
 			height: 38px;
 			border-radius: 50%;
-			border: 0.5px solid color-mix(in srgb, rgba(255, 255, 255, 0.2), var(--border-subtle) 80%);
-			background: color-mix(in srgb, var(--surface-panel), transparent 25%);
+			border: 1px solid rgba(255, 255, 255, 0.18);
+			background: rgba(0, 0, 0, 0.42);
 			backdrop-filter: blur(16px);
 			-webkit-backdrop-filter: blur(16px);
+			color: #ffffff;
 		}
 		.mobile-menu:active {
 			transform: scale(0.92);
@@ -519,6 +580,32 @@
 			pointer-events: auto;
 			cursor: pointer;
 		}
+	}
+
+	:global(:root[data-theme='light']) .breadcrumb {
+		color: var(--text-secondary) !important;
+		text-shadow: none !important;
+	}
+	:global(:root[data-theme='light']) h2 {
+		color: var(--text-primary) !important;
+		text-shadow: none !important;
+	}
+	:global(:root[data-theme='light']) .save-state,
+	:global(:root[data-theme='light']) .mobile-menu,
+	:global(:root[data-theme='light']) .topbar-actions :global(.streak-button),
+	:global(:root[data-theme='light']) .topbar-actions :global(.tri-rings-btn),
+	:global(:root[data-theme='light']) .topbar-actions :global(.signin),
+	:global(:root[data-theme='light']) .topbar-actions :global(.avatar-btn) {
+		background: rgba(255, 255, 255, 0.85) !important;
+		border-color: rgba(0, 0, 0, 0.1) !important;
+		color: var(--text-primary) !important;
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
+		text-shadow: none !important;
+	}
+	:global(:root[data-theme='light']) .topbar-actions :global(.streak-button .count),
+	:global(:root[data-theme='light']) .topbar-actions :global(.tri-rings-btn .count-pill),
+	:global(:root[data-theme='light']) .topbar-actions :global(.signin) {
+		color: var(--text-primary) !important;
 	}
 
 .live-wallpaper-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 0; pointer-events: none; opacity: 0.95; -webkit-transform: translateZ(0); transform: translateZ(0); }

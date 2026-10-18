@@ -175,4 +175,24 @@
 	.past-list b { display: block; font-size: .78rem; }
 	.past-list small { text-transform: none; letter-spacing: 0; font-weight: 600; font-size: .68rem; }
 	.none { margin: 0; color: var(--text-secondary); font-size: .8rem; line-height: 1.6; }
+
+	@media (max-width: 600px) {
+		.hub-hero {
+			grid-template-columns: 1fr;
+			gap: 0.75rem;
+		}
+		.tabs {
+			width: 100%;
+			display: flex;
+		}
+		.tabs button {
+			flex: 1;
+			justify-content: center;
+			padding: 0 0.4rem;
+			font-size: 0.72rem;
+		}
+		.steppers {
+			grid-template-columns: 1fr;
+		}
+	}
 </style>

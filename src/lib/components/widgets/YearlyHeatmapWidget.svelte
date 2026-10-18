@@ -218,6 +218,9 @@
 		flex-direction: column;
 		gap: 0.85rem;
 		width: 100%;
+		max-width: 100%;
+		min-width: 0;
+		overflow: hidden;
 		padding: 0.35rem 0.2rem;
 	}
 
@@ -234,6 +237,48 @@
 		align-items: center;
 		gap: 0.5rem;
 		flex-wrap: wrap;
+	}
+
+	@media (max-width: 520px) {
+		.summary-pills {
+			display: grid;
+			grid-template-columns: repeat(2, 1fr);
+			gap: 0.35rem;
+			width: 100%;
+		}
+		.stat-pill {
+			justify-content: center;
+			font-size: 0.68rem;
+			padding: 0.22rem 0.4rem;
+		}
+	}
+
+	:global(.mode-mobile) .summary-pills,
+	:global(.is-phone) .summary-pills {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 0.35rem;
+		width: 100%;
+	}
+	:global(.mode-mobile) .stat-pill,
+	:global(.is-phone) .stat-pill {
+		justify-content: center;
+		font-size: 0.68rem;
+		padding: 0.22rem 0.4rem;
+	}
+
+	@container (max-width: 440px) {
+		.summary-pills {
+			display: grid;
+			grid-template-columns: repeat(2, 1fr);
+			gap: 0.35rem;
+			width: 100%;
+		}
+		.stat-pill {
+			justify-content: center;
+			font-size: 0.68rem;
+			padding: 0.22rem 0.4rem;
+		}
 	}
 
 	.stat-pill {
@@ -255,7 +300,9 @@
 
 	.grid-scroll-wrap {
 		width: 100%;
+		max-width: 100%;
 		overflow-x: auto;
+		-webkit-overflow-scrolling: touch;
 		padding-bottom: 0.4rem;
 	}
 

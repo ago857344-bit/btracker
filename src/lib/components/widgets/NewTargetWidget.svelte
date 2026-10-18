@@ -487,4 +487,64 @@
 		font-size: 0.64rem;
 		color: var(--text-secondary);
 	}
+
+	@media (max-width: 500px) {
+		.countdown-grid {
+			gap: 0.35rem;
+		}
+		.unit-tile {
+			padding: 0.5rem 0.15rem;
+			border-radius: 10px;
+		}
+		.unit-val {
+			font-size: 1.15rem;
+		}
+		.unit-lbl {
+			font-size: 0.52rem;
+		}
+		.preset-cards-grid {
+			grid-template-columns: 1fr;
+		}
+	}
+
+	:global(.mode-mobile) .countdown-grid,
+	:global(.is-phone) .countdown-grid {
+		gap: 0.35rem;
+	}
+	:global(.mode-mobile) .unit-tile,
+	:global(.is-phone) .unit-tile {
+		padding: 0.5rem 0.15rem;
+		border-radius: 10px;
+	}
+	:global(.mode-mobile) .unit-val,
+	:global(.is-phone) .unit-val {
+		font-size: 1.15rem;
+	}
+	:global(.mode-mobile) .unit-lbl,
+	:global(.is-phone) .unit-lbl {
+		font-size: 0.52rem;
+	}
+	:global(.mode-mobile) .preset-cards-grid,
+	:global(.is-phone) .preset-cards-grid {
+		grid-template-columns: 1fr;
+	}
+
+	@container (max-width: 420px) {
+		.countdown-grid {
+			gap: 0.35rem;
+		}
+		.unit-tile {
+			padding: 0.5rem 0.15rem;
+			border-radius: 10px;
+		}
+		.unit-val {
+			font-size: 1.15rem;
+		}
+		.unit-lbl {
+			font-size: 0.52rem;
+		}
+		.preset-cards-grid {
+			grid-template-columns: 1fr;
+		}
+	}
 </style>

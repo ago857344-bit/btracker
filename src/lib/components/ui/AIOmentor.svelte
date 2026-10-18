@@ -180,6 +180,8 @@ CRITICAL INSTRUCTIONS:
 			await sendMessage();
 		}
 	}
+
+	$: dynamicIslandShowingTime = Boolean(($globalTimer.running || $globalTimer.sessionStarted) && $page.url.pathname !== '/focus');
 </script>
 
 <div class="mentor-wrapper">
@@ -252,7 +254,7 @@ CRITICAL INSTRUCTIONS:
 		</div>
 	{/if}
 
-{#if $globalTimer.running && $page.url.pathname !== '/focus'}
+{#if $globalTimer.running && $page.url.pathname !== '/focus' && !dynamicIslandShowingTime}
 	<div
 		class="mini-timer"
 		role="button"
