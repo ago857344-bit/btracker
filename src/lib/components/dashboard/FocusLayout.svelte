@@ -19,7 +19,7 @@
 		<!-- MAIN STAGE (70% on Desktop) -->
 		<main class="main-stage">
 			<!-- Centerpiece Hero Timer Card -->
-			<section class="hero-timer-card">
+			<section class="hero-timer-card specular-card">
 				<div class="stage-tag-row">
 					<span class="hero-live-pill">⚡ FOCUS COMMAND CENTER</span>
 					<span class="hero-action-hint">Active Session</span>
@@ -31,14 +31,14 @@
 
 			<!-- Today's Mission Planner & Chapter Checklists -->
 			<section class="stage-missions-grid">
-				<div class="mission-card">
+				<div class="mission-card specular-card">
 					<div class="card-title-row">
 						<NavIcon name="list" size={16} />
 						<h3>Today's Mission Planner</h3>
 					</div>
 					<UpNextWidget />
 				</div>
-				<div class="mission-card">
+				<div class="mission-card specular-card">
 					<div class="card-title-row">
 						<NavIcon name="plan" size={16} />
 						<h3>Active Chapter Checklist</h3>
@@ -55,37 +55,37 @@
 			</div>
 
 			<!-- Streak & Daily Motivation -->
-			<div class="rail-card">
+			<div class="rail-card specular-card">
 				<div class="rail-card-head"><NavIcon name="quote" size={13} /> Motivation &amp; Streak</div>
 				<QuoteWidget />
 			</div>
 
 			<!-- Daily Targets & Exam Countdown -->
-			<div class="rail-card">
+			<div class="rail-card specular-card">
 				<div class="rail-card-head"><NavIcon name="target" size={13} /> Target Countdown</div>
 				<NewTargetWidget />
 			</div>
 
 			<!-- Subject Hubs Overview -->
-			<div class="rail-card">
+			<div class="rail-card specular-card">
 				<div class="rail-card-head"><NavIcon name="layers" size={13} /> Subject Hubs</div>
 				<SubjectCardsWidget />
 			</div>
 
 			<!-- 7-Day Consistency & Activity -->
-			<div class="rail-card">
+			<div class="rail-card specular-card">
 				<div class="rail-card-head"><NavIcon name="stats" size={13} /> Weekly Trend</div>
 				<WeeklyStandingWidget />
 			</div>
 
 			<!-- 365-Day Matrix -->
-			<div class="rail-card">
+			<div class="rail-card specular-card">
 				<div class="rail-card-head"><NavIcon name="history" size={13} /> Yearly Consistency</div>
 				<YearlyHeatmapWidget />
 			</div>
 
 			<!-- Activity Feed -->
-			<div class="rail-card">
+			<div class="rail-card specular-card">
 				<div class="rail-card-head"><NavIcon name="history" size={13} /> Recent Log</div>
 				<RecentActivityWidget />
 			</div>
@@ -116,13 +116,21 @@
 	}
 
 	.hero-timer-card {
+		position: relative;
 		padding: 1.6rem 2rem 1.8rem;
-		border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border-subtle));
+		border: 1px solid var(--vision-bevel-border, color-mix(in srgb, var(--accent) 30%, var(--border-subtle)));
 		border-radius: 24px;
-		background: color-mix(in srgb, var(--surface-panel) 82%, transparent);
-		backdrop-filter: blur(28px) saturate(190%);
-		-webkit-backdrop-filter: blur(28px) saturate(190%);
-		box-shadow: 0 16px 48px -12px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+		background: var(--vision-glass-bg, var(--surface-panel));
+		backdrop-filter: var(--vision-glass-blur, blur(28px)) saturate(190%);
+		-webkit-backdrop-filter: var(--vision-glass-blur, blur(28px)) saturate(190%);
+		box-shadow: var(--shadow-card), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.12));
+		overflow: hidden;
+		transition: box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.28s ease, transform 0.22s var(--ease-ios-spring);
+	}
+	.hero-timer-card:hover {
+		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 50%);
+		transform: translateY(-2px);
+		box-shadow: 0 20px 52px -10px rgba(0, 0, 0, 0.44), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.14));
 	}
 
 	.stage-tag-row {
@@ -162,16 +170,25 @@
 	}
 
 	.mission-card {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 1rem;
 		padding: 1.35rem 1.5rem;
-		border: 1px solid var(--border-subtle);
+		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
 		border-radius: 20px;
-		background: color-mix(in srgb, var(--surface-panel) 65%, transparent);
-		backdrop-filter: blur(20px);
-		-webkit-backdrop-filter: blur(20px);
+		background: var(--vision-glass-bg, var(--surface-panel));
+		backdrop-filter: var(--vision-glass-blur, blur(20px));
+		-webkit-backdrop-filter: var(--vision-glass-blur, blur(20px));
+		box-shadow: var(--shadow-card), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.08));
+		overflow: hidden;
 		min-width: 0;
+		transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.22s var(--ease-ios-spring);
+	}
+	.mission-card:hover {
+		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 50%);
+		transform: translateY(-2px);
+		box-shadow: 0 16px 44px -6px rgba(0, 0, 0, 0.38), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.12));
 	}
 
 	.card-title-row {
@@ -217,16 +234,25 @@
 	}
 
 	.rail-card {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
 		padding: 1rem 1.15rem;
-		border: 1px solid var(--border-subtle);
+		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
 		border-radius: 16px;
-		background: color-mix(in srgb, var(--surface-panel) 50%, transparent);
-		backdrop-filter: blur(16px);
-		-webkit-backdrop-filter: blur(16px);
+		background: var(--vision-glass-bg, var(--surface-panel));
+		backdrop-filter: var(--vision-glass-blur, blur(16px));
+		-webkit-backdrop-filter: var(--vision-glass-blur, blur(16px));
+		box-shadow: var(--shadow-card), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.08));
+		overflow: hidden;
 		min-width: 0;
+		transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.22s var(--ease-ios-spring);
+	}
+	.rail-card:hover {
+		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 50%);
+		transform: translateY(-2px);
+		box-shadow: 0 16px 44px -6px rgba(0, 0, 0, 0.38), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.12));
 	}
 
 	.rail-card-head {

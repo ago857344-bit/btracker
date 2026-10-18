@@ -342,7 +342,14 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 .day-detail,
 .your-goals,
 .auth-card,
-.question-list {
+.question-list,
+.top-widget-slot,
+.flat-pane,
+.heatmap-flat-pane,
+.hero-timer-card,
+.mission-card,
+.rail-card,
+.subject-card {
 	position: relative;
 	background: var(--vision-glass-bg);
 	backdrop-filter: var(--vision-glass-blur);
@@ -368,7 +375,14 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	.day-detail::before,
 	.your-goals::before,
 	.auth-card::before,
-	.question-list::before {
+	.question-list::before,
+	.top-widget-slot::before,
+	.flat-pane::before,
+	.heatmap-flat-pane::before,
+	.hero-timer-card::before,
+	.mission-card::before,
+	.rail-card::before,
+	.subject-card::before {
 		content: "";
 		position: absolute;
 		inset: 0;
@@ -395,7 +409,14 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	.day-detail::after,
 	.your-goals::after,
 	.auth-card::after,
-	.question-list::after {
+	.question-list::after,
+	.top-widget-slot::after,
+	.flat-pane::after,
+	.heatmap-flat-pane::after,
+	.hero-timer-card::after,
+	.mission-card::after,
+	.rail-card::after,
+	.subject-card::after {
 		content: "";
 		position: absolute;
 		inset: 0;
@@ -426,7 +447,14 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	.day-detail:hover::before,
 	.your-goals:hover::before,
 	.auth-card:hover::before,
-	.question-list:hover::before {
+	.question-list:hover::before,
+	.top-widget-slot:hover::before,
+	.flat-pane:hover::before,
+	.heatmap-flat-pane:hover::before,
+	.hero-timer-card:hover::before,
+	.mission-card:hover::before,
+	.rail-card:hover::before,
+	.subject-card:hover::before {
 		opacity: 1;
 	}
 
@@ -440,8 +468,51 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	.day-detail:hover::after,
 	.your-goals:hover::after,
 	.auth-card:hover::after,
-	.question-list:hover::after {
+	.question-list:hover::after,
+	.top-widget-slot:hover::after,
+	.flat-pane:hover::after,
+	.heatmap-flat-pane:hover::after,
+	.hero-timer-card:hover::after,
+	.mission-card:hover::after,
+	.rail-card:hover::after,
+	.subject-card:hover::after {
 		opacity: 1;
+	}
+
+	/* Apple VisionOS spring elevation lift & luminous accent highlight */
+	.specular-card:hover,
+	.widget:hover,
+	.panel:hover,
+	.sec:hover,
+	.r-card:hover,
+	.chapter-card:hover,
+	.kpi:hover,
+	.day-detail:hover,
+	.your-goals:hover,
+	.auth-card:hover,
+	.question-list:hover,
+	.top-widget-slot:hover,
+	.flat-pane:hover,
+	.heatmap-flat-pane:hover,
+	.hero-timer-card:hover,
+	.mission-card:hover,
+	.rail-card:hover,
+	.subject-card:hover {
+		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 45%);
+		transform: translateY(-2px);
+		box-shadow: 0 16px 44px -6px rgba(0, 0, 0, 0.38), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.12));
+	}
+
+	/* Tactile iOS press feedback */
+	.specular-card:active,
+	.widget:active,
+	.top-widget-slot:active,
+	.flat-pane:active,
+	.mission-card:active,
+	.rail-card:active,
+	.subject-card:active {
+		transform: translateY(0px) scale(0.99);
+		transition: transform 0.12s var(--ease-ios-press, cubic-bezier(0.2, 0.9, 0.3, 1));
 	}
 
 	/* Elevate content above specular shine layers */
@@ -455,6 +526,13 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	.your-goals > *,
 	.auth-card > *,
 	.question-list > *,
+	.top-widget-slot > *,
+	.flat-pane > *,
+	.heatmap-flat-pane > *,
+	.hero-timer-card > *,
+	.mission-card > *,
+	.rail-card > *,
+	.subject-card > *,
 	.specular-card > * {
 		position: relative;
 		z-index: 3;

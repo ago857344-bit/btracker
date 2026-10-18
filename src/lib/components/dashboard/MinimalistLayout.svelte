@@ -43,13 +43,13 @@
 
 		<!-- Desktop & Tablet expanded top status widgets -->
 		<div class="top-widgets-row">
-			<div class="top-widget-slot timer-slot">
+			<div class="top-widget-slot timer-slot specular-card">
 				<DailyProgressWidget />
 			</div>
-			<div class="top-widget-slot quote-slot">
+			<div class="top-widget-slot quote-slot specular-card">
 				<QuoteWidget />
 			</div>
-			<div class="top-widget-slot target-slot">
+			<div class="top-widget-slot target-slot specular-card">
 				<NewTargetWidget />
 			</div>
 		</div>
@@ -62,11 +62,11 @@
 			<h2>Daily Missions & Chapter Checklists</h2>
 		</div>
 		<div class="two-col-flow">
-			<div class="flat-pane">
+			<div class="flat-pane specular-card">
 				<div class="pane-title"><NavIcon name="list" size={15} /> Today's Priorities</div>
 				<UpNextWidget />
 			</div>
-			<div class="flat-pane">
+			<div class="flat-pane specular-card">
 				<div class="pane-title"><NavIcon name="plan" size={15} /> Active Homework & Due Dates</div>
 				<DueHomeworkWidget />
 			</div>
@@ -92,19 +92,19 @@
 		</div>
 		<div class="analytics-flat-flow">
 			<div class="analytics-left">
-				<div class="flat-pane">
+				<div class="flat-pane specular-card">
 					<div class="pane-title"><NavIcon name="stats" size={15} /> 7-Day Consistency</div>
 					<WeeklyStandingWidget />
 				</div>
 			</div>
 			<div class="analytics-right">
-				<div class="flat-pane">
+				<div class="flat-pane specular-card">
 					<div class="pane-title"><NavIcon name="history" size={15} /> Recent Activity</div>
 					<RecentActivityWidget />
 				</div>
 			</div>
 		</div>
-		<div class="heatmap-flat-pane">
+		<div class="heatmap-flat-pane specular-card">
 			<div class="pane-title"><NavIcon name="history" size={15} /> 365-Day Matrix</div>
 			<YearlyHeatmapWidget />
 		</div>
@@ -142,13 +142,22 @@
 	}
 
 	.top-widget-slot {
+		position: relative;
 		padding: 1.2rem 1.4rem;
-		border: 1px solid var(--border-subtle);
-		border-radius: 16px;
-		background: color-mix(in srgb, var(--surface-panel) 60%, transparent);
-		backdrop-filter: blur(16px);
-		-webkit-backdrop-filter: blur(16px);
+		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
+		border-radius: 18px;
+		background: var(--vision-glass-bg, var(--surface-panel));
+		backdrop-filter: var(--vision-glass-blur, blur(20px));
+		-webkit-backdrop-filter: var(--vision-glass-blur, blur(20px));
+		box-shadow: var(--shadow-card), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.08));
+		overflow: hidden;
 		min-width: 0;
+		transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.22s var(--ease-ios-spring);
+	}
+	.top-widget-slot:hover {
+		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 50%);
+		transform: translateY(-2px);
+		box-shadow: 0 16px 44px -6px rgba(0, 0, 0, 0.38), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.12));
 	}
 
 	/* SECTION DIVIDERS */
@@ -190,14 +199,25 @@
 	}
 
 	.flat-pane {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 0.85rem;
 		padding: 1.2rem 1.35rem;
-		border: 1px solid var(--border-subtle);
-		border-radius: 16px;
-		background: color-mix(in srgb, var(--surface-panel) 45%, transparent);
+		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
+		border-radius: 18px;
+		background: var(--vision-glass-bg, var(--surface-panel));
+		backdrop-filter: var(--vision-glass-blur, blur(20px));
+		-webkit-backdrop-filter: var(--vision-glass-blur, blur(20px));
+		box-shadow: var(--shadow-card), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.08));
+		overflow: hidden;
 		min-width: 0;
+		transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.22s var(--ease-ios-spring);
+	}
+	.flat-pane:hover {
+		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 50%);
+		transform: translateY(-2px);
+		box-shadow: 0 16px 44px -6px rgba(0, 0, 0, 0.38), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.12));
 	}
 
 	.pane-title {
@@ -225,15 +245,25 @@
 	}
 
 	.heatmap-flat-pane {
+		position: relative;
 		display: flex;
 		flex-direction: column;
 		gap: 0.85rem;
 		padding: 1.2rem 1.35rem;
-		border: 1px solid var(--border-subtle);
-		border-radius: 16px;
-		background: color-mix(in srgb, var(--surface-panel) 45%, transparent);
+		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
+		border-radius: 18px;
+		background: var(--vision-glass-bg, var(--surface-panel));
+		backdrop-filter: var(--vision-glass-blur, blur(20px));
+		-webkit-backdrop-filter: var(--vision-glass-blur, blur(20px));
+		box-shadow: var(--shadow-card), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.08));
+		overflow: hidden;
 		margin-top: 0.5rem;
-		overflow-x: auto;
+		transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.22s var(--ease-ios-spring);
+	}
+	.heatmap-flat-pane:hover {
+		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 50%);
+		transform: translateY(-2px);
+		box-shadow: 0 16px 44px -6px rgba(0, 0, 0, 0.38), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.12));
 	}
 
 	/* TABLET BREAKPOINT (768px – 1023px) */
