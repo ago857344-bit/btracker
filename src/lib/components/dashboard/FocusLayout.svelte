@@ -215,6 +215,7 @@
 		max-height: calc(100vh - 40px);
 		overflow-y: auto;
 		padding-right: 6px;
+		padding-bottom: 3.5rem;
 		scrollbar-width: thin;
 		scrollbar-color: color-mix(in srgb, var(--accent) 30%, transparent) transparent;
 	}

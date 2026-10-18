@@ -2,8 +2,8 @@ import { derived, get, writable } from 'svelte/store';
 import { createInitialTrackerState } from '$lib/state/defaults';
 import { saveTrackerState } from '$lib/services/persistence';
 import { addDaysKey, focusMinutesOn, dayKeyOf, lastNDays, sessionDayKey, startOfWeek, todayKey } from '$lib/state/dates';
-import { SUBJECTS, dayPartOf, intervalFor, subjectColor } from '$lib/state/subjects';
-import { cellKey, questionCount, questionKey } from '$lib/state/syllabus';
+import { SUBJECTS, dayPartOf, intervalFor, subjectColor, subjectName } from '$lib/state/subjects';
+import { cellKey, questionCount, questionKey, syllabusChapter } from '$lib/state/syllabus';
 import { isDone, isFlag, resultOf, setDone, setFlag, setResult, setStars, starsOf, subjectStats } from '$lib/state/questions';
 import { applyEloResult } from '$lib/state/gamification';
 import { updateDecayAfterRevision } from '$lib/state/decay';
@@ -657,18 +657,28 @@ export interface ActivityEntry {
 	meta: string; right: string; badge?: string; at: number; color: string;
 }
 
+function resolveActivityTitle(sub: string | null | undefined, ch: string | undefined): string {
+	if (!ch) return 'Study Session';
+	const num = parseInt(ch, 10);
+	if (!isNaN(num) && sub) {
+		const found = syllabusChapter(sub, num);
+		if (found?.name) return `${num}. ${found.name}`;
+	}
+	return ch;
+}
+
 export const recentActivity = derived(tracker, ($t): ActivityEntry[] => {
 	const fromSessions: ActivityEntry[] = $t.sess.map((entry) => ({
-		id: entry.id, kind: 'questions', title: entry.ch, sub: entry.sub,
+		id: entry.id, kind: 'questions', title: resolveActivityTitle(entry.sub, entry.ch), sub: entry.sub,
 		meta: `${entry.att} QS`, right: `${entry.att ? Math.round((entry.cor / entry.att) * 100) : 0}%`,
 		at: entry.at, color: subjectColor(entry.sub)
 	}));
 	const fromLog: ActivityEntry[] = $t.log.map((session, index) => ({
-		id: `log-${index}`, kind: 'focus', title: 'Focus Session', sub: session[7] ?? null,
+		id: `log-${index}`, kind: 'focus', title: session[7] ? `${subjectName(session[7])} Focus` : 'Focus Session', sub: session[7] ?? null,
 		meta: `${session[1]}M`, right: `${session[1]}M`, badge: session[2] === 'Manual' ? 'MANUAL' : undefined,
 		at: session[0] * 60000, color: session[7] ? subjectColor(session[7]) : '#6d5dfc'
 	}));
-	return [...fromSessions, ...fromLog].sort((a, b) => b.at - a.at).slice(0, 8);
+	return [...fromSessions, ...fromLog].sort((a, b) => b.at - a.at).slice(0, 60);
 });
 
 export const subjectSolvedTotals = derived(tracker, ($t) => {
