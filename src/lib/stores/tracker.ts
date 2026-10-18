@@ -227,6 +227,42 @@ export function openFormulaVault(params?: FormulaVaultFilter) {
 	formulaVaultOpen.set(true);
 }
 
+export interface FeynmanDuckParams {
+	subject?: 'P' | 'C' | 'M' | string;
+	chapter?: string;
+	concept?: string;
+}
+export const feynmanDuckOpen = writable(false);
+export const feynmanDuckTopic = writable<FeynmanDuckParams | null>(null);
+
+export function openFeynmanDuck(params?: FeynmanDuckParams) {
+	if (params) {
+		feynmanDuckTopic.set(params);
+	}
+	feynmanDuckOpen.set(true);
+}
+
+export function closeFeynmanDuck() {
+	feynmanDuckOpen.set(false);
+}
+
+export function addFlashcard(card: { front: string; back: string; subject: string; chapter: string }) {
+	updateTracker((s) => {
+		if (!s.flashcards) s.flashcards = [];
+		s.flashcards.push({
+			id: crypto.randomUUID ? crypto.randomUUID() : `fc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+			front: card.front,
+			back: card.back,
+			subject: card.subject || 'P',
+			chapter: card.chapter || 'General',
+			interval: 1,
+			repetition: 0,
+			efactor: 2.5,
+			nextReviewAt: Date.now() + 24 * 60 * 60 * 1000
+		});
+	});
+}
+
 export function setProfileName(name: string) { updateTracker((s) => { s.meta.name = name; }); }
 export function setExamDate(date: string | null) { updateTracker((s) => { s.meta.exam = date; }); }
 export function setWeeklyGoalHours(hours: number) { updateTracker((s) => { s.meta.weekGoalH = Math.max(1, Math.round(hours)); }); }

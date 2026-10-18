@@ -9,7 +9,7 @@
 	import AICrashCourseModal from '$lib/components/revise/AICrashCourseModal.svelte';
 	import Heatmap from '$lib/components/recall/Heatmap.svelte';
 	import ChapterCard from '$lib/components/recall/ChapterCard.svelte';
-	import { tracker, revisedToday, completeRevision, deleteRevision, celebration } from '$lib/stores/tracker';
+	import { tracker, revisedToday, completeRevision, deleteRevision, celebration, openFeynmanDuck } from '$lib/stores/tracker';
 	import { addDaysKey, dayKeyOf, shortDateKey, todayKey } from '$lib/state/dates';
 	import { SUBJECTS, SPACING_METHODS, subjectColor, subjectName } from '$lib/state/subjects';
 	import { chaptersByPriority, chaptersDueToday, criticalChapters, heatmapData } from '$lib/stores/recall-selectors';
@@ -131,7 +131,13 @@
 			<h1>ACTIVE RECALL HUB</h1>
 			<p>Spaced repetition planner.</p>
 		</div>
-		<div class="actions" style="display: flex; gap: 0.8rem; align-items: center;"><button type="button" class="btn-icon" on:click={() => (manualOpen = true)} title="How this works" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-subtle); background: var(--surface-panel); color: var(--text-secondary); cursor: pointer; transition: all 0.2s;"><NavIcon name="info" size={16} /></button><button type="button" class="add" on:click={() => (addOpen = true)}><NavIcon name="plus" size={15} /> Add Chapter</button></div>
+		<div class="actions" style="display: flex; gap: 0.8rem; align-items: center;">
+			<button type="button" class="duck-header-btn" on:click={() => openFeynmanDuck()} title="Socratic Feynman Duck (Explain to Learn)">
+				🦆 Teach Duck
+			</button>
+			<button type="button" class="btn-icon" on:click={() => (manualOpen = true)} title="How this works" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-subtle); background: var(--surface-panel); color: var(--text-secondary); cursor: pointer; transition: all 0.2s;"><NavIcon name="info" size={16} /></button>
+			<button type="button" class="add" on:click={() => (addOpen = true)}><NavIcon name="plus" size={15} /> Add Chapter</button>
+		</div>
 	</header>
 
 	<div class="view-toggle">
@@ -301,4 +307,26 @@
 	.view-toggle button { padding: 0.6rem 1.2rem; border-radius: 8px; border: none; background: transparent; color: var(--text-secondary); font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
 	.view-toggle button:hover { color: var(--text-primary); }
 	.view-toggle button.active { background: var(--surface-panel); color: var(--text-primary); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+
+	.duck-header-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		height: 36px;
+		padding: 0 0.9rem;
+		border-radius: 10px;
+		background: rgba(245, 158, 11, 0.15);
+		border: 1px solid rgba(245, 158, 11, 0.4);
+		color: #f59e0b;
+		font-size: 0.78rem;
+		font-weight: 750;
+		cursor: pointer;
+		transition: all 0.2s ease;
+	}
+	.duck-header-btn:hover {
+		background: #f59e0b;
+		color: #ffffff;
+		transform: translateY(-1px);
+		box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
+	}
 </style>

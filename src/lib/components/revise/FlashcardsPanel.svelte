@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tracker, updateTracker } from '$lib/stores/tracker';
+	import { tracker, updateTracker, openFeynmanDuck } from '$lib/stores/tracker';
 	import { SUBJECTS, subjectName } from '$lib/state/subjects';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Icon from '$lib/components/NavIcon.svelte';
@@ -152,9 +152,14 @@ Each object must have exactly two keys: 'front' (the question/scenario) and 'bac
 			<h1>Active Recall</h1>
 			<p>SuperMemo-2 Flashcards</p>
 		</div>
-		<button class="create-btn" on:click={() => showCreateModal = true}>
-			<Icon name="sparkles" size={16} /> Create AI Cards
-		</button>
+		<div class="head-actions" style="display: flex; gap: 0.5rem; align-items: center;">
+			<button class="create-btn" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #f59e0b;" on:click={() => openFeynmanDuck()}>
+				🦆 Teach Duck
+			</button>
+			<button class="create-btn" on:click={() => showCreateModal = true}>
+				<Icon name="sparkles" size={16} /> Create AI Cards
+			</button>
+		</div>
 	</div>
 	
 	{#if !reviewing}
@@ -209,6 +214,7 @@ Each object must have exactly two keys: 'front' (the question/scenario) and 'bac
 					<button class="score-btn hard" on:click={() => scoreCard(1)}>Hard <small>(&lt; 1d)</small></button>
 					<button class="score-btn good" on:click={() => scoreCard(4)}>Good</button>
 					<button class="score-btn easy" on:click={() => scoreCard(5)}>Easy</button>
+					<button class="score-btn" style="background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #f59e0b;" on:click={() => openFeynmanDuck({ subject: dueCards[currentCardIndex].subject, chapter: dueCards[currentCardIndex].chapter, concept: dueCards[currentCardIndex].front.slice(0, 80) })}>🦆 Explain to Duck</button>
 				{/if}
 			</div>
 		</div>

@@ -2,7 +2,7 @@
 	import { page } from '$app/stores';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
-	import { tracker } from '$lib/stores/tracker';
+	import { tracker, openFeynmanDuck } from '$lib/stores/tracker';
 	import { chaptersDueToday } from '$lib/stores/recall-selectors';
 	import { currentUser } from '$lib/stores/auth';
 	import { getLevelData, tierEloOf } from '$lib/state/gamification';
@@ -101,6 +101,11 @@
 				{/if}
 			</a>
 		{/each}
+		<button type="button" class="feynman-nav-btn" title="Socratic Feynman Duck (Explain to Learn)" on:click={() => { openFeynmanDuck(); closeMobile(); }}>
+			<span class="nav-icon" style="font-size: 1.15rem; line-height: 1;">🦆</span>
+			<span class="nav-text">Feynman Duck</span>
+			<span class="feynman-badge">AI</span>
+		</button>
 		<div class="nav-divider"></div>
 		<p class="nav-label">Insights</p>
 		{#each secondary as item, i (i)}
@@ -202,7 +207,7 @@
 	.collapse:active { transform: rotate(180deg) scale(0.9); }
 	nav { display: grid; gap: clamp(0.15rem, 0.4vh, 0.3rem); margin-top: clamp(0.5rem, 1.5vh, 1.15rem); }
 	.nav-label { margin: clamp(0.4rem, 1vh, 0.8rem) .65rem clamp(0.2rem, 0.5vh, 0.45rem); color: var(--text-secondary); font-size: .67rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
-	nav a, .settings-link {
+	nav a, .settings-link, .feynman-nav-btn {
 		display: flex;
 		align-items: center;
 		gap: clamp(0.6rem, 1vw, 1rem);
@@ -215,9 +220,14 @@
 		font-weight: 650;
 		transition: all 0.2s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1));
 		-webkit-tap-highlight-color: transparent;
+		background: none;
+		border: none;
+		cursor: pointer;
+		width: 100%;
+		text-align: left;
 	}
-	nav a:hover, .settings-link:hover { color: var(--text-primary); background: var(--surface-subtle); }
-	nav a:active, .settings-link:active { transform: scale(0.975); }
+	nav a:hover, .settings-link:hover, .feynman-nav-btn:hover { color: var(--text-primary); background: var(--surface-subtle); }
+	nav a:active, .settings-link:active, .feynman-nav-btn:active { transform: scale(0.975); }
 	nav a.active {
 		color: var(--accent);
 		background: var(--accent-soft);
@@ -226,6 +236,16 @@
 	}
 	.nav-icon { display: grid; flex: 0 0 24px; place-items: center; }
 	.due-badge { margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center; background: var(--accent); color: white; font-size: .62rem; font-weight: 800; }
+	.feynman-badge {
+		margin-left: auto;
+		padding: 2px 6px;
+		border-radius: 6px;
+		font-size: 0.62rem;
+		font-weight: 850;
+		color: #f59e0b;
+		background: rgba(245, 158, 11, 0.15);
+		border: 1px solid rgba(245, 158, 11, 0.35);
+	}
 	.nav-divider { height: 1px; margin: clamp(0.5rem, 1.5vh, 1rem) .65rem clamp(0.1rem, 0.3vh, 0.2rem); background: var(--border-subtle); }
 	.sidebar-bottom { display: grid; gap: .55rem; margin-top: auto; min-width: 0; position: relative; }
 	.profile-container {

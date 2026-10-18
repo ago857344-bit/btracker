@@ -4,7 +4,12 @@ export async function askGemini(prompt: string, systemInstruction?: string, json
 	return askGeminiChat([{ role: 'user', parts: [{ text: prompt }] }], systemInstruction, jsonMode);
 }
 
-export async function askGeminiChat(history: ChatMessage[], systemInstruction?: string, jsonMode: boolean = false): Promise<string> {
+export async function askGeminiChat(
+	history: ChatMessage[],
+	systemInstruction?: string,
+	jsonMode: boolean = false,
+	skipDelay: boolean = false
+): Promise<string> {
 	const res = await fetch('/api/gemini', {
 		method: 'POST',
 		headers: { 'Content-Type': 'application/json' },
@@ -17,8 +22,10 @@ export async function askGeminiChat(history: ChatMessage[], systemInstruction?: 
 		return data.error || "Failed to communicate with AI server.";
 	}
 
-	// Artificial delay to let the user enjoy the cool loading animations!
-	await new Promise(resolve => setTimeout(resolve, 3000));
+	if (!skipDelay) {
+		// Artificial delay to let the user enjoy the cool loading animations!
+		await new Promise(resolve => setTimeout(resolve, 3000));
+	}
 
 	return data.text;
 }

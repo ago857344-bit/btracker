@@ -23,6 +23,7 @@
 	import PwaBanner from '$lib/components/PwaBanner.svelte';
 	import DynamicIsland from '$lib/components/ui/DynamicIsland.svelte';
 	import Onboarding from '$lib/components/Onboarding.svelte';
+	import FeynmanDuckModal from '$lib/components/feynman/FeynmanDuckModal.svelte';
 	import { hydrateTracker } from '$lib/services/hydrate';
 	import { startSync } from '$lib/services/sync';
 	import { THEME_PRESETS, isDarkTheme, wallpaperCss, resolveLiveWallpaper, resolveEcoMode, isMobileDevice } from '$lib/state/themes';
@@ -384,6 +385,7 @@
 		<PwaBanner />
 
 		<CommandPalette />
+		<FeynmanDuckModal />
 		{#if showOnboarding}
 			<Onboarding />
 		{/if}

@@ -3,7 +3,7 @@
 	import { fade, scale } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import { isDarkTheme, presetOf, syncThemeWallpaper } from '$lib/state/themes';
-	import { updateTracker, addTodo, openFormulaVault, formulaVaultOpen, customizingHome } from '$lib/stores/tracker';
+	import { updateTracker, addTodo, openFormulaVault, formulaVaultOpen, customizingHome, openFeynmanDuck } from '$lib/stores/tracker';
 	import { JEE_FORMULAS } from '$lib/data/formulas';
 	import { subjectColor, subjectName } from '$lib/state/subjects';
 	import NavIcon from '$lib/components/NavIcon.svelte';
@@ -28,6 +28,7 @@
 	const STATIC_COMMANDS: CommandItem[] = [
 		{ id: 'home', label: 'Go to Home', icon: 'home', category: 'navigation', badge: 'Nav', action: () => { goto('/'); open = false; } },
 		{ id: 'formula', label: 'Open Formula Vault (F)', icon: 'book', category: 'navigation', badge: 'Vault', badgeColor: 'var(--accent)', action: () => { openFormulaVault(); open = false; } },
+		{ id: 'feynman', label: '🦆 Feynman Duck: Teach to Learn (Socratic AI)', icon: 'bulb', category: 'navigation', badge: 'Socratic', badgeColor: '#f59e0b', action: () => { openFeynmanDuck(); open = false; } },
 		{ id: 'customize', label: 'Customize Home Dashboard', icon: 'settings', category: 'navigation', badge: 'Home', action: () => { goto('/'); customizingHome.set(true); open = false; } },
 		{ id: 'log', label: 'Go to Question Log', icon: 'grid', category: 'navigation', badge: 'Nav', action: () => { goto('/log'); open = false; } },
 		{ id: 'tests', label: 'Go to Tests & Mistake Log', icon: 'tests', category: 'navigation', badge: 'Nav', action: () => { goto('/tests'); open = false; } },

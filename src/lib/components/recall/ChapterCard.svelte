@@ -8,6 +8,7 @@
 	import { calculateCurrentScore, calculateHealthStatus, daysUntilThreshold } from '$lib/state/decay';
 	import { subjectColor, subjectName } from '$lib/state/subjects';
 	import { shortDateKey, dayKeyOf } from '$lib/state/dates';
+	import { openFeynmanDuck } from '$lib/stores/tracker';
 	import { getMicroChallenge } from '$lib/services/aiTriage';
 	import { marked } from 'marked';
 
@@ -41,6 +42,16 @@
 		e.preventDefault();
 		e.stopPropagation();
 		dispatch('crashcourse', chapter.chapterKey);
+	}
+
+	function triggerFeynmanDuck(e: MouseEvent) {
+		e.preventDefault();
+		e.stopPropagation();
+		openFeynmanDuck({
+			subject: subjectCode,
+			chapter: chapterNumber,
+			concept: `${chapterNumber} Core Principles`
+		});
 	}
 
 	$: currentScore = calculateCurrentScore(chapter.decay || { r0: 100, halfLife: 7, lastRevisionAt: null });
@@ -140,6 +151,9 @@
 		<button type="button" class="revise-btn" on:click={triggerRevise}>
 			<NavIcon name="bolt" size={13} />
 			Revise
+		</button>
+		<button type="button" class="delete-btn" style="color: #f59e0b; border-color: var(--border-subtle); font-size: 0.95rem; line-height: 1;" title="Teach Feynman Duck (Socratic AI)" on:click={triggerFeynmanDuck}>
+			🦆
 		</button>
 		<button type="button" class="delete-btn" style="color: var(--accent); border-color: var(--border-subtle);" title="AI Crash Course" on:click={triggerCrashCourse}>
 			<NavIcon name="sparkles" size={13} />
