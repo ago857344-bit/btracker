@@ -18,6 +18,7 @@
 	import WeeklyReportCard from '$lib/components/focus/WeeklyReportCard.svelte';
 	import StopwatchReportModal from '$lib/components/focus/StopwatchReportModal.svelte';
 	import DeepWorkMode from '$lib/components/focus/DeepWorkMode.svelte';
+	import GhostPacer from '$lib/components/focus/GhostPacer.svelte';
 	import AnimatedNumber from '$lib/components/ui/AnimatedNumber.svelte';
 	import {
 		tracker, updateTracker, recordFocus, logManualMinutes, addSubjectSession, stopwatchReports,
@@ -141,6 +142,7 @@
 	$: activeLen = tab === 'focus' ? focusLen : tab === 'short' ? shortLen : longLen;
 	$: ringProgress = tab === 'stopwatch' ? (elapsed % 3600) / 3600 : activeLen * 60 > 0 ? 1 - remaining / (activeLen * 60) : 0;
 	$: dialTime = tab === 'stopwatch' ? formatClock(elapsed) : formatClock(remaining);
+	$: currentActiveSeconds = running && phase === 'focus' ? (tab === 'stopwatch' ? elapsed : Math.max(0, activeLen * 60 - remaining)) : 0;
 	$: accent = tab === 'short' ? '#2f9e6e' : tab === 'long' ? '#2b8ba6' : 'var(--accent)';
 	$: chapters = chaptersOf(subject);
 	$: logChapters = chaptersOf(logSubject);
@@ -579,9 +581,10 @@ function primary() {
 	</div>
 
 	<div class="layout" role="region" aria-label="Timer Stage" on:touchstart={handleTouchStart} on:touchend={handleTouchEnd}>
-		<div class="stage-wrapper">
-		{#key tab}
-			<div class="stage card">
+		<div class="timer-column">
+			<div class="stage-wrapper">
+			{#key tab}
+				<div class="stage card">
 			{#if showSettings}
 				<div class="settings">
 					<label class="field"><span>Chime</span>
@@ -705,6 +708,9 @@ function primary() {
 			</div>
 		</div>
 		{/key}
+		</div>
+
+		<GhostPacer activeSessionSeconds={currentActiveSeconds} {accent} />
 	</div>
 
 		<div class="side">
@@ -930,6 +936,7 @@ function primary() {
 	}
 
 	.layout { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 1.2rem; align-items: start; }
+	.timer-column { display: flex; flex-direction: column; gap: 1.2rem; width: 100%; min-width: 0; }
 	.card { padding: 1.3rem 1.4rem; border: 1px solid var(--border-subtle); border-radius: 20px; background: var(--surface-panel); box-shadow: var(--shadow-card), inset 0 1px 0 rgba(255, 255, 255, 0.06); }
 	.stage { display: grid; justify-items: center; gap: 1.05rem; text-align: center; }
 
