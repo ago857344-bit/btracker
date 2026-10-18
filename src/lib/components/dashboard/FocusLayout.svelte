@@ -67,7 +67,7 @@
 			</div>
 
 			<!-- Subject Hubs Overview -->
-			<div class="rail-card specular-card">
+			<div class="rail-card subject-hubs-rail specular-card">
 				<div class="rail-card-head"><NavIcon name="layers" size={13} /> Subject Hubs</div>
 				<SubjectCardsWidget />
 			</div>
@@ -79,7 +79,7 @@
 			</div>
 
 			<!-- 365-Day Matrix -->
-			<div class="rail-card specular-card">
+			<div class="rail-card heatmap-rail specular-card">
 				<div class="rail-card-head"><NavIcon name="history" size={13} /> Yearly Consistency</div>
 				<YearlyHeatmapWidget />
 			</div>
@@ -211,15 +211,31 @@
 		flex-direction: column;
 		gap: 1rem;
 		position: sticky;
-		top: calc(max(env(safe-area-inset-top), 14px) + 70px);
-		max-height: calc(100vh - 120px);
+		top: calc(max(env(safe-area-inset-top), 14px) + 20px);
+		max-height: calc(100vh - 40px);
 		overflow-y: auto;
-		padding-right: 4px;
+		padding-right: 6px;
 		scrollbar-width: thin;
+		scrollbar-color: color-mix(in srgb, var(--accent) 30%, transparent) transparent;
+	}
+
+	.side-rail::-webkit-scrollbar {
+		width: 5px;
+	}
+	.side-rail::-webkit-scrollbar-track {
+		background: transparent;
+	}
+	.side-rail::-webkit-scrollbar-thumb {
+		background: color-mix(in srgb, var(--accent) 30%, transparent);
+		border-radius: 99px;
+	}
+	.side-rail::-webkit-scrollbar-thumb:hover {
+		background: color-mix(in srgb, var(--accent) 55%, transparent);
 	}
 
 	.rail-header {
 		padding: 0.2rem 0.4rem;
+		flex-shrink: 0;
 	}
 
 	.rail-title {
@@ -247,12 +263,24 @@
 		box-shadow: var(--shadow-card), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.08));
 		overflow: hidden;
 		min-width: 0;
+		flex-shrink: 0;
+		min-height: fit-content;
 		transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.22s var(--ease-ios-spring);
 	}
 	.rail-card:hover {
 		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 50%);
 		transform: translateY(-2px);
 		box-shadow: 0 16px 44px -6px rgba(0, 0, 0, 0.38), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.12));
+	}
+
+	/* Subject hubs inside side rail: stack cleanly in single column so cards aren't crushed */
+	.rail-card.subject-hubs-rail :global(.cards) {
+		grid-template-columns: 1fr !important;
+		gap: 0.65rem !important;
+	}
+	.rail-card.subject-hubs-rail :global(.subject-card) {
+		min-height: auto !important;
+		padding: 0.85rem 1rem !important;
 	}
 
 	.rail-card-head {
@@ -264,6 +292,7 @@
 		color: var(--text-secondary);
 		border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 60%, transparent);
 		padding-bottom: 0.4rem;
+		flex-shrink: 0;
 	}
 
 	/* TABLET BREAKPOINT (768px – 1023px) */
@@ -284,10 +313,19 @@
 			display: grid;
 			grid-template-columns: 1fr 1fr;
 			gap: 1rem;
+			padding-right: 0;
 		}
 
 		.rail-header {
 			grid-column: span 2;
+		}
+
+		.rail-card.subject-hubs-rail {
+			grid-column: span 2;
+		}
+		.rail-card.subject-hubs-rail :global(.cards) {
+			grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+			gap: 0.7rem !important;
 		}
 	}
 
@@ -327,6 +365,7 @@
 			display: grid;
 			grid-template-columns: 1fr 1fr;
 			gap: 0.75rem;
+			padding-right: 0;
 		}
 
 		.rail-header {
@@ -338,7 +377,11 @@
 			border-radius: 14px;
 		}
 
-		/* Span wide analytics items full width on mobile */
+		/* Span subject hubs and wide analytics items full width on mobile */
+		.rail-card.subject-hubs-rail {
+			grid-column: span 2;
+		}
+		.rail-card.heatmap-rail,
 		.rail-card:nth-child(n+5) {
 			grid-column: span 2;
 		}
@@ -359,9 +402,17 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 1rem;
+		padding-right: 0;
 	}
 	.focus-layout.mode-tablet .rail-header {
 		grid-column: span 2;
+	}
+	.focus-layout.mode-tablet .rail-card.subject-hubs-rail {
+		grid-column: span 2;
+	}
+	.focus-layout.mode-tablet .rail-card.subject-hubs-rail :global(.cards) {
+		grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+		gap: 0.7rem !important;
 	}
 
 	/* Simulated Mobile Mode */
@@ -392,6 +443,7 @@
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 0.75rem;
+		padding-right: 0;
 	}
 	.focus-layout.mode-mobile .rail-header {
 		grid-column: span 2;
@@ -400,6 +452,10 @@
 		padding: 0.85rem;
 		border-radius: 14px;
 	}
+	.focus-layout.mode-mobile .rail-card.subject-hubs-rail {
+		grid-column: span 2;
+	}
+	.focus-layout.mode-mobile .rail-card.heatmap-rail,
 	.focus-layout.mode-mobile .rail-card:nth-child(n+5) {
 		grid-column: span 2;
 	}

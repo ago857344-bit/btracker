@@ -21,6 +21,7 @@
 		{@const elo = getEloRank(eloVal)}
 		{@const solvedCount = Math.max($subjectSolvedTotals[subject.code] ?? 0, st.done)}
 		<button type="button" class="subject-card specular-card" style="--sub: {subject.color}" on:click={() => openHub(subject.code)}>
+			<span class="subject-tint" aria-hidden="true"></span>
 			<span class="icon"><NavIcon name={subject.icon as any} size={18} /></span>
 			<span class="name">{subject.name}</span>
 			<span class="goal">Goal: {dailyGoal} Qs</span>
@@ -62,7 +63,15 @@
 		transition: transform 0.22s var(--ease-ios-spring), border-color 0.25s ease, box-shadow 0.25s ease;
 		min-height: 160px;
 	}
-	.subject-card::after { content: ''; position: absolute; inset: 0; opacity: 0; background: linear-gradient(140deg, color-mix(in srgb, var(--sub), transparent 82%), transparent 55%); transition: opacity .2s ease; }
+	.subject-tint {
+		position: absolute;
+		inset: 0;
+		opacity: 0;
+		background: linear-gradient(140deg, color-mix(in srgb, var(--sub), transparent 82%), transparent 55%);
+		transition: opacity .25s ease;
+		pointer-events: none;
+		z-index: 1;
+	}
 	.subject-card:hover {
 		transform: translateY(-2px);
 		border-color: var(--sub);
@@ -72,7 +81,7 @@
 		transform: translateY(0px) scale(0.985);
 		transition: transform 0.12s var(--ease-ios-press, cubic-bezier(0.2, 0.9, 0.3, 1));
 	}
-	.subject-card:hover::after { opacity: 1; }
+	.subject-card:hover .subject-tint { opacity: 1; }
 	.subject-card > * { position: relative; z-index: 3; }
 	.icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; color: white; background: var(--sub); margin-bottom: .45rem; }
 	.name { font-size: .84rem; font-weight: 800; letter-spacing: -.01em; }
@@ -83,5 +92,5 @@
 	.open { display: inline-flex; align-items: center; gap: .35rem; color: var(--sub); font-size: .72rem; font-weight: 750; }
 	.bar-mini { width: 100%; height: 5px; border-radius: 99px; background: var(--surface-panel); overflow: hidden; margin-bottom: .45rem; }
 	.bar-mini i { display: block; height: 100%; border-radius: 99px; transition: width .5s ease; }
-	.elo-badge { position: absolute; top: .85rem; right: .85rem; display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .6rem; border-radius: 8px; background: color-mix(in srgb, var(--elo), transparent 85%); color: var(--elo); font-size: .66rem; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; border: 1px solid color-mix(in srgb, var(--elo), transparent 70%); box-shadow: 0 4px 12px color-mix(in srgb, var(--elo), transparent 85%); }
+	.elo-badge { position: absolute; top: .85rem; right: .85rem; display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .6rem; border-radius: 8px; background: color-mix(in srgb, var(--elo), transparent 85%); color: var(--elo); font-size: .66rem; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; border: 1px solid color-mix(in srgb, var(--elo), transparent 70%); box-shadow: 0 4px 12px color-mix(in srgb, var(--elo), transparent 85%); white-space: nowrap; }
 </style>

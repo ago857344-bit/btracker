@@ -138,10 +138,10 @@
 <TargetsModal bind:open={targetsOpen} />
 
 <style>
-	.home { display: grid; gap: 1.6rem; }
-	.hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; }
+	.home { display: grid; gap: 1.6rem; padding-top: 0.25rem; }
+	.hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; padding-top: 0.25rem; }
 	.eyebrow { margin: 0 0 .35rem; color: var(--accent); font-size: .76rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-	h1 { margin: 0; font-size: clamp(1.9rem, 4vw, 2.7rem); line-height: 1.05; letter-spacing: -.06em; }
+	h1 { margin: 0; font-size: clamp(1.9rem, 4vw, 2.7rem); line-height: 1.18; letter-spacing: -.04em; padding-top: 0.12em; }
 	h1 span { color: var(--text-secondary); }
 	.sub { max-width: 520px; margin: .55rem 0 0; color: var(--text-secondary); font-size: .98rem; line-height: 1.6; }
 	.hero-tools { display: flex; align-items: center; gap: .6rem; }
