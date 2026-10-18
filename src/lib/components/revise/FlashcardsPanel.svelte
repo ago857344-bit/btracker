@@ -5,6 +5,7 @@
 	import Icon from '$lib/components/NavIcon.svelte';
 	import type { Flashcard } from '$lib/types/tracker';
 	import { renderMarkdown } from '$lib/services/markdown';
+	import { buildAcademicConstraintPrompt, getUserAcademicContext } from '$lib/services/aiContext';
 	
 	let dueCards: Flashcard[] = [];
 	$: dueCards = ($tracker.flashcards || []).filter(c => c.nextReviewAt <= Date.now());
@@ -20,6 +21,8 @@
 		renderMarkdown(dueCards[currentCardIndex].back).then(h => backHtml = h);
 	}
 
+	$: academicContext = getUserAcademicContext($tracker);
+	$: activeTickmarkedChapters = (academicContext.tickmarkedChapters as Record<string, string[]>)[createSubject] || [];
 	
 	let showCreateModal = false;
 	let createSubject = 'P';
@@ -82,12 +85,15 @@
 		createError = '';
 		
 		const sName = subjectName(createSubject);
+		const academicConstraints = buildAcademicConstraintPrompt($tracker);
 		const prompt = `You are an elite JEE tutor (similar to NotebookLM's deep analytical engine). 
 Create 5 highly conceptual, active-recall flashcards for ${sName} - Chapter: ${createChapter}. 
 Focus on tricky edge cases, deep conceptual understanding, and critical formulas rather than basic definitions. 
 Use proper LaTeX for all math/physics variables and equations using inline \\( ... \\) or block \\[ ... \\].
-Output a strict JSON object with a single key "cards" containing an array of 5 objects.
-Each object must have exactly two keys: 'front' (the question/scenario) and 'back' (the detailed, insightful answer).`;
+Output a strict JSON object with a single key "cards" containing an array of 5 objects (or a direct JSON array of 5 objects).
+Each object must have exactly two keys: 'front' (the question/scenario) and 'back' (the detailed, insightful answer).
+
+${academicConstraints}`;
 		
 		try {
 			const res = await fetch('/api/gemini', {
@@ -95,7 +101,7 @@ Each object must have exactly two keys: 'front' (the question/scenario) and 'bac
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					history: [{ role: 'user', parts: [{ text: prompt }] }],
-					systemInstruction: "You are a flashcard generator. Output ONLY a valid JSON array of objects. Each object must have a 'front' (string) and 'back' (string). Return ONLY JSON, no markdown.",
+					systemInstruction: "You are a flashcard generator. Restrict all concepts, formulas, and depth strictly to the student's academic grade level and tickmarked checklist. Output ONLY valid JSON without markdown.",
 					jsonMode: true
 				})
 			});
@@ -108,12 +114,13 @@ Each object must have exactly two keys: 'front' (the question/scenario) and 'bac
 			const data = await res.json();
 			let cards = [];
 			try {
-				cards = JSON.parse(data.text);
+				const parsed = JSON.parse(data.text);
+				cards = Array.isArray(parsed) ? parsed : (parsed?.cards || []);
 			} catch (e) {
 				throw new Error('Invalid JSON received from AI.');
 			}
 			
-			if (!Array.isArray(cards)) throw new Error('AI did not return an array.');
+			if (!Array.isArray(cards) || cards.length === 0) throw new Error('AI did not return any valid flashcards.');
 			
 			updateTracker(s => {
 				if (!s.flashcards) s.flashcards = [];
@@ -234,6 +241,18 @@ Each object must have exactly two keys: 'front' (the question/scenario) and 'bac
 		<div class="field">
 			<small>Chapter</small>
 			<input type="text" bind:value={createChapter} placeholder="e.g. Thermodynamics" />
+			{#if activeTickmarkedChapters.length > 0}
+				<div class="chips-container">
+					<span class="chips-label">🎯 Checklist Active:</span>
+					<div class="chips-scroll">
+						{#each activeTickmarkedChapters as ch}
+							<button type="button" class="chip-tag" class:active={createChapter === ch} on:click={() => (createChapter = ch)}>
+								{ch}
+							</button>
+						{/each}
+					</div>
+				</div>
+			{/if}
 		</div>
 		
 		{#if createError}
@@ -313,4 +332,10 @@ Each object must have exactly two keys: 'front' (the question/scenario) and 'bac
 	.ghost { padding: .6rem 1rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: transparent; color: var(--text-secondary); font-weight: 650; cursor: pointer; }
 	.solid { padding: .6rem 1.2rem; border: 0; border-radius: 10px; background: var(--accent); color: white; font-weight: 700; cursor: pointer; }
 	.solid:disabled, .ghost:disabled { opacity: 0.5; cursor: not-allowed; }
+
+	.chips-container { display: flex; flex-direction: column; gap: .35rem; margin-top: .4rem; }
+	.chips-label { font-size: .68rem; font-weight: 750; color: var(--accent); letter-spacing: .02em; }
+	.chips-scroll { display: flex; gap: .35rem; flex-wrap: wrap; max-height: 85px; overflow-y: auto; padding: 2px; }
+	.chip-tag { padding: .25rem .55rem; font-size: .72rem; font-weight: 600; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--surface-panel); color: var(--text-secondary); cursor: pointer; transition: all .15s ease; }
+	.chip-tag:hover, .chip-tag.active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); font-weight: 700; }
 </style>

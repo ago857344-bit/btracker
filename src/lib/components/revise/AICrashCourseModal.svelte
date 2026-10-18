@@ -6,6 +6,7 @@
 	import { getAICrashCourse } from '$lib/services/ai';
 	import { tracker } from '$lib/stores/tracker';
 	import { subjectName } from '$lib/state/subjects';
+	import { buildAcademicConstraintPrompt } from '$lib/services/aiContext';
 	import type { ChapterRecallData } from '$lib/types/tracker';
 	import { createEventDispatcher } from 'svelte';
 
@@ -30,8 +31,9 @@
 			const sName = subjectName(subCode) || 'Physics';
 			const elo = $tracker.gamification?.elo?.[subCode as 'P'|'C'|'M'] || 300;
 			const chName = key.split(/[-:]/).slice(1).join('-').trim() || key;
+			const constraint = buildAcademicConstraintPrompt($tracker);
 			
-			const md = await getAICrashCourse(chName, sName, elo);
+			const md = await getAICrashCourse(chName, sName, elo, constraint);
 			html = await renderMarkdown(md);
 		} catch (err: any) {
 			error = err.message || 'Failed to generate crash course.';

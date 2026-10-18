@@ -8,6 +8,7 @@
 	import { fade, fly, scale } from 'svelte/transition';
 	import { onMount, tick } from 'svelte';
 	import NavIcon from '../NavIcon.svelte'; // Assuming NavIcon exists
+	import { buildAcademicConstraintPrompt } from '$lib/services/aiContext';
 	
 	let orbState: 'idle' | 'happy' | 'alert' | 'thinking' | 'active' = 'idle';
 	let message = '';
@@ -89,14 +90,17 @@
 		orbState = 'active';
 		scrollToBottom();
 
+		const academicConstraints = buildAcademicConstraintPrompt($tracker);
 		const systemInstruction = `You are the BTracker AI Mentor. 
 Current Elo: P: ${$tracker.gamification?.elo?.P ?? 1200}, C: ${$tracker.gamification?.elo?.C ?? 1200}, M: ${$tracker.gamification?.elo?.M ?? 1200}.
+${academicConstraints}
 CRITICAL INSTRUCTIONS:
 1. KEEP IT SHORT! Answer in 1-2 brief sentences max. NO LONG EXPLANATIONS. NO FLUFF.
-2. Format your text using clean Markdown. When writing math formulas or symbols (integrals, fractions, derivatives, vectors, greek symbols), ALWAYS wrap them in LaTeX dollar signs like $ \int f(x) dx $ or $ \frac{a}{b} $ or $$ \int_a^b f(x) dx $$ so KaTeX renders them properly.
-3. If the user asks to start a focus timer or stopwatch, append EXACTLY this JSON block at the end of your message: <cmd>{"action": "startTimer", "minutes": 25, "subject": "P", "chapter": 1, "mode": "timer"}</cmd> (subject must be 'P', 'C', or 'M'. Mode can be "timer" or "stopwatch").
-4. If the user asks to log questions/exercises (e.g. "I did ex 1"), append: <cmd>{"action": "logQuestions", "subject": "P", "chapter": 1, "count": 20, "name": "Ex 1"}</cmd>.
-5. If the user asks to log a mock test (e.g. "scored 180 out of 300"), append: <cmd>{"action": "logMockTest", "score": 180, "total": 300, "subjectScores": {"P": {"c": 15, "w": 5, "s": 60}, "C": {"c": 15, "w": 5, "s": 60}, "M": {"c": 15, "w": 5, "s": 60}}}</cmd>. Estimate subject scores if they don't provide them.`;
+2. Restrict all concepts, chapter advice, difficulty, and problem discussions strictly to the student's grade level and tickmarked checklist chapters. Never assume or bring up unticked chapters.
+3. Format your text using clean Markdown. When writing math formulas or symbols (integrals, fractions, derivatives, vectors, greek symbols), ALWAYS wrap them in LaTeX dollar signs like $ \int f(x) dx $ or $ \frac{a}{b} $ or $$ \int_a^b f(x) dx $$ so KaTeX renders them properly.
+4. If the user asks to start a focus timer or stopwatch, append EXACTLY this JSON block at the end of your message: <cmd>{"action": "startTimer", "minutes": 25, "subject": "P", "chapter": 1, "mode": "timer"}</cmd> (subject must be 'P', 'C', or 'M'. Mode can be "timer" or "stopwatch").
+5. If the user asks to log questions/exercises (e.g. "I did ex 1"), append: <cmd>{"action": "logQuestions", "subject": "P", "chapter": 1, "count": 20, "name": "Ex 1"}</cmd>.
+6. If the user asks to log a mock test (e.g. "scored 180 out of 300"), append: <cmd>{"action": "logMockTest", "score": 180, "total": 300, "subjectScores": {"P": {"c": 15, "w": 5, "s": 60}, "C": {"c": 15, "w": 5, "s": 60}, "M": {"c": 15, "w": 5, "s": 60}}}</cmd>. Estimate subject scores if they don't provide them.`;
 
 		const history = chatHistory.map(msg => ({
 			role: msg.role === 'ai' ? 'model' : 'user',

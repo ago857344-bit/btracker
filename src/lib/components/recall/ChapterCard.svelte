@@ -8,8 +8,9 @@
 	import { calculateCurrentScore, calculateHealthStatus, daysUntilThreshold } from '$lib/state/decay';
 	import { subjectColor, subjectName } from '$lib/state/subjects';
 	import { shortDateKey, dayKeyOf } from '$lib/state/dates';
-	import { openFeynmanDuck } from '$lib/stores/tracker';
+	import { openFeynmanDuck, tracker } from '$lib/stores/tracker';
 	import { getMicroChallenge } from '$lib/services/aiTriage';
+	import { buildAcademicConstraintPrompt } from '$lib/services/aiContext';
 	import { marked } from 'marked';
 
 		
@@ -80,7 +81,8 @@
 		if (challengeText) return;
 		challengeLoading = true;
 		try {
-			const res = await getMicroChallenge(subName, chapterNumber);
+			const constraint = buildAcademicConstraintPrompt($tracker);
+			const res = await getMicroChallenge(subName, chapterNumber, constraint);
 			// Process to handle inline math safely if it includes backslashes
 			let processed = res.replace(/\\\((.*?)\\\)/gs, '$$1$');
 			challengeText = marked.parseInline(processed) as string;

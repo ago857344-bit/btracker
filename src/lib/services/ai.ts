@@ -1,6 +1,7 @@
 import type { TrackerState } from "$lib/types/tracker";
 import { askGemini } from "./gemini";
 import { SUBJECTS } from "$lib/state/subjects";
+import { buildAcademicConstraintPrompt } from "./aiContext";
 
 export async function getWeaknessAnalysis(tracker: TrackerState): Promise<string> {
 	const mistakes = tracker.mistakes || [];
@@ -10,12 +11,13 @@ export async function getWeaknessAnalysis(tracker: TrackerState): Promise<string
 	}).join('\n');
 	
 	const elo = tracker.gamification?.elo || { P: 300, C: 300, M: 300 };
+	const academicConstraints = buildAcademicConstraintPrompt(tracker);
 	
 	const prompt = `
 STUDENT DATA:
 Elo Ratings: Physics (${Math.floor(elo.P)}), Chemistry (${Math.floor(elo.C)}), Math (${Math.floor(elo.M)})
 (Note: Base Elo is 300. Above 1200 is elite. Below 500 is weak.)
-
+${academicConstraints}
 Recent Mistakes (Last 15):
 ${recentMistakes || 'No recent mistakes logged.'}
 `;
@@ -41,12 +43,13 @@ Structure your response exactly as follows:
 export async function getAIPlannerBalance(
 	tasks: { id: string; text: any; sub: any }[],
 	days: string[],
-	elo: { P: number; C: number; M: number }
+	elo: { P: number; C: number; M: number },
+	academicConstraint: string = ''
 ): Promise<Record<string, string>> {
 	const prompt = `
 STUDENT ELO: Physics (${Math.floor(elo.P)}), Chemistry (${Math.floor(elo.C)}), Math (${Math.floor(elo.M)})
 Lowest Elo = Weakest subject (needs more focus/earlier scheduling).
-
+${academicConstraint}
 AVAILABLE DATES (Next ${days.length} days):
 ${days.join(', ')}
 
@@ -65,11 +68,16 @@ Do not include Markdown fences like \`\`\`json. Return ONLY the raw JSON object.
 	return JSON.parse(cleanRes);
 }
 
-export async function getAICrashCourse(chapterName: string, subjectName: string, elo: number): Promise<string> {
-	const prompt = `Chapter: ${chapterName}\nSubject: ${subjectName}\nCurrent Elo in Subject: ${Math.floor(elo)}`;
+export async function getAICrashCourse(
+	chapterName: string,
+	subjectName: string,
+	elo: number,
+	academicConstraint: string = ''
+): Promise<string> {
+	const prompt = `Chapter: ${chapterName}\nSubject: ${subjectName}\nCurrent Elo in Subject: ${Math.floor(elo)}\n${academicConstraint}`;
 	const sys = `You are a JEE expert tutor. The student needs a rapid 2-minute conceptual crash course on this chapter.
 Their Elo is ${Math.floor(elo)} (Base is 300, 1200+ is Elite, <500 is weak).
-Adapt the explanation complexity to their Elo. If they are weak, do ELI5. If elite, give advanced edge-case insights.
+Adapt the explanation complexity to their Elo and academic grade level strictly.
 Format cleanly in Markdown.
 Structure exactly as follows:
 ### ⚡ The Core Idea

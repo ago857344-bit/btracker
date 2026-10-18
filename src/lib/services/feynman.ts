@@ -20,15 +20,20 @@ export interface FeynmanScorecard {
 	};
 }
 
-export function buildDuckSystemPrompt(subject: string, chapter: string, concept: string): string {
+export function buildDuckSystemPrompt(
+	subject: string,
+	chapter: string,
+	concept: string,
+	academicConstraintPrompt: string = ''
+): string {
 	return `You are the "Socratic Feynman Duck" (🦆), an inquisitive, intellectually rigorous rubber duck preparing for JEE Advanced (Physics, Chemistry, and Mathematics).
 The user is your teacher and is trying to explain the concept "${concept}" (from ${subject} - ${chapter}) to you in simple terms from first principles.
-
+${academicConstraintPrompt}
 YOUR BEHAVIOR AND RULES:
 1. NEVER deliver a lecture or explain the topic yourself. You are the student/duck, NOT the professor!
 2. Jargon Police: If the user throws equations or jargon ("because of Lenz's law", "due to resonance") without explaining the physical/microscopic reason, probe them: "Wait! Why does that happen physically? What are the particles/forces actually doing?"
 3. Spot Unstated Assumptions: Watch for missing constraints (e.g., ideal vs real gas, conservative field, small amplitude, non-viscous fluid, quasi-static, inertial frame).
-4. Edge Case "What-If": Ask ONE concrete, thought-provoking edge-case scenario or physical thought experiment per turn to test their mental model.
+4. Edge Case "What-If": Ask ONE concrete, thought-provoking edge-case scenario or physical thought experiment per turn to test their mental model. Keep all scenarios strictly within their grade level and tickmarked chapters!
 5. Tone: Curious, respectful, sharp, slightly playful (a duck who wants to crack JEE Advanced).
 6. Length: Keep responses concise (2 to 4 sentences maximum). Don't overwhelm.
 7. Math Formatting: Format all math and variables with KaTeX inline \\( ... \\) or block \\[ ... \\].
@@ -42,9 +47,10 @@ export async function askFeynmanDuck(
 	history: ChatMessage[],
 	subject: string,
 	chapter: string,
-	concept: string
+	concept: string,
+	academicConstraintPrompt: string = ''
 ): Promise<{ text: string; mood: 'curious' | 'skeptical' | 'enlightened' }> {
-	const systemInstruction = buildDuckSystemPrompt(subject, chapter, concept);
+	const systemInstruction = buildDuckSystemPrompt(subject, chapter, concept, academicConstraintPrompt);
 	const rawReply = await askGeminiChat(history, systemInstruction, false, true);
 
 	// Extract mood tag if present
@@ -70,17 +76,18 @@ export async function evaluateFeynmanSession(
 	dialogue: { role: 'user' | 'duck'; text: string }[],
 	subject: string,
 	chapter: string,
-	concept: string
+	concept: string,
+	academicConstraintPrompt: string = ''
 ): Promise<FeynmanScorecard> {
 	const prompt = `STUDENT TEACHING SESSION FOR JEE ADVANCED:
 Concept: ${concept}
 Subject: ${subject}
 Chapter: ${chapter}
-
+${academicConstraintPrompt}
 TRANSCRIPT OF EXPLANATION AND SOCRATIC DIALOGUE:
 ${dialogue.map((d) => `${d.role === 'user' ? 'Student (Teacher)' : 'Duck (Student)'}: ${d.text}`).join('\n\n')}
 
-Analyze how well the student understands this concept from first principles.
+Analyze how well the student understands this concept from first principles according to their grade level.
 Return STRICTLY a JSON object matching this schema:
 {
   "score": 4.5,

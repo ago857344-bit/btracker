@@ -13,6 +13,7 @@
 	import { addDaysKey, dayKeyOf, monthLabelOf, parseKey, startOfWeek, todayKey } from '$lib/state/dates';
 	import type { HomeworkItem } from '$lib/types/tracker';
 	import { getAIPlannerBalance } from '$lib/services/ai';
+	import { buildAcademicConstraintPrompt } from '$lib/services/aiContext';
 
 	let tab: 'planner' | 'goals' = 'planner';
 	let view: 'week' | 'month' = 'week';
@@ -45,7 +46,8 @@
 			}
 
 			const taskInput = pendingTasks.map(t => ({ id: t.id, text: (t.text || '') as string, sub: (t.sub || '') as string }));
-			const map = await getAIPlannerBalance(taskInput, days, elo);
+			const constraint = buildAcademicConstraintPrompt($tracker);
+			const map = await getAIPlannerBalance(taskInput, days, elo, constraint);
 
 			tracker.update(t => {
 				for (const task of (t.h || [])) {

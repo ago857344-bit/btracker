@@ -7,6 +7,7 @@
 	import { allChapters, SYLLABUS } from '$lib/state/syllabus';
 	import { extractPdfText, matchChapters, matchChaptersAI, type ChapterMatch } from '$lib/services/btest';
 import { triageTodos } from '$lib/services/aiTriage';
+import { buildAcademicConstraintPrompt } from '$lib/services/aiContext';
 	import {
 		addChecklistColumn, addTodo, addTodos, celebration, CHECKLIST_DEFAULT_COLS, clearDoneTodos, deleteTodo,
 		removeChecklistColumn, reorderTodo, toggleChecklistCell, toggleChapterStarted, toggleTodo, tracker, updateTracker, addTodoSubtask, toggleTodoSubtask, deleteTodoSubtask
@@ -25,7 +26,8 @@ async function runAiTriage() {
     
     triaging = true;
     try {
-        const result = await triageTodos(openTodos, $tracker.gamification?.elo || { P: 1200, C: 1200, M: 1200 });
+        const constraint = buildAcademicConstraintPrompt($tracker);
+        const result = await triageTodos(openTodos, $tracker.gamification?.elo || { P: 1200, C: 1200, M: 1200 }, constraint);
         
         updateTracker(s => {
             s.todos = s.todos.map(t => {

@@ -20,8 +20,12 @@
 	import { renderMarkdown } from '$lib/services/markdown';
 	import type { ChatMessage } from '$lib/services/gemini';
 	import { SUBJECTS, subjectColor, subjectName } from '$lib/state/subjects';
+	import { buildAcademicConstraintPrompt, getUserAcademicContext } from '$lib/services/aiContext';
 
 	type DuckMood = 'curious' | 'thinking' | 'skeptical' | 'enlightened' | 'mastered';
+
+	$: academicConstraintPrompt = buildAcademicConstraintPrompt($tracker);
+	$: academicContext = getUserAcademicContext($tracker);
 
 	let subject: string = 'P';
 	let chapter: string = 'Thermodynamics';
@@ -45,13 +49,30 @@
 	let revisionCompleted = false;
 
 	const SUGGESTED_TOPICS = [
+		{ s: 'P', ch: 'Kinematics', c: 'Instantaneous Acceleration & Frame of Reference' },
 		{ s: 'P', ch: 'Thermodynamics', c: 'Adiabatic Free Expansion ($W = 0$)' },
 		{ s: 'P', ch: 'EMI', c: "Lenz's Law as Conservation of Energy" },
 		{ s: 'P', ch: 'Rotation', c: 'Instantaneous Axis of Rotation (IAOR)' },
+		{ s: 'C', ch: 'Chemical Bonding', c: 'Hybridization vs Molecular Orbital First Principles' },
 		{ s: 'C', ch: 'Equilibrium', c: "Le Chatelier's Principle & Reaction Quotient ($Q$ vs $K$)" },
 		{ s: 'C', ch: 'Thermodynamics', c: 'Why Spontaneous Processes Require $\\Delta S_{univ} > 0$' },
+		{ s: 'M', ch: 'Basic Mathematics', c: 'Why Modulus Function requires Piecewise Splitting' },
 		{ s: 'M', ch: 'Calculus', c: 'Mean Value Theorem: Why Differentiability is Mandatory' }
 	];
+
+	$: activeSuggestions = (() => {
+		const ticked = academicContext.tickmarkedChapters[subject as 'P' | 'C' | 'M'] || [];
+		if (ticked.length > 0) {
+			return ticked.slice(0, 6).map((chName) => ({
+				s: subject,
+				ch: chName,
+				c: `${chName}: Core First Principles`
+			}));
+		}
+		return SUGGESTED_TOPICS.filter((item) => item.s === subject);
+	})();
+
+	$: hasTickedChapters = (academicContext.tickmarkedChapters[subject as 'P' | 'C' | 'M'] || []).length > 0;
 
 	// Initialize speech recognition if available in browser
 	onMount(() => {
@@ -180,7 +201,7 @@ Explain what happens from **first principles**—avoid reciting formulas without
 		}));
 
 		try {
-			const response = await askFeynmanDuck(history, subjectName(subject), chapter, concept);
+			const response = await askFeynmanDuck(history, subjectName(subject), chapter, concept, academicConstraintPrompt);
 			currentMood = response.mood;
 
 			if (currentMood === 'enlightened') {
@@ -228,7 +249,8 @@ Explain what happens from **first principles**—avoid reciting formulas without
 				conversation.map((c) => ({ role: c.role, text: c.text })),
 				subjectName(subject),
 				chapter,
-				concept
+				concept,
+				academicConstraintPrompt
 			);
 			scorecard = res;
 			currentMood = res.score >= 4.0 ? 'mastered' : 'enlightened';
@@ -485,9 +507,15 @@ Explain what happens from **first principles**—avoid reciting formulas without
 			<!-- Suggestions tags if starting out -->
 			{#if conversation.length <= 1 && !scorecard}
 				<div class="quick-topics">
-					<span class="qt-label">Quick First-Principle Scenarios:</span>
+					<span class="qt-label">
+						{#if hasTickedChapters}
+							🎯 Checklist Active ({academicContext.gradeLevel}):
+						{:else}
+							First Principles ({academicContext.gradeLevel}):
+						{/if}
+					</span>
 					<div class="qt-scroll">
-						{#each SUGGESTED_TOPICS as item}
+						{#each activeSuggestions as item}
 							<button type="button" class="qt-btn" on:click={() => pickSuggestion(item)}>
 								<span class="qt-sub">{item.s}</span>
 								<span>{item.c}</span>

@@ -5,6 +5,9 @@
 	import { askGeminiChat, type ChatMessage } from '$lib/services/gemini';
 	import { renderMarkdown } from '$lib/services/markdown';
 
+	import { tracker } from '$lib/stores/tracker';
+	import { buildAcademicConstraintPrompt } from '$lib/services/aiContext';
+
 	export let mistake: MistakeLog | null = null;
 	const dispatch = createEventDispatcher();
 
@@ -25,20 +28,22 @@
 		history = [];
 		chatHtml = [];
 		
+		const academicPrompt = buildAcademicConstraintPrompt($tracker);
 		const sysPrompt = `You are an elite, demanding JEE Tutor. The user logged a mistake:
 Subject: ${mistake.subject}
 Type: ${mistake.errorType}
 Description: ${mistake.description}
-
-Your goal is to grill them on this exact mistake to ensure active recall. 
+${academicPrompt}
+Your goal is to drill them on this exact mistake to ensure active recall. 
 Start by asking ONE tough, conceptual question related to their mistake.
-When they answer, roast their inaccuracies (if any), correct them, and score their answer out of 10. Then ask one final follow-up question. 
-Keep your responses concise and format them cleanly. DO NOT answer the question for them initially.`;
+Make sure all questions strictly adhere to the student's grade level and tickmarked chapters above!
+When they answer, constructively critique their inaccuracies, correct them, and score their answer out of 10. Then ask one final follow-up question. 
+Keep your responses concise and format math cleanly with KaTeX. DO NOT answer the question for them initially.`;
 
 		try {
 			const prompt = "I'm ready. Grill me on this mistake.";
 			history = [{ role: 'user', parts: [{ text: prompt }] }];
-			const reply = await askGeminiChat(history, sysPrompt);
+			const reply = await askGeminiChat(history, sysPrompt, false, true);
 			history = [...history, { role: 'model', parts: [{ text: reply }] }];
 			chatHtml = [await renderMarkdown(reply)];
 		} catch (e: any) {
@@ -63,10 +68,11 @@ Keep your responses concise and format them cleanly. DO NOT answer the question 
 		await tick();
 		scrollToBottom();
 
-		const sysPrompt = `You are an elite, demanding JEE Tutor.`; // Same sys prompt is passed but less needed on subsequent turns
+		const academicPrompt = buildAcademicConstraintPrompt($tracker);
+		const sysPrompt = `You are an elite, demanding JEE Tutor. Continue grilling on their mistake. ${academicPrompt}`;
 		
 		try {
-			const reply = await askGeminiChat(history, sysPrompt);
+			const reply = await askGeminiChat(history, sysPrompt, false, true);
 			history = [...history, { role: 'model', parts: [{ text: reply }] }];
 			chatHtml = [...chatHtml, await renderMarkdown(reply)];
 		} catch (e: any) {
