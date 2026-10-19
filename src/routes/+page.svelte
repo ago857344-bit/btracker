@@ -21,6 +21,8 @@
 	import MinimalistLayout from '$lib/components/dashboard/MinimalistLayout.svelte';
 	import FocusLayout from '$lib/components/dashboard/FocusLayout.svelte';
 	import CompactLayout from '$lib/components/dashboard/CompactLayout.svelte';
+	import { onMount } from 'svelte';
+	import { isMobileDevice } from '$lib/state/themes';
 	import { tracker, updateTracker, dashboardWidgets, updateWidget, reorderWidget, cycleWidgetSpan, customizingHome, formulaVaultOpen } from '$lib/stores/tracker';
 	import { DEFAULT_WIDGETS } from '$lib/state/defaults';
 	import type { WidgetLayout } from '$lib/types/tracker';
@@ -70,7 +72,28 @@
 		return true;
 	});
 
-	$: dashboardLayout = $tracker.ui?.dashboardLayout || 'default';
+	let isMobile = false;
+	onMount(() => {
+		isMobile = isMobileDevice();
+		const onResize = () => { isMobile = isMobileDevice(); };
+		window.addEventListener('resize', onResize, { passive: true });
+		return () => window.removeEventListener('resize', onResize);
+	});
+
+	$: effectiveIsMobile = typeof window !== 'undefined' ? (isMobile || isMobileDevice()) : false;
+
+	$: dashboardLayout = (() => {
+		const saved = $tracker.ui?.dashboardLayout;
+		// If the user has completed onboarding and has an explicit choice, honor it
+		if ($tracker.onboarded && saved) {
+			return saved;
+		}
+		// For new users or unconfigured sessions on mobile: default to Pocket Flow ('compact')
+		if (effectiveIsMobile) {
+			return 'compact';
+		}
+		return saved || 'default';
+	})();
 	$: name = $tracker.meta.name.trim();
 	const hour = new Date().getHours();
 	$: greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';

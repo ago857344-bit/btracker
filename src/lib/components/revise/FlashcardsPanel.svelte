@@ -338,4 +338,40 @@ ${academicConstraints}`;
 	.chips-scroll { display: flex; gap: .35rem; flex-wrap: wrap; max-height: 85px; overflow-y: auto; padding: 2px; }
 	.chip-tag { padding: .25rem .55rem; font-size: .72rem; font-weight: 600; border-radius: 6px; border: 1px solid var(--border-subtle); background: var(--surface-panel); color: var(--text-secondary); cursor: pointer; transition: all .15s ease; }
 	.chip-tag:hover, .chip-tag.active { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); font-weight: 700; }
+
+	@media (max-width: 600px) {
+		.content-panel { padding: 0.5rem 0; }
+		.head { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+		.head-actions { width: 100%; flex-wrap: wrap; }
+		.create-btn { flex: 1; justify-content: center; min-height: 40px; font-size: 0.8rem; }
+		.stat-card { padding: 1.75rem 1rem; }
+		.stat-value { font-size: 3rem; }
+		.flashcard { height: clamp(260px, 45vh, 340px); }
+		.card-front, .card-back { padding: 1.25rem 1rem; }
+		.card-content { font-size: 1.05rem; }
+		.actions {
+			display: grid;
+			grid-template-columns: repeat(3, 1fr);
+			gap: 0.5rem;
+			width: 100%;
+		}
+		.flip-btn {
+			grid-column: 1 / -1;
+			max-width: none;
+			min-height: 48px;
+		}
+		.score-btn {
+			padding: 0.75rem 0.3rem;
+			min-height: 46px;
+			font-size: 0.85rem;
+		}
+		.score-btn:last-child {
+			grid-column: 1 / -1;
+			margin-top: 0.25rem;
+		}
+		.start-btn {
+			width: 100%;
+			padding: 0.85rem 1.5rem;
+		}
+	}
 </style>

@@ -129,11 +129,19 @@
 	};
 	const isMissed = (t: HomeworkItem) => !t.done && (t.due ?? '') < today;
 
+	let isDesktop = true;
+
 	onMount(() => {
+		isDesktop = window.innerWidth > 768;
+		const onResize = () => { isDesktop = window.innerWidth > 768; };
+		window.addEventListener('resize', onResize, { passive: true });
+
 		if ($page.url.searchParams.get('new') === 'task') {
 			tab = 'planner';
 			requestAnimationFrame(() => plannerRoot?.querySelector<HTMLInputElement>('.task-form input[type="text"]')?.focus());
 		}
+
+		return () => window.removeEventListener('resize', onResize);
 	});
 </script>
 
@@ -236,9 +244,9 @@
 								class="task-row"
 								class:done={task.done}
 								class:missed={isMissed(task)}
-								draggable={!task.done}
+								draggable={isDesktop && !task.done}
 								on:dragstart={(e) => {
-									if ((e.target as HTMLElement)?.closest('button, input, [role="button"]')) {
+									if (!isDesktop || (e.target as HTMLElement)?.closest('button, input, [role="button"]')) {
 										e.preventDefault();
 										return;
 									}
@@ -257,7 +265,6 @@
 									draggable="false"
 									on:click|stopPropagation={() => onToggle(task.id)}
 									on:mousedown|stopPropagation
-									on:touchstart|stopPropagation
 								>
 									{#if task.done}<NavIcon name="check" size={12} />{/if}
 								</button>
@@ -480,8 +487,8 @@
 	.funnel select { border: 0; background: transparent; color: var(--text-primary); font-size: .76rem; font-weight: 650; font-family: inherit; cursor: pointer; }
 	.funnel select:focus { outline: none; }
 
-	.task-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
-	.task-row { display: flex; align-items: center; gap: .55rem; padding: .55rem .6rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); }
+	.task-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; touch-action: pan-y; }
+	.task-row { display: flex; align-items: center; gap: .55rem; padding: .55rem .6rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); touch-action: pan-y; }
 	.task-row:active { cursor: grabbing; }
 	.circle-check { display: grid; flex: 0 0 22px; place-items: center; width: 22px; height: 22px; border: 2px solid var(--border-subtle); border-radius: 99px; background: transparent; color: white; cursor: pointer; touch-action: manipulation; transition: all .15s ease; }
 	.circle-check:hover { border-color: var(--accent); transform: scale(1.08); }
@@ -525,6 +532,46 @@
 		.tabs button {
 			flex: 1;
 			width: auto;
+			min-height: 42px;
+		}
+		.toolbar {
+			display: flex;
+			flex-wrap: wrap;
+			gap: 0.45rem;
+			align-items: center;
+		}
+		.toolbar .cursor-label {
+			order: 1;
+			font-size: 0.95rem;
+			font-weight: 700;
+			margin-right: auto;
+		}
+		.toolbar .tool.icon {
+			order: 2;
+			width: 38px;
+			height: 38px;
+		}
+		.toolbar .tool:not(.icon) {
+			height: 38px;
+			padding: 0 0.75rem;
+			font-size: 0.75rem;
+		}
+		.view-toggle {
+			order: 5;
+			margin-left: 0;
+			width: 100%;
+			display: flex;
+		}
+		.view-toggle button {
+			flex: 1;
+			height: 38px;
+		}
+		.legend {
+			order: 6;
+			width: 100%;
+			justify-content: center;
+			font-size: 0.65rem;
+			padding: 0.2rem 0;
 		}
 		.week-strip {
 			gap: 0.25rem;
@@ -557,15 +604,29 @@
 			width: 100%;
 			justify-content: flex-end;
 		}
+		.day-actions .tool {
+			height: 36px;
+			padding: 0 0.75rem;
+		}
 		.list-tools {
 			flex-direction: column;
 		}
 		.search {
 			min-width: 0;
 			width: 100%;
+			height: 42px;
 		}
 		.funnel {
 			width: 100%;
+			height: 40px;
+		}
+		.circle-check {
+			width: 26px;
+			height: 26px;
+			flex: 0 0 26px;
+		}
+		.task-row {
+			padding: 0.7rem 0.65rem;
 		}
 	}
 </style>

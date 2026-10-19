@@ -6,6 +6,7 @@
 	import { currentUser } from '$lib/stores/auth';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import type { DashboardLayout } from '$lib/types/tracker';
+	import { isMobileDevice } from '$lib/state/themes';
 	import DashboardPreviewModal from '$lib/components/dashboard/DashboardPreviewModal.svelte';
 
 	const TOTAL_STEPS = 8;
@@ -132,9 +133,9 @@
 	})();
 
 	// Step 7: Choose Your Dashboard Structure
-	let selectedLayout: DashboardLayout = 'default';
+	let selectedLayout: DashboardLayout = isMobileDevice() ? 'compact' : 'default';
 	let previewModalOpen = false;
-	let previewLayout: DashboardLayout = 'default';
+	let previewLayout: DashboardLayout = isMobileDevice() ? 'compact' : 'default';
 
 	function openLayoutPreview(layoutId: DashboardLayout) {
 		previewLayout = layoutId;

@@ -609,4 +609,43 @@
 	.focus-pet-container.shatter {
 		animation: shatter-anim 0.8s forwards ease-in;
 	}
+
+	@media (max-width: 600px) {
+		.header {
+			padding: max(env(safe-area-inset-top, 0px), 1.25rem) 1.25rem 0.5rem;
+		}
+		.content {
+			gap: 1.5rem;
+		}
+		.dial-container {
+			transform: scale(0.88);
+			transform-origin: center center;
+		}
+		.action-btn {
+			padding: 0.85rem 2.2rem;
+			font-size: 1.1rem;
+			min-height: 48px;
+		}
+		.soundscapes-widget {
+			bottom: calc(max(env(safe-area-inset-bottom, 0px), 1rem) + 0.5rem);
+			right: 1rem;
+		}
+		.sound-menu {
+			min-width: 180px;
+			max-width: calc(100vw - 2rem);
+		}
+		.quote-container {
+			padding: 1rem;
+			min-height: 60px;
+		}
+		.quote {
+			font-size: 0.92rem;
+		}
+	}
+
+	@media (max-width: 360px) {
+		.dial-container {
+			transform: scale(0.78);
+		}
+	}
 </style>

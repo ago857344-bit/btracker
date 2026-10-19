@@ -483,4 +483,33 @@
 		font-size: 0.68rem;
 	}
 	.tip { margin-left: auto; display: inline-flex; align-items: center; gap: 0.3rem; }
+
+	@media (max-width: 680px) {
+		.overlay {
+			padding: max(env(safe-area-inset-top, 0px), 1rem) 0.75rem calc(max(env(safe-area-inset-bottom, 0px), 1rem) + 0.5rem);
+			align-items: flex-start;
+		}
+		.modal {
+			max-height: calc(100dvh - max(env(safe-area-inset-top, 0px), 1rem) - 2rem);
+			border-radius: 16px;
+		}
+		.input-wrap {
+			padding: 0.85rem 1rem;
+		}
+		input {
+			font-size: 1rem;
+		}
+		.palette-footer {
+			display: none;
+		}
+		.results {
+			max-height: 55vh;
+			-webkit-overflow-scrolling: touch;
+			touch-action: pan-y;
+		}
+		.result-item {
+			padding: 0.75rem 0.85rem;
+			min-height: 48px;
+		}
+	}
 </style>

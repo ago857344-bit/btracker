@@ -275,11 +275,39 @@
 	.emptywide { color: var(--text-secondary); font-size: .86rem; }
 
 	@media (max-width: 768px) {
+		.crumbs {
+			overflow-x: auto;
+			white-space: nowrap;
+			flex-wrap: nowrap;
+			-webkit-overflow-scrolling: touch;
+			padding-bottom: 0.35rem;
+			scrollbar-width: none;
+			touch-action: pan-x;
+		}
+		.crumbs::-webkit-scrollbar { display: none; }
+		.crumbs button {
+			flex-shrink: 0;
+			min-height: 38px;
+			display: inline-flex;
+			align-items: center;
+			padding: 0.3rem 0.55rem;
+		}
+		.crumbs span { flex-shrink: 0; }
+		.pagehead {
+			flex-direction: column !important;
+			align-items: flex-start !important;
+			gap: 0.75rem;
+		}
+		.pagehead button {
+			align-self: flex-start;
+			min-height: 42px;
+			padding: 0.55rem 0.9rem !important;
+		}
 		.g2, .g3 { grid-template-columns: 1fr; }
 		.totalcard { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
 		.row { flex-direction: column; align-items: stretch; }
-		.row input { width: 100%; }
-		.primary { width: 100%; }
+		.row input { width: 100%; min-height: 44px; }
+		.primary { width: 100%; min-height: 44px; }
 		.card-top { flex-wrap: wrap; }
 	}
 </style>

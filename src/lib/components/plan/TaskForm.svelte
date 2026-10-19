@@ -103,4 +103,14 @@
 	.test-tag:hover { border-color: var(--accent); }
 	.test-tag .ring { width: 13px; height: 13px; border: 1.6px solid currentColor; border-radius: 99px; }
 	.test-tag.selected { color: var(--accent); border-color: var(--accent); border-style: solid; background: var(--accent-soft); }
+
+	@media (max-width: 768px) {
+		.task-form { padding: 0.9rem; }
+		input[type="text"], input[type="time"], select { height: 42px; font-size: 0.9rem; }
+		.add-btn { flex: 0 0 42px; height: 42px; }
+		.swatches { gap: 0.75rem; flex-wrap: wrap; }
+		.swatch { width: 32px; height: 32px; }
+		.chip { height: 38px; padding: 0 1rem; font-size: 0.82rem; }
+		.test-tag { height: 42px; font-size: 0.8rem; }
+	}
 </style>

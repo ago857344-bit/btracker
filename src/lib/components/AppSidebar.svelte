@@ -371,8 +371,8 @@
 	50% { background-position: 100% 50%; }
 	100% { background-position: 0% 50%; }
 }
-::global(:root[data-reduced-motion='true']) .avatar-ring.animated,
-::global(:root[data-reduced-motion='true']) .gradient-text { animation: none !important; }
+:global(:root[data-reduced-motion='true']) .avatar-ring.animated,
+:global(:root[data-reduced-motion='true']) .gradient-text { animation: none !important; }
 @media (prefers-reduced-motion: reduce) { 
 	.avatar-ring.animated, .gradient-text { animation: none !important; }
 }

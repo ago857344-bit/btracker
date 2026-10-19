@@ -65,6 +65,7 @@
 	function setLayout(layout: DashboardLayout) {
 		updateTracker((s) => {
 			s.ui.dashboardLayout = layout;
+			s.onboarded = true;
 		});
 		celebration.set(`Switched dashboard layout to ${layout.charAt(0).toUpperCase() + layout.slice(1)}.`);
 	}
@@ -1086,7 +1087,7 @@
 	/* Dashboard Layout Options */
 	.layout-grid {
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
+		grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 		gap: 0.75rem;
 		margin-bottom: 0.5rem;
 	}

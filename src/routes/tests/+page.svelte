@@ -361,7 +361,7 @@
 			</div>
 			<div class="form-group">
 				<label for="totalMarks">Total Marks</label>
-				<input id="totalMarks" type="number" bind:value={totalMarks} />
+				<input id="totalMarks" type="number" inputmode="numeric" bind:value={totalMarks} />
 			</div>
 		</div>
 		<div class="subjects-input">
@@ -374,21 +374,21 @@
 			</div>
 			<div class="sub-row">
 				<strong>Physics</strong>
-				<input type="number" placeholder="Score" bind:value={p.score} />
-				<input type="number" placeholder="Correct" bind:value={p.correct} />
-				<input type="number" placeholder="Wrong" bind:value={p.incorrect} />
+				<input type="number" inputmode="numeric" placeholder="Score" bind:value={p.score} />
+				<input type="number" inputmode="numeric" placeholder="Correct" bind:value={p.correct} />
+				<input type="number" inputmode="numeric" placeholder="Wrong" bind:value={p.incorrect} />
 			</div>
 			<div class="sub-row">
 				<strong>Chemistry</strong>
-				<input type="number" placeholder="Score" bind:value={c.score} />
-				<input type="number" placeholder="Correct" bind:value={c.correct} />
-				<input type="number" placeholder="Wrong" bind:value={c.incorrect} />
+				<input type="number" inputmode="numeric" placeholder="Score" bind:value={c.score} />
+				<input type="number" inputmode="numeric" placeholder="Correct" bind:value={c.correct} />
+				<input type="number" inputmode="numeric" placeholder="Wrong" bind:value={c.incorrect} />
 			</div>
 			<div class="sub-row">
 				<strong>Maths</strong>
-				<input type="number" placeholder="Score" bind:value={m.score} />
-				<input type="number" placeholder="Correct" bind:value={m.correct} />
-				<input type="number" placeholder="Wrong" bind:value={m.incorrect} />
+				<input type="number" inputmode="numeric" placeholder="Score" bind:value={m.score} />
+				<input type="number" inputmode="numeric" placeholder="Correct" bind:value={m.correct} />
+				<input type="number" inputmode="numeric" placeholder="Wrong" bind:value={m.incorrect} />
 			</div>
 		</div>
 	</div>
@@ -531,4 +531,22 @@
 
 	textarea { background: color-mix(in srgb, var(--surface-panel), transparent 40%); border: 1px solid color-mix(in srgb, var(--border-subtle), transparent 30%); color: var(--text-primary); padding: 0.75rem; border-radius: 8px; font-family: inherit; font-size: 0.95rem; resize: vertical; }
 	textarea:focus { outline: none; border-color: var(--accent); }
+
+	@media (max-width: 768px) {
+		.tests-container { padding: 0.5rem 0; gap: 1.25rem; }
+		header { padding: 1.15rem 1rem; }
+		.header-content { flex-direction: column; align-items: flex-start; gap: 0.85rem; margin-bottom: 1rem; }
+		.header-content .primary-btn { width: 100%; justify-content: center; min-height: 42px; }
+		.view-tabs { margin: 0 -1rem; padding: 0 1rem; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+		.tabs { overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
+		.analytics-grid { grid-template-columns: 1fr; }
+		.negative-analysis { grid-column: span 1; }
+		.negative-stats { gap: 1.2rem; }
+		.grid { grid-template-columns: 1fr; }
+		.form-row { grid-template-columns: 1fr; gap: 0.75rem; }
+		.sub-row { grid-template-columns: 65px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 0.25rem; }
+		.sub-row input { padding: 0.5rem 0.25rem; font-size: 0.85rem; height: 38px; }
+		.filters { flex-direction: column; gap: 0.75rem; padding: 1rem; }
+		.filter-group select { width: 100%; height: 42px; }
+	}
 </style>

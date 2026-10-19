@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
+	import { isMobileDevice } from '$lib/state/themes';
 	import { uiSuccess, uiPop } from '$lib/utils/feedback';
 	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
 	import { fade, slide } from 'svelte/transition';
@@ -12,6 +14,18 @@ import { buildAcademicConstraintPrompt } from '$lib/services/aiContext';
 		addChecklistColumn, addTodo, addTodos, celebration, CHECKLIST_DEFAULT_COLS, clearDoneTodos, deleteTodo,
 		removeChecklistColumn, reorderTodo, toggleChecklistCell, toggleChapterStarted, toggleTodo, tracker, updateTracker, addTodoSubtask, toggleTodoSubtask, deleteTodoSubtask
 	} from '$lib/stores/tracker';
+
+	let isDesktop = false;
+	let clViewMode: 'cards' | 'table' = 'cards';
+	let clSearch = '';
+
+	onMount(() => {
+		isDesktop = !isMobileDevice();
+		clViewMode = window.innerWidth <= 768 ? 'cards' : 'table';
+		const onResize = () => { isDesktop = !isMobileDevice(); };
+		window.addEventListener('resize', onResize, { passive: true });
+		return () => window.removeEventListener('resize', onResize);
+	});
 
 	let tab: 'tasks' | 'checklist' | 'btest' = 'tasks';
 	let draft = '';
@@ -119,12 +133,24 @@ async function runAiTriage() {
 	$: doneCount = clChapters.filter((ch) => isChDone(ch.no)).length;
 	$: unstartedCount = clChapters.filter((ch) => !isChStarted(ch.no)).length;
 
+	function chCompletedSteps(chNo: number, colsCount: number, grid: any) {
+		let count = 0;
+		for (let i = 0; i < colsCount; i++) {
+			if (grid?.data?.[chNo]?.[i] === '✓') count++;
+		}
+		return count;
+	}
+
 	$: displayedChapters = clChapters.filter((ch) => {
 		const started = isChStarted(ch.no);
 		const done = isChDone(ch.no);
-		if (clFilter === 'started') return started && !done;
-		if (clFilter === 'done') return done;
-		if (clFilter === 'unstarted') return !started;
+		if (clFilter === 'started' && (!started || done)) return false;
+		if (clFilter === 'done' && !done) return false;
+		if (clFilter === 'unstarted' && started) return false;
+		if (clSearch.trim()) {
+			const q = clSearch.trim().toLowerCase();
+			return ch.name.toLowerCase().includes(q) || String(ch.no).includes(q);
+		}
 		return true;
 	});
 
@@ -239,9 +265,9 @@ async function runAiTriage() {
 					<li
 						class="row"
 						class:done={item.done}
-						draggable={!item.done}
+						draggable={isDesktop && !item.done}
 						on:dragstart={(e) => {
-							if ((e.target as HTMLElement)?.closest('button, input, [role="button"]')) {
+							if (!isDesktop || (e.target as HTMLElement)?.closest('button, input, [role="button"]')) {
 								e.preventDefault();
 								return;
 							}
@@ -258,15 +284,13 @@ async function runAiTriage() {
 							aria-label="Toggle task"
 							draggable="false"
 							on:click|stopPropagation={() => onToggle(item.id)}
-							on:mousedown|stopPropagation
-							on:touchstart|stopPropagation
 						>
 							<span class="check-circle" class:checked={item.done}>
 								{#if item.done}<NavIcon name="check" size={12} />{/if}
 							</span>
 						</button>
 						{#if item.sub}<span class="dot" style="background: {subjectColor(item.sub)}" title={item.sub}></span>{/if}
-						<div class="title-wrap" style="flex: 1; cursor: pointer; display: flex; flex-direction: column;" on:click={() => expandedTodo = expandedTodo === item.id ? null : item.id} on:keydown={(e) => e.key === 'Enter' && (expandedTodo = expandedTodo === item.id ? null : item.id)} tabindex="0" role="button">
+						<div class="title-wrap" on:click={() => expandedTodo = expandedTodo === item.id ? null : item.id} on:keydown={(e) => e.key === 'Enter' && (expandedTodo = expandedTodo === item.id ? null : item.id)} tabindex="0" role="button">
 							<span class="title">{item.title}</span>
 							{#if item.subtasks && item.subtasks.length > 0}
 								<div class="sub-progress">
@@ -296,8 +320,6 @@ async function runAiTriage() {
 											aria-label="Toggle subtask"
 											draggable="false"
 											on:click|stopPropagation={() => onSubToggle(item.id, sub.id)}
-											on:mousedown|stopPropagation
-											on:touchstart|stopPropagation
 										>
 											<span class="check-circle sub" class:checked={sub.done}>
 												{#if sub.done}<NavIcon name="check" size={10} />{/if}
@@ -335,14 +357,20 @@ async function runAiTriage() {
 		<div class="checklist">
 			<div class="pbars">
 				{#each SYLLABUS as sub (sub.code)}
-					<div class="pbar">
+					<button
+						type="button"
+						class="pbar"
+						class:active={clSub === sub.code}
+						on:click={() => (clSub = sub.code)}
+						aria-label="Switch to {sub.name}"
+					>
 						<div class="pbar-top">
 							<span class="pdot" style="background: {sub.accent}"></span>
 							<b>{sub.short}</b>
 							<span class="ppct">{checklistPct(sub.code, grids)}%</span>
 						</div>
 						<div class="pbar-track"><div class="pbar-fill" style="width: {checklistPct(sub.code, grids)}%; background: {sub.accent}"></div></div>
-					</div>
+					</button>
 				{/each}
 			</div>
 
@@ -353,6 +381,44 @@ async function runAiTriage() {
 							<i style="background: {sub.accent}"></i>{sub.name}
 						</button>
 					{/each}
+				</div>
+
+				<div class="cl-actions-row">
+					<div class="cl-search-box">
+						<NavIcon name="search" size={13} />
+						<input
+							type="search"
+							placeholder="Search chapter..."
+							bind:value={clSearch}
+							class="cl-search-input"
+						/>
+						{#if clSearch}
+							<button type="button" class="cl-clear-search" on:click={() => (clSearch = '')} aria-label="Clear search">×</button>
+						{/if}
+					</div>
+
+					<div class="cl-view-toggle" role="group" aria-label="Checklist view mode">
+						<button
+							type="button"
+							class="view-toggle-btn"
+							class:active={clViewMode === 'cards'}
+							on:click={() => (clViewMode = 'cards')}
+							title="Cards view"
+						>
+							<NavIcon name="grid" size={13} />
+							<span>Cards</span>
+						</button>
+						<button
+							type="button"
+							class="view-toggle-btn"
+							class:active={clViewMode === 'table'}
+							on:click={() => (clViewMode = 'table')}
+							title="Spreadsheet table view"
+						>
+							<NavIcon name="list" size={13} />
+							<span>Table</span>
+						</button>
+					</div>
 				</div>
 
 				<div class="cl-filter-group">
@@ -371,67 +437,152 @@ async function runAiTriage() {
 				</div>
 			</div>
 
-			<div class="tblwrap">
-				<table class="sheet">
-					<thead>
-						<tr>
-							<th class="chcol">Chapter</th>
-							{#each clCols as col, i (i)}
-								<th>{col}<button type="button" class="coldel" aria-label="Remove column {col}" on:click={() => removeColumn(i)}>×</button></th>
-							{/each}
-							<th class="addcol"><button type="button" class="coladd" aria-label="Add column" on:click={addColumn}>+</button></th>
-						</tr>
-					</thead>
-					<tbody>
+			{#if clViewMode === 'cards'}
+				<div class="ch-cards-list">
+					{#if displayedChapters.length === 0}
+						<div class="empty" style="padding: 2rem 1rem;">
+							<b>No chapters found</b>
+							<p>{clSearch ? `No chapters match "${clSearch}"` : 'No chapters in this filter.'}</p>
+							{#if clSearch || clFilter !== 'all'}
+								<button type="button" class="linkish" on:click={() => { clSearch = ''; clFilter = 'all'; }}>Reset search & filters</button>
+							{/if}
+						</div>
+					{:else}
 						{#each displayedChapters as ch (ch.no)}
 							{@const started = isChStarted(ch.no)}
 							{@const done = isChDone(ch.no)}
-							<tr class:row-ongoing={started && !done} class:row-done={done}>
-								<td class="chcol">
-									<div class="ch-cell">
-										<button
-											type="button"
-											class="start-btn"
-											class:started={started && !done}
-											class:done={done}
-											title={done ? "Chapter fully completed!" : started ? "Chapter in progress · Click to toggle" : "Mark as started (lectures/study began)"}
-											on:click={() => { uiPop(); toggleChapterStarted(clSub, ch.no); }}
-										>
-											{#if done}
-												<NavIcon name="check" size={13} />
-											{:else if started}
-												<span class="ongoing-dot"></span>
-											{:else}
-												<span class="idle-ring"></span>
-											{/if}
-										</button>
-										<div class="ch-title-wrap">
-											<span class="ch-title-text">{ch.no}. {ch.name}</span>
-											{#if done}
-												<span class="status-pill done">Done</span>
-											{:else if started}
-												<span class="status-pill ongoing">Started</span>
-											{/if}
-										</div>
+							{@const completedCount = chCompletedSteps(ch.no, clCols.length, clGrid)}
+							{@const pct = clCols.length ? Math.round((completedCount / clCols.length) * 100) : 0}
+							<div
+								class="ch-card"
+								class:ch-card-ongoing={started && !done}
+								class:ch-card-done={done}
+							>
+								<div class="ch-card-header">
+									<button
+										type="button"
+										class="start-btn"
+										class:started={started && !done}
+										class:done={done}
+										title={done ? "Chapter fully completed!" : started ? "Chapter in progress · Click to toggle" : "Mark as started (lectures/study began)"}
+										on:click={() => { uiPop(); toggleChapterStarted(clSub, ch.no); }}
+									>
+										{#if done}
+											<NavIcon name="check" size={13} />
+										{:else if started}
+											<span class="ongoing-dot"></span>
+										{:else}
+											<span class="idle-ring"></span>
+										{/if}
+									</button>
+
+									<div class="ch-card-title-group">
+										<span class="ch-card-num">#{ch.no}</span>
+										<span class="ch-card-title">{ch.name}</span>
 									</div>
-								</td>
-								{#each clCols as _, i (i)}
-									<td>
-										<button
-											type="button"
-											class="tick"
-											class:on={clGrid?.data[ch.no]?.[i] === '✓'}
-											aria-label="{clCols[i]} — {ch.name}"
-											on:click={() => toggleChecklistCell(clSub, ch.no, i)}
-										>✓</button>
-									</td>
-								{/each}
-								<td></td>
-							</tr>
+
+									<div class="ch-card-badge-wrap">
+										{#if done}
+											<span class="status-pill done">Done</span>
+										{:else if started}
+											<span class="status-pill ongoing">{pct}%</span>
+										{/if}
+									</div>
+								</div>
+
+								{#if clCols.length > 0}
+									<div class="ch-card-progress">
+										<div class="ch-card-track">
+											<div
+												class="ch-card-fill"
+												style="width: {pct}%; background: {done ? '#2f9e6e' : subjectColor(clSub)}"
+											></div>
+										</div>
+										<span class="ch-card-stepcount">{completedCount}/{clCols.length}</span>
+									</div>
+
+									<div class="ch-steps-grid">
+										{#each clCols as colName, i (i)}
+											{@const isDone = clGrid?.data?.[ch.no]?.[i] === '✓'}
+											<button
+												type="button"
+												class="step-chip"
+												class:step-chip-done={isDone}
+												on:click={() => toggleChecklistCell(clSub, ch.no, i)}
+											>
+												<span class="chip-check">{isDone ? '✓' : '○'}</span>
+												<span class="chip-label">{colName}</span>
+											</button>
+										{/each}
+									</div>
+								{/if}
+							</div>
 						{/each}
-					</tbody>
-				</table>
-			</div>
+					{/if}
+				</div>
+			{:else}
+				<div class="tblwrap">
+					<table class="sheet">
+						<thead>
+							<tr>
+								<th class="chcol">Chapter</th>
+								{#each clCols as col, i (i)}
+									<th>{col}<button type="button" class="coldel" aria-label="Remove column {col}" on:click={() => removeColumn(i)}>×</button></th>
+								{/each}
+								<th class="addcol"><button type="button" class="coladd" aria-label="Add column" on:click={addColumn}>+</button></th>
+							</tr>
+						</thead>
+						<tbody>
+							{#each displayedChapters as ch (ch.no)}
+								{@const started = isChStarted(ch.no)}
+								{@const done = isChDone(ch.no)}
+								<tr class:row-ongoing={started && !done} class:row-done={done}>
+									<td class="chcol">
+										<div class="ch-cell">
+											<button
+												type="button"
+												class="start-btn"
+												class:started={started && !done}
+												class:done={done}
+												title={done ? "Chapter fully completed!" : started ? "Chapter in progress · Click to toggle" : "Mark as started (lectures/study began)"}
+												on:click={() => { uiPop(); toggleChapterStarted(clSub, ch.no); }}
+											>
+												{#if done}
+													<NavIcon name="check" size={13} />
+												{:else if started}
+													<span class="ongoing-dot"></span>
+												{:else}
+													<span class="idle-ring"></span>
+												{/if}
+											</button>
+											<div class="ch-title-wrap">
+												<span class="ch-title-text">{ch.no}. {ch.name}</span>
+												{#if done}
+													<span class="status-pill done">Done</span>
+												{:else if started}
+													<span class="status-pill ongoing">Started</span>
+												{/if}
+											</div>
+										</div>
+									</td>
+									{#each clCols as _, i (i)}
+										<td>
+											<button
+												type="button"
+												class="tick"
+												class:on={clGrid?.data[ch.no]?.[i] === '✓'}
+												aria-label="{clCols[i]} — {ch.name}"
+												on:click={() => toggleChecklistCell(clSub, ch.no, i)}
+											>✓</button>
+										</td>
+									{/each}
+									<td></td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				</div>
+			{/if}
 		</div>
 	{:else}
 		<div class="btest">
@@ -477,7 +628,13 @@ async function runAiTriage() {
 </section>
 
 <style>
-	.todo { display: grid; gap: 1.1rem; background: transparent; }
+	.todo {
+		display: grid;
+		gap: 1.1rem;
+		background: transparent;
+		touch-action: pan-y;
+		-webkit-overflow-scrolling: touch;
+	}
 	header { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 	h1 { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -.04em; }
 	header p { margin: .25rem 0 0; color: var(--text-secondary); font-size: .74rem; font-weight: 650; }
@@ -548,7 +705,15 @@ async function runAiTriage() {
 	.add button:active:not(:disabled) { transform: scale(0.93); }
 	.add button:disabled { opacity: .45; cursor: default; }
 
-	.list { list-style: none; margin: 0; padding: 0; display: grid; gap: .65rem; background: transparent; }
+	.list {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: .65rem;
+		background: transparent;
+		touch-action: pan-y;
+	}
 	.row {
 		display: flex;
 		align-items: center;
@@ -561,6 +726,17 @@ async function runAiTriage() {
 		-webkit-backdrop-filter: blur(16px);
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), inset 0 0.5px 0 rgba(255, 255, 255, 0.12);
 		transition: transform 0.18s var(--ease-ios-press, cubic-bezier(0.2, 0.9, 0.3, 1)), box-shadow 0.18s ease;
+		touch-action: pan-y;
+		-webkit-user-select: none;
+		user-select: none;
+	}
+	.title-wrap {
+		flex: 1;
+		min-width: 0;
+		cursor: pointer;
+		display: flex;
+		flex-direction: column;
+		touch-action: pan-y;
 	}
 	.row:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,0.12); }
 	.row.done { opacity: .55; background: transparent; box-shadow: none; }
@@ -637,7 +813,17 @@ async function runAiTriage() {
 	.solid { border: 0; background: var(--accent); color: #fff; }
 	.solid:disabled { opacity: .45; cursor: default; }
 
-	.matches { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; max-height: 52vh; overflow: auto; }
+	.matches {
+		list-style: none;
+		margin: 0;
+		padding: 0;
+		display: grid;
+		gap: .4rem;
+		max-height: 52vh;
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+		touch-action: pan-y;
+	}
 	.match { display: flex; align-items: center; gap: .6rem; padding: .55rem .7rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-panel); cursor: pointer; }
 	.match input { width: 17px; height: 17px; accent-color: var(--accent); }
 	.mdot { flex: 0 0 9px; width: 9px; height: 9px; border-radius: 99px; }
@@ -648,7 +834,28 @@ async function runAiTriage() {
 
 	.checklist { display: grid; gap: 1rem; }
 	.pbars { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: .6rem; }
-	.pbar { display: grid; gap: .4rem; padding: .65rem .8rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-panel); }
+	.pbar {
+		display: grid;
+		gap: .4rem;
+		padding: .65rem .8rem;
+		border: 1px solid var(--border-subtle);
+		border-radius: 13px;
+		background: var(--surface-panel);
+		cursor: pointer;
+		text-align: left;
+		font: inherit;
+		color: inherit;
+		transition: all .15s ease;
+	}
+	.pbar:hover {
+		border-color: var(--accent);
+		transform: translateY(-1px);
+	}
+	.pbar.active {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 8%, var(--surface-panel));
+		box-shadow: 0 2px 8px -2px color-mix(in srgb, var(--accent) 30%, transparent);
+	}
 	.pbar-top { display: flex; align-items: center; gap: .45rem; font-size: .76rem; }
 	.pbar-top b { font-weight: 800; letter-spacing: -.01em; }
 	.pdot { width: 8px; height: 8px; border-radius: 3px; }
@@ -662,6 +869,202 @@ async function runAiTriage() {
 		justify-content: space-between;
 		flex-wrap: wrap;
 		gap: .75rem;
+	}
+	.cl-actions-row {
+		display: flex;
+		align-items: center;
+		gap: .6rem;
+		flex-wrap: wrap;
+	}
+	.cl-search-box {
+		display: inline-flex;
+		align-items: center;
+		gap: .4rem;
+		padding: .26rem .65rem;
+		border: 1px solid var(--border-subtle);
+		border-radius: 999px;
+		background: var(--surface-panel);
+		color: var(--text-secondary);
+		transition: border-color .15s ease;
+	}
+	.cl-search-box:focus-within {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+	.cl-search-input {
+		border: none;
+		outline: none;
+		background: transparent;
+		font-size: .75rem;
+		color: var(--text-primary);
+		width: 120px;
+		font-family: inherit;
+	}
+	.cl-search-input::placeholder {
+		color: var(--text-secondary);
+		opacity: .7;
+	}
+	.cl-clear-search {
+		background: none;
+		border: none;
+		padding: 0;
+		color: var(--text-secondary);
+		font-size: .85rem;
+		cursor: pointer;
+		line-height: 1;
+	}
+	.cl-clear-search:hover {
+		color: var(--text-primary);
+	}
+	.cl-view-toggle {
+		display: inline-flex;
+		align-items: center;
+		padding: 2px;
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
+		border-radius: 999px;
+		gap: 2px;
+	}
+	.view-toggle-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: .3rem;
+		padding: .24rem .55rem;
+		border: none;
+		border-radius: 999px;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: .7rem;
+		font-weight: 750;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all .15s ease;
+	}
+	.view-toggle-btn:hover {
+		color: var(--text-primary);
+	}
+	.view-toggle-btn.active {
+		background: var(--surface-panel);
+		color: var(--text-primary);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+	}
+
+	/* Chapter Cards List (Mobile-first view) */
+	.ch-cards-list {
+		display: grid;
+		gap: .65rem;
+	}
+	.ch-card {
+		display: flex;
+		flex-direction: column;
+		gap: .6rem;
+		padding: .75rem .85rem;
+		border: 1px solid var(--border-subtle);
+		border-radius: 14px;
+		background: var(--surface-panel);
+		transition: border-color .15s ease, background-color .15s ease, transform .12s ease;
+	}
+	.ch-card-ongoing {
+		border-color: color-mix(in srgb, var(--accent) 45%, var(--border-subtle));
+		background: color-mix(in srgb, var(--accent) 3.5%, var(--surface-panel));
+	}
+	.ch-card-done {
+		border-color: color-mix(in srgb, #2f9e6e 40%, var(--border-subtle));
+		background: color-mix(in srgb, #2f9e6e 3.5%, var(--surface-panel));
+	}
+	.ch-card-header {
+		display: flex;
+		align-items: center;
+		gap: .6rem;
+	}
+	.ch-card-title-group {
+		display: flex;
+		align-items: baseline;
+		gap: .4rem;
+		flex: 1;
+		min-width: 0;
+	}
+	.ch-card-num {
+		font-size: .75rem;
+		font-weight: 800;
+		color: var(--text-secondary);
+		opacity: .8;
+		flex-shrink: 0;
+	}
+	.ch-card-title {
+		font-size: .84rem;
+		font-weight: 700;
+		color: var(--text-primary);
+		line-height: 1.3;
+		word-break: break-word;
+	}
+	.ch-card-badge-wrap {
+		flex-shrink: 0;
+	}
+	.ch-card-progress {
+		display: flex;
+		align-items: center;
+		gap: .6rem;
+	}
+	.ch-card-track {
+		flex: 1;
+		height: 5px;
+		border-radius: 99px;
+		background: var(--surface-subtle);
+		overflow: hidden;
+	}
+	.ch-card-fill {
+		height: 100%;
+		border-radius: inherit;
+		transition: width .25s ease;
+	}
+	.ch-card-stepcount {
+		font-size: .68rem;
+		font-weight: 750;
+		color: var(--text-secondary);
+		font-variant-numeric: tabular-nums;
+		flex-shrink: 0;
+	}
+	.ch-steps-grid {
+		display: flex;
+		flex-wrap: wrap;
+		gap: .35rem;
+	}
+	.step-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: .35rem;
+		padding: .35rem .65rem;
+		min-height: 32px;
+		border: 1px solid var(--border-subtle);
+		border-radius: 8px;
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		font-size: .74rem;
+		font-weight: 650;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all .12s ease;
+		touch-action: manipulation;
+		user-select: none;
+	}
+	.step-chip:hover {
+		border-color: var(--accent);
+		color: var(--text-primary);
+	}
+	.step-chip-done {
+		border-color: #2f9e6e;
+		background: color-mix(in srgb, #2f9e6e 15%, var(--surface-panel));
+		color: #2f9e6e;
+		font-weight: 750;
+	}
+	.chip-check {
+		font-size: .75rem;
+		line-height: 1;
+		font-weight: 800;
+	}
+	.chip-label {
+		line-height: 1;
 	}
 	.cl-filter-group {
 		display: flex;
@@ -780,16 +1183,10 @@ async function runAiTriage() {
 		color: #2f9e6e;
 	}
 	.row-ongoing td {
-		background: color-mix(in srgb, var(--accent) 2.5%, var(--surface-panel));
-	}
-	.row-ongoing td.chcol {
-		background: color-mix(in srgb, var(--accent) 4.5%, var(--surface-panel));
+		background: color-mix(in srgb, var(--accent) 4%, var(--surface-panel));
 	}
 	.row-done td {
-		background: color-mix(in srgb, #2f9e6e 2.5%, var(--surface-panel));
-	}
-	.row-done td.chcol {
-		background: color-mix(in srgb, #2f9e6e 4.5%, var(--surface-panel));
+		background: color-mix(in srgb, #2f9e6e 4%, var(--surface-panel));
 	}
 
 	.subtabs button { display: inline-flex; align-items: center; gap: .45rem; }
@@ -801,8 +1198,8 @@ async function runAiTriage() {
 	.sheet th:last-child, .sheet td:last-child { border-right: 0; }
 	.sheet tbody tr:last-child td { border-bottom: 0; }
 	.sheet thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-panel); font-size: .72rem; font-weight: 800; letter-spacing: .02em; color: var(--text-secondary); text-transform: uppercase; }
-	.chcol { position: sticky; left: 0; z-index: 2; background: var(--surface-panel); text-align: left !important; min-width: 240px; font-weight: 600; color: var(--text-primary); box-shadow: 1px 0 0 var(--border-subtle); }
-	thead .chcol { z-index: 3; text-transform: none !important; font-size: .78rem !important; color: var(--text-primary) !important; }
+	.chcol { text-align: left !important; min-width: 220px; font-weight: 600; color: var(--text-primary); }
+	thead .chcol { text-transform: none !important; font-size: .78rem !important; color: var(--text-primary) !important; }
 	.coldel { margin-left: .4rem; padding: 0 .25rem; border: 0; background: transparent; color: var(--text-secondary); font-size: .85rem; line-height: 1; cursor: pointer; border-radius: 6px; }
 	.coldel:hover { color: var(--danger, #e0455a); background: var(--surface-subtle); }
 	.addcol { width: 44px; }
@@ -813,12 +1210,64 @@ async function runAiTriage() {
 	.tick.on { border-color: #2f9e6e; background: #2f9e6e; color: #fff; }
 
 	@media (max-width: 768px) {
+		.todo { padding-bottom: 3.5rem; }
+		.grip { display: none !important; }
 		.tabs { width: 100%; display: flex; }
 		.tabs button { flex: 1; padding: 0 0.5rem; text-align: center; }
 		.task-toolbar { flex-direction: column; align-items: stretch; gap: 0.5rem; }
 		.btn-triage { width: 100%; justify-content: center; }
-		.tblwrap { max-height: none; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-		.chcol { position: sticky; left: 0; min-width: 170px; }
+		.row { padding: 0.75rem 0.75rem; gap: 0.5rem; }
+		.subtasks-container { padding: 8px 10px 8px 24px; touch-action: pan-y; }
+		.pbars {
+			grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+			gap: .4rem !important;
+		}
+		.pbar {
+			padding: .5rem .55rem !important;
+			border-radius: 10px !important;
+		}
+		.pbar-top {
+			font-size: .7rem !important;
+			gap: .3rem !important;
+		}
+		.cl-toolbar {
+			gap: .5rem !important;
+		}
+		.cl-actions-row {
+			width: 100% !important;
+			display: flex !important;
+			justify-content: space-between !important;
+			gap: .4rem !important;
+		}
+		.cl-search-box {
+			flex: 1 !important;
+		}
+		.cl-search-input {
+			width: 100% !important;
+		}
+		.cl-filter-group {
+			width: 100% !important;
+			overflow-x: auto !important;
+			flex-wrap: nowrap !important;
+			-webkit-overflow-scrolling: touch !important;
+			padding-bottom: 2px !important;
+		}
+		.cl-filter-btn {
+			flex-shrink: 0 !important;
+		}
+		.step-chip {
+			min-height: 36px !important;
+			padding: .4rem .7rem !important;
+			font-size: .78rem !important;
+		}
+		.tblwrap {
+			max-height: none;
+			overflow-x: auto;
+			overflow-y: visible;
+			-webkit-overflow-scrolling: touch;
+			touch-action: pan-x pan-y;
+		}
+		.chcol { min-width: 180px; }
 	}
 
 	.sub-progress { display: flex; align-items: center; gap: 8px; margin-top: 4px; }

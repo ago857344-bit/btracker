@@ -1355,6 +1355,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.5rem;
+		touch-action: pan-y;
 	}
 	.task-row {
 		display: flex;
@@ -1365,6 +1366,7 @@
 		background: var(--surface-panel);
 		border: 1px solid var(--border-subtle);
 		transition: opacity 0.2s ease, border-color 0.2s ease;
+		touch-action: pan-y;
 	}
 	.task-row.done {
 		opacity: 0.55;

@@ -1,0 +1,22 @@
+# Desktop / Tauri app
+src-tauri
+**/target
+
+# Internal docs & test scripts
+bttraacker
+docs
+outputs
+work
+check.log
+*.log
+test-*.js
+measure.js
+
+# System & IDE
+.git
+.github
+.vscode
+.DS_Store
+
+# Prevent heavy video assets from blowing through Vercel's 10GB deployment storage limit
+static/videos/*.mp4

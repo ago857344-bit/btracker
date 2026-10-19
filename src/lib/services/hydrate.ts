@@ -5,6 +5,7 @@ import { rolloverWeekSnapshot } from '$lib/state/weekly';
 import { todayKey } from '$lib/state/dates';
 import { hydration, replaceTracker } from '$lib/stores/tracker';
 import { isChapterStudied } from '$lib/state/decay';
+import { isMobileDevice } from '$lib/state/themes';
 import type { TrackerState } from '$lib/types/tracker';
 
 /**
@@ -177,6 +178,9 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 			(saved.d && Object.keys(saved.d).length > 0)
 		))
 	};
+	if (isMobileDevice() && (!merged.onboarded || !saved.ui?.dashboardLayout)) {
+		merged.ui.dashboardLayout = 'compact';
+	}
 	const known = new Set(merged.ui.widgets.map((w) => w.id));
 	for (const widget of DEFAULT_WIDGETS) if (!known.has(widget.id)) merged.ui.widgets.push({ ...widget });
 	

@@ -579,10 +579,18 @@
 	.solid:disabled { opacity: .45; cursor: default; box-shadow: none; }
 
 	@media (max-width: 760px) {
-		.r-card { grid-template-columns: 38px 1fr; }
+		.page-head { flex-direction: column; align-items: stretch; gap: 0.85rem; }
+		.head-actions { width: 100%; display: flex; }
+		.count-chip { flex: 1; justify-content: center; height: 42px; }
+		.set-reminder { flex: 1; justify-content: center; height: 42px; }
+		.r-card { grid-template-columns: 38px 1fr; touch-action: pan-y; }
 		.r-card::before { width: 2.5px; }
 		.icon-wrap { width: 38px; height: 38px; border-radius: 12px; flex: 0 0 38px; }
-		.r-actions { grid-column: 1 / -1; justify-content: flex-end; padding-top: .2rem; border-top: 1px dashed var(--border-subtle); margin-top: .1rem; }
+		.r-actions { grid-column: 1 / -1; justify-content: flex-end; padding-top: .4rem; border-top: 1px dashed var(--border-subtle); margin-top: .1rem; }
+		.link { min-height: 38px; padding: 0 0.75rem; }
 		.row-2 { grid-template-columns: 1fr; }
+		.kind-row { display: flex; width: 100%; }
+		.kind-row button { flex: 1; justify-content: center; height: 40px; font-size: 0.76rem; }
+		.field input, .field select, .field textarea { min-height: 42px; font-size: 0.9rem; }
 	}
 </style>

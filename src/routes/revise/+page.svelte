@@ -329,13 +329,22 @@
 	}
 
 	@media (max-width: 768px) {
-		.kpis { grid-template-columns: 1fr; }
+		header { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+		.actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+		.duck-header-btn { height: 40px; font-size: 0.8rem; }
+		.add { height: 40px; font-size: 0.82rem; }
+		.heatmap-section { overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
+		.kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.5rem; }
+		.kpi { padding: 0.75rem 0.5rem; text-align: center; justify-items: center; }
+		.kpi b { font-size: 1.35rem; }
+		.kpi span { font-size: 0.55rem; letter-spacing: 0.05em; }
 		.view-toggle { width: 100%; }
-		.view-toggle button { flex: 1; text-align: center; font-size: 0.8rem; padding: 0.5rem; }
+		.view-toggle button { flex: 1; text-align: center; font-size: 0.85rem; min-height: 42px; }
 		.tabs { width: 100%; display: flex; }
-		.tabs button { flex: 1; text-align: center; padding: 0.45rem 0.5rem; font-size: 0.72rem; }
-		.cards { grid-template-columns: 1fr; }
-		.search { min-width: 0; width: 100%; }
-		.subsel { width: 100%; }
+		.tabs button { flex: 1; text-align: center; padding: 0.5rem 0.4rem; font-size: 0.74rem; min-height: 38px; }
+		.cards { grid-template-columns: 1fr; touch-action: pan-y; }
+		.search { min-width: 0; width: 100%; height: 42px; }
+		.subsel { width: 100%; height: 42px; }
+		.mchip { min-height: 36px; display: inline-flex; align-items: center; }
 	}
 </style>

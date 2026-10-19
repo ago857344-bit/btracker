@@ -246,9 +246,11 @@
 	@media (max-width: 768px) {
 		.hero { align-items: start; flex-direction: column; }
 		.tabs { width: 100%; display: flex; }
-		.tabs button { flex: 1; justify-content: center; padding: 0 .4rem; font-size: 0.74rem; }
+		.tabs button { flex: 1; justify-content: center; padding: 0 .4rem; font-size: 0.76rem; min-height: 40px; }
 		.summary { justify-content: flex-start; }
-		.question { grid-template-columns: 58px 1fr; gap: .7rem; }
+		.question-list { touch-action: pan-y; }
+		.question { grid-template-columns: 58px 1fr; gap: .7rem; padding: 1rem 0.9rem; touch-action: pan-y; }
 		.marks { grid-column: 2; justify-content: flex-start; }
+		.marks span, .marks button { min-height: 32px; padding: 0 0.65rem; }
 	}
 </style>

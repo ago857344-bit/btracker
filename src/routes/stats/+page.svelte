@@ -483,9 +483,15 @@
 	.up { color: var(--success, #2f9e6e); font-weight: 750; }
 
 	@media (max-width: 768px) {
+		.sec-head { min-height: 48px; padding: 0.85rem 1rem; font-size: 0.74rem; }
+		.sec-body { padding: 0 1rem 1rem; }
 		.grid4 { grid-template-columns: repeat(2, 1fr); gap: 0.5rem; }
 		.cell { padding: 0.75rem 0.65rem; }
 		.cell b { font-size: 1.15rem; }
 		.prow b { min-width: 60px; font-size: 0.76rem; }
+		.strip { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+		.ai-btn { min-height: 42px; width: 100%; justify-content: center; }
+		.elo-item { padding: 0.75rem 0.8rem; }
+		.elo-rank { margin-right: 0.4rem; font-size: 0.6rem; }
 	}
 </style>

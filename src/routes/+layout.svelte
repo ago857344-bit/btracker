@@ -49,7 +49,7 @@
 
 	function handleTouchEnd(e: TouchEvent) {
 		if (mobileOpen) return;
-		if (typeof document !== 'undefined' && (document.body.dataset.sheetOpen || document.querySelector('.modal-backdrop, .gm-backdrop, .island-scrim'))) return;
+		if (typeof document !== 'undefined' && (document.body.dataset.sheetOpen || document.body.dataset.deepWork || document.querySelector('.modal-backdrop, .gm-backdrop, .island-scrim, .vault-drawer, .vault-backdrop, .overlay'))) return;
 		const touchEndX = e.changedTouches[0].screenX;
 		const touchEndY = e.changedTouches[0].screenY;
 

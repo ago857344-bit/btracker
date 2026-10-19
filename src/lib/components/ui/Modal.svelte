@@ -263,6 +263,9 @@
 			box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), 0 -16px 48px rgba(0, 0, 0, 0.55);
 			animation: sheet-slide-up 0.32s cubic-bezier(0.32, 0.72, 0, 1) forwards;
 		}
+		.modal-card.swiping {
+			animation: none !important;
+		}
 		@keyframes sheet-slide-up {
 			from { transform: translateY(100%); }
 			to { transform: translateY(0); }

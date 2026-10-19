@@ -219,9 +219,9 @@
 </Modal>
 
 <style>
-	.celebration { position: fixed; z-index: 150; top: 1.1rem; left: 50%; display: flex; align-items: center; gap: .7rem; padding: .75rem 1.15rem; border-radius: 16px; background: #0f2e1c; border: 1px solid #245c3a; color: #d8ffe7; box-shadow: 0 18px 44px rgb(4 20 10 / 45%); transform: translateX(-50%); }
-	.celebration .check { display: grid; place-items: center; color: #4ade80; }
-	.celebration b { display: block; font-size: .88rem; letter-spacing: -.01em; }
+	.celebration { position: fixed; z-index: 150; top: max(env(safe-area-inset-top, 0px) + 0.6rem, 1.1rem); left: 50%; display: flex; align-items: center; gap: .7rem; padding: .75rem 1.15rem; border-radius: 16px; background: #0f2e1c; border: 1px solid #245c3a; color: #d8ffe7; box-shadow: 0 18px 44px rgb(4 20 10 / 45%); transform: translateX(-50%); width: max-content; max-width: calc(100vw - 2rem); box-sizing: border-box; }
+	.celebration .check { display: grid; place-items: center; color: #4ade80; flex-shrink: 0; }
+	.celebration b { display: block; font-size: .88rem; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.celebration small { color: #8fd6a8; font-size: .68rem; }
 
 	.prompt-copy { margin: 0; color: var(--text-secondary); font-size: .85rem; }
