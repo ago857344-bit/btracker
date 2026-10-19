@@ -64,29 +64,60 @@
 </section>
 
 <style>
-	.auth-card { position: relative; width: min(100%, 404px); padding: 1.9rem 1.9rem 1.6rem; border: 1px solid rgb(255 255 255 / 8%); border-radius: 22px; background: #131318; box-shadow: 0 30px 80px rgb(0 0 0 / 45%); color: #ececf1; }
-	h1 { margin: 0; font-size: 1.45rem; line-height: 1.15; letter-spacing: -.035em; font-weight: 850; }
-	.sub { margin: .45rem 0 1.2rem; color: #9d9dab; font-size: .82rem; line-height: 1.55; }
+	.auth-card {
+		position: relative;
+		width: min(100%, 410px);
+		padding: 2.2rem 2rem 1.8rem;
+		border: 1px solid var(--border-subtle);
+		border-radius: 24px;
+		background: var(--surface-panel);
+		box-shadow: var(--shadow-modal, 0 24px 60px -10px rgba(44, 37, 92, 0.15));
+		color: var(--text-primary);
+	}
+	h1 { margin: 0; font-size: 1.45rem; line-height: 1.15; letter-spacing: -.035em; font-weight: 850; color: var(--text-primary); }
+	.sub { margin: .45rem 0 1.25rem; color: var(--text-secondary); font-size: .84rem; line-height: 1.55; }
 
-	.google { display: flex; align-items: center; justify-content: center; gap: .6rem; width: 100%; height: 44px; border: 1px solid rgb(255 255 255 / 10%); border-radius: 11px; background: #26262f; color: #ececf1; font-size: .85rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: background .14s ease, border-color .14s ease; }
-	.google:hover:not(:disabled) { background: #2e2e39; border-color: rgb(255 255 255 / 20%); }
+	.google {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: .65rem;
+		width: 100%;
+		height: 46px;
+		border: 1px solid var(--border-subtle);
+		border-radius: 12px;
+		background: var(--surface-subtle);
+		color: var(--text-primary);
+		font-size: .88rem;
+		font-weight: 700;
+		cursor: pointer;
+		font-family: inherit;
+		transition: background .14s ease, border-color .14s ease, box-shadow .14s ease, transform .14s ease;
+		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+	}
+	.google:hover:not(:disabled) {
+		background: color-mix(in srgb, var(--surface-subtle) 60%, var(--surface-panel));
+		border-color: color-mix(in srgb, var(--accent) 50%, var(--border-subtle));
+		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
+		transform: translateY(-1px);
+	}
 	.google:disabled { opacity: .65; cursor: default; }
 
-	.err { margin: 0 0 .8rem; padding: .55rem .75rem; border: 1px solid rgb(240 82 100 / 35%); border-radius: 10px; background: rgb(240 82 100 / 10%); color: #ff97a4; font-size: .76rem; font-weight: 600; }
+	.err { margin: 0 0 .8rem; padding: .55rem .75rem; border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--danger) 10%, transparent); color: var(--danger); font-size: .76rem; font-weight: 600; }
 
-	.info { margin: 1.1rem 0 0; color: #7a7a88; font-size: .68rem; line-height: 1.5; text-align: center; }
+	.info { margin: 1.1rem 0 0; color: var(--text-secondary); font-size: .7rem; line-height: 1.5; text-align: center; }
 
-	.setup { margin: 0 0 1.2rem; padding-left: 1.15rem; color: #9d9dab; font-size: .78rem; line-height: 1.65; }
+	.setup { margin: 0 0 1.2rem; padding-left: 1.15rem; color: var(--text-secondary); font-size: .8rem; line-height: 1.65; }
 	.setup li { margin-bottom: .35rem; }
-	.mono { padding: .05rem .32rem; border-radius: 5px; background: rgb(255 255 255 / 7%); font-family: ui-monospace, monospace; font-size: .9em; }
+	.mono { padding: .08rem .36rem; border-radius: 6px; background: color-mix(in srgb, var(--text-primary) 8%, transparent); color: var(--text-primary); font-family: ui-monospace, monospace; font-size: .88em; }
 
-	.signed { display: flex; align-items: center; gap: .8rem; padding: .8rem; border: 1px solid rgb(255 255 255 / 8%); border-radius: 14px; background: #1d1d25; }
+	.signed { display: flex; align-items: center; gap: .8rem; padding: .85rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-subtle); }
 	.signed img { width: 42px; height: 42px; border-radius: 99px; object-fit: cover; }
 	.ini { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 99px; background: var(--accent); color: #fff; font-weight: 800; }
 	.signed div { display: grid; gap: .1rem; min-width: 0; }
-	.signed strong { font-size: .9rem; }
-	.signed span { color: #9d9dab; font-size: .74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.ok { display: flex; align-items: center; gap: .45rem; margin: .9rem 0; color: #4ade80; font-size: .8rem; font-weight: 650; }
+	.signed strong { font-size: .9rem; color: var(--text-primary); }
+	.signed span { color: var(--text-secondary); font-size: .74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.ok { display: flex; align-items: center; gap: .45rem; margin: .9rem 0; color: var(--success); font-size: .8rem; font-weight: 650; }
 
 	.submit { width: 100%; height: 44px; border: 0; border-radius: 11px; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent), #e0455a 35%)); color: #fff; font-size: .86rem; font-weight: 800; letter-spacing: .01em; cursor: pointer; font-family: inherit; box-shadow: 0 10px 24px color-mix(in srgb, var(--accent), transparent 62%); transition: filter .14s ease; }
 	.submit:hover:not(:disabled) { filter: brightness(1.08); }

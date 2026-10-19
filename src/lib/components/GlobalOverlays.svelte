@@ -2,7 +2,6 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { fly } from 'svelte/transition';
-	import confetti from 'canvas-confetti';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import RevisionDueModal from '$lib/components/RevisionDueModal.svelte';
@@ -110,13 +109,14 @@
 		fireConfetti(lead.kind === 'theme' ? presetOf(lead.id).confetti : undefined);
 	}
 
-	function fireConfetti(colors?: string[]) {
+	async function fireConfetti(colors?: string[]) {
+		const confettiMod = (await import('canvas-confetti')).default;
 		const palette = colors ?? $loadout.confetti;
 		const duration = 2.5 * 1000;
 		const end = Date.now() + duration;
 		const interval: any = setInterval(() => {
 			if (Date.now() > end) return clearInterval(interval);
-			confetti({ particleCount: 30, spread: 60, origin: { x: Math.random(), y: Math.random() - 0.2 }, zIndex: 10000, colors: palette });
+			confettiMod({ particleCount: 30, spread: 60, origin: { x: Math.random(), y: Math.random() - 0.2 }, zIndex: 10000, colors: palette });
 		}, 250);
 	}
 

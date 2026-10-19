@@ -9,15 +9,15 @@
   color: var(--text-primary);
   background: var(--surface-canvas);
   font-synthesis: none;
-  --surface-canvas: #11101b;
-  --surface-panel: #1a1827;
-  --surface-subtle: #252237;
-  --text-primary: #f7f5ff;
-  --text-secondary: #bbb5d0;
-  --border-subtle: #302c43;
+  --surface-canvas: #f7f7fb;
+  --surface-panel: #ffffff;
+  --surface-subtle: #f0eff9;
+  --text-primary: #24213a;
+  --text-secondary: #716e86;
+  --border-subtle: #e7e5f1;
   --accent: #6d5dfc;
   --accent-strong: #5142df;
-  --accent-soft: #29264a;
+  --accent-soft: #ebe9ff;
   --success: #42b883;
   --warning: #f6ad55;
   --danger: #ef6c7b;
@@ -26,22 +26,22 @@
   --ease-ios-spring: cubic-bezier(0.32, 0.72, 0, 1);
   --ease-ios-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-ios-press: cubic-bezier(0.2, 0.9, 0.3, 1);
-  --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 14px 40px -4px rgb(0 0 0 / 30%);
-  --shadow-modal: 0 24px 60px -8px rgb(0 0 0 / 60%), 0 12px 24px rgb(0 0 0 / 40%);
-  --shadow-hover: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 24px 50px -8px rgb(0 0 0 / 40%);
+  --shadow-card: 0 4px 6px -1px rgb(44 37 92 / 5%), 0 14px 40px -4px rgb(44 37 92 / 12%);
+  --shadow-modal: 0 24px 60px -10px rgb(44 37 92 / 25%), 0 12px 24px rgb(44 37 92 / 15%);
+  --shadow-hover: 0 10px 15px -3px rgb(44 37 92 / 6%), 0 24px 50px -8px rgb(44 37 92 / 18%);
 
-  /* Apple VisionOS / Smoked Acrylic Design Tokens (Phase 2) */
-  --vision-glass-bg: color-mix(in srgb, var(--surface-panel) 88%, transparent);
+  /* Apple VisionOS / Light Acrylic Tokens */
+  --vision-glass-bg: color-mix(in srgb, #ffffff 88%, transparent);
   --vision-glass-blur: blur(24px) saturate(185%);
-  --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 0 0 1px rgba(255, 255, 255, 0.035);
-  --vision-bevel-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(255, 255, 255, 0.12));
-  --vision-specular-sheen: rgba(255, 255, 255, 0.075);
-  --vision-specular-beam: color-mix(in srgb, var(--accent, #6d5dfc) 55%, rgba(255, 255, 255, 0.5));
+  --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  --vision-bevel-border: color-mix(in srgb, var(--border-subtle) 85%, rgba(0, 0, 0, 0.06));
+  --vision-specular-sheen: color-mix(in srgb, var(--accent, #6d5dfc) 10%, rgba(255, 255, 255, 0.55));
+  --vision-specular-beam: color-mix(in srgb, var(--accent, #6d5dfc) 40%, rgba(255, 255, 255, 0.75));
 
-  /* Universal Smoked Acrylic Popup & Floating Overlay Token (Strict 96% Opacity) */
-  --surface-popup: rgba(18, 16, 32, 0.96);
-  --surface-popup-solid: #121020;
-  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
+  /* Light Acrylic Popup Token */
+  --surface-popup: rgba(255, 255, 255, 0.96);
+  --surface-popup-solid: #ffffff;
+  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08));
 }
 
 :root[data-theme='light'] {
@@ -77,7 +77,22 @@
   --text-secondary: #bbb5d0;
   --border-subtle: #302c43;
   --accent-soft: #29264a;
-  --shadow-card: 0 14px 40px rgb(0 0 0 / 24%);
+  --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 14px 40px -4px rgb(0 0 0 / 30%);
+  --shadow-modal: 0 24px 60px -8px rgb(0 0 0 / 60%), 0 12px 24px rgb(0 0 0 / 40%);
+  --shadow-hover: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 24px 50px -8px rgb(0 0 0 / 40%);
+
+  /* Apple VisionOS / Smoked Acrylic Design Tokens (Phase 2) */
+  --vision-glass-bg: color-mix(in srgb, var(--surface-panel) 88%, transparent);
+  --vision-glass-blur: blur(24px) saturate(185%);
+  --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+  --vision-bevel-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(255, 255, 255, 0.12));
+  --vision-specular-sheen: rgba(255, 255, 255, 0.075);
+  --vision-specular-beam: color-mix(in srgb, var(--accent, #6d5dfc) 55%, rgba(255, 255, 255, 0.5));
+
+  /* Universal Smoked Acrylic Popup & Floating Overlay Token (Strict 96% Opacity) */
+  --surface-popup: rgba(18, 16, 32, 0.96);
+  --surface-popup-solid: #121020;
+  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
 }
 
 :root[data-theme='red'] {
@@ -582,6 +597,55 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 }
 :root[data-live-wallpaper="true"] body::after {
 	opacity: 0;
+}
+
+:root[data-wallpaper-luminance="bright"] {
+	--wallpaper-adaptive-scrim: rgba(0, 0, 0, 0.44);
+	--wallpaper-border-enhancer: rgba(255, 255, 255, 0.28);
+}
+
+:root[data-wallpaper-luminance="bright"] .page-heading h2,
+:root[data-wallpaper-luminance="bright"] .widget h3,
+:root[data-wallpaper-luminance="bright"] .hero h1 {
+	text-shadow: 0 1px 6px rgba(0, 0, 0, 0.75);
+}
+
+/* When a live video wallpaper or dark wallpaper is active, enforce high-contrast readable text */
+:root[data-live-wallpaper="true"],
+:root[data-wallpaper="true"][data-wallpaper-luminance="dark"],
+:root[data-wallpaper="true"][data-theme="aurora"],
+:root[data-wallpaper="true"][data-theme="initiate"],
+:root[data-wallpaper="true"][data-theme="god-mode"],
+:root[data-wallpaper="true"][data-theme="catalyst"],
+:root[data-wallpaper="true"][data-theme="obsidian"],
+:root[data-wallpaper="true"][data-theme="dark"],
+:root[data-wallpaper="true"][data-theme="quizlet"] {
+	--text-primary: #ffffff !important;
+	--text-secondary: rgba(255, 255, 255, 0.72) !important;
+}
+
+:root[data-live-wallpaper="true"] .hero h1,
+:root[data-live-wallpaper="true"] .hero p,
+:root[data-live-wallpaper="true"] .brand-name,
+:root[data-live-wallpaper="true"] aside nav a,
+:root[data-live-wallpaper="true"] aside .nav-label,
+:root[data-live-wallpaper="true"] .topbar,
+:root[data-live-wallpaper="true"] .eyebrow,
+:root[data-wallpaper="true"][data-wallpaper-luminance="dark"] .hero h1,
+:root[data-wallpaper="true"][data-wallpaper-luminance="dark"] .hero p,
+:root[data-wallpaper="true"][data-wallpaper-luminance="dark"] .brand-name,
+:root[data-wallpaper="true"][data-wallpaper-luminance="dark"] aside nav a,
+:root[data-wallpaper="true"][data-wallpaper-luminance="dark"] aside .nav-label,
+:root[data-wallpaper="true"][data-wallpaper-luminance="dark"] .topbar,
+:root[data-wallpaper="true"][data-wallpaper-luminance="dark"] .eyebrow {
+	color: #ffffff;
+	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);
+}
+
+:root[data-live-wallpaper="true"] aside,
+:root[data-wallpaper="true"][data-wallpaper-luminance="dark"] aside {
+	background: rgba(15, 14, 25, 0.78) !important;
+	border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
 }
 
 /* Base Glass Effect */

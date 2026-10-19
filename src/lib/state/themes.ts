@@ -23,8 +23,6 @@ export interface ThemePreset {
 
 const BUILTIN = 'builtin:';
 
-export const isBuiltinWallpaper = (wp: string | null | undefined) => Boolean(wp && wp.startsWith(BUILTIN));
-
 const STARS = [
 	[8, 14], [17, 62], [26, 33], [34, 84], [43, 9], [52, 51], [61, 77], [69, 22], [77, 58], [86, 38], [93, 81], [12, 91], [48, 28], [72, 93]
 ].map(([x, y]) => `radial-gradient(circle at ${x}% ${y}%, rgba(255, 255, 255, 0.75) 0 1px, transparent 2px)`).join(', ');
@@ -88,7 +86,7 @@ export const wallpaperCss = (wp: string) => {
  * Sync the builtin wallpaper whenever the theme or loadout changes. User-set (non-builtin)
  * wallpapers always win; an equipped loadout wallpaper beats the theme's own.
  */
-export const syncThemeWallpaper = (s: { theme: string; ui: { wallpaper?: string | null; cosmetics?: { wallpaper?: string } } }) => {
+export const syncThemeWallpaper = (s: { theme: string; ui: { wallpaper?: string | null; liveWallpaper?: boolean; cosmetics?: { wallpaper?: string } } }) => {
 	if (s.ui.wallpaper && !isBuiltinWallpaper(s.ui.wallpaper)) return;
 	const equipped = s.ui.cosmetics?.wallpaper;
 	if (equipped) {
@@ -97,6 +95,15 @@ export const syncThemeWallpaper = (s: { theme: string; ui: { wallpaper?: string 
 	}
 	const preset = THEME_PRESETS.find((t) => t.id === s.theme);
 	s.ui.wallpaper = preset?.wallpaper ? BUILTIN + s.theme : null;
+	if (!preset?.wallpaper?.endsWith('.mp4')) {
+		s.ui.liveWallpaper = false;
+	}
+};
+
+export const isBuiltinWallpaper = (wp: string | null | undefined): boolean => {
+	if (!wp) return false;
+	if (wp.startsWith(BUILTIN)) return true;
+	return THEME_PRESETS.some((t) => Boolean(t.wallpaper && t.wallpaper === wp));
 };
 
 /** Named looks modelled on palettes common across popular study platforms. */

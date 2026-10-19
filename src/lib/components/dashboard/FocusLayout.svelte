@@ -16,6 +16,7 @@
 	export let deviceMode: 'auto' | 'desktop' | 'tablet' | 'mobile' = 'auto';
 
 	let activeTab: 'missions' | 'chapters' = 'missions';
+	let mobileFocusTab: 'timer' | 'deck' | 'support' = 'timer';
 	let hubOpen = false;
 	let hubSub = 'P';
 
@@ -139,7 +140,14 @@
 	}
 </script>
 
-<div class="focus-command-view" class:mode-tablet={deviceMode === 'tablet'} class:mode-mobile={deviceMode === 'mobile'}>
+<div
+	class="focus-command-view"
+	class:mode-tablet={deviceMode === 'tablet'}
+	class:mode-mobile={deviceMode === 'mobile'}
+	class:mobile-tab-timer={mobileFocusTab === 'timer'}
+	class:mobile-tab-deck={mobileFocusTab === 'deck'}
+	class:mobile-tab-support={mobileFocusTab === 'support'}
+>
 	<!-- TOP STATUS BAR: SPRINT & STREAK TELEMETRY -->
 	<header class="top-telemetry-bar">
 		<div class="telemetry-left">
@@ -159,6 +167,43 @@
 			</span>
 		</div>
 	</header>
+
+	<!-- MOBILE SECTION SWITCHER (Hidden on desktop) -->
+	<div class="mobile-focus-nav" role="tablist" aria-label="Focus sections">
+		<button
+			type="button"
+			class="mobile-tab-btn"
+			class:active={mobileFocusTab === 'timer'}
+			on:click={() => (mobileFocusTab = 'timer')}
+			role="tab"
+			aria-selected={mobileFocusTab === 'timer'}
+		>
+			<NavIcon name="focus" size={13} />
+			<span>Focus Timer</span>
+		</button>
+		<button
+			type="button"
+			class="mobile-tab-btn"
+			class:active={mobileFocusTab === 'deck'}
+			on:click={() => (mobileFocusTab = 'deck')}
+			role="tab"
+			aria-selected={mobileFocusTab === 'deck'}
+		>
+			<NavIcon name="list" size={13} />
+			<span>Missions ({activeMissions.length})</span>
+		</button>
+		<button
+			type="button"
+			class="mobile-tab-btn"
+			class:active={mobileFocusTab === 'support'}
+			on:click={() => (mobileFocusTab = 'support')}
+			role="tab"
+			aria-selected={mobileFocusTab === 'support'}
+		>
+			<NavIcon name="target" size={13} />
+			<span>Target &amp; Hubs</span>
+		</button>
+	</div>
 
 	<!-- STRICT BENTO GRID: 12-COLUMN ARCHITECTURE -->
 	<div class="bento-layout">
@@ -688,6 +733,10 @@
 		font-family: Georgia, Cambria, "Times New Roman", Times, serif !important;
 	}
 
+	.mobile-focus-nav {
+		display: none;
+	}
+
 	/* Top Status Bar */
 	.top-telemetry-bar {
 		display: flex;
@@ -964,7 +1013,7 @@
 		font-weight: 800;
 		line-height: 1;
 		letter-spacing: -0.04em;
-		color: #ffffff;
+		color: var(--text-primary);
 		text-shadow: 0 0 24px color-mix(in srgb, var(--accent) 45%, transparent);
 		box-sizing: border-box;
 	}
@@ -1199,7 +1248,7 @@
 		font-size: 1.45rem;
 		font-weight: 800;
 		letter-spacing: -0.03em;
-		color: #ffffff;
+		color: var(--text-primary);
 	}
 	.hero-desc {
 		margin: 0;
@@ -1236,7 +1285,7 @@
 		font-size: 1.5rem;
 		font-weight: 800;
 		letter-spacing: -0.03em;
-		color: #ffffff;
+		color: var(--text-primary);
 	}
 	.metric-value-row .den {
 		font-size: 0.76rem;
@@ -1314,7 +1363,7 @@
 		font-size: 1.05rem;
 		font-weight: 800;
 		letter-spacing: -0.02em;
-		color: #ffffff;
+		color: var(--text-primary);
 	}
 	.deck-subtitle {
 		display: block;
@@ -1437,7 +1486,7 @@
 		margin: 0;
 		font-size: 0.92rem;
 		font-weight: 750;
-		color: #ffffff;
+		color: var(--text-primary);
 	}
 	.empty-desc {
 		margin: 0.25rem 0 0;
@@ -1486,7 +1535,7 @@
 		margin: 0;
 		font-size: 0.84rem;
 		font-weight: 700;
-		color: #ffffff;
+		color: var(--text-primary);
 	}
 	.ch-deadline {
 		margin: 0.25rem 0 0;
@@ -1501,7 +1550,7 @@
 	}
 	.ch-numbers {
 		font-size: 0.78rem;
-		color: #ffffff;
+		color: var(--text-primary);
 	}
 	.ch-numbers .tot { color: var(--text-secondary, #a3a3a3); font-size: 0.7rem; }
 	.progress-bar-track {
@@ -1578,7 +1627,7 @@
 		font-size: 1.1rem;
 		font-weight: 800;
 		letter-spacing: -0.02em;
-		color: #ffffff;
+		color: var(--text-primary);
 	}
 	.exam-date {
 		margin: 0.15rem 0 0;
@@ -1662,7 +1711,7 @@
 		font-weight: 900;
 		line-height: 1;
 		letter-spacing: -0.04em;
-		color: #ffffff;
+		color: var(--text-primary);
 	}
 	.time-label {
 		font-size: 0.58rem;
@@ -1696,7 +1745,7 @@
 		font-size: 9rem;
 		line-height: 1;
 		opacity: 0.04;
-		color: #ffffff;
+		color: var(--text-primary);
 		pointer-events: none;
 		user-select: none;
 	}
@@ -1719,7 +1768,7 @@
 		font-size: 1.05rem;
 		font-weight: 400;
 		line-height: 1.6;
-		color: #e5e5e5;
+		color: var(--text-primary);
 	}
 	.quote-attribution {
 		display: flex;
@@ -1732,7 +1781,7 @@
 		margin: 0;
 		font-size: 0.78rem;
 		font-weight: 750;
-		color: #ffffff;
+		color: var(--text-primary);
 	}
 	.author-sub {
 		margin: 0;
@@ -1803,6 +1852,49 @@
 
 	/* ========================================================================= */
 	/* Mode mobile class overrides (when simulated via preview) */
+	.mode-mobile .mobile-focus-nav {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 0.35rem;
+		padding: 0.3rem;
+		background: var(--vision-glass-bg, var(--surface-panel));
+		backdrop-filter: var(--vision-glass-blur, blur(16px));
+		-webkit-backdrop-filter: var(--vision-glass-blur, blur(16px));
+		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
+		border-radius: 12px;
+	}
+	.mode-mobile .mobile-tab-btn {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.35rem;
+		padding: 0.55rem 0.3rem;
+		border-radius: 8px;
+		border: none;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 0.72rem;
+		font-weight: 700;
+		cursor: pointer;
+		transition: all 0.16s ease;
+	}
+	.mode-mobile .mobile-tab-btn.active {
+		background: var(--surface-canvas);
+		color: var(--accent);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+	}
+	.mode-mobile.mobile-tab-timer :global(.action-deck-card),
+	.mode-mobile.mobile-tab-timer .side-column {
+		display: none !important;
+	}
+	.mode-mobile.mobile-tab-deck :global(.hero-timer-card),
+	.mode-mobile.mobile-tab-deck .side-column {
+		display: none !important;
+	}
+	.mode-mobile.mobile-tab-support .main-column {
+		display: none !important;
+	}
+
 	.mode-mobile .top-telemetry-bar {
 		flex-direction: column;
 		align-items: flex-start;
@@ -1906,6 +1998,51 @@
 		.focus-command-view {
 			gap: 1.15rem;
 		}
+		.mobile-focus-nav {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 0.35rem;
+			padding: 0.3rem;
+			background: var(--vision-glass-bg, var(--surface-panel));
+			backdrop-filter: var(--vision-glass-blur, blur(16px));
+			-webkit-backdrop-filter: var(--vision-glass-blur, blur(16px));
+			border: 1px solid var(--vision-bevel-border, var(--border-subtle));
+			border-radius: 12px;
+		}
+		.mobile-tab-btn {
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			gap: 0.35rem;
+			padding: 0.55rem 0.3rem;
+			border-radius: 8px;
+			border: none;
+			background: transparent;
+			color: var(--text-secondary);
+			font-size: 0.72rem;
+			font-weight: 700;
+			cursor: pointer;
+			transition: all 0.16s ease;
+		}
+		.mobile-tab-btn.active {
+			background: var(--surface-canvas);
+			color: var(--accent);
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+		}
+
+		/* Mobile tab filtering */
+		.focus-command-view.mobile-tab-timer :global(.action-deck-card),
+		.focus-command-view.mobile-tab-timer .side-column {
+			display: none !important;
+		}
+		.focus-command-view.mobile-tab-deck :global(.hero-timer-card),
+		.focus-command-view.mobile-tab-deck .side-column {
+			display: none !important;
+		}
+		.focus-command-view.mobile-tab-support .main-column {
+			display: none !important;
+		}
+
 		.top-telemetry-bar {
 			flex-direction: column;
 			align-items: flex-start;

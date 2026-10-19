@@ -144,5 +144,5 @@ export const createInitialTrackerState = (): TrackerState => ({
 	settings: { focusPet: 'orb' },
 	streakFreezes: { available: 2, usedDates: [] },
 	onboarded: false,
-	theme: 'dark', pom: { ...DEFAULT_POMODORO }, ui: createUiPreferences(), savedAt: null
+	theme: 'light', pom: { ...DEFAULT_POMODORO }, ui: createUiPreferences(), savedAt: null
 });

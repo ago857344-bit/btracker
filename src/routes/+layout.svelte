@@ -26,13 +26,17 @@
 	import FeynmanDuckModal from '$lib/components/feynman/FeynmanDuckModal.svelte';
 	import { hydrateTracker } from '$lib/services/hydrate';
 	import { startSync } from '$lib/services/sync';
-	import { THEME_PRESETS, isDarkTheme, wallpaperCss, resolveLiveWallpaper, resolveEcoMode, isMobileDevice } from '$lib/state/themes';
+	import { THEME_PRESETS, isDarkTheme, wallpaperCss, resolveLiveWallpaper, resolveEcoMode, isMobileDevice, isBuiltinWallpaper, EXTRA_WALLPAPERS } from '$lib/state/themes';
 	import { authReady, authConfigured, currentUser, hasSkippedLogin, syncStatus } from '$lib/stores/auth';
 	import { saveStatus, tracker, formulaVaultOpen, targetsModalOpen, autoCheckStreakFreeze } from '$lib/stores/tracker';
 	import { loadout } from '$lib/stores/cosmetics';
+	import { globalTimer } from '$lib/stores/timerState';
+	import HotkeyCheatsheetModal from '$lib/components/ui/HotkeyCheatsheetModal.svelte';
+	import { sampleVideoFrame, analyzeWallpaperLuminance } from '$lib/utils/wallpaperContrast';
 
 	let collapsed = false;
 	let mobileOpen = false;
+	let hotkeyModalOpen = false;
 
 	let touchStartX = 0;
 	let touchStartY = 0;
@@ -134,6 +138,25 @@
 		}
 	}
 
+	function resolveEffectiveWallpaper(themeId: string, userWp: string | null | undefined, unauth: boolean): string | null {
+		if (unauth) return null;
+		const preset = THEME_PRESETS.find(t => t.id === themeId);
+		if (!userWp) {
+			return preset?.wallpaper ? ('builtin:' + themeId) : null;
+		}
+		if (isBuiltinWallpaper(userWp)) {
+			const builtinId = userWp.startsWith('builtin:') ? userWp.slice(8) : null;
+			if (builtinId && EXTRA_WALLPAPERS.some(w => w.id === builtinId)) {
+				return userWp;
+			}
+			if (preset?.wallpaper) {
+				return 'builtin:' + themeId;
+			}
+			return null;
+		}
+		return userWp;
+	}
+
 	function applyTheme(state: { theme: string; ui: { accent: string, wallpaper?: string | null } }) {
 		const root = document.documentElement;
 		root.setAttribute('data-theme', state.theme);
@@ -159,15 +182,15 @@
 			root.style.setProperty('--aurora-2', '#69db7c');
 			root.style.setProperty('--aurora-3', '#b197fc');
 		}
-		
-		const themePreset = THEME_PRESETS.find(t => t.id === state.theme);
-		const effectiveWallpaper = state.ui.wallpaper || (themePreset?.wallpaper ? ('builtin:' + state.theme) : null);
+
+		const effectiveWallpaper = resolveEffectiveWallpaper(state.theme, state.ui.wallpaper, isFirstTimeOrUnauth);
 		
 		if (effectiveWallpaper) {
 			root.setAttribute('data-wallpaper', 'true');
 			root.style.setProperty('--user-wallpaper', wallpaperCss(effectiveWallpaper));
 		} else {
 			root.removeAttribute('data-wallpaper');
+			root.removeAttribute('data-live-wallpaper');
 			root.style.removeProperty('--user-wallpaper');
 		}
 
@@ -216,6 +239,15 @@
 		}
 	}
 
+	$: isFirstTimeOrUnauth = isAuthRoute || (!$currentUser && !$hasSkippedLogin);
+	$: effectiveTheme = isFirstTimeOrUnauth ? 'light' : ($tracker.theme || 'light');
+	$: if (browser) {
+		applyTheme({
+			theme: effectiveTheme,
+			ui: $tracker.ui
+		});
+	}
+
 	let isMobile = false;
 	onMount(() => {
 		void hydrateTracker().then(() => {
@@ -225,7 +257,6 @@
 		isMobile = isMobileDevice();
 		const onResize = () => { isMobile = isMobileDevice(); };
 		window.addEventListener('resize', onResize, { passive: true });
-		const stopTheme = tracker.subscribe(applyTheme);
 		const stopFx = loadout.subscribe((l) => document.documentElement.setAttribute('data-fx', l.fx));
 		const unlockVideo = () => {
 			if (bgVideo && bgVideo.paused && activeVideoUrl) {
@@ -240,19 +271,17 @@
 			window.removeEventListener('click', unlockVideo);
 			window.removeEventListener('touchstart', unlockVideo);
 			if (pointerRaf) cancelAnimationFrame(pointerRaf);
-			stopTheme();
 			stopFx();
 		};
 	});
-	$: currentThemePreset = THEME_PRESETS.find(t => t.id === $tracker.theme);
+	$: currentThemePreset = THEME_PRESETS.find(t => t.id === effectiveTheme);
 	$: themeHasVideo = Boolean(currentThemePreset?.wallpaper?.endsWith('.mp4'));
-	$: isExplicitLiveWp = $tracker.ui.liveWallpaper === true;
+	$: isExplicitLiveWp = !isFirstTimeOrUnauth && $tracker.ui.liveWallpaper === true;
 	$: isEcoActive = $tracker.ui.ecoMode === true || ($tracker.ui.ecoMode === undefined && !isExplicitLiveWp && isMobile);
-	$: liveWallpaperEnabled = isExplicitLiveWp || (themeHasVideo && $tracker.ui.liveWallpaper !== false) || (!isEcoActive && resolveLiveWallpaper($tracker.ui.liveWallpaper));
-	$: currentWallpaperStr = $tracker.ui.wallpaper || (currentThemePreset?.wallpaper ? ('builtin:' + currentThemePreset.id) : null);
+	$: currentWallpaperStr = resolveEffectiveWallpaper(effectiveTheme, $tracker.ui.wallpaper, isFirstTimeOrUnauth);
+	$: liveWallpaperEnabled = !isFirstTimeOrUnauth && (isExplicitLiveWp || (themeHasVideo && $tracker.ui.liveWallpaper !== false) || (!isEcoActive && resolveLiveWallpaper($tracker.ui.liveWallpaper)));
 	$: activeVideoUrl = (() => {
-		if (!liveWallpaperEnabled) return null;
-		if (!currentWallpaperStr) return null;
+		if (isFirstTimeOrUnauth || !liveWallpaperEnabled || !currentWallpaperStr) return null;
 		if (currentWallpaperStr.startsWith('data:video')) return currentWallpaperStr;
 		if (currentWallpaperStr.startsWith('builtin:')) {
 			const id = currentWallpaperStr.slice(8);
@@ -268,7 +297,7 @@
 	})();
 
 	$: if (typeof document !== 'undefined') {
-		if (activeVideoUrl) {
+		if (activeVideoUrl && !isFirstTimeOrUnauth) {
 			document.documentElement.setAttribute('data-live-wallpaper', 'true');
 		} else {
 			document.documentElement.removeAttribute('data-live-wallpaper');
@@ -286,6 +315,15 @@
 		bgVideo.play().catch(() => {});
 	}
 
+	$: if (browser && currentWallpaperStr && !activeVideoUrl) {
+		const rawUrl = currentWallpaperStr.startsWith('url(')
+			? currentWallpaperStr.slice(4, -1).replace(/["']/g, '')
+			: currentWallpaperStr;
+		if (rawUrl && !rawUrl.startsWith('builtin:')) {
+			analyzeWallpaperLuminance(rawUrl);
+		}
+	}
+
 	$: showOnboarding = ((!isAuthRoute && $authReady && $syncStatus !== 'pulling' && !!$currentUser && !$tracker.onboarded)) || $targetsModalOpen;
 </script>
 
@@ -300,14 +338,36 @@
 	on:touchstart={handleGlobalPointerDown}
 	on:pointermove={handleGlobalPointerMove}
 	on:keydown={(event) => {
-		if (event.key === 'Escape') mobileOpen = false;
-		if ((event.key === 'f' || event.key === 'F') && !event.ctrlKey && !event.metaKey && !event.altKey) {
-			const target = event.target as HTMLElement | null;
-			const tag = target?.tagName?.toLowerCase();
-			const isEditable = target?.isContentEditable;
-			if (tag !== 'input' && tag !== 'textarea' && tag !== 'select' && !isEditable) {
+		if (event.key === 'Escape') {
+			mobileOpen = false;
+			hotkeyModalOpen = false;
+		}
+		const target = event.target as HTMLElement | null;
+		const tag = target?.tagName?.toLowerCase();
+		const isEditable = target?.isContentEditable || tag === 'input' || tag === 'textarea' || tag === 'select';
+		if (!isEditable && !event.ctrlKey && !event.metaKey && !event.altKey) {
+			if (event.key === '?' || (event.key === '/' && event.shiftKey)) {
+				event.preventDefault();
+				hotkeyModalOpen = !hotkeyModalOpen;
+			} else if (event.key === 'f' || event.key === 'F') {
 				event.preventDefault();
 				formulaVaultOpen.update((v) => !v);
+			} else if (event.key === ' ') {
+				event.preventDefault();
+				$globalTimer.toggle();
+			} else if (event.key === '+' || event.key === '=') {
+				event.preventDefault();
+				$globalTimer.addFive();
+			} else if (event.key === '1') {
+				goto('/');
+			} else if (event.key === '2') {
+				goto('/log');
+			} else if (event.key === '3') {
+				goto('/focus');
+			} else if (event.key === '4') {
+				goto('/todo');
+			} else if (event.key === '5') {
+				goto('/settings');
 			}
 		}
 	}}
@@ -327,13 +387,20 @@
 			preload="auto"
 			class="live-wallpaper-bg"
 			on:loadedmetadata={(e) => { e.currentTarget.muted = true; e.currentTarget.play().catch(() => {}); }}
-			on:loadeddata={(e) => { e.currentTarget.muted = true; e.currentTarget.play().catch(() => {}); }}
+			on:loadeddata={(e) => {
+				e.currentTarget.muted = true;
+				e.currentTarget.play().catch(() => {});
+				sampleVideoFrame(e.currentTarget);
+			}}
 			on:canplay={(e) => { e.currentTarget.muted = true; e.currentTarget.play().catch(() => {}); }}
 		>
 			<source src={activeVideoUrl} type="video/mp4" />
 		</video>
 	{/if}
-	{@const themeIsCustom = THEME_PRESETS.find(t => t.id === $tracker.theme)?.unlock != null}
+	{#if activeVideoUrl || currentWallpaperStr}
+		<div class="wallpaper-adaptive-scrim" aria-hidden="true"></div>
+	{/if}
+	{@const themeIsCustom = THEME_PRESETS.find(t => t.id === effectiveTheme)?.unlock != null}
 	<div class:sidebar-collapsed={collapsed} class:aurora-on={$loadout.aurora || themeIsCustom} class="app-shell">
 		{#if ($loadout.aurora || themeIsCustom) && !activeVideoUrl}<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>{/if}
 		{#if mobileOpen}<div class="scrim" role="button" tabindex="-1" on:click={() => (mobileOpen = false)} on:keydown={(e) => e.key === 'Escape' && (mobileOpen = false)} aria-label="Close navigation"></div>{/if}
@@ -376,6 +443,7 @@
 
 		<CommandPalette />
 		<FeynmanDuckModal />
+		<HotkeyCheatsheetModal bind:open={hotkeyModalOpen} />
 		{#if showOnboarding}
 			<Onboarding />
 		{/if}
@@ -610,5 +678,16 @@
 
 .live-wallpaper-bg { position: fixed; inset: 0; width: 100vw; height: 100vh; object-fit: cover; z-index: 0; pointer-events: none; opacity: 0.95; -webkit-transform: translateZ(0); transform: translateZ(0); }
 :global(:root[data-theme*="-dark"]) .live-wallpaper-bg { opacity: 0.65; }
+
+.wallpaper-adaptive-scrim {
+	position: fixed;
+	inset: 0;
+	width: 100vw;
+	height: 100vh;
+	z-index: 0;
+	pointer-events: none;
+	background: var(--wallpaper-adaptive-scrim, rgba(0, 0, 0, 0.22));
+	transition: background 0.4s ease;
+}
 </style>
 

@@ -261,7 +261,7 @@ export interface CosmeticLoadout {
 	fx?: string; wallpaper?: string; confetti?: string; timer?: string; frame?: string; title?: string;
 	aurora?: boolean;
 }
-export type DashboardLayout = 'default' | 'minimalist' | 'focus';
+export type DashboardLayout = 'default' | 'minimalist' | 'focus' | 'compact';
 
 export interface UiPreferences { devMode?: boolean; accent: string; widgets: WidgetLayout[]; reducedMotion: boolean; wallpaper?: string | null; wallpaperHistory?: string[]; glassStrength?: number; haptics?: boolean; sounds?: boolean; cosmetics?: CosmeticLoadout; liveWallpaper?: boolean; ecoMode?: boolean; cutoutStyle?: 'auto' | 'island' | 'notch' | 'dot' | 'dock'; dashboardLayout?: DashboardLayout; }
 

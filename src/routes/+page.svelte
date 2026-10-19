@@ -20,9 +20,14 @@
 	import TargetsModal from '$lib/components/TargetsModal.svelte';
 	import MinimalistLayout from '$lib/components/dashboard/MinimalistLayout.svelte';
 	import FocusLayout from '$lib/components/dashboard/FocusLayout.svelte';
+	import CompactLayout from '$lib/components/dashboard/CompactLayout.svelte';
 	import { tracker, updateTracker, dashboardWidgets, updateWidget, reorderWidget, cycleWidgetSpan, customizingHome, formulaVaultOpen } from '$lib/stores/tracker';
 	import { DEFAULT_WIDGETS } from '$lib/state/defaults';
 	import type { WidgetLayout } from '$lib/types/tracker';
+
+	let mobileFilter: 'all' | 'priority' | 'analytics' = 'all';
+	const PRIORITY_WIDGETS = new Set(['daily-progress', 'up-next', 'due-homework', 'quote', 'brain-dump']);
+	const ANALYTICS_WIDGETS = new Set(['subjects', 'weekly-standing', 'activity', 'yearly-heatmap', 'standing', 'new-target']);
 
 	const registry: Record<WidgetLayout['id'], { title: string; eyebrow: string; icon: ComponentProps<NavIcon>['name']; comp: any }> = {
 		'daily-progress': { title: 'Daily progress', eyebrow: 'Today', icon: 'focus', comp: DailyProgressWidget },
@@ -57,7 +62,13 @@
 		.filter(w => !!registry[w.id])
 		.sort((a, b) => a.order - b.order);
 	$: hiddenCount = $tracker.ui.widgets.filter((w) => !w.enabled).length;
-	
+
+	$: filteredVisible = visible.filter((w) => {
+		if ($customizingHome || mobileFilter === 'all') return true;
+		if (mobileFilter === 'priority') return PRIORITY_WIDGETS.has(w.id);
+		if (mobileFilter === 'analytics') return ANALYTICS_WIDGETS.has(w.id);
+		return true;
+	});
 
 	$: dashboardLayout = $tracker.ui?.dashboardLayout || 'default';
 	$: name = $tracker.meta.name.trim();
@@ -92,6 +103,8 @@
 		<MinimalistLayout />
 	{:else if dashboardLayout === 'focus'}
 		<FocusLayout />
+	{:else if dashboardLayout === 'compact'}
+		<CompactLayout />
 	{:else}
 		{#if $customizingHome}
 			<div class="customize-banner" in:fly={{ y: -6, duration: 200 }}>
@@ -115,8 +128,43 @@
 			</div>
 		{/if}
 
+		{#if !$customizingHome}
+			<div class="mobile-cat-filter" role="tablist" aria-label="Filter widgets by category">
+				<button
+					type="button"
+					class="filter-chip"
+					class:active={mobileFilter === 'all'}
+					on:click={() => (mobileFilter = 'all')}
+					role="tab"
+					aria-selected={mobileFilter === 'all'}
+				>
+					All ({visible.length})
+				</button>
+				<button
+					type="button"
+					class="filter-chip"
+					class:active={mobileFilter === 'priority'}
+					on:click={() => (mobileFilter = 'priority')}
+					role="tab"
+					aria-selected={mobileFilter === 'priority'}
+				>
+					Priorities
+				</button>
+				<button
+					type="button"
+					class="filter-chip"
+					class:active={mobileFilter === 'analytics'}
+					on:click={() => (mobileFilter = 'analytics')}
+					role="tab"
+					aria-selected={mobileFilter === 'analytics'}
+				>
+					Analytics
+				</button>
+			</div>
+		{/if}
+
 		<div class="grid">
-			{#each visible as widget (widget.id)}
+			{#each filteredVisible as widget (widget.id)}
 				<div class="cell" class:span-2={widget.span === 2} class:span-3={widget.span === 3} animate:flip={{ duration: 260 }}>
 					<WidgetShell
 						title={registry[widget.id].title}
@@ -213,6 +261,10 @@
 	.cell.span-3 { grid-column: span 3; }
 	.cell :global(.widget) { flex: 1; }
 	
+	.mobile-cat-filter {
+		display: none;
+	}
+
 	@media (max-width: 1100px) { 
 		.grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } 
 		.cell.span-3 { grid-column: span 2; } 
@@ -221,6 +273,38 @@
 		.home { gap: 1.15rem; }
 		.hero { gap: 0.85rem; }
 		h1 { font-size: clamp(1.45rem, 5.5vw, 1.85rem); line-height: 1.22; word-break: break-word; }
+		.mobile-cat-filter {
+			display: grid;
+			grid-template-columns: repeat(3, minmax(0, 1fr));
+			gap: 0.35rem;
+			padding: 0.3rem;
+			background: var(--vision-glass-bg, var(--surface-panel));
+			backdrop-filter: var(--vision-glass-blur, blur(16px));
+			-webkit-backdrop-filter: var(--vision-glass-blur, blur(16px));
+			border: 1px solid var(--vision-bevel-border, var(--border-subtle));
+			border-radius: 12px;
+			margin-bottom: 0.2rem;
+		}
+		.filter-chip {
+			border: none;
+			background: transparent;
+			padding: 0.52rem 0.35rem;
+			border-radius: 8px;
+			font-size: 0.72rem;
+			font-weight: 700;
+			color: var(--text-secondary);
+			cursor: pointer;
+			text-align: center;
+			white-space: nowrap;
+			overflow: hidden;
+			text-overflow: ellipsis;
+			transition: all 0.16s ease;
+		}
+		.filter-chip.active {
+			background: var(--surface-canvas);
+			color: var(--accent);
+			box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+		}
 		.grid { grid-template-columns: minmax(0, 1fr); gap: 0.95rem; } 
 		.cell.span-2, .cell.span-3 { grid-column: span 1 !important; } 
 		.hero-tools { width: 100%; justify-content: space-between; } 

@@ -258,6 +258,23 @@
 			0 12px 32px -4px rgba(44, 37, 92, 0.12),
 			inset 0 1px 0 rgba(255, 255, 255, 0.95);
 	}
+	:global(:root[data-theme='light']) .brand-mark,
+	:global(:root[data-theme='notion']) .brand-mark,
+	:global(:root[data-theme='duolingo']) .brand-mark,
+	:global(:root[data-theme='anki']) .brand-mark,
+	:global(:root[data-theme='master']) .brand-mark {
+		background: #181628 !important;
+		color: #ffffff !important;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+	}
+	:global(:root[data-theme='light']) aside,
+	:global(:root[data-theme='notion']) aside,
+	:global(:root[data-theme='duolingo']) aside,
+	:global(:root[data-theme='anki']) aside,
+	:global(:root[data-theme='master']) aside {
+		border-right: 1px solid var(--border-subtle);
+		box-shadow: 4px 0 24px -4px rgba(44, 37, 92, 0.06);
+	}
 	.profile-copy { display: grid; gap: .1rem; min-width: 0; flex: 1; font-size: .77rem; }
 	.user-level-row { display: flex; align-items: center; gap: .35rem; min-width: 0; }
 	.user-level-row b { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

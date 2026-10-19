@@ -1,14 +1,18 @@
 <script lang="ts">
 	import NavIcon from '$lib/components/NavIcon.svelte';
-	import { uiClick } from '$lib/utils/feedback';
+	import { uiClick, uiPop } from '$lib/utils/feedback';
+	import { fly } from 'svelte/transition';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import ReasonsModal from '$lib/components/log/ReasonsModal.svelte';
 	import {
 		applyQuestionAction, bulkExercise, setQuestionCount, setQuestionNote, setQuestionReasons, setQuestionResult,
-		setQuestionStars, toggleQuestionDone, toggleQuestionFlag, tracker, type QuestionAction, type QuestionLoc
+		setQuestionStars, toggleQuestionDone, toggleQuestionFlag, tracker, updateTracker, celebration,
+		type QuestionAction, type QuestionLoc
 	} from '$lib/stores/tracker';
 	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
-	import { cellKey, questionCount, questionKey } from '$lib/state/syllabus';
+	import { cellKey, questionCount, questionKey, syllabusChapter } from '$lib/state/syllabus';
+	import { subjectName } from '$lib/state/subjects';
+	import type { Flashcard, MistakeLog } from '$lib/types/tracker';
 	import { accuracyOf, exerciseStats, isDone, isFlag, parseRange, pctOf, resultOf, starsOf } from '$lib/state/questions';
 
 	export let loc: QuestionLoc;
@@ -61,6 +65,92 @@
 	})();
 
 	const reasonsOf = (i: number) => $tracker.r[questionKey(loc.sc, loc.ch, loc.ex, i)]?.t ?? [];
+
+	function determineErrorType(reasons: string[]): MistakeLog['errorType'] {
+		const lower = reasons.join(' ').toLowerCase();
+		if (lower.includes('calc') || lower.includes('silly')) return 'Silly';
+		if (lower.includes('form') || lower.includes('theo') || lower.includes('meth')) return 'Formula';
+		if (lower.includes('time')) return 'Time';
+		return 'Conceptual';
+	}
+
+	$: syncedCardFronts = new Set(($tracker.flashcards || []).map((c) => c.front));
+
+	function isSynced(i: number): boolean {
+		const chObj = syllabusChapter(loc.sc, loc.ch);
+		const chName = chObj?.name ?? `Chapter ${loc.ch}`;
+		const front = `${chName} · ${exName} (Q${i + 1})`;
+		return syncedCardFronts.has(front);
+	}
+
+	function syncMistakes(indices?: number[]) {
+		const targetIndices = indices ?? order.filter((i) => {
+			const v = cells[i] || 0;
+			const r = resultOf(v);
+			return r === 2 || r === 3;
+		});
+
+		if (!targetIndices.length) return;
+
+		const chObj = syllabusChapter(loc.sc, loc.ch);
+		const chName = chObj?.name ?? `Chapter ${loc.ch}`;
+		const subName = subjectName(loc.sc);
+
+		let addedCards = 0;
+		let addedMistakes = 0;
+
+		updateTracker((t) => {
+			if (!t.flashcards) t.flashcards = [];
+			if (!t.mistakes) t.mistakes = [];
+
+			for (const i of targetIndices) {
+				const v = cells[i] || 0;
+				const r = resultOf(v);
+				const qk = questionKey(loc.sc, loc.ch, loc.ex, i);
+				const note = t.n?.[qk] ?? '';
+				const reasons = t.r?.[qk]?.t ?? [];
+				const front = `${chName} · ${exName} (Q${i + 1})`;
+				const testName = `${chName} · ${exName}`;
+				const desc = `Q${i + 1}: ${note || (r === 3 ? 'Stuck / Could not solve' : 'Wrong answer')} ${reasons.length ? `[${reasons.join(', ')}]` : ''}`;
+
+				if (!t.flashcards.some((c) => c.front === front)) {
+					const reasonText = reasons.length ? reasons.join(', ') : (r === 3 ? 'Stuck question' : 'Incorrect attempt');
+					const back = `${reasonText} in ${chName} (${exName}).\n${note ? `Note: ${note}\n` : ''}Key focus: Re-derive core formulas, note boundary conditions, and fix mistake trap.`;
+					t.flashcards.push({
+						id: crypto.randomUUID(),
+						front,
+						back,
+						subject: subName,
+						chapter: chName,
+						interval: 1,
+						repetition: 0,
+						efactor: 2.5,
+						nextReviewAt: Date.now()
+					});
+					addedCards++;
+				}
+
+				if (!t.mistakes.some((m) => m.testName === testName && m.description.startsWith(`Q${i + 1}:`))) {
+					t.mistakes.push({
+						id: crypto.randomUUID(),
+						date: Date.now(),
+						subject: subName,
+						errorType: determineErrorType(reasons),
+						description: desc,
+						testName
+					});
+					addedMistakes++;
+				}
+			}
+		});
+
+		uiPop();
+		if (addedCards > 0 || addedMistakes > 0) {
+			celebration.set(`Synced ${targetIndices.length} question(s) to Flashcards & Mistake Vault! 🎯`);
+		} else {
+			celebration.set(`Selected questions are already synced to Flashcards & Vault! ✨`);
+		}
+	}
 
 	$: allSelected = order.length > 0 && order.every((i) => sel.has(i));
 
@@ -212,6 +302,22 @@
 	</div>
 </div>
 
+{#if stats.wrong + stats.cant > 0}
+	<div class="mistake-sync-banner" transition:fly={{ y: -6, duration: 200 }}>
+		<div class="ms-left">
+			<div class="ms-badge"><NavIcon name="bolt" size={15} /></div>
+			<div class="ms-text">
+				<span class="ms-title"><b>{stats.wrong + stats.cant}</b> Questions Need Spaced Recall</span>
+				<span class="ms-sub">1-Click pipeline into Mistake Book & Active Recall Flashcards</span>
+			</div>
+		</div>
+		<button type="button" class="sync-banner-btn" on:click={() => syncMistakes()}>
+			<NavIcon name="layers" size={13} />
+			<span>Sync to Deck & Vault</span>
+		</button>
+	</div>
+{/if}
+
 <div class="toolbar">
 	<label class="field">Show
 		<select bind:value={status} on:change={() => clearSel()}>
@@ -311,6 +417,18 @@
 			<span class="c-marks">
 				<button type="button" class="flag" class:on={isFlag(v)} aria-pressed={isFlag(v)} on:click={() => toggleQuestionFlag(loc, i)}>RETRY</button>
 				<button type="button" class="stuck" class:on={r === 3} aria-pressed={r === 3} title="Could not solve" on:click={() => setQuestionResult(loc, i, 3)}>STUCK</button>
+				{#if r === 2 || r === 3}
+					<button
+						type="button"
+						class="sync-pill"
+						class:synced={isSynced(i)}
+						title={isSynced(i) ? 'Already saved in Flashcards & Mistake Vault' : 'Sync to Flashcards & Mistake Vault'}
+						on:click|stopPropagation={() => syncMistakes([i])}
+					>
+						<NavIcon name={isSynced(i) ? 'check' : 'layers'} size={11} />
+						<span>{isSynced(i) ? 'SYNCED' : '+DECK'}</span>
+					</button>
+				{/if}
 			</span>
 			<span class="c-stars">
 				{#each [1, 2, 3] as k}
@@ -332,6 +450,7 @@
 		<button type="button" class="tbtn" on:click={() => selectionAction('wrong')}>Wrong</button>
 		<button type="button" class="tbtn" on:click={() => selectionAction('cant')}>Stuck</button>
 		<button type="button" class="tbtn" on:click={() => selectionAction('flag')}>Review</button>
+		<button type="button" class="tbtn" on:click={() => { syncMistakes([...sel]); clearSel(); }}>+ Vault & Deck</button>
 		<button type="button" class="tbtn" on:click={() => selectionAction('clear')}>Clear</button>
 		<button type="button" class="tbtn ghost" on:click={clearSel}>Cancel</button>
 	</div>
@@ -396,9 +515,89 @@
 	.apply { height: 34px; padding: 0 .9rem; border: 0; border-radius: 10px; background: var(--accent); color: white; font-size: .78rem; font-weight: 750; }
 	.msg { font-size: .74rem; font-weight: 650; color: var(--danger); }
 	.msg.ok { color: var(--success); }
+	.mistake-sync-banner {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.8rem;
+		padding: 0.7rem 1rem;
+		margin-bottom: 0.85rem;
+		border-radius: 14px;
+		background: color-mix(in srgb, var(--surface-panel) 82%, var(--accent) 7%);
+		border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border-subtle));
+		box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.12);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+	}
+	.ms-left { display: flex; align-items: center; gap: 0.75rem; }
+	.ms-badge {
+		display: grid;
+		place-items: center;
+		width: 32px;
+		height: 32px;
+		border-radius: 9px;
+		background: var(--accent);
+		color: #ffffff;
+		flex-shrink: 0;
+		box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 40%, transparent);
+	}
+	.ms-text { display: flex; flex-direction: column; gap: 0.1rem; }
+	.ms-title { font-size: 0.82rem; color: var(--text-primary); }
+	.ms-title b { color: var(--accent); }
+	.ms-sub { font-size: 0.72rem; color: var(--text-secondary); }
+	.sync-banner-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		height: 32px;
+		padding: 0 0.85rem;
+		border-radius: 9px;
+		border: 1px solid var(--accent);
+		background: var(--accent);
+		color: #ffffff;
+		font-size: 0.75rem;
+		font-weight: 750;
+		cursor: pointer;
+		white-space: nowrap;
+		transition: all 0.15s ease;
+		box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent);
+	}
+	.sync-banner-btn:hover {
+		transform: translateY(-1px);
+		filter: brightness(1.1);
+	}
+	.sync-banner-btn:active {
+		transform: translateY(0);
+	}
+	.sync-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		height: 24px;
+		padding: 0 0.45rem;
+		border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border-subtle));
+		border-radius: 8px;
+		background: color-mix(in srgb, var(--accent) 8%, var(--surface-subtle));
+		color: var(--accent);
+		font-size: 0.62rem;
+		font-weight: 800;
+		letter-spacing: 0.04em;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		white-space: nowrap;
+	}
+	.sync-pill:hover {
+		background: var(--accent);
+		color: #ffffff;
+	}
+	.sync-pill.synced {
+		border-color: var(--success);
+		background: color-mix(in srgb, var(--success) 12%, var(--surface-subtle));
+		color: var(--success);
+	}
 	.sheet { border: 1px solid var(--border-subtle); border-radius: 16px; overflow: hidden; background: var(--surface-panel); }
 	.sheet.dragging { user-select: none; }
-	.qrow { display: grid; grid-template-columns: 64px 54px 118px 1fr 132px 84px; align-items: center; gap: .4rem; padding: .38rem .7rem; border-top: 1px solid color-mix(in srgb, var(--border-subtle), transparent 45%); }
+	.qrow { display: grid; grid-template-columns: 64px 54px 118px 1fr auto 84px; align-items: center; gap: .4rem; padding: .38rem .7rem; border-top: 1px solid color-mix(in srgb, var(--border-subtle), transparent 45%); }
 	.qrow.head { border-top: 0; background: var(--surface-subtle); color: var(--text-secondary); font-size: .66rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 	.qrow:not(.head):hover { background: var(--surface-subtle); }
 	.qrow.sel { background: var(--accent-soft); }
@@ -418,8 +617,8 @@
 	.why { height: 22px; padding: 0 .45rem; border: 1px solid var(--danger); border-radius: 99px; background: transparent; color: var(--danger); font-size: .6rem; font-weight: 800; letter-spacing: .04em; }
 	.c-note input { width: 100%; height: 30px; padding: 0 .55rem; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--text-primary); font-size: .8rem; }
 	.c-note input:hover, .c-note input:focus { border-color: var(--border-subtle); background: var(--surface-panel); outline: none; }
-	.c-marks { display: flex; gap: .3rem; }
-	.flag, .stuck { height: 24px; padding: 0 .5rem; border: 1px solid var(--border-subtle); border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: .62rem; font-weight: 800; letter-spacing: .05em; }
+	.c-marks { display: flex; align-items: center; gap: .3rem; flex-wrap: nowrap; }
+	.flag, .stuck { height: 24px; padding: 0 .5rem; border: 1px solid var(--border-subtle); border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: .62rem; font-weight: 800; letter-spacing: .05em; white-space: nowrap; }
 	.flag.on { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 	.stuck.on { border-color: var(--warning); background: color-mix(in srgb, var(--warning), transparent 84%); color: var(--warning); }
 	.c-stars { display: flex; gap: .1rem; }
@@ -433,15 +632,20 @@
 	.ghostbtn { height: 36px; padding: 0 .9rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: .8rem; font-weight: 700; }
 	.dangerbtn { height: 36px; padding: 0 1rem; border: 0; border-radius: 10px; background: var(--danger); color: white; font-size: .8rem; font-weight: 750; }
 	@media (max-width: 860px) {
-		.qrow { grid-template-columns: 42px 36px 80px 1fr 84px 72px; padding-inline: .35rem; gap: .25rem; }
+		.qrow { grid-template-columns: 42px 36px 80px 1fr auto 72px; padding-inline: .35rem; gap: .25rem; }
 		.c-note { display: none; }
 		.qrow.head span:nth-child(4) { display: none; }
 	}
+	@media (max-width: 580px) {
+		.mistake-sync-banner { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+		.sync-banner-btn { width: 100%; justify-content: center; }
+	}
 	@media (max-width: 480px) {
-		.qrow { grid-template-columns: 36px 32px 72px 1fr 70px; padding-inline: .25rem; gap: .2rem; }
+		.qrow { grid-template-columns: 36px 32px 72px 1fr auto; padding-inline: .25rem; gap: .2rem; }
 		.c-note { display: none; }
 		.c-stars { display: none; }
 		.qrow.head span:nth-child(4) { display: none; }
 		.qrow.head span:nth-child(6) { display: none; }
+		.sync-pill span { display: none; }
 	}
 </style>

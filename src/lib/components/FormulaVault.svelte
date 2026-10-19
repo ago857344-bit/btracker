@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
 	import { fly, fade } from 'svelte/transition';
-	import katex from 'katex';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { JEE_FORMULAS, type FormulaItem } from '$lib/data/formulas';
 	import { uiClick } from '$lib/utils/feedback';
@@ -19,6 +18,19 @@
 	let copiedId: string | null = null;
 	let copyTimeout: ReturnType<typeof setTimeout> | undefined;
 	let collapsedGroups: Record<string, boolean> = {};
+
+	let katexModule: any = null;
+	let renderTick = 0;
+	async function ensureKatex() {
+		if (!katexModule) {
+			const mod = await import('katex');
+			katexModule = mod.default || mod;
+			renderTick++;
+		}
+	}
+	$: if (open && !katexModule) {
+		ensureKatex();
+	}
 
 	$: if (open && $formulaVaultFilter) {
 		const filter = $formulaVaultFilter;
@@ -59,15 +71,18 @@
 		}, 1800);
 	}
 
-	function renderMath(tex: string): string {
-		try {
-			return katex.renderToString(tex, {
-				displayMode: true,
-				throwOnError: false
-			});
-		} catch {
-			return `<code class="math-fallback">${tex}</code>`;
+	function renderMath(tex: string, _tick = 0): string {
+		if (katexModule) {
+			try {
+				return katexModule.renderToString(tex, {
+					displayMode: true,
+					throwOnError: false
+				});
+			} catch {
+				return `<code class="math-fallback">${tex}</code>`;
+			}
 		}
+		return `<code class="math-fallback">${tex}</code>`;
 	}
 
 	$: availableChapters = Array.from(
@@ -359,7 +374,7 @@
 							<h4 class="formula-title">{item.title}</h4>
 
 							<div class="math-render">
-								{@html renderMath(item.latex)}
+								{@html renderMath(item.latex, renderTick)}
 							</div>
 
 							{#if item.description}
@@ -454,7 +469,7 @@
 											<h4 class="formula-title">{item.title}</h4>
 
 											<div class="math-render">
-												{@html renderMath(item.latex)}
+												{@html renderMath(item.latex, renderTick)}
 											</div>
 
 											{#if item.description}

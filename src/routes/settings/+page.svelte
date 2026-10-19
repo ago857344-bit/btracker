@@ -54,6 +54,11 @@
 			id: 'focus',
 			label: 'Focus',
 			desc: '70/30 asymmetric split prioritizing timer & active tasks.'
+		},
+		{
+			id: 'compact',
+			label: 'Pocket Flow',
+			desc: 'Mobile-first glanceable dashboard with segmented tabs, ring KPIs, and thumb-friendly dock.'
 		}
 	];
 
@@ -89,7 +94,7 @@
 	let previewActive = false;
 	let previewTimeLeft = 0;
 	let previewInterval: any;
-	let originalTheme = 'dark';
+	let originalTheme = 'light';
 	let originalAccent = '#6d5dfc';
 
 	function handleThemeClick(t: any) {

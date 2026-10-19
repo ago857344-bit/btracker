@@ -5,6 +5,7 @@
 	import DefaultLayoutPreview from '$lib/components/dashboard/DefaultLayoutPreview.svelte';
 	import MinimalistLayout from '$lib/components/dashboard/MinimalistLayout.svelte';
 	import FocusLayout from '$lib/components/dashboard/FocusLayout.svelte';
+	import CompactLayout from '$lib/components/dashboard/CompactLayout.svelte';
 	import type { DashboardLayout } from '$lib/types/tracker';
 
 	export let open = false;
@@ -32,6 +33,11 @@
 			name: 'Focus Asymmetric Split',
 			badge: 'Deep Work',
 			desc: '70% centerpiece stage for active focus session, with mission support docked in a 30% side rail.'
+		},
+		compact: {
+			name: 'Pocket Flow (Mobile First)',
+			badge: 'Mobile Native',
+			desc: 'Glanceable KPI rings, segmented tabs, thumb-reachable action dock, and zero wasted vertical space.'
 		}
 	};
 
@@ -140,6 +146,8 @@
 							<MinimalistLayout {deviceMode} />
 						{:else if layout === 'focus'}
 							<FocusLayout {deviceMode} />
+						{:else if layout === 'compact'}
+							<CompactLayout {deviceMode} />
 						{/if}
 					</div>
 				</div>
