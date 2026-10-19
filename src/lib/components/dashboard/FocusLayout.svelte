@@ -212,7 +212,7 @@
 		<!-- ========================================================= -->
 		<div class="main-column">
 			<!-- HERO COMMAND CENTER CARD -->
-			<section class="bento-card hero-timer-card">
+			<section class="bento-card hero-timer-card specular-card">
 				<!-- Ambient Glow Flares -->
 				<div class="ambient-flare top-left"></div>
 				<div class="ambient-flare bottom-right"></div>
@@ -423,7 +423,7 @@
 			</section>
 
 			<!-- UNIFIED ACTION LIST: MISSIONS VS CHAPTERS -->
-			<section class="bento-card action-deck-card">
+			<section class="bento-card action-deck-card specular-card">
 				<!-- Header with Segmented Control Switch -->
 				<div class="deck-header">
 					<div>
@@ -535,7 +535,7 @@
 		<!-- ========================================================= -->
 		<div class="side-column">
 			<!-- TARGET COUNTDOWN: FLIP-CLOCK PILL ARCHITECTURE -->
-			<section class="bento-card countdown-card">
+			<section class="bento-card countdown-card specular-card">
 				<div class="card-head-row">
 					<span class="eyebrow-tag flex-inline">
 						<NavIcon name="target" size={13} />
@@ -630,7 +630,7 @@
 			</section>
 
 			<!-- MOTIVATION QUOTE: SERIF CONTRAST & GIANT WATERMARK -->
-			<section class="bento-card quote-card">
+			<section class="bento-card quote-card specular-card">
 				<!-- Giant Low-Opacity Watermark Quote Symbol -->
 				<span class="giant-watermark font-serif" aria-hidden="true">“</span>
 
@@ -665,7 +665,7 @@
 			</section>
 
 			<!-- QUICK SUBJECT HUBS STRIP -->
-			<section class="bento-card subject-strip-card">
+			<section class="bento-card subject-strip-card specular-card">
 				<div class="card-head-row">
 					<span class="eyebrow-tag flex-inline">
 						<NavIcon name="layers" size={13} />
@@ -822,18 +822,19 @@
 	.bento-card {
 		position: relative;
 		border-radius: 1rem; /* rounded-2xl */
-		border: 1px solid var(--border-subtle);
-		background: var(--surface-panel);
-		backdrop-filter: var(--glass-filter);
-		-webkit-backdrop-filter: var(--glass-filter);
+		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
+		background: var(--vision-glass-bg, var(--surface-panel));
+		backdrop-filter: var(--vision-glass-blur, blur(20px));
+		-webkit-backdrop-filter: var(--vision-glass-blur, blur(20px));
+		box-shadow: var(--shadow-card), var(--vision-bevel-inner);
 		padding: 1.5rem; /* p-6 */
 		overflow: hidden;
 		transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease, border-color 0.25s ease;
 	}
 	.bento-card:hover {
 		transform: translateY(-2px);
-		border-color: var(--accent);
-		box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.44);
+		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 45%);
+		box-shadow: 0 16px 44px -6px rgba(0, 0, 0, 0.38), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.12));
 	}
 
 	/* Mathematical Radius Stepping */
@@ -853,7 +854,7 @@
 		border-radius: 9999px;
 		filter: blur(80px);
 		pointer-events: none;
-		z-index: 0;
+		z-index: 0 !important;
 		opacity: 0.25;
 	}
 	.ambient-flare.top-left { top: -60px; left: -60px; background: var(--accent); }

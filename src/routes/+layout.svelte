@@ -97,7 +97,7 @@
 		pointerRaf = requestAnimationFrame(() => {
 			pointerRaf = null;
 			const target = (e.target as HTMLElement | null)?.closest?.(
-				'.widget, .card, .panel, .sec, .r-card, .chapter-card, .kpi, .day-detail, .your-goals, .auth-card, .specular-card, .idle-stat-card, .question-list, .top-widget-slot, .flat-pane, .heatmap-flat-pane, .hero-timer-card, .mission-card, .rail-card, .subject-card'
+				'.specular-card, .bento-card, .widget, .card, .panel, .sec, .r-card, .chapter-card, .kpi, .day-detail, .your-goals, .auth-card, .idle-stat-card, .question-list, .top-widget-slot, .flat-pane, .heatmap-flat-pane, .hero-timer-card, .mission-card, .rail-card, .subject-card, .kpi-hero-card, .sub-pocket-card, .pocket-exam-card, .cadence-card, .pocket-quote-card'
 			) as HTMLElement | null;
 			if (target) {
 				const rect = target.getBoundingClientRect();

@@ -290,7 +290,7 @@
 	<!-- ========================================================= -->
 	<!-- 1. GLANCEABLE KPI HERO POD (COLLAPSIBLE EXECUTION VIEW)   -->
 	<!-- ========================================================= -->
-	<section class="kpi-hero-card" class:compact-strip={collapsedHero}>
+	<section class="kpi-hero-card specular-card" class:compact-strip={collapsedHero}>
 		{#if !collapsedHero}
 			<div class="ring-column">
 				<div class="progress-ring-wrap" title="{solvedPct}% daily question target completed">
@@ -600,7 +600,7 @@
 				<div class="subject-cards-list">
 					{#each subjectItems as sub (sub.code)}
 						<div
-							class="sub-pocket-card"
+							class="sub-pocket-card specular-card"
 							style="--sub-color: {sub.color}"
 						>
 							<div
@@ -697,7 +697,7 @@
 			<!-- CADENCE & TARGET VIEW -->
 			<div class="tab-panel" in:fade={{ duration: 160 }}>
 				<!-- Exam Countdown Card -->
-				<div class="pocket-exam-card">
+				<div class="pocket-exam-card specular-card">
 					<div class="exam-header">
 						<span class="exam-tag font-mono">TARGET EXAM</span>
 						<span class="exam-name">{$tracker.meta.exam ? 'JEE Target Window' : 'JEE Advanced'}</span>
@@ -709,7 +709,7 @@
 				</div>
 
 				<!-- 14-Day Cadence Heatmap -->
-				<div class="cadence-card">
+				<div class="cadence-card specular-card">
 					<div class="cadence-header">
 						<span class="font-mono">14-DAY STUDY CADENCE</span>
 						<span class="legend-dots">
@@ -753,7 +753,7 @@
 				</div>
 
 				<!-- Rotating Quote -->
-				<div class="pocket-quote-card">
+				<div class="pocket-quote-card specular-card">
 					<p class="quote-text">“{currentQuote.text}”</p>
 					<div class="quote-footer">
 						<span class="quote-author font-mono">— {currentQuote.author}</span>

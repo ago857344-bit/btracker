@@ -135,7 +135,7 @@
 		<!-- ========================================================= -->
 		<!-- UNIFIED SUBJECT HUB: SYLLABUS COVERAGE (Full Width 12-Col) -->
 		<!-- ========================================================= -->
-		<section class="bento-card subject-hub-card">
+		<section class="bento-card subject-hub-card specular-card">
 			<div class="card-head-row">
 				<div>
 					<span class="eyebrow-tag">SYLLABUS COVERAGE</span>
@@ -202,7 +202,7 @@
 		<!-- ========================================================= -->
 		<!-- MIDDLE ROW: 7-DAY VELOCITY SPLINE (7 Cols on Desktop)     -->
 		<!-- ========================================================= -->
-		<section class="bento-card velocity-chart-card">
+		<section class="bento-card velocity-chart-card specular-card">
 			<div class="card-head-row">
 				<div>
 					<span class="eyebrow-tag">WEEKLY VELOCITY</span>
@@ -254,7 +254,7 @@
 		<!-- ========================================================= -->
 		<!-- MIDDLE ROW: VERTICAL TIMELINE AUDIT (5 Cols on Desktop)   -->
 		<!-- ========================================================= -->
-		<section class="bento-card activity-timeline-card">
+		<section class="bento-card activity-timeline-card specular-card">
 			<div class="card-head-row">
 				<div>
 					<span class="eyebrow-tag">AUDIT TRAIL</span>
@@ -341,7 +341,7 @@
 		<!-- ========================================================= -->
 		<!-- 360-DAY CONSISTENCY MATRIX: Bottom Anchor (Full Width)    -->
 		<!-- ========================================================= -->
-		<section class="bento-card heatmap-anchor-card">
+		<section class="bento-card heatmap-anchor-card specular-card">
 			<div class="card-head-row">
 				<div>
 					<span class="eyebrow-tag">ANNUAL CADENCE</span>
@@ -491,18 +491,19 @@
 	.bento-card {
 		position: relative;
 		border-radius: 1rem; /* rounded-2xl */
-		border: 1px solid var(--border-subtle);
-		background: var(--surface-panel);
-		backdrop-filter: var(--glass-filter);
-		-webkit-backdrop-filter: var(--glass-filter);
+		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
+		background: var(--vision-glass-bg, var(--surface-panel));
+		backdrop-filter: var(--vision-glass-blur, blur(20px));
+		-webkit-backdrop-filter: var(--vision-glass-blur, blur(20px));
+		box-shadow: var(--shadow-card), var(--vision-bevel-inner);
 		padding: 1.5rem; /* p-6 */
 		overflow: hidden;
 		transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s ease, border-color 0.25s ease;
 	}
 	.bento-card:hover {
 		transform: translateY(-2px);
-		border-color: var(--accent);
-		box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.44);
+		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 45%);
+		box-shadow: 0 16px 44px -6px rgba(0, 0, 0, 0.38), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.12));
 	}
 
 	/* Mathematical Radius Stepping */

@@ -30,21 +30,25 @@
   --shadow-modal: 0 24px 60px -10px rgb(44 37 92 / 25%), 0 12px 24px rgb(44 37 92 / 15%);
   --shadow-hover: 0 10px 15px -3px rgb(44 37 92 / 6%), 0 24px 50px -8px rgb(44 37 92 / 18%);
 
-  /* Apple VisionOS / Light Acrylic Tokens */
-  --vision-glass-bg: color-mix(in srgb, #ffffff 88%, transparent);
+  /* Apple VisionOS / Adaptive Acrylic Tokens (Adaptive dark glass default) */
+  --vision-glass-bg: color-mix(in srgb, var(--surface-panel, #1a1827) 84%, transparent);
   --vision-glass-blur: blur(24px) saturate(185%);
-  --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
-  --vision-bevel-border: color-mix(in srgb, var(--border-subtle) 85%, rgba(0, 0, 0, 0.06));
-  --vision-specular-sheen: color-mix(in srgb, var(--accent, #6d5dfc) 10%, rgba(255, 255, 255, 0.55));
-  --vision-specular-beam: color-mix(in srgb, var(--accent, #6d5dfc) 40%, rgba(255, 255, 255, 0.75));
+  --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+  --vision-bevel-border: color-mix(in srgb, var(--border-subtle, rgba(255, 255, 255, 0.1)) 80%, rgba(255, 255, 255, 0.08));
+  --vision-specular-sheen: color-mix(in srgb, var(--accent, #6d5dfc) 15%, rgba(255, 255, 255, 0.08));
+  --vision-specular-beam: color-mix(in srgb, var(--accent, #6d5dfc) 75%, rgba(255, 255, 255, 0.45));
 
-  /* Light Acrylic Popup Token */
-  --surface-popup: rgba(255, 255, 255, 0.96);
-  --surface-popup-solid: #ffffff;
-  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08));
+  /* Adaptive Popup Token */
+  --surface-popup: rgba(18, 16, 32, 0.96);
+  --surface-popup-solid: var(--surface-panel, #1a1827);
+  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.12));
 }
 
-:root[data-theme='light'] {
+:root[data-theme='light'],
+:root[data-theme='notion'],
+:root[data-theme='duolingo'],
+:root[data-theme='anki'],
+:root[data-theme='master'] {
   --surface-canvas: #f7f7fb;
   --surface-panel: #ffffff;
   --surface-subtle: #f0eff9;
@@ -58,10 +62,10 @@
 
   /* Apple VisionOS / Light Acrylic Tokens */
   --vision-glass-bg: color-mix(in srgb, #ffffff 88%, transparent);
-  --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 0 0 1px rgba(0, 0, 0, 0.04);
   --vision-bevel-border: color-mix(in srgb, var(--border-subtle) 85%, rgba(0, 0, 0, 0.06));
   --vision-specular-sheen: color-mix(in srgb, var(--accent, #6d5dfc) 10%, rgba(255, 255, 255, 0.55));
-  --vision-specular-beam: color-mix(in srgb, var(--accent, #6d5dfc) 40%, rgba(255, 255, 255, 0.75));
+  --vision-specular-beam: color-mix(in srgb, var(--accent, #6d5dfc) 45%, rgba(255, 255, 255, 0.75));
 
   /* Light Acrylic Popup Token */
   --surface-popup: rgba(255, 255, 255, 0.96);
@@ -352,6 +356,7 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 /* ========================================================================= */
 
 .specular-card,
+.bento-card,
 .widget,
 .panel,
 .sec,
@@ -368,7 +373,12 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 .hero-timer-card,
 .mission-card,
 .rail-card,
-.subject-card {
+.subject-card,
+.kpi-hero-card,
+.sub-pocket-card,
+.pocket-exam-card,
+.cadence-card,
+.pocket-quote-card {
 	position: relative;
 	background: var(--vision-glass-bg);
 	backdrop-filter: var(--vision-glass-blur);
@@ -385,6 +395,7 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 @media (hover: hover) and (pointer: fine) {
 	/* Specular Surface Illumination Beam */
 	.specular-card::before,
+	.bento-card::before,
 	.widget::before,
 	.panel::before,
 	.sec::before,
@@ -401,7 +412,12 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	.hero-timer-card::before,
 	.mission-card::before,
 	.rail-card::before,
-	.subject-card::before {
+	.subject-card::before,
+	.kpi-hero-card::before,
+	.sub-pocket-card::before,
+	.pocket-exam-card::before,
+	.cadence-card::before,
+	.pocket-quote-card::before {
 		content: "";
 		position: absolute;
 		inset: 0;
@@ -419,6 +435,7 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 
 	/* Specular Machined Border Beam (Edge Refraction) */
 	.specular-card::after,
+	.bento-card::after,
 	.widget::after,
 	.panel::after,
 	.sec::after,
@@ -435,7 +452,12 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	.hero-timer-card::after,
 	.mission-card::after,
 	.rail-card::after,
-	.subject-card::after {
+	.subject-card::after,
+	.kpi-hero-card::after,
+	.sub-pocket-card::after,
+	.pocket-exam-card::after,
+	.cadence-card::after,
+	.pocket-quote-card::after {
 		content: "";
 		position: absolute;
 		inset: 0;
@@ -457,6 +479,7 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	}
 
 	.specular-card:hover::before,
+	.bento-card:hover::before,
 	.widget:hover::before,
 	.panel:hover::before,
 	.sec:hover::before,
@@ -473,11 +496,17 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	.hero-timer-card:hover::before,
 	.mission-card:hover::before,
 	.rail-card:hover::before,
-	.subject-card:hover::before {
+	.subject-card:hover::before,
+	.kpi-hero-card:hover::before,
+	.sub-pocket-card:hover::before,
+	.pocket-exam-card:hover::before,
+	.cadence-card:hover::before,
+	.pocket-quote-card:hover::before {
 		opacity: 1;
 	}
 
 	.specular-card:hover::after,
+	.bento-card:hover::after,
 	.widget:hover::after,
 	.panel:hover::after,
 	.sec:hover::after,
@@ -494,12 +523,18 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	.hero-timer-card:hover::after,
 	.mission-card:hover::after,
 	.rail-card:hover::after,
-	.subject-card:hover::after {
+	.subject-card:hover::after,
+	.kpi-hero-card:hover::after,
+	.sub-pocket-card:hover::after,
+	.pocket-exam-card:hover::after,
+	.cadence-card:hover::after,
+	.pocket-quote-card:hover::after {
 		opacity: 1;
 	}
 
 	/* Apple VisionOS spring elevation lift & luminous accent highlight */
 	.specular-card:hover,
+	.bento-card:hover,
 	.widget:hover,
 	.panel:hover,
 	.sec:hover,
@@ -516,7 +551,12 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	.hero-timer-card:hover,
 	.mission-card:hover,
 	.rail-card:hover,
-	.subject-card:hover {
+	.subject-card:hover,
+	.kpi-hero-card:hover,
+	.sub-pocket-card:hover,
+	.pocket-exam-card:hover,
+	.cadence-card:hover,
+	.pocket-quote-card:hover {
 		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 45%);
 		transform: translateY(-2px);
 		box-shadow: 0 16px 44px -6px rgba(0, 0, 0, 0.38), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.12));
@@ -524,6 +564,7 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 
 	/* Tactile iOS press feedback */
 	.specular-card:active,
+	.bento-card:active,
 	.widget:active,
 	.top-widget-slot:active,
 	.flat-pane:active,
@@ -548,11 +589,17 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	.top-widget-slot > *,
 	.flat-pane > *,
 	.heatmap-flat-pane > *,
-	.hero-timer-card > *,
+	.hero-timer-card > :not(.ambient-flare),
 	.mission-card > *,
 	.rail-card > *,
 	.subject-card > *,
-	.specular-card > * {
+	.specular-card > :not(.ambient-flare),
+	.bento-card > :not(.ambient-flare),
+	.kpi-hero-card > *,
+	.sub-pocket-card > *,
+	.pocket-exam-card > *,
+	.cadence-card > *,
+	.pocket-quote-card > * {
 		position: relative;
 		z-index: 3;
 	}
