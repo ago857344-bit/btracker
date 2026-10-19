@@ -6,5 +6,9 @@ export default defineConfig({
 	clearScreen: false,
 	server: { port: 1420, strictPort: true },
 	envPrefix: ['VITE_', 'TAURI_', 'PUBLIC_'],
-	build: { target: process.env.TAURI_ENV_PLATFORM === 'windows' ? 'chrome105' : 'safari13' }
+	build: {
+		target: process.env.TAURI_ENV_PLATFORM
+			? (process.env.TAURI_ENV_PLATFORM === 'windows' ? 'chrome105' : 'safari13')
+			: ['es2022', 'safari16']
+	}
 });
