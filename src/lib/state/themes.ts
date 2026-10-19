@@ -107,6 +107,9 @@ export const isBuiltinWallpaper = (wp: string | null | undefined): boolean => {
 };
 
 /** Named looks modelled on palettes common across popular study platforms. */
+const CDN_BASE = (import.meta.env.PUBLIC_WALLPAPER_CDN_URL ?? '').replace(/\/$/, '');
+const videoWp = (name: string) => (CDN_BASE ? `${CDN_BASE}/${encodeURIComponent(name)}` : `/videos/${name}`);
+
 export const THEME_PRESETS: ThemePreset[] = [
 	{ id: 'light', label: 'Daylight', blurb: 'Clean neutral default', accent: '#6d5dfc', dark: false, confetti: ['#6d5dfc', '#d99a2b', '#ffffff'] },
 	{ id: 'dark', label: 'Midnight', blurb: 'Low-light night study', accent: '#8b7bff', dark: true, confetti: ['#8b7bff', '#6d5dfc', '#ffffff'] },
@@ -119,31 +122,31 @@ export const THEME_PRESETS: ThemePreset[] = [
 	{ id: 'red', label: 'Crimson', blurb: 'High-contrast night red', accent: '#e0455a', dark: true, confetti: ['#e0455a', '#ff8787', '#ffffff'] },
 	{
 		id: 'aurora', label: 'Aurora Borealis', blurb: 'Northern lights over a quiet lake', accent: '#00e5ff', dark: true, fx: 'tide',
-		wallpaper: '/videos/aurora borealis.mp4',
+		wallpaper: videoWp('aurora borealis.mp4'),
 		confetti: ['#00e5ff', '#9b5de5', '#00f5d4', '#ffffff']
 	},
 	{
 		id: 'initiate', label: 'Neon Initiate', blurb: 'Cryo-neon glow for your first climb', accent: '#00e5ff', dark: true,
 		unlock: { kind: 'elo', min: 400 }, fx: 'pulse',
-		wallpaper: '/videos/neon initiate.mp4',
+		wallpaper: videoWp('neon initiate.mp4'),
 		confetti: ['#00e5ff', '#00b8d4', '#8ff8ff', '#ffffff']
 	},
 	{
 		id: 'master', label: 'Sapphire Master', blurb: 'Daylight sky sapphire focus', accent: '#0072c6', dark: false,
 		unlock: { kind: 'elo', min: 1250 }, fx: 'tide',
-		wallpaper: '/videos/sapphire master.mp4',
+		wallpaper: videoWp('sapphire master.mp4'),
 		confetti: ['#4dabf7', '#748ffc', '#a5d8ff', '#ffffff']
 	},
 	{
 		id: 'god-mode', label: 'God Mode', blurb: 'Golden hour, all the time', accent: '#ffd700', dark: true,
 		unlock: { kind: 'elo', min: 1600 }, fx: 'gilded',
-		wallpaper: '/videos/god mode.mp4',
+		wallpaper: videoWp('god mode.mp4'),
 		confetti: ['#ffd700', '#ffb347', '#fff3b0', '#ffffff']
 	},
 	{
 		id: 'catalyst', label: 'Catalyst Lab', blurb: 'Chemistry mastery — reactive lime glow', accent: '#a3e635', dark: true,
 		unlock: { kind: 'subject', sub: 'C', min: 1000 }, fx: 'reaction',
-		wallpaper: '/videos/catalyst lab.mp4',
+		wallpaper: videoWp('catalyst lab.mp4'),
 		confetti: ['#a3e635', '#22c55e', '#facc15', '#ffffff']
 	},
 ];
