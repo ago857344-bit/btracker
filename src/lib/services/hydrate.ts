@@ -156,7 +156,7 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 		streakFreezes: saved.streakFreezes || base.streakFreezes || { available: 2, usedDates: [] },
 		deletedTodos: (() => {
 			const raw = { ...(base.deletedTodos || {}), ...(saved.deletedTodos || {}) };
-			const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+			const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
 			for (const id of Object.keys(raw)) {
 				if (raw[id] < cutoff) delete raw[id];
 			}

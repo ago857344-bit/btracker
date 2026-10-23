@@ -467,9 +467,7 @@
 			}}
 			on:canplay={(e) => { e.currentTarget.muted = true; e.currentTarget.play().catch(() => {}); }}
 			on:ended={(e) => { e.currentTarget.currentTime = 0; e.currentTarget.play().catch(() => {}); }}
-		>
-			<source src={activeVideoUrl} type="video/mp4" />
-		</video>
+		/>
 	{/if}
 	{#if activeVideoUrl || currentWallpaperStr}
 		<div class="wallpaper-adaptive-scrim" aria-hidden="true"></div>

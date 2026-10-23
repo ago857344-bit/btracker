@@ -104,9 +104,9 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		...(base.deletedTodos || {}),
 		...(remote.deletedTodos || {})
 	};
-	const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
+	const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
 	for (const id of Object.keys(mergedDeletedTodos)) {
-		if (mergedDeletedTodos[id] < thirtyDaysAgo) {
+		if (mergedDeletedTodos[id] < ninetyDaysAgo) {
 			delete mergedDeletedTodos[id];
 		}
 	}
