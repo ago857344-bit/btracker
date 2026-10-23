@@ -76,6 +76,7 @@ export async function extractImageText(file: File): Promise<string> {
 	});
 
 	// Try Gemini vision API first
+	let geminiFailed = false;
 	try {
 		const res = await fetch('/api/gemini', {
 			method: 'POST',
@@ -103,27 +104,36 @@ export async function extractImageText(file: File): Promise<string> {
 			if (data.text && data.text.trim().length >= 10) {
 				return data.text;
 			}
+		} else {
+			// API returned error (e.g., invalid key), fall back to Tesseract
+			geminiFailed = true;
+			console.warn('Gemini vision API failed, using Tesseract fallback');
 		}
 	} catch (e) {
-		// Gemini failed, fall through to Tesseract
+		// Network error or other exception, fall back to Tesseract
+		geminiFailed = true;
 		console.warn('Gemini vision failed, falling back to Tesseract.js:', e);
 	}
 
 	// Fallback: Tesseract.js client-side OCR
-	try {
-		const Tesseract = await import('tesseract.js');
-		const worker = await Tesseract.createWorker('eng');
-		const { data: { text } } = await worker.recognize(file);
-		await worker.terminate();
-		
-		if (!text || text.trim().length < 10) {
-			throw new Error('Could not extract readable text from the image. Try a clearer image or use a PDF instead.');
+	if (geminiFailed) {
+		try {
+			const Tesseract = await import('tesseract.js');
+			const worker = await Tesseract.createWorker('eng');
+			const { data: { text } } = await worker.recognize(file);
+			await worker.terminate();
+			
+			if (!text || text.trim().length < 10) {
+				throw new Error('Could not extract readable text from the image. Try a clearer image or use a PDF instead.');
+			}
+			return text;
+		} catch (e) {
+			console.error('Tesseract OCR failed:', e);
+			throw new Error('Could not extract text from image. Try using a PDF instead, or ensure the image is clear and well-lit.');
 		}
-		return text;
-	} catch (e) {
-		console.error('Tesseract OCR failed:', e);
-		throw new Error('Could not extract text from image. Try using a PDF instead, or ensure the image is clear and well-lit.');
 	}
+
+	throw new Error('Could not extract text from image. Try using a PDF instead.');
 }
 
 /** Extracts the plain text of a PDF file (client-side, via pdfjs-dist). */
