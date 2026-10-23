@@ -620,10 +620,10 @@ async function runAiTriage() {
 	{:else}
 		<div class="btest">
 			<label class="drop">
-				<input type="file" accept="application/pdf,.pdf,image/jpeg,.jpg,.jpeg,image/png,.png" hidden on:change={onFile} />
+				<input type="file" accept="application/pdf,.pdf" hidden on:change={onFile} />
 				<NavIcon name="download" size={22} />
-				<b>{busy ? 'Reading file…' : 'Upload syllabus PDF or image'}</b>
-				<small>We extract chapter names and match them to the Log syllabus modules, then add the matches as tasks.</small>
+				<b>{busy ? 'Reading file…' : 'Upload syllabus PDF'}</b>
+				<small>We extract chapter names from text-based PDFs and match them to the Log syllabus modules, then add the matches as tasks.</small>
 			</label>
 
 			{#if error}<p class="err">{error}</p>{/if}

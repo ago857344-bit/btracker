@@ -66,25 +66,9 @@ export function matchChapters(text: string, threshold = 0.72): ChapterMatch[] {
 	return matches;
 }
 
-/** Extracts text from a JPEG or PNG syllabus image using Tesseract.js client-side OCR. */
+/** Extracts text from a JPEG or PNG syllabus image. */
 export async function extractImageText(file: File): Promise<string> {
-	try {
-		const Tesseract = await import('tesseract.js');
-		const worker = await Tesseract.createWorker('eng', 1, {
-			// Load workers from CDN for better Vercel compatibility
-			logger: () => {}
-		});
-		const { data: { text } } = await worker.recognize(file);
-		await worker.terminate();
-		
-		if (!text || text.trim().length < 10) {
-			throw new Error('Could not extract readable text from the image. Try a clearer image or use a PDF instead.');
-		}
-		return text;
-	} catch (e) {
-		console.error('Tesseract OCR failed:', e);
-		throw new Error('Could not extract text from image. Try using a PDF instead, or ensure the image is clear and well-lit.');
-	}
+	throw new Error('Image upload requires a Gemini API key. Please use a text-based PDF instead, or add GEMINI_API_KEY to your environment variables.');
 }
 
 /** Extracts the plain text of a PDF file (client-side, via pdfjs-dist). Falls back to OCR if text is too sparse. */

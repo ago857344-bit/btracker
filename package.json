@@ -34,7 +34,6 @@
     "katex": "^0.18.10",
     "marked": "^18.1.0",
     "marked-katex-extension": "^5.1.13",
-    "pdfjs-dist": "^4.10.38",
-    "tesseract.js": "^7.0.0"
+    "pdfjs-dist": "^4.10.38"
   }
 }
