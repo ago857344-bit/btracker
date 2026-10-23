@@ -619,11 +619,17 @@ async function runAiTriage() {
 		</div>
 	{:else}
 		<div class="btest">
-			<label class="drop">
-				<input type="file" accept="application/pdf,.pdf,image/jpeg,.jpg,.jpeg,image/png,.png" hidden on:change={onFile} />
-				<NavIcon name="download" size={22} />
-				<b>{busy ? 'Reading file…' : 'Upload syllabus PDF or image'}</b>
-				<small>We extract chapter names and match them to the Log syllabus modules, then add the matches as tasks.</small>
+			<label class="drop" class:busy>
+				<input type="file" accept="application/pdf,.pdf,image/jpeg,.jpg,.jpeg,image/png,.png" hidden on:change={onFile} disabled={busy} />
+				{#if busy}
+					<span class="scan-ring"><i></i></span>
+					<b>Reading syllabus…</b>
+					<small class="scan-status">{fileName ? `"${fileName}"` : ''} — scanning text and matching chapters, this can take ~20s on free models</small>
+				{:else}
+					<NavIcon name="download" size={22} />
+					<b>Upload syllabus PDF or image</b>
+					<small>We extract chapter names and match them to the Log syllabus modules, then add the matches as tasks.</small>
+				{/if}
 			</label>
 
 			{#if error}<p class="err">{error}</p>{/if}
@@ -840,8 +846,17 @@ async function runAiTriage() {
 	.btest { display: grid; gap: 1rem; }
 	.drop { display: grid; gap: .35rem; justify-items: center; padding: 2.2rem 1.2rem; border: 1.6px dashed var(--border-subtle); border-radius: 18px; background: var(--surface-panel); color: var(--accent); text-align: center; cursor: pointer; transition: border-color .15s ease; }
 	.drop:hover { border-color: var(--accent); }
+	.drop.busy { cursor: default; border-color: var(--accent); }
 	.drop b { color: var(--text-primary); font-size: .95rem; }
 	.drop small { color: var(--text-secondary); font-size: .74rem; max-width: 460px; line-height: 1.5; }
+
+	.scan-ring { position: relative; width: 44px; height: 44px; }
+	.scan-ring i { position: absolute; inset: 0; border-radius: 50%; border: 3px solid color-mix(in srgb, var(--accent), transparent 75%); }
+	.scan-ring::before { content: ''; position: absolute; inset: 0; border-radius: 50%; border: 3px solid transparent; border-top-color: var(--accent); animation: scan-spin .9s linear infinite; }
+	.scan-ring::after { content: ''; position: absolute; inset: 8px; border-radius: 50%; border: 2px solid transparent; border-bottom-color: color-mix(in srgb, var(--accent), white 30%); animation: scan-spin 1.4s linear infinite reverse; }
+	@keyframes scan-spin { to { transform: rotate(360deg); } }
+	.scan-status { animation: scan-pulse 1.8s ease-in-out infinite; }
+	@keyframes scan-pulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
 	.err { margin: 0; padding: .7rem .9rem; border: 1px solid var(--danger, #e0455a); border-radius: 12px; color: var(--danger, #e0455a); background: color-mix(in srgb, var(--danger, #e0455a), transparent 90%); font-size: .8rem; }
 
 	.result-head { display: flex; align-items: center; justify-content: space-between; gap: .8rem; flex-wrap: wrap; }
