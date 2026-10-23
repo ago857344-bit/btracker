@@ -96,9 +96,15 @@ export async function extractImageText(file: File): Promise<string> {
 		})
 	});
 
-	if (!res.ok) throw new Error('Could not extract text from image.');
+	if (!res.ok) {
+		const errData = await res.json().catch(() => ({}));
+		throw new Error(errData.error || `Image extraction failed with status ${res.status}`);
+	}
 	const data = await res.json();
-	if (data.error || !data.text) throw new Error(data.error ?? 'Empty response from image OCR.');
+	if (data.error) throw new Error(data.error);
+	if (!data.text || data.text.trim().length < 10) {
+		throw new Error('Could not extract readable text from the image. Try a clearer image or use a PDF instead.');
+	}
 	return data.text;
 }
 

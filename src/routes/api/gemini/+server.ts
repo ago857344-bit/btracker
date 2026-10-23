@@ -27,8 +27,13 @@ export async function POST({ request }) {
 			return json({ error: 'No AI API key configured on the server. Set GROQ_API_KEY or GEMINI_API_KEY in your environment variables.' }, { status: 500 });
 		}
 
-		// ── 1. Try Groq first (fast, free) ──────────────────────────────────
-		if (groqKey) {
+		// Check if this is a vision request (contains inline image data)
+		const hasVision = history?.some((turn: any) =>
+			turn.parts?.some((part: any) => part.inlineData)
+		);
+
+		// ── 1. Try Groq first (fast, free) — but NOT for vision requests ────────
+		if (groqKey && !hasVision) {
 			// Dynamically fetch available models so we never use a stale/decommissioned ID
 			let groqModels: string[] = [];
 			try {
