@@ -1,7 +1,7 @@
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 
-export const maxDuration = 60;
+export const config = { maxDuration: 60 };
 
 // Convert Gemini-style history to OpenAI-style messages
 function toOpenAIMessages(history: any[], systemInstruction?: string) {
