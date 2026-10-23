@@ -22,9 +22,10 @@ export async function POST({ request }) {
 
 		const groqKey = env.GROQ_API_KEY;
 		const geminiKey = env.GEMINI_API_KEY;
+		const openaiKey = env.OPENAI_API_KEY;
 
-		if (!groqKey && !geminiKey) {
-			return json({ error: 'No AI API key configured on the server. Set GROQ_API_KEY or GEMINI_API_KEY in your environment variables.' }, { status: 500 });
+		if (!groqKey && !geminiKey && !openaiKey) {
+			return json({ error: 'No AI API key configured on the server. Set GROQ_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY in your environment variables.' }, { status: 500 });
 		}
 
 		// Check if this is a vision request (contains inline image data)
@@ -32,7 +33,54 @@ export async function POST({ request }) {
 			turn.parts?.some((part: any) => part.inlineData)
 		);
 
-		// ── 1. Try Groq first (fast, free) — but NOT for vision requests ────────
+		// ── 1. Try OpenAI for vision requests (most reliable) ───────────────────
+		if (openaiKey && hasVision) {
+			try {
+				// Convert Gemini-style parts to OpenAI vision format
+				const openaiMessages = history.map((turn: any) => {
+					const content: any[] = [];
+					for (const part of turn.parts || []) {
+						if (part.inlineData) {
+							content.push({
+								type: 'image_url',
+								image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
+							});
+						} else if (part.text) {
+							content.push({ type: 'text', text: part.text });
+						}
+					}
+					return { role: turn.role === 'model' ? 'assistant' : 'user', content };
+				});
+
+				const controller = new AbortController();
+				const timeout = setTimeout(() => controller.abort(), 30_000);
+				
+				const res = await fetch('https://api.openai.com/v1/chat/completions', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${openaiKey}`
+					},
+					body: JSON.stringify({
+						model: 'gpt-4o',
+						messages: openaiMessages,
+						max_tokens: 4096
+					}),
+					signal: controller.signal
+				});
+				clearTimeout(timeout);
+
+				if (res.ok) {
+					const data = await res.json();
+					const text = data.choices?.[0]?.message?.content ?? '';
+					return json({ text });
+				}
+			} catch (e) {
+				console.warn('OpenAI vision failed, falling back to Gemini:', e);
+			}
+		}
+
+		// ─ 2. Try Groq first (fast, free) — but NOT for vision requests ────────
 		if (groqKey && !hasVision) {
 			// Dynamically fetch available models so we never use a stale/decommissioned ID
 			let groqModels: string[] = [];

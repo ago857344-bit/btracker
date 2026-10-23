@@ -66,9 +66,46 @@ export function matchChapters(text: string, threshold = 0.72): ChapterMatch[] {
 	return matches;
 }
 
-/** Extracts text from a JPEG or PNG syllabus image. */
+/** Extracts text from a JPEG or PNG syllabus image using vision API (OpenAI or Gemini). */
 export async function extractImageText(file: File): Promise<string> {
-	throw new Error('Image upload requires a Gemini API key. Please use a text-based PDF instead, or add GEMINI_API_KEY to your environment variables.');
+	const base64 = await new Promise<string>((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = () => resolve((reader.result as string).split(',')[1]);
+		reader.onerror = reject;
+		reader.readAsDataURL(file);
+	});
+
+	const res = await fetch('/api/gemini', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			history: [{
+				role: 'user',
+				parts: [
+					{
+						inlineData: {
+							mimeType: file.type,
+							data: base64
+						}
+					},
+					{
+						text: 'This is a syllabus image. Please extract all the text from it, preserving chapter names and topic names as accurately as possible. Output only the raw extracted text with no commentary.'
+					}
+				]
+			}]
+		})
+	});
+
+	if (!res.ok) {
+		const errData = await res.json().catch(() => ({}));
+		throw new Error(errData.error || `Image extraction failed. Add OPENAI_API_KEY or GEMINI_API_KEY to your environment variables.`);
+	}
+	const data = await res.json();
+	if (data.error) throw new Error(data.error);
+	if (!data.text || data.text.trim().length < 10) {
+		throw new Error('Could not extract readable text from the image. Try a clearer image or use a PDF instead.');
+	}
+	return data.text;
 }
 
 /** Extracts the plain text of a PDF file (client-side, via pdfjs-dist). Falls back to OCR if text is too sparse. */
