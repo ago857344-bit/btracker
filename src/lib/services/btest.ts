@@ -87,7 +87,7 @@ export async function extractImageText(file: File): Promise<string> {
 	}
 }
 
-/** Extracts the plain text of a PDF file (client-side, via pdfjs-dist). */
+/** Extracts the plain text of a PDF file (client-side, via pdfjs-dist). Falls back to OCR if text is too sparse. */
 export async function extractPdfText(file: File): Promise<string> {
 	const pdfjs = await import('pdfjs-dist');
 	const workerUrl = (await import('pdfjs-dist/build/pdf.worker.min.mjs?url')).default as string;
@@ -108,6 +108,13 @@ export async function extractPdfText(file: File): Promise<string> {
 		}
 		text += `${line}\n`;
 	}
+	
+	// If extracted text is too sparse, PDF might be scanned (image-based)
+	if (text.trim().length < 50) {
+		console.warn(`PDF text extraction returned only ${text.trim().length} chars, PDF may be scanned`);
+		throw new Error('This PDF appears to be scanned/image-based. Please convert it to images and upload as JPG/PNG instead, or use a text-based PDF.');
+	}
+	
 	return text;
 }
 
