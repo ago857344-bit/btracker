@@ -66,6 +66,42 @@ export function matchChapters(text: string, threshold = 0.72): ChapterMatch[] {
 	return matches;
 }
 
+/** Extracts text from a JPEG or PNG syllabus image using Gemini vision. */
+export async function extractImageText(file: File): Promise<string> {
+	const base64 = await new Promise<string>((resolve, reject) => {
+		const reader = new FileReader();
+		reader.onload = () => resolve((reader.result as string).split(',')[1]);
+		reader.onerror = reject;
+		reader.readAsDataURL(file);
+	});
+
+	const res = await fetch('/api/gemini', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({
+			history: [{
+				role: 'user',
+				parts: [
+					{
+						inlineData: {
+							mimeType: file.type,
+							data: base64
+						}
+					},
+					{
+						text: 'This is a syllabus image. Please extract all the text from it, preserving chapter names and topic names as accurately as possible. Output only the raw extracted text with no commentary.'
+					}
+				]
+			}]
+		})
+	});
+
+	if (!res.ok) throw new Error('Could not extract text from image.');
+	const data = await res.json();
+	if (data.error || !data.text) throw new Error(data.error ?? 'Empty response from image OCR.');
+	return data.text;
+}
+
 /** Extracts the plain text of a PDF file (client-side, via pdfjs-dist). */
 export async function extractPdfText(file: File): Promise<string> {
 	const pdfjs = await import('pdfjs-dist');

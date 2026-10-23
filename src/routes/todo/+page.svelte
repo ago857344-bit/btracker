@@ -7,7 +7,7 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { subjectColor, CHAPTERS } from '$lib/state/subjects';
 	import { allChapters, allChaptersWithCustom, SYLLABUS } from '$lib/state/syllabus';
-	import { extractPdfText, matchChapters, matchChaptersAI, type ChapterMatch } from '$lib/services/btest';
+	import { extractPdfText, extractImageText, matchChapters, matchChaptersAI, type ChapterMatch } from '$lib/services/btest';
 import { triageTodos } from '$lib/services/aiTriage';
 import { buildAcademicConstraintPrompt } from '$lib/services/aiContext';
 	import {
@@ -192,13 +192,14 @@ async function runAiTriage() {
 		if (!file) return;
 		busy = true; error = ''; matches = []; scanned = false; fileName = file.name;
 		try {
-			const text = await extractPdfText(file);
+			const isImage = file.type === 'image/jpeg' || file.type === 'image/png';
+			const text = isImage ? await extractImageText(file) : await extractPdfText(file);
 			const found = await matchChaptersAI(text);
 			matches = found;
 			selected = new Set(found.map(key));
 			scanned = true;
 		} catch (e) {
-			error = e instanceof Error ? e.message : 'Could not read that PDF.';
+			error = e instanceof Error ? e.message : 'Could not read that file.';
 		} finally {
 			busy = false;
 		}
@@ -619,9 +620,9 @@ async function runAiTriage() {
 	{:else}
 		<div class="btest">
 			<label class="drop">
-				<input type="file" accept="application/pdf,.pdf" hidden on:change={onFile} />
+				<input type="file" accept="application/pdf,.pdf,image/jpeg,.jpg,.jpeg,image/png,.png" hidden on:change={onFile} />
 				<NavIcon name="download" size={22} />
-				<b>{busy ? 'Reading PDF…' : 'Upload syllabus PDF'}</b>
+				<b>{busy ? 'Reading file…' : 'Upload syllabus PDF or image'}</b>
 				<small>We extract chapter names and match them to the Log syllabus modules, then add the matches as tasks.</small>
 			</label>
 
