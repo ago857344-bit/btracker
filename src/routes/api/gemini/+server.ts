@@ -105,6 +105,7 @@ export async function POST({ request }) {
 				'google/gemma-3-4b-it:free'
 			];
 
+			let openrouterErr: { status: number; message: string } | null = null;
 			for (const model of OPENROUTER_VISION_MODELS) {
 				try {
 					const controller = new AbortController();
@@ -133,10 +134,22 @@ export async function POST({ request }) {
 						if (text && text.trim().length >= 10) {
 							return json({ text });
 						}
+					} else if (!openrouterErr) {
+						const errData = await res.json().catch(() => ({}));
+						openrouterErr = {
+							status: res.status,
+							message: errData?.error?.message ?? `OpenRouter returned status ${res.status}`
+						};
 					}
-				} catch (e) {
+				} catch (e: any) {
 					console.warn(`OpenRouter model ${model} failed, trying next:`, e);
 				}
+			}
+
+			// OpenRouter is configured but all models failed — surface its error
+			// instead of falling through to an unconfigured provider
+			if (openrouterErr && !geminiKey && !openaiKey) {
+				return json({ error: `OpenRouter error: ${openrouterErr.message}` }, { status: openrouterErr.status });
 			}
 		}
 
@@ -210,6 +223,10 @@ export async function POST({ request }) {
 		}
 
 		// ── 2. Fallback: Gemini ──────────────────────────────────────────────
+		if (!geminiKey) {
+			return json({ error: 'No vision-capable provider succeeded. For image uploads, set OPENROUTER_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY in your environment variables.' }, { status: 500 });
+		}
+
 		const geminiBody: any = { contents: history };
 		if (systemInstruction) geminiBody.systemInstruction = { parts: [{ text: systemInstruction }] };
 		if (jsonMode) geminiBody.generationConfig = { responseMimeType: 'application/json' };
