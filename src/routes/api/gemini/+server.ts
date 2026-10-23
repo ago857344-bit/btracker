@@ -142,7 +142,7 @@ export async function POST({ request }) {
 						'X-Title': 'BTracker'
 					},
 					body: JSON.stringify({
-						models: visionModels.slice(0, 6),
+						models: visionModels.slice(0, 3),
 						messages: openrouterMessages,
 						max_tokens: 4096
 					}),
