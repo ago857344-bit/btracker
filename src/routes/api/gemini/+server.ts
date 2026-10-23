@@ -98,15 +98,31 @@ export async function POST({ request }) {
 				return { role: turn.role === 'model' ? 'assistant' : 'user', content };
 			});
 
-			// Free vision models on OpenRouter, tried in order
-			const OPENROUTER_VISION_MODELS = [
-				'meta-llama/llama-3.2-11b-vision-instruct:free',
-				'qwen/qwen2-vl-7b-instruct:free',
-				'google/gemma-3-4b-it:free'
-			];
+			// Discover free vision models dynamically so deprecations never break us
+			let visionModels: string[] = [];
+			try {
+				const modelsRes = await fetch('https://openrouter.ai/api/v1/models', {
+					headers: { Authorization: `Bearer ${openrouterKey}` }
+				});
+				if (modelsRes.ok) {
+					const modelsData = await modelsRes.json();
+					visionModels = (modelsData.data ?? [])
+						.filter((m: any) =>
+							typeof m.id === 'string' &&
+							m.id.endsWith(':free') &&
+							m.architecture?.input_modalities?.includes('image')
+						)
+						.map((m: any) => m.id);
+				}
+			} catch { /* fall through to static list */ }
+
+			// Static fallback if discovery failed or returned nothing
+			if (!visionModels.length) {
+				visionModels = ['google/gemma-3-4b-it:free'];
+			}
 
 			let openrouterErr: { status: number; message: string } | null = null;
-			for (const model of OPENROUTER_VISION_MODELS) {
+			for (const model of visionModels.slice(0, 6)) {
 				try {
 					const controller = new AbortController();
 					const timeout = setTimeout(() => controller.abort(), 30_000);
