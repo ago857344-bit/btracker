@@ -555,7 +555,7 @@ export function bulkAddChaptersToRecall(chapterKeys: string[], defaultWeightage:
 	});
 }
 
-export function boostChapterFromPractice(chapterKey: string, durationMinutes: number = 25) {
+export function boostChapterFromPractice(chapterKey: string, durationMinutes: number = 25, confidence: ConfidenceRating = 'good') {
 	_updateAndSave(($tracker) => {
 		const today = todayKey();
 		const chapter = $tracker.rev.chapters[chapterKey];
@@ -583,7 +583,7 @@ export function boostChapterFromPractice(chapterKey: string, durationMinutes: nu
 			
 			const newDecay = lastRevDate === today
 				? { ...chapter.decay, currentScore: 100, r0: 100, lastRevisionAt: Date.now() }
-				: updateDecayAfterRevision(chapter.decay, 'good');
+				: updateDecayAfterRevision(chapter.decay, confidence);
 
 			const daysToAdd = Math.max(1, Math.min(14, Math.round((newDecay.halfLife || 7) * 0.5)));
 			const nextDate = addDaysKey(today, daysToAdd);
@@ -640,6 +640,15 @@ export function boostChapterFromPractice(chapterKey: string, durationMinutes: nu
 			}
 		};
 	});
+}
+
+/**
+ * Boost chapter memory from a theory/lecture session.
+ * Uses 'hard' confidence since passive watching is less effective than active recall.
+ * Still resets r0 to 100 on same-day repeat to prevent double-dipping.
+ */
+export function boostChapterFromTheory(chapterKey: string, durationMinutes: number) {
+	boostChapterFromPractice(chapterKey, durationMinutes, 'hard');
 }
 
 // Automatically register with tracker store so logStudySession triggers boostChapterFromPractice

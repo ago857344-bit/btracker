@@ -1,13 +1,16 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import type { ComponentProps } from 'svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
+	import WorkspaceToolsModal from '$lib/components/WorkspaceToolsModal.svelte';
 	import { tracker } from '$lib/stores/tracker';
 	import { chaptersDueToday } from '$lib/stores/recall-selectors';
 	import { currentUser } from '$lib/stores/auth';
 	import { getLevelData, tierEloOf } from '$lib/state/gamification';
 	import { eloTier } from '$lib/state/weekly';
 	import { loadout } from '$lib/stores/cosmetics';
+	import { getDefaultNavForMode } from '$lib/state/defaults';
 
 	export let collapsed = false;
 	export let mobileOpen = false;
@@ -20,20 +23,40 @@
 	$: xp = $tracker.gamification?.xp || 0;
 	$: levelData = getLevelData(xp);
 
-	const primary = [
+	type NavIconName = ComponentProps<NavIcon>['name'];
+	interface NavItem {
+		href: string;
+		label: string;
+		icon: NavIconName;
+	}
+
+	let toolsModalOpen = false;
+	$: flowMode = $tracker.ui?.studyFlowMode || 'all-features';
+
+	const ALL_TOOLS: readonly NavItem[] = [
 		{ href: '/', label: 'Home', icon: 'home' },
 		{ href: '/log', label: 'Log', icon: 'grid' },
 		{ href: '/review', label: 'Review', icon: 'target' },
 		{ href: '/plan', label: 'Plan', icon: 'plan' },
 		{ href: '/tests', label: 'Tests', icon: 'tests' },
+		{ href: '/dump', label: 'Study Dump', icon: 'layers' },
 		{ href: '/todo', label: 'To Do', icon: 'list' },
 		{ href: '/focus', label: 'Focus', icon: 'focus' },
 		{ href: '/revise', label: 'Revise', icon: 'revise' },
-	] as const;
-	const secondary = [
 		{ href: '/stats', label: 'Stats', icon: 'stats' },
 		{ href: '/reminders', label: 'Reminders', icon: 'reminders' }
 	] as const;
+
+	$: pinnedHrefs = (flowMode === 'all-features')
+		? ALL_TOOLS.map((t) => t.href)
+		: ($tracker.ui?.pinnedNav || getDefaultNavForMode(flowMode));
+	$: primary = ALL_TOOLS.filter((item) => pinnedHrefs.includes(item.href));
+	const ALL_SECONDARY: readonly NavItem[] = [
+		{ href: '/stats', label: 'Stats', icon: 'stats' },
+		{ href: '/reminders', label: 'Reminders', icon: 'reminders' }
+	] as const;
+
+	$: secondary = ALL_SECONDARY.filter((s) => !primary.some((p) => p.href === s.href));
 
 	const isActive = (href: string) => href === '/' ? $page.url.pathname === '/' : $page.url.pathname.startsWith(href);
 	const closeMobile = () => mobileOpen = false;
@@ -93,7 +116,7 @@
 
 	<nav>
 		<p class="nav-label">Workspace</p>
-		{#each primary as item, i (i)}
+		{#each primary as item (item.href)}
 			<a class:active={isActive(item.href)} href={item.href} on:click={closeMobile}>
 				<span class="nav-icon"><NavIcon name={item.icon} size={22} /></span><span class="nav-text">{item.label}</span>
 				{#if item.href === '/revise' && $chaptersDueToday.length}
@@ -101,16 +124,34 @@
 				{/if}
 			</a>
 		{/each}
-		<div class="nav-divider"></div>
-		<p class="nav-label">Insights</p>
-		{#each secondary as item, i (i)}
-			<a class:active={isActive(item.href)} href={item.href} on:click={closeMobile}>
-				<span class="nav-icon"><NavIcon name={item.icon} size={22} /></span><span class="nav-text">{item.label}</span>
-				{#if item.href === '/reminders' && $chaptersDueToday.length}
-					<span class="due-badge" title="{$chaptersDueToday.length} revision(s) due">{$chaptersDueToday.length}</span>
-				{/if}
-			</a>
-		{/each}
+
+		{#if flowMode !== 'all-features'}
+			<button
+				type="button"
+				class="btn-tools-modal-open"
+				title="Customize tools in sidebar"
+				on:click={() => {
+					closeMobile();
+					toolsModalOpen = true;
+				}}
+			>
+				<span class="nav-icon"><NavIcon name="plus" size={15} /></span>
+				<span class="nav-text">Add / Edit Tools</span>
+			</button>
+		{/if}
+
+		{#if secondary.length > 0}
+			<div class="nav-divider"></div>
+			<p class="nav-label">Insights</p>
+			{#each secondary as item (item.href)}
+				<a class:active={isActive(item.href)} href={item.href} on:click={closeMobile}>
+					<span class="nav-icon"><NavIcon name={item.icon} size={22} /></span><span class="nav-text">{item.label}</span>
+					{#if item.href === '/reminders' && $chaptersDueToday.length}
+						<span class="due-badge" title="{$chaptersDueToday.length} revision(s) due">{$chaptersDueToday.length}</span>
+					{/if}
+				</a>
+			{/each}
+		{/if}
 	</nav>
 
 	<div class="sidebar-bottom">
@@ -133,6 +174,8 @@
 			</span>
 		</div>
 	</div>
+
+	<WorkspaceToolsModal bind:open={toolsModalOpen} />
 </aside>
 
 <style>
@@ -178,8 +221,9 @@
 		width: 31px;
 		height: 31px;
 		border-radius: 9px;
-		background: #ffffff !important;
-		color: #000000 !important;
+		background: var(--surface-popup-solid, var(--surface-panel)) !important;
+		color: var(--text-primary) !important;
+		border: 1px solid var(--border-subtle);
 		font-size: 1.05rem;
 		font-weight: 900;
 		letter-spacing: -.05em;
@@ -216,6 +260,38 @@
 		transition: all 0.2s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1));
 		-webkit-tap-highlight-color: transparent;
 	}
+	.btn-tools-modal-open {
+		display: flex;
+		align-items: center;
+		gap: clamp(0.6rem, 1vw, 1rem);
+		height: clamp(34px, 5vh, 40px);
+		padding: 0 .75rem;
+		border-radius: 10px;
+		color: var(--text-secondary);
+		background: color-mix(in srgb, var(--surface-subtle) 60%, transparent);
+		border: 1px dashed var(--border-subtle);
+		font-size: clamp(0.78rem, 1.1vh, 0.88rem);
+		font-weight: 700;
+		cursor: pointer;
+		margin: 0.35rem 0 0.15rem;
+		transition: all 0.2s ease;
+		font-family: inherit;
+		text-align: left;
+		width: 100%;
+	}
+	.btn-tools-modal-open:hover {
+		color: var(--accent);
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 10%, transparent);
+		transform: translateY(-1px);
+	}
+	.btn-tools-modal-open:active {
+		transform: scale(0.97);
+	}
+	aside.collapsed .btn-tools-modal-open {
+		justify-content: center;
+		padding: 0;
+	}
 	nav a:hover, .settings-link:hover { color: var(--text-primary); background: var(--surface-subtle); }
 	nav a:active, .settings-link:active { transform: scale(0.975); }
 	nav a.active {
@@ -225,7 +301,7 @@
 		font-weight: 700;
 	}
 	.nav-icon { display: grid; flex: 0 0 24px; place-items: center; }
-	.due-badge { margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center; background: var(--accent); color: white; font-size: .62rem; font-weight: 800; }
+	.due-badge { margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center; background: var(--accent); color: var(--accent-contrast, white); font-size: .62rem; font-weight: 800; }
 	.nav-divider { height: 1px; margin: clamp(0.5rem, 1.5vh, 1rem) .65rem clamp(0.1rem, 0.3vh, 0.2rem); background: var(--border-subtle); }
 	.sidebar-bottom { display: grid; gap: .55rem; margin-top: auto; min-width: 0; position: relative; }
 	.profile-container {
@@ -237,7 +313,7 @@
 		display: flex;
 		align-items: center;
 		gap: .55rem;
-		background: var(--surface-popup, rgba(18, 16, 32, 0.96));
+		background: var(--surface-panel);
 		backdrop-filter: blur(36px) saturate(210%);
 		-webkit-backdrop-filter: blur(36px) saturate(210%);
 		margin-top: .3rem;
@@ -263,8 +339,8 @@
 	:global(:root[data-theme='duolingo']) .brand-mark,
 	:global(:root[data-theme='anki']) .brand-mark,
 	:global(:root[data-theme='master']) .brand-mark {
-		background: #181628 !important;
-		color: #ffffff !important;
+		background: var(--accent) !important;
+		color: var(--accent-contrast, #ffffff) !important;
 		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 	}
 	:global(:root[data-theme='light']) aside,

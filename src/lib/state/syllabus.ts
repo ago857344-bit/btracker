@@ -221,6 +221,59 @@ export const syllabusChapter = (code: string, no: number): SyllabusChapter | nul
 };
 export const allChapters = (code: string) => syllabusSubject(code)?.modules.flatMap((m) => m.chapters) ?? [];
 
+/**
+ * Discover custom chapter numbers that exist in user data but not in the built-in syllabus.
+ * Scans state.x.exs and state.d for keys matching the subject prefix.
+ */
+export function discoverCustomChapters(state: TrackerState, sc: string): number[] {
+	const builtinNos = new Set(allChapters(sc).map((ch) => ch.no));
+	const customNos = new Set<number>();
+
+	if (state.x?.exs) {
+		for (const key of Object.keys(state.x.exs)) {
+			if (key.startsWith(sc)) {
+				const rest = key.slice(sc.length);
+				const no = parseInt(rest, 10);
+				if (!isNaN(no) && !builtinNos.has(no)) customNos.add(no);
+			}
+		}
+	}
+
+	if (state.d) {
+		for (const key of Object.keys(state.d)) {
+			if (key.startsWith(sc)) {
+				const rest = key.slice(sc.length);
+				const match = rest.match(/^(\d+)/);
+				if (match) {
+					const no = parseInt(match[1], 10);
+					if (!isNaN(no) && !builtinNos.has(no)) customNos.add(no);
+				}
+			}
+		}
+	}
+
+	return [...customNos].sort((a, b) => a - b);
+}
+
+/**
+ * All chapters including user-created custom ones not in the built-in syllabus.
+ */
+export function allChaptersWithCustom(state: TrackerState, sc: string): SyllabusChapter[] {
+	const builtin = allChapters(sc);
+	const customNos = discoverCustomChapters(state, sc);
+	const customDefs = state.x?.chs?.[sc] || [];
+	const customChapters: SyllabusChapter[] = customNos.map((no) => {
+		const def = customDefs.find((c) => c.no === no);
+		return {
+			no,
+			name: def?.name || 'Miscellaneous',
+			moduleId: -1,
+			exs: []
+		};
+	});
+	return [...builtin, ...customChapters];
+}
+
 /** Question count for an exercise, honouring the user's own override. */
 export function questionCount(state: TrackerState, sc: string, chNo: number, exCode: string): number {
 	const key = cellKey(sc, chNo, exCode);
@@ -235,9 +288,7 @@ export function questionCount(state: TrackerState, sc: string, chNo: number, exC
 /** Exercises worth showing: anything with questions, or anything the user created a table for. */
 export function visibleExercises(state: TrackerState, sc: string, chNo: number): SyllabusExercise[] {
 	const chapter = syllabusChapter(sc, chNo);
-	if (!chapter) return [];
-	
-	const all = [...chapter.exs];
+	const all: SyllabusExercise[] = chapter ? [...chapter.exs] : [];
 	const custom = state.x?.exs?.[`${sc}${chNo}`] || [];
 	const customCodes = new Set<string>();
 
@@ -249,7 +300,7 @@ export function visibleExercises(state: TrackerState, sc: string, chNo: number):
 	// Auto-discover custom exercises that have data in state.d even if metadata was omitted/lost
 	if (state.d) {
 		const prefix = `${sc}${chNo}`;
-		const builtInCodes = new Set(chapter.exs.map((e) => e.code));
+		const builtInCodes = new Set(chapter?.exs.map((e) => e.code) ?? []);
 		for (const key of Object.keys(state.d)) {
 			if (key.startsWith(prefix)) {
 				const code = key.slice(prefix.length);

@@ -127,7 +127,7 @@
 	.total { margin: .3rem 0 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -.04em; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 	.grans { display: inline-flex; gap: .2rem; padding: .25rem; border: 1px solid var(--border-subtle); border-radius: 999px; background: var(--surface-subtle); }
 	.grans button { padding: .38rem .8rem; border: 0; border-radius: 999px; background: transparent; color: var(--text-secondary); font-size: .68rem; font-weight: 800; letter-spacing: .05em; }
-	.grans button.active { color: #fff; background: var(--accent); }
+	.grans button.active { color: var(--accent-contrast, #fff); background: var(--accent); }
 	.nav { display: flex; align-items: center; gap: .5rem; margin: 1rem 0 .9rem; }
 	.pg { display: grid; place-items: center; width: 27px; height: 27px; border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-secondary); background: var(--surface-panel); }
 	.pg:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }
@@ -145,7 +145,7 @@
 	.cell.l1 { background: color-mix(in srgb, var(--accent), transparent 78%); }
 	.cell.l2 { background: color-mix(in srgb, var(--accent), transparent 55%); }
 	.cell.l3 { background: color-mix(in srgb, var(--accent), transparent 28%); }
-	.cell.l4 { background: var(--accent); color: #fff; }
+	.cell.l4 { background: var(--accent); color: var(--accent-contrast, #fff); }
 	.cell.today { outline: 2px solid var(--accent); outline-offset: 1px; }
 	.grid.tiny .cell { font-size: 0; }
 	footer { display: flex; align-items: center; gap: .35rem; margin-top: .8rem; }

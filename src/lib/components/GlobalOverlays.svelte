@@ -229,7 +229,7 @@
 	.btn { height: 44px; padding: 0 .95rem; border-radius: 11px; font-size: .78rem; font-weight: 750; border: 1px solid transparent; cursor: pointer; }
 	.btn.ghost { color: var(--text-secondary); border-color: var(--border-subtle); background: transparent; }
 	.btn.ghost:hover { color: var(--text-primary); }
-	.btn.solid { color: white; background: var(--accent); }
+	.btn.solid { color: var(--accent-contrast, white); background: var(--accent); }
 
 	.level-up-box { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 1rem 0 2rem; }
 	.lu-icon { color: var(--accent); margin-bottom: 1rem; filter: drop-shadow(0 0 12px color-mix(in srgb, var(--accent), transparent 60%)); }

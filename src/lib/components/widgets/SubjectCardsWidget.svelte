@@ -107,7 +107,7 @@
 	}
 	.subject-card:hover .subject-tint { opacity: 1; }
 	.subject-card > * { position: relative; z-index: 3; }
-	.icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; color: white; background: var(--sub); margin-bottom: .45rem; }
+	.icon { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 11px; color: var(--accent-contrast, #fff);; background: var(--sub); margin-bottom: .45rem; }
 	.name { font-size: .84rem; font-weight: 800; letter-spacing: -.01em; max-width: calc(100% - 90px); }
 	.goal { color: var(--text-secondary); font-size: .62rem; font-weight: 750; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; }
 	.solved-wrap { display: flex; align-items: baseline; gap: .4rem; margin: .3rem 0 .5rem; }

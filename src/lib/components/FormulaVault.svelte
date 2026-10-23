@@ -4,7 +4,7 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { JEE_FORMULAS, type FormulaItem } from '$lib/data/formulas';
 	import { uiClick } from '$lib/utils/feedback';
-	import { formulaVaultFilter } from '$lib/stores/tracker';
+	import { formulaVaultFilter, openTestDaySheet } from '$lib/stores/tracker';
 
 	export let open = false;
 
@@ -196,9 +196,20 @@
 						<p class="sub">Complete JEE Chapter-Wise Formulas <span class="hotkey-pill">F</span></p>
 					</div>
 				</div>
-				<button type="button" class="close-btn" aria-label="Close" on:click={close}>
-					<NavIcon name="x" size={18} />
-				</button>
+				<div class="header-actions-right">
+					<button
+						type="button"
+						class="btn-print-sheet"
+						title="Generate Test Day Paper Sheet with Starred Formulas & Mistakes"
+						on:click={() => { close(); openTestDaySheet(); }}
+					>
+						<NavIcon name="printer" size={13} />
+						<span>Test Day Sheet</span>
+					</button>
+					<button type="button" class="close-btn" aria-label="Close" on:click={close}>
+						<NavIcon name="x" size={18} />
+					</button>
+				</div>
 			</div>
 
 			<!-- Search -->
@@ -585,6 +596,34 @@
 		color: var(--accent);
 	}
 
+	.header-actions-right {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.btn-print-sheet {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.4rem 0.75rem;
+		border-radius: 9px;
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		color: var(--accent);
+		border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+		font-size: 0.72rem;
+		font-weight: 750;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		white-space: nowrap;
+	}
+
+	.btn-print-sheet:hover {
+		background: color-mix(in srgb, var(--accent) 25%, transparent);
+		border-color: var(--accent);
+		transform: translateY(-1px);
+	}
+
 	.close-btn {
 		width: 36px;
 		height: 36px;
@@ -677,7 +716,7 @@
 
 	.pill.active {
 		background: var(--accent);
-		color: white;
+		color: var(--accent-contrast, white);
 		border-color: var(--accent);
 	}
 
@@ -1123,7 +1162,7 @@
 		padding: 0.45rem 0.9rem;
 		border-radius: 8px;
 		background: var(--accent);
-		color: white;
+		color: var(--accent-contrast, white);
 		border: none;
 		font-weight: 700;
 		font-size: 0.8rem;
@@ -1141,7 +1180,35 @@
 			padding-right: 1rem;
 			gap: 0.7rem;
 		}
-		.close-btn {
+		.header-actions-right {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.btn-print-sheet {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.4rem 0.75rem;
+		border-radius: 9px;
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		color: var(--accent);
+		border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+		font-size: 0.72rem;
+		font-weight: 750;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		white-space: nowrap;
+	}
+
+	.btn-print-sheet:hover {
+		background: color-mix(in srgb, var(--accent) 25%, transparent);
+		border-color: var(--accent);
+		transform: translateY(-1px);
+	}
+
+	.close-btn {
 			width: 42px;
 			height: 42px;
 			min-width: 42px;

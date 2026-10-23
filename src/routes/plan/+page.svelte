@@ -8,7 +8,8 @@
 	import TaskDetail from '$lib/components/plan/TaskDetail.svelte';
 	import ReflectionJournal from '$lib/components/plan/ReflectionJournal.svelte';
 	import GoalsTracker from '$lib/components/plan/GoalsTracker.svelte';
-	import { applyRoutine, celebration, moveTaskToDay, reorderDayTasks, saveRoutine, toggleTask, tracker } from '$lib/stores/tracker';
+	import DailyPlannerTimetableWidget from '$lib/components/plan/DailyPlannerTimetableWidget.svelte';
+	import { applyRoutine, celebration, moveTaskToDay, reorderDayTasks, saveRoutine, toggleTask, tracker, transferTodosToPlanner } from '$lib/stores/tracker';
 	import { TASK_COLORS, SUBJECTS, subjectColor, subjectName } from '$lib/state/subjects';
 	import { addDaysKey, dayKeyOf, monthLabelOf, parseKey, startOfWeek, todayKey } from '$lib/state/dates';
 	import type { HomeworkItem } from '$lib/types/tracker';
@@ -28,12 +29,23 @@
 	let aiBalancing = false;
 	let aiError = '';
 
+	const isClassItem = (task: HomeworkItem) =>
+		Boolean(
+			task.isClass === true ||
+			task.kind === 'class' ||
+			task.locked === true ||
+			(task.title && task.title.toLowerCase().startsWith('[class]'))
+		);
+
 	async function runAutoBalance() {
 		aiBalancing = true;
 		aiError = '';
 		try {
 			const today = todayKey();
-			const pendingTasks = ($tracker.h || []).filter(task => !task.done && task.due && task.due <= today);
+			// Coaching classes are strictly immune to auto-balancing and cannot be displaced
+			const pendingTasks = ($tracker.h || []).filter(
+				(task) => !task.done && task.due && task.due <= today && !isClassItem(task)
+			);
 			if (pendingTasks.length === 0) {
 				balancerOpen = false;
 				return;
@@ -45,13 +57,24 @@
 				days.push(addDaysKey(today, i));
 			}
 
-			const taskInput = pendingTasks.map(t => ({ id: t.id, text: (t.text || '') as string, sub: (t.sub || '') as string }));
-			const constraint = buildAcademicConstraintPrompt($tracker);
-			const map = await getAIPlannerBalance(taskInput, days, elo, constraint);
+			const scheduledClasses = ($tracker.h || [])
+				.filter((t) => isClassItem(t) && t.due)
+				.map((t) => ({ date: t.due || '', subject: (t.s || '') as string, topic: t.title || 'Lecture' }));
 
-			tracker.update(t => {
-				for (const task of (t.h || [])) {
-					if (map[task.id]) {
+			const taskInput = pendingTasks.map((t) => ({
+				id: t.id,
+				text: (t.title || t.text || '') as string,
+				sub: (t.s || t.sub || '') as string,
+				ch: t.ch,
+				subs: (t.subs || []).map((s) => typeof s === 'string' ? s : (s as any).title)
+			}));
+			const constraint = buildAcademicConstraintPrompt($tracker);
+			const map = await getAIPlannerBalance(taskInput, days, elo, constraint, scheduledClasses);
+
+			tracker.update((t) => {
+				for (const task of t.h || []) {
+					// Double-check immunity: never reassign or displace a coaching class
+					if (map[task.id] && !isClassItem(task)) {
 						task.due = map[task.id];
 					}
 				}
@@ -91,7 +114,8 @@
 		if (subjectFilter && t.s !== subjectFilter) return false;
 		return true;
 	});
-	$: dayDone = dayTasks.filter((t) => t.done).length;
+	$: tickableTasks = dayTasks.filter((t) => !isClassItem(t));
+	$: dayDone = tickableTasks.filter((t) => t.done).length;
 	$: sel = parseKey(selectedDay);
 	$: selMonth = sel.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
 	$: selWeekday = sel.toLocaleDateString('en-US', { weekday: 'long' });
@@ -110,6 +134,8 @@
 	}
 
 	function onToggle(id: string) {
+		const targetTask = ($tracker.h || []).find((t) => t.id === id);
+		if (targetTask && isClassItem(targetTask)) return; // Classes are scheduled fixtures, not tickable to-dos!
 		if (toggleTask(id)) celebration.set('Task Completed!');
 	}
 	function applyMove(id: string, day: string) { moveTaskToDay(id, day); }
@@ -122,14 +148,32 @@
 		if (name && name.trim()) saveRoutine(name.trim(), selectedDay);
 	}
 
+	function handleImportTodos() {
+		const transferred = transferTodosToPlanner(selectedDay);
+		if (transferred > 0) {
+			celebration.set(`Imported ${transferred} to-do task${transferred > 1 ? 's' : ''} to planner! 🚀`);
+		} else {
+			celebration.set('All open to-dos are already in planner.');
+		}
+	}
+
 	const fmtTime = (v?: string) => {
 		if (!v) return '';
 		const [h, m] = v.split(':').map(Number);
 		return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 	};
-	const isMissed = (t: HomeworkItem) => !t.done && (t.due ?? '') < today;
+	const isMissed = (t: HomeworkItem) => !isClassItem(t) && !t.done && (t.due ?? '') < today;
 
 	let isDesktop = true;
+
+	$: {
+		const tabParam = $page.url.searchParams.get('tab');
+		if (tabParam === 'goals') {
+			tab = 'goals';
+		} else {
+			tab = 'planner';
+		}
+	}
 
 	onMount(() => {
 		isDesktop = window.innerWidth > 768;
@@ -221,10 +265,13 @@
 						<small>{selWeekday} · {dayDone}/{dayTasks.length} tasks</small>
 					</div>
 					<div class="day-actions">
+						<button type="button" class="tool" on:click={handleImportTodos} title="Import open to-dos into planner"><NavIcon name="list" size={13} /> Import To-Dos</button>
 						<button type="button" class="tool" on:click={() => libraryOpen = true}><NavIcon name="library" size={13} /> Library</button>
 						<button type="button" class="tool" on:click={onSaveRoutine}><NavIcon name="plus" size={13} /> Save</button>
 					</div>
 				</header>
+
+				<DailyPlannerTimetableWidget dayKey={selectedDay} />
 
 				<div class="list-tools">
 					<span class="search"><NavIcon name="search" size={14} /><input type="text" placeholder="Search tasks..." bind:value={query} aria-label="Search tasks" /></span>
@@ -242,7 +289,7 @@
 						{#each dayTasks as task (task.id)}
 							<li
 								class="task-row"
-								class:done={task.done}
+								class:done={!isClassItem(task) && task.done}
 								class:missed={isMissed(task)}
 								draggable={isDesktop && !task.done}
 								on:dragstart={(e) => {
@@ -257,17 +304,23 @@
 								on:drop|preventDefault={() => { if (dragId && dragId !== task.id) { reorder(dragId, task.id); } dragId = null; }}
 							>
 								<span class="grip" aria-hidden="true"><NavIcon name="drag" size={14} /></span>
-								<button
-									type="button"
-									class="circle-check"
-									class:checked={task.done}
-									aria-label="Toggle task"
-									draggable="false"
-									on:click|stopPropagation={() => onToggle(task.id)}
-									on:mousedown|stopPropagation
-								>
-									{#if task.done}<NavIcon name="check" size={12} />{/if}
-								</button>
+								{#if isClassItem(task)}
+									<span class="class-schedule-badge" title="Scheduled Class (Timetable fixture)">
+										<NavIcon name="clock" size={11} />
+									</span>
+								{:else}
+									<button
+										type="button"
+										class="circle-check"
+										class:checked={task.done}
+										aria-label="Toggle task"
+										draggable="false"
+										on:click|stopPropagation={() => onToggle(task.id)}
+										on:mousedown|stopPropagation
+									>
+										{#if task.done}<NavIcon name="check" size={12} />{/if}
+									</button>
+								{/if}
 								<span class="color-bar" style="background: {TASK_COLORS[(task.col ?? 0) % TASK_COLORS.length]}"></span>
 								<button type="button" class="task-copy" on:click={() => openDetail(task)}>
 									<b>{task.title}</b>
@@ -275,6 +328,12 @@
 										{#if task.st}{fmtTime(task.st)}{#if task.en} – {fmtTime(task.en)}{/if} · {/if}
 										{#if task.hrs}{task.hrs}h · {/if}
 										{#if task.s}<i class="dot" style="background: {subjectColor(task.s)}"></i>{subjectName(task.s)}{/if}
+										{#if task.isClass || task.kind === 'class' || (task.title && task.title.toLowerCase().startsWith('[class]'))}
+											<span class="class-tag font-mono">Lecture</span>
+										{/if}
+										{#if task.subs && task.subs.length > 0}
+											<span class="subs-tag font-mono">{task.subs.length} steps</span>
+										{/if}
 										{#if task.test}<span class="test-tag">Test</span>{/if}
 										{#if isMissed(task)}<span class="missed-tag">Missed</span>{/if}
 									</small>
@@ -308,7 +367,7 @@
 				</section>
 			</aside>
 		</div>
-	{:else}
+	{:else if tab === 'goals'}
 		<GoalsTracker />
 	{/if}
 </div>
@@ -358,7 +417,7 @@
 	</div>
 	<svelte:fragment slot="footer">
 		<button type="button" class="text-btn" disabled={aiBalancing} on:click={() => balancerOpen = false} style="padding: 0.6rem 1rem; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-weight: 600;">Cancel</button>
-		<button type="button" class="primary-btn" disabled={aiBalancing} on:click={runAutoBalance} style="padding: 0.6rem 1.25rem; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.4rem;"><NavIcon name="sparkles" size={14} /> Balance Now</button>
+		<button type="button" class="primary-btn" disabled={aiBalancing} on:click={runAutoBalance} style="padding: 0.6rem 1.25rem; background: var(--accent); color: var(--accent-contrast, white); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.4rem;"><NavIcon name="sparkles" size={14} /> Balance Now</button>
 	</svelte:fragment>
 </Modal>
 
@@ -393,7 +452,7 @@
 		-webkit-tap-highlight-color: transparent;
 	}
 	.tabs button.selected {
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		background: var(--accent);
 		box-shadow: 0 3px 10px color-mix(in srgb, var(--accent), transparent 55%), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 		font-weight: 700;
@@ -452,17 +511,17 @@
 	.day-cell.selected { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft), inset 0 1px 0 rgba(255, 255, 255, 0.1); }
 	.day-cell small { color: var(--text-secondary); font-size: .62rem; font-weight: 750; letter-spacing: .08em; }
 	.day-cell .num { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 99px; font-size: .84rem; font-weight: 750; }
-	.day-cell.today .num { color: white; background: var(--accent); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent), transparent 50%); }
+	.day-cell.today .num { color: var(--accent-contrast, white); background: var(--accent); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent), transparent 50%); }
 	.day-cell.selected:not(.today) .num { border: 2px solid var(--accent); }
 	.count { padding: .12rem .5rem; border-radius: 99px; background: var(--surface-subtle); color: var(--text-secondary); font-size: .6rem; font-style: normal; font-weight: 700; }
-	.plan-day { position: absolute; bottom: .4rem; left: 50%; transform: translateX(-50%); padding: .12rem .5rem; border-radius: 99px; background: var(--accent); color: white; font-size: .54rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; box-shadow: 0 2px 6px color-mix(in srgb, var(--accent), transparent 60%); }
+	.plan-day { position: absolute; bottom: .4rem; left: 50%; transform: translateX(-50%); padding: .12rem .5rem; border-radius: 99px; background: var(--accent); color: var(--accent-contrast, white); font-size: .54rem; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; white-space: nowrap; box-shadow: 0 2px 6px color-mix(in srgb, var(--accent), transparent 60%); }
 
 	.month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: .35rem; }
 	.month-grid > small { color: var(--text-secondary); font-size: .6rem; font-weight: 800; letter-spacing: .08em; text-align: center; padding: .2rem 0; }
 	.month-cell { display: grid; gap: .25rem; justify-items: center; min-height: 58px; padding: .45rem .2rem; border: 1px solid transparent; border-radius: 11px; background: var(--surface-panel); color: var(--text-primary); cursor: pointer; font-family: inherit; }
 	.month-cell.outside { opacity: .35; }
 	.month-cell.selected { border-color: var(--accent); }
-	.month-cell.today .num { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 99px; color: white; background: var(--accent); }
+	.month-cell.today .num { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 99px; color: var(--accent-contrast, white); background: var(--accent); }
 	.month-cell .num { font-size: .74rem; font-weight: 700; }
 	.dots { display: flex; gap: 3px; }
 	.dots i { width: 6px; height: 6px; border-radius: 99px; }
@@ -490,9 +549,10 @@
 	.task-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; touch-action: pan-y; }
 	.task-row { display: flex; align-items: center; gap: .55rem; padding: .55rem .6rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); touch-action: pan-y; }
 	.task-row:active { cursor: grabbing; }
-	.circle-check { display: grid; flex: 0 0 22px; place-items: center; width: 22px; height: 22px; border: 2px solid var(--border-subtle); border-radius: 99px; background: transparent; color: white; cursor: pointer; touch-action: manipulation; transition: all .15s ease; }
+	.circle-check { display: grid; flex: 0 0 22px; place-items: center; width: 22px; height: 22px; border: 2px solid var(--border-subtle); border-radius: 99px; background: transparent; color: var(--accent-contrast, #fff); cursor: pointer; touch-action: manipulation; transition: all .15s ease; }
 	.circle-check:hover { border-color: var(--accent); transform: scale(1.08); }
 	.circle-check.checked { border-color: #2f9e6e; background: #2f9e6e; }
+	.class-schedule-badge { display: grid; flex: 0 0 22px; place-items: center; width: 22px; height: 22px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent); }
 	.color-bar { flex: 0 0 4px; align-self: stretch; border-radius: 99px; }
 	.task-copy { display: grid; flex: 1; gap: .18rem; min-width: 0; border: 0; background: transparent; text-align: left; color: inherit; cursor: pointer; font-family: inherit; }
 	.task-copy b { font-size: .82rem; letter-spacing: -.01em; }
@@ -500,7 +560,9 @@
 	.task-row.done .task-copy b { color: var(--text-secondary); text-decoration: line-through; }
 	.task-row.missed { border-style: dashed; }
 	.dot { width: 8px; height: 8px; border-radius: 99px; }
-	.test-tag, .missed-tag { padding: .1rem .45rem; border-radius: 99px; font-size: .56rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+	.test-tag, .missed-tag, .class-tag, .subs-tag { padding: .1rem .45rem; border-radius: 99px; font-size: .56rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+	.class-tag { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
+	.subs-tag { color: var(--text-secondary); background: color-mix(in srgb, var(--surface-subtle) 80%, transparent); border: 1px solid var(--border-subtle); }
 	.test-tag { color: var(--accent); background: var(--accent-soft); }
 	.missed-tag { color: var(--text-secondary); border: 1px solid var(--border-subtle); }
 
@@ -521,7 +583,7 @@
 	.lib-list li { display: flex; align-items: center; gap: .7rem; padding: .7rem .8rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); }
 	.lib-list b { display: block; font-size: .8rem; }
 	.lib-list small { color: var(--text-secondary); font-size: .68rem; }
-	.apply { margin-left: auto; height: 44px; padding: 0 .75rem; border: 0; border-radius: 9px; background: var(--accent); color: white; font-size: .72rem; font-weight: 750; cursor: pointer; }
+	.apply { margin-left: auto; height: 44px; padding: 0 .75rem; border: 0; border-radius: 99px; background: var(--accent); color: var(--accent-contrast, white); font-size: .72rem; font-weight: 750; cursor: pointer; }
 	.lib-empty { margin: 0; color: var(--text-secondary); font-size: .8rem; line-height: 1.6; }
 
 	@media (max-width: 768px) {

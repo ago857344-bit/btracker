@@ -119,7 +119,7 @@
 	.tools { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
 	.grans, .toggle { display: inline-flex; gap: .2rem; padding: .25rem; border: 1px solid var(--border-subtle); border-radius: 999px; background: var(--surface-subtle); }
 	.grans button, .toggle button { padding: .38rem .75rem; border: 0; border-radius: 999px; background: transparent; color: var(--text-secondary); font-size: .68rem; font-weight: 800; letter-spacing: .05em; }
-	.grans button.active, .toggle button.active { color: #fff; background: var(--accent); }
+	.grans button.active, .toggle button.active { color: var(--accent-contrast, #fff); background: var(--accent); }
 	.nav { display: flex; gap: .4rem; margin: .9rem 0; }
 	.pg { display: grid; place-items: center; width: 27px; height: 27px; border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-secondary); background: var(--surface-panel); }
 	.pg:hover:not(:disabled) { color: var(--accent); border-color: var(--accent); }

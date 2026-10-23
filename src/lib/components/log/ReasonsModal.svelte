@@ -59,11 +59,11 @@
 	.opt:hover { border-color: var(--accent); }
 	.opt.on { border-color: var(--accent); background: var(--accent-soft); }
 	.bx { display: grid; place-items: center; width: 18px; height: 18px; border: 1.5px solid var(--border-subtle); border-radius: 6px; color: transparent; background: var(--surface-panel); }
-	.opt.on .bx { border-color: var(--accent); background: var(--accent); color: white; }
+	.opt.on .bx { border-color: var(--accent); background: var(--accent); color: var(--accent-contrast, white); }
 	.addrow { display: flex; gap: .5rem; margin-top: .9rem; }
 	.addrow input { flex: 1; height: 38px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-panel); color: var(--text-primary); font-size: .84rem; }
 	.addrow input:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
 	.ghost { height: 38px; padding: 0 .9rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-panel); color: var(--text-secondary); font-size: .8rem; font-weight: 700; }
 	.ghost:hover { color: var(--accent); border-color: var(--accent); }
-	.primary { height: 38px; padding: 0 1.1rem; border: 0; border-radius: 11px; background: var(--accent); color: white; font-size: .8rem; font-weight: 750; }
+	.primary { height: 38px; padding: 0 1.1rem; border: 0; border-radius: 11px; background: var(--accent); color: var(--accent-contrast, white); font-size: .8rem; font-weight: 750; }
 </style>

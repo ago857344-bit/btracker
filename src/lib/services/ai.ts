@@ -41,10 +41,11 @@ Structure your response exactly as follows:
 }
 
 export async function getAIPlannerBalance(
-	tasks: { id: string; text: any; sub: any }[],
+	tasks: { id: string; text: any; sub: any; ch?: any; subs?: any }[],
 	days: string[],
 	elo: { P: number; C: number; M: number },
-	academicConstraint: string = ''
+	academicConstraint: string = '',
+	scheduledClasses: { date: string; subject: string; topic: string }[] = []
 ): Promise<Record<string, string>> {
 	const prompt = `
 STUDENT ELO: Physics (${Math.floor(elo.P)}), Chemistry (${Math.floor(elo.C)}), Math (${Math.floor(elo.M)})
@@ -53,19 +54,44 @@ ${academicConstraint}
 AVAILABLE DATES (Next ${days.length} days):
 ${days.join(', ')}
 
-PENDING TASKS:
+${scheduledClasses.length > 0 ? `FIXED SCHEDULED CLASSES / TIMETABLE:\n${JSON.stringify(scheduledClasses, null, 2)}\n` : ''}
+
+PENDING TASKS TO BALANCE:
 ${JSON.stringify(tasks, null, 2)}
 `;
 
-	const sys = `You are a JEE study schedule optimizer. 
-Assign a date to each task ID.
-Balance the workload evenly across the available dates, prioritizing weaker subjects (lowest Elo) early in the week.
-OUTPUT STRICTLY A VALID JSON OBJECT mapping task IDs to date strings, e.g. {"task1": "2026-10-08", "task2": "2026-10-09"}. 
+	const sys = `You are an elite JEE study schedule optimizer. 
+Assign a date to each task ID from the available dates list.
+
+CRITICAL BALANCING RULES:
+1. SAME-DAY / NEXT-DAY PRACTICE COUPLING RULE:
+   If a chapter is being studied today (or has a scheduled class, theory reading, or lecture on date D), its corresponding practice questions, exercises (Ex 1, Ex 2, etc.), and problem solving MUST be scheduled on the SAME DAY (date D) or AT MOST the NEXT DAY (date D+1).
+   NEVER schedule a chapter's practice questions more than 1 day after studying the chapter!
+2. CHAPTER COHESION:
+   Tasks belonging to the same chapter (e.g. Chapter Theory and Chapter Exercises) must be clustered tightly together: Theory on Day D, Questions on Day D or Day D+1.
+3. SUBJECT BALANCE & ELO PRIORITIZATION:
+   Distribute workload evenly across the available dates without overloading any single day.
+   Prioritize weaker subjects (lowest Elo) earlier in the week.
+
+OUTPUT STRICTLY A VALID JSON OBJECT mapping task IDs to date strings, e.g. {"task1": "${days[0]}", "task2": "${days[1] || days[0]}"}. 
 Do not include Markdown fences like \`\`\`json. Return ONLY the raw JSON object.`;
 
 	const res = await askGemini(prompt, sys);
-	const cleanRes = res.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
-	return JSON.parse(cleanRes);
+	try {
+		const match = res.match(/\{[\s\S]*\}/);
+		if (match) {
+			return JSON.parse(match[0]);
+		}
+		const cleanRes = res.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+		return JSON.parse(cleanRes);
+	} catch (err) {
+		console.warn('AI planner balance JSON parse failed, falling back to round-robin:', err);
+		const fallbackMap: Record<string, string> = {};
+		tasks.forEach((t, i) => {
+			fallbackMap[t.id] = days[i % days.length];
+		});
+		return fallbackMap;
+	}
 }
 
 export async function getAICrashCourse(

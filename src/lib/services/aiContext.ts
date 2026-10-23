@@ -1,5 +1,5 @@
 import type { TrackerState } from '$lib/types/tracker';
-import { allChapters } from '$lib/state/syllabus';
+import { allChaptersWithCustom } from '$lib/state/syllabus';
 
 export interface UserAcademicContext {
 	gradeLevel: string;
@@ -40,7 +40,7 @@ export function getUserAcademicContext(tracker: TrackerState): UserAcademicConte
 	const subjects = ['P', 'C', 'M'] as const;
 	for (const sub of subjects) {
 		const grid = tracker?.chapterGrids?.[sub];
-		const chapters = allChapters(sub);
+		const chapters = allChaptersWithCustom(tracker, sub);
 
 		for (const ch of chapters) {
 			const isStarted = Boolean(grid?.started?.[ch.no]);

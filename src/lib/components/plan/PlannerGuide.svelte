@@ -34,5 +34,5 @@
 	.guide-icon { display: grid; flex: 0 0 32px; place-items: center; width: 32px; height: 32px; border-radius: 10px; color: var(--accent); background: var(--accent-soft); }
 	article b { font-size: .8rem; letter-spacing: -.01em; }
 	article p { margin: .25rem 0 0; color: var(--text-secondary); font-size: .72rem; line-height: 1.5; }
-	.guide-cta { height: 38px; padding: 0 1.1rem; border: 0; border-radius: 12px; color: white; background: var(--accent); font-size: .78rem; font-weight: 750; letter-spacing: .02em; cursor: pointer; }
+	.guide-cta { height: 38px; padding: 0 1.1rem; border: 0; border-radius: 12px; color: var(--accent-contrast, white); background: var(--accent); font-size: .78rem; font-weight: 750; letter-spacing: .02em; cursor: pointer; }
 </style>

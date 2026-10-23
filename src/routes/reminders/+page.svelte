@@ -561,7 +561,7 @@
 	.form { display: grid; gap: .85rem; }
 	.kind-row { display: inline-flex; gap: .3rem; padding: .28rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-subtle); }
 	.kind-row button { display: inline-flex; align-items: center; gap: .38rem; height: 34px; padding: 0 .85rem; border: 0; border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: .74rem; font-weight: 750; cursor: pointer; font-family: inherit; }
-	.kind-row button.selected { color: #fff; background: var(--accent); box-shadow: 0 6px 14px color-mix(in srgb, var(--accent), transparent 68%); }
+	.kind-row button.selected { color: var(--accent-contrast, #fff); background: var(--accent); box-shadow: 0 6px 14px color-mix(in srgb, var(--accent), transparent 68%); }
 	.field { display: grid; gap: .3rem; }
 	.field > small { color: var(--text-secondary); font-size: .64rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
 	.field input, .field select, .field textarea {
@@ -575,7 +575,7 @@
 	.ghost, .solid { display: inline-flex; align-items: center; gap: .4rem; height: 36px; padding: 0 .9rem; border-radius: 11px; font-size: .76rem; font-weight: 750; cursor: pointer; font-family: inherit; }
 	.ghost { border: 1px solid var(--border-subtle); background: var(--surface-panel); color: var(--text-secondary); }
 	.ghost:hover { color: var(--text-primary); border-color: var(--accent); }
-	.solid { border: 0; background: var(--accent); color: #fff; box-shadow: 0 8px 18px color-mix(in srgb, var(--accent), transparent 65%); }
+	.solid { border: 0; background: var(--accent); color: var(--accent-contrast, #fff); box-shadow: 0 8px 18px color-mix(in srgb, var(--accent), transparent 65%); }
 	.solid:disabled { opacity: .45; cursor: default; box-shadow: none; }
 
 	@media (max-width: 760px) {

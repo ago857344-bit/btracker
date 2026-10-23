@@ -37,7 +37,7 @@
 	ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; }
 	li { display: flex; align-items: center; gap: .55rem; padding: .5rem .6rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-subtle); }
 	li:hover { border-color: var(--accent); }
-	.check { display: grid; flex: 0 0 18px; place-items: center; width: 18px; height: 18px; border: 2px solid var(--border-subtle); border-radius: 99px; background: transparent; color: white; cursor: pointer; }
+	.check { display: grid; flex: 0 0 18px; place-items: center; width: 18px; height: 18px; border: 2px solid var(--border-subtle); border-radius: 99px; background: transparent; color: var(--accent-contrast, #fff);; cursor: pointer; }
 	.check.done { border-color: #2f9e6e; background: #2f9e6e; }
 	.copy { display: grid; flex: 1; min-width: 0; color: inherit; text-decoration: none; }
 	.copy b { font-size: .78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

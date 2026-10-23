@@ -134,7 +134,7 @@
 	}
 
 	.ghostbtn { height: 36px; padding: 0 .9rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: .8rem; font-weight: 700; cursor: pointer; }
-	.solidbtn { height: 36px; padding: 0 1rem; border: 0; border-radius: 10px; background: var(--accent); color: white; font-size: .8rem; font-weight: 750; cursor: pointer; }
+	.solidbtn { height: 36px; padding: 0 1rem; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-contrast, white); font-size: .8rem; font-weight: 750; cursor: pointer; }
 
 	@media (max-width: 500px) {
 		.row {

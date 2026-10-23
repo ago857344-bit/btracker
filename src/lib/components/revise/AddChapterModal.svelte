@@ -111,7 +111,7 @@
 	.actions { display: flex; justify-content: flex-end; gap: .55rem; }
 	.btn { padding: .62rem 1.2rem; border-radius: 11px; border: 1px solid transparent; font-size: .84rem; font-weight: 750; }
 	.btn.ghost { color: var(--text-secondary); border-color: var(--border-subtle); background: var(--surface-panel); }
-	.btn.solid { color: #fff; background: var(--accent); }
+	.btn.solid { color: var(--accent-contrast, #fff); background: var(--accent); }
 	.btn.solid:disabled { opacity: .45; }
 
 	.how { padding: 1rem; border: 1px dashed var(--border-subtle); border-radius: 16px; background: var(--surface-subtle); }

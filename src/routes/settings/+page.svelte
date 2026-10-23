@@ -8,7 +8,8 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import {
 		tracker, updateTracker, replaceTracker, celebration, targetsModalOpen,
-		setProfileName, setExamDate, setWeeklyGoalHours, setStreakGoalHours
+		setProfileName, setExamDate, setWeeklyGoalHours, setStreakGoalHours, applyStudyFlowMode,
+		triggerAscend
 	} from '$lib/stores/tracker';
 	import { createInitialTrackerState } from '$lib/state/defaults';
 	import { mergeImportedProgress } from '$lib/state/legacy-progress';
@@ -16,16 +17,22 @@
 	import { parseImportedProgress } from '$lib/services/progressImport';
 	import { longDateKey } from '$lib/state/dates';
 	import { onMount, onDestroy } from 'svelte';
-	import { THEME_PRESETS, presetOf, isDarkTheme, syncThemeWallpaper, isBuiltinWallpaper, resolveLiveWallpaper, resolveEcoMode, isMobileDevice } from '$lib/state/themes';
+	import { THEME_PRESETS, presetOf, isDarkTheme, syncThemeWallpaper, isBuiltinWallpaper, resolveLiveWallpaper, resolveEcoMode, isMobileDevice, wallpaperCss } from '$lib/state/themes';
+	import { tierEloOf, canAscend } from '$lib/state/gamification';
+	import { eloTier } from '$lib/state/weekly';
+	import { celebrateConfetti } from '$lib/utils/confetti';
 	import { unlockCtx } from '$lib/stores/cosmetics';
 	
 	import { itemOf, reqMet, reqLabel, reqStatus, reqProgress, AURORA_REQ, type UnlockCtx } from '$lib/state/cosmetics';
 	import { COSMETIC_SLOTS, type Slot } from '$lib/state/cosmetics';
 
-	import type { ThemeId, TrackerState, StateSnapshot, DashboardLayout } from '$lib/types/tracker';
+	import type { ThemeId, TrackerState, StateSnapshot, DashboardLayout, StudyFlowMode } from '$lib/types/tracker';
 	import { takeSnapshot, listSnapshots, restoreSnapshot, deleteSnapshot } from '$lib/services/persistence';
 	import CosmeticsModal from '$lib/components/cosmetics/CosmeticsModal.svelte';
 	import DashboardPreviewModal from '$lib/components/dashboard/DashboardPreviewModal.svelte';
+	import { analyzeWallpaperLuminance } from '$lib/utils/wallpaperContrast';
+	import { pwaInstalled, openPwaModal } from '$lib/stores/pwa';
+	import FocusPetCompanion from '$lib/components/focus/FocusPetCompanion.svelte';
 
 	const ACCENTS = ['#6d5dfc', '#e0455a', '#d99a2b', '#2f9e6e', '#2b8ba6', '#8b7bff', '#ff5c8a', '#b44df0'];
 	const THEMES = THEME_PRESETS;
@@ -70,6 +77,48 @@
 		celebration.set(`Switched dashboard layout to ${layout.charAt(0).toUpperCase() + layout.slice(1)}.`);
 	}
 
+	const STUDY_FLOW_OPTIONS: Array<{
+		id: StudyFlowMode;
+		emoji: string;
+		title: string;
+		badge: string;
+		desc: string;
+	}> = [
+		{
+			id: 'focus-log',
+			emoji: '🧘',
+			title: 'Deep Work & Study Tracker',
+			badge: 'Minimalist',
+			desc: 'Clean focus timers, question logging, and distraction-free study flow without clutter.'
+		},
+		{
+			id: 'planner-routine',
+			emoji: '📅',
+			title: 'Routine & Schedule Master',
+			badge: 'Discipline',
+			desc: 'Master coaching timetable periods, balance homework backlogs, and auto-plan daily routines.'
+		},
+		{
+			id: 'revision-mocks',
+			emoji: '🎯',
+			title: 'Revision & Mock Optimizer',
+			badge: 'Score Booster',
+			desc: 'Never forget concepts again. Active recall flashcards, spaced repetition decay, and mock test analysis.'
+		},
+		{
+			id: 'all-features',
+			emoji: '⚡',
+			title: 'Complete Command Center',
+			badge: 'Power User',
+			desc: 'Unlock every weapon: Planning, Focus, Revision, Flashcards, Mocks, Question Log, and AI Mentor.'
+		}
+	];
+
+	function setStudyFlow(mode: StudyFlowMode) {
+		applyStudyFlowMode(mode);
+		celebration.set(`Switched to ${STUDY_FLOW_OPTIONS.find((o) => o.id === mode)?.title}! Bento widgets updated.`);
+	}
+
 	
 	let devKeys = '';
 	function handleKey(e: KeyboardEvent) {
@@ -88,6 +137,21 @@
 	}
 
 	let nameDraft = $tracker.meta.name;
+
+	$: currentTierElo = Math.round(tierEloOf($tracker.gamification));
+	$: currentTier = eloTier(currentTierElo);
+	$: stars = $tracker.gamification?.prestige?.count ?? 0;
+	$: canAscendNow = canAscend($tracker.gamification) || !!$unlockCtx.devMode;
+	let ascendModalOpen = false;
+
+	function handleAscend() {
+		const ok = triggerAscend();
+		ascendModalOpen = false;
+		if (ok) {
+			celebrateConfetti({ count: 120, colors: ['#ff6b6b', '#ffd43b', '#69db7c', '#4dabf7', '#b197fc', '#ffffff'] });
+			celebration.set(`✨ Ascended to Prestige ★${stars + 1}! Celestial Prestige theme & cosmetics unlocked!`);
+		}
+	}
 
 	let previewModalOpen = false;
 	let selectedLockedTheme: any = null;
@@ -160,7 +224,7 @@
 		}
 	});
 	
-	$: isSpecialTheme = $tracker.theme === 'god-mode' || $tracker.theme === 'challenger' || $tracker.theme === 'initiate' || $tracker.theme === 'master';
+	$: isSpecialTheme = $tracker.theme === 'god-mode' || $tracker.theme === 'challenger' || $tracker.theme === 'initiate' || $tracker.theme === 'master' || $tracker.theme === 'catalyst' || $tracker.theme === 'celestial';
 
 	function canUseTheme(themeId: string, ctx: UnlockCtx) {
 		return reqMet(presetOf(themeId).unlock, ctx);
@@ -308,52 +372,21 @@
 	function analyzeWallpaper(url: string | null) {
 		if (!url || isBuiltinWallpaper(url)) return;
 		clearTimeout(analysisTimer);
-		analysisTimer = setTimeout(() => {
-			console.log('Analyzing wallpaper:', url);
-			const img = new Image();
-			img.crossOrigin = 'Anonymous';
-			
-			// Try using a fast, public CORS proxy if the internal one fails, or just use it directly
-			// Using corsproxy.io because it handles almost all image headers perfectly
-			// Since this is a Tauri app (static build), local SvelteKit API routes don't exist at runtime!
-			// We MUST use a reliable public image proxy that guarantees CORS headers for canvas manipulation.
-			img.src = url.startsWith("data:") ? url : `https://wsrv.nl/?url=${encodeURIComponent(url)}&output=jpg&w=128&h=128&fit=cover`;
-			
-			img.onload = () => {
-				console.log('Image loaded successfully');
-				try {
-					const canvas = document.createElement('canvas');
-					const ctx = canvas.getContext('2d');
-					canvas.width = 64; canvas.height = 64;
-					if (!ctx) return;
-					ctx.drawImage(img, 0, 0, 64, 64);
-					const data = ctx.getImageData(0, 0, 64, 64).data;
-					let r = 0, g = 0, b = 0, count = 0;
-					for (let i = 0; i < data.length; i += 16) {
-						r += data[i]; g += data[i + 1]; b += data[i + 2];
-						count++;
-					}
-					r /= count; g /= count; b /= count;
-					const luminance = (r * 0.299 + g * 0.587 + b * 0.114);
-					const isDark = luminance < 128;
-					console.log('Luminance:', luminance, 'isDark:', isDark);
-					
-					const currentIsDark = isDarkTheme($tracker.theme);
-					if (isDark && !currentIsDark) {
-						setTheme('dark');
-						celebration.set('Auto-switched to Dark Theme for dark wallpaper!');
-					} else if (!isDark && currentIsDark) {
-						setTheme('light');
-						celebration.set('Auto-switched to Light Theme for light wallpaper!');
-					}
-				} catch (e) {
-					console.error('Canvas manipulation failed:', e);
+		analysisTimer = setTimeout(async () => {
+			try {
+				const res = await analyzeWallpaperLuminance(url);
+				const currentIsDark = isDarkTheme($tracker.theme);
+				if (!res.isBright && !currentIsDark) {
+					setTheme('dark');
+					celebration.set('Auto-switched to Dark Theme for dark wallpaper!');
+				} else if (res.isBright && currentIsDark) {
+					setTheme('light');
+					celebration.set('Auto-switched to Light Theme for light wallpaper!');
 				}
-			};
-			img.onerror = (e) => {
-				console.error('Image load failed for analysis:', e);
-			};
-		}, 800);
+			} catch (e) {
+				console.error('Wallpaper analysis failed:', e);
+			}
+		}, 600);
 	}
 
 	$: if (browser && $tracker.ui.wallpaper) {
@@ -572,6 +605,56 @@
 				{/each}
 			</div>
 
+			<div class="prestige-chamber">
+				<div class="prestige-head">
+					<div class="prestige-title-group">
+						<span class="prestige-eyebrow">COMPETITIVE PRESTIGE LADDER</span>
+						<div class="prestige-stars-row">
+							<span class="prestige-star-badge">
+								★ {stars > 0 ? (stars > 3 ? `Prestige ${stars}` : '★'.repeat(stars)) : 'Prestige Level 0'}
+							</span>
+							{#if stars > 0}
+								<small class="ascension-count-pill">{stars} Ascension{stars > 1 ? 's' : ''} Achieved</small>
+							{/if}
+						</div>
+					</div>
+					{#if canAscendNow}
+						<button type="button" class="btn-ascend glowing" on:click={() => (ascendModalOpen = true)}>
+							<NavIcon name="sparkles" size={13} />
+							<span>Ascend Now ★</span>
+						</button>
+					{/if}
+				</div>
+
+				<p class="prestige-desc">
+					Reach <strong>God Tier (1,600+ Elo)</strong> to Ascend. Ascending awards a permanent Prestige Star (★), locks in your peak rating forever, permanently unlocks the <em>Celestial Prestige</em> theme &amp; cosmetics, and resets the seasonal ladder back to Bronze so you can climb again.
+				</p>
+
+				<div class="prestige-caution-box">
+					<span class="caution-icon"><NavIcon name="alert" size={14} /></span>
+					<div class="caution-copy">
+						<b>Caution: Seasonal Rating Reset</b>
+						<small>Ascending resets your seasonal ladder rating back to 300 Elo (Bronze) to begin climbing for your next star. Your 1,600+ peak Elo and God Mode remain unlocked forever.</small>
+					</div>
+				</div>
+
+				<div class="prestige-progress-wrap">
+					<div class="prestige-progress-bar">
+						<div class="prestige-progress-fill" style="width: {Math.min(100, (currentTierElo / 1600) * 100)}%"></div>
+					</div>
+					<div class="prestige-progress-labels">
+						<span>Current: <strong>{currentTierElo} Elo</strong> ({currentTier.name})</span>
+						<span>Ascension Gate: <strong>1,600 Elo</strong> (God Tier)</span>
+					</div>
+				</div>
+
+				{#if canAscendNow}
+					<div class="ascend-ready-banner">
+						<span>✨ You have reached God Tier ({currentTierElo} Elo)! Ready to Ascend to Prestige ★{stars + 1}?</span>
+					</div>
+				{/if}
+			</div>
+
 			<label class="check">
 				<input type="checkbox" checked={$tracker.ui.reducedMotion} on:change={(e) => { const v = e.currentTarget.checked; updateTracker((s) => { s.ui.reducedMotion = v; }); }} />
 				<span>Reduce motion</span>
@@ -683,6 +766,47 @@
 	</div>
 
 	<div class="settings-col">
+		<!-- Study Flow & Experience Mode -->
+		<div class="panel">
+			<h2><NavIcon name="target" size={15} /> Study Flow &amp; Feature Experience</h2>
+			<p class="muted">Tailor BTracker to your study priority. Adapts your sidebar, phone bottom bar, and home bento widgets automatically.</p>
+			<div class="study-flow-settings-grid">
+				{#each STUDY_FLOW_OPTIONS as opt (opt.id)}
+					<div
+						role="button"
+						tabindex="0"
+						class="flow-setting-card"
+						class:on={($tracker.ui?.studyFlowMode || 'all-features') === opt.id}
+						on:click={() => setStudyFlow(opt.id)}
+						on:keydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault();
+								setStudyFlow(opt.id);
+							}
+						}}
+					>
+						<div class="flow-card-head">
+							<span class="flow-emoji">{opt.emoji}</span>
+							<div class="flow-meta">
+								<div class="flow-title-row">
+									<span class="flow-name">{opt.title}</span>
+									<span class="flow-badge" class:active-badge={($tracker.ui?.studyFlowMode || 'all-features') === opt.id}>{opt.badge}</span>
+								</div>
+								<p class="flow-desc">{opt.desc}</p>
+							</div>
+						</div>
+						<div class="flow-card-foot">
+							{#if ($tracker.ui?.studyFlowMode || 'all-features') === opt.id}
+								<span class="active-tag"><NavIcon name="check" size={12} /> Active Experience</span>
+							{:else}
+								<span class="switch-tag">Switch Mode →</span>
+							{/if}
+						</div>
+					</div>
+				{/each}
+			</div>
+		</div>
+
 		<!-- 4. Dashboard Layout -->
 		<div class="panel">
 			<h2><NavIcon name="grid" size={15} /> Dashboard Layout</h2>
@@ -760,24 +884,53 @@
 			</label>
 		</div>
 
-		<!-- 6. Focus Gamification -->
+		<!-- 6. Focus Gamification: Evolvable Tamagotchi Companion -->
 		<div class="panel">
-			<h2><NavIcon name="brain" size={15} /> Focus Gamification</h2>
-			<p class="muted">Choose a visual companion to sit in the center of your deep work timer.</p>
-			<div class="cos-grid">
-				<button type="button" class="cos" class:on={($tracker.settings?.focusPet || 'orb') === 'orb'} on:click={() => updateTracker(s => { s.settings = s.settings || {}; s.settings.focusPet = 'orb'; })}>
-					<span>Orb</span>
-				</button>
-				<button type="button" class="cos" class:on={$tracker.settings?.focusPet === 'crystal'} on:click={() => updateTracker(s => { s.settings = s.settings || {}; s.settings.focusPet = 'crystal'; })}>
-					<span>Crystal</span>
-				</button>
-				<button type="button" class="cos" class:on={$tracker.settings?.focusPet === 'flame'} on:click={() => updateTracker(s => { s.settings = s.settings || {}; s.settings.focusPet = 'flame'; })}>
-					<span>Flame</span>
+			<h2><NavIcon name="brain" size={15} /> Evolvable Focus Companion (Tamagotchi)</h2>
+			<p class="muted">Your companion evolves through 5 cosmic forms (Spark → Proto-Star → Pulsar → Quasar → Supernova) as you feed it focus hours. Its aura mutates based on the subject you study most this week, and it sleeps if you go 24 hours without studying.</p>
+			
+			<div class="pet-settings-card">
+				<div class="pet-preview-stage">
+					<FocusPetCompanion size="large" showStats={true} />
+				</div>
+
+				<div class="pet-form-picker">
+					<span class="picker-label font-mono">CHOOSE BASE ESSENCE:</span>
+					<div class="cos-grid">
+						<button type="button" class="cos" class:on={($tracker.settings?.focusPet || 'orb') === 'orb'} on:click={() => updateTracker(s => { s.settings = s.settings || {}; s.settings.focusPet = 'orb'; })}>
+							<span>Orb</span>
+						</button>
+						<button type="button" class="cos" class:on={$tracker.settings?.focusPet === 'crystal'} on:click={() => updateTracker(s => { s.settings = s.settings || {}; s.settings.focusPet = 'crystal'; })}>
+							<span>Crystal</span>
+						</button>
+						<button type="button" class="cos" class:on={$tracker.settings?.focusPet === 'flame'} on:click={() => updateTracker(s => { s.settings = s.settings || {}; s.settings.focusPet = 'flame'; })}>
+							<span>Flame</span>
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- 7. Standalone Web App / PWA -->
+		<div class="panel">
+			<h2><NavIcon name="sparkles" size={15} /> Standalone Web App (PWA)</h2>
+			<p class="muted">Store BTracker as a dedicated app on your device for true full-screen immersion, offline study logs, and one-tap launch.</p>
+			<div class="pwa-settings-card">
+				<div class="pwa-settings-info">
+					<span class="pwa-badge" class:installed={$pwaInstalled}>
+						{$pwaInstalled ? 'ACTIVE STANDALONE APP' : 'WEB BROWSER TAB'}
+					</span>
+					<b>{$pwaInstalled ? 'Running as Dedicated Web App' : 'Running in Web Browser Tab'}</b>
+					<small>{$pwaInstalled ? 'Fullscreen standalone mode active with instant local caching & offline sync.' : 'Add to your Home Screen or Dock to remove browser address bars and tabs.'}</small>
+				</div>
+				<button type="button" class="btn accent" on:click={openPwaModal}>
+					<NavIcon name={$pwaInstalled ? 'sparkles' : 'download'} size={14} />
+					<span>{$pwaInstalled ? 'App Guide & Info' : 'Install / Add to Device'}</span>
 				</button>
 			</div>
 		</div>
 
-		<!-- 7. Data & Local Snapshot Vault -->
+		<!-- 8. Data & Local Snapshot Vault -->
 		<div class="panel">
 			<h2><NavIcon name="shield" size={15} /> Data</h2>
 			<p class="muted">Everything lives locally in your browser (IndexedDB). Backups are plain JSON files.</p>
@@ -882,6 +1035,35 @@
 {/if}
 
 
+<Modal bind:open={ascendModalOpen} title="ASCEND TO PRESTIGE ★" width="450px">
+	<div style="text-align: center; padding: 0.6rem 0;">
+		<div style="font-size: 2.8rem; line-height: 1; margin-bottom: 0.5rem; color: #ffd700; text-shadow: 0 0 18px rgba(255, 215, 0, 0.65);">★</div>
+		<h3 style="margin: 0 0 0.4rem; font-size: 1.15rem; color: var(--text-primary);">Ascend to Prestige Level {stars + 1}</h3>
+		<p style="color: var(--text-secondary); font-size: 0.8rem; line-height: 1.45; margin-bottom: 0.85rem;">
+			Ascending awards you a permanent <strong>Prestige Star (★)</strong> and permanently unlocks the <strong>Celestial Prestige Theme</strong>, <strong>Celestial Prism FX</strong>, <strong>Orbit Timer Skin</strong>, and <strong>Ascended Titles</strong>.
+		</p>
+		
+		<div class="modal-caution-card">
+			<div class="modal-caution-header">
+				<span class="warn-badge"><NavIcon name="alert" size={13} /></span>
+				<b>IMPORTANT CAUTION: SEASONAL ELO RESET</b>
+			</div>
+			<p class="modal-caution-text">
+				Your seasonal rating will <strong>immediately reset to 300 Elo (Bronze)</strong> to begin your climb toward Prestige ★{stars + 2}.
+			</p>
+			<ul class="modal-caution-checklist">
+				<li><span class="chk-good">✓</span> <span><strong>God Mode Kept Forever:</strong> Your peak {Math.max(currentTierElo, $tracker.gamification?.peak?.tierElo ?? 0)} Elo is permanently recorded. You will never lose God Mode.</span></li>
+				<li><span class="chk-good">✓</span> <span><strong>Prestige Star Earned:</strong> +1 star permanently shown in your profile and shareable report cards.</span></li>
+				<li><span class="chk-warn">⚠️</span> <span><strong>Active Ladder Resets:</strong> Your live dashboard badge will start back at Bronze (300 Elo) for the new climb.</span></li>
+			</ul>
+		</div>
+	</div>
+	<svelte:fragment slot="footer">
+		<button type="button" class="btn" on:click={() => (ascendModalOpen = false)}>Cancel</button>
+		<button type="button" class="btn accent" on:click={handleAscend}>I Understand, Ascend ★</button>
+	</svelte:fragment>
+</Modal>
+
 <Modal bind:open={previewModalOpen} title="THEME LOCKED" width="380px">
 	{#if selectedLockedTheme}
 		<div style="text-align: center; padding: 1rem 0;">
@@ -893,7 +1075,7 @@
 				<span style="color: var(--text-secondary); font-size: 0.78rem;">{selectedLockedTheme.unlock ? `You're at ${reqStatus(selectedLockedTheme.unlock, $unlockCtx)}.` : ''}</span>
 			</p>
 			{#if selectedLockedTheme.wallpaper}
-				<div style="height: 84px; border-radius: 10px; margin-bottom: 1.2rem; border: 1px solid var(--border-subtle); background: {selectedLockedTheme.wallpaper}; background-size: cover;"></div>
+				<div style="height: 84px; border-radius: 10px; margin-bottom: 1.2rem; border: 1px solid var(--border-subtle); background: {wallpaperCss(selectedLockedTheme.wallpaper)}; background-size: cover; background-position: center;"></div>
 			{/if}
 			<p style="color: var(--text-primary); font-size: 0.9rem; margin-bottom: 1.5rem; background: var(--surface-subtle); padding: 0.8rem; border-radius: 8px;">
 				Want to see what it looks like?<br>You can preview this theme for 60 seconds.
@@ -956,7 +1138,7 @@
 		padding: 2px 7px;
 		border-radius: 6px;
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 50%, transparent);
 	}
 
@@ -980,12 +1162,13 @@
 	.input { width: 100%; padding: .7rem; border-radius: 12px; border: 1px solid var(--border-subtle); background: var(--surface-subtle); color: var(--text-primary); font-size: .85rem; margin-bottom: 1rem; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05); }
 	.theme { display: inline-flex; flex-wrap: wrap; align-items: center; gap: .4rem; padding: .55rem .95rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-panel); color: var(--text-secondary); font-size: .76rem; font-weight: 650; text-align: left; transition: all 0.2s var(--ease-ios-spring); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04); cursor: pointer; -webkit-tap-highlight-color: transparent; }
 	.theme:active { transform: scale(0.97); }
-	.theme.on { color: #fff; border-color: var(--accent); background: var(--accent); box-shadow: 0 4px 12px color-mix(in srgb, var(--accent), transparent 50%), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+	.theme.on { color: var(--accent-contrast, #fff); border-color: var(--accent); background: var(--accent); box-shadow: 0 4px 12px color-mix(in srgb, var(--accent), transparent 50%), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
 	.theme-top { display: inline-flex; align-items: center; gap: .4rem; }
 	.tier-unlocked { border-color: color-mix(in srgb, var(--accent), transparent 85%); box-shadow: 0 0 10px color-mix(in srgb, var(--accent), transparent 78%); }
 	.unlock-track { flex-basis: 100%; height: 4px; margin-top: .3rem; border-radius: 99px; background: color-mix(in srgb, var(--text-primary), transparent 88%); overflow: hidden; }
 	.unlock-track i { display: block; height: 100%; border-radius: 99px; background: var(--accent); transition: width .3s ease; }
 	.unlock-copy { flex-basis: 100%; margin-top: .1rem; font-size: .6rem; font-weight: 750; letter-spacing: .05em; color: var(--text-secondary); }
+
 	.check { display: grid; grid-template-columns: auto 1fr; gap: .15rem .55rem; align-items: center; font-size: .84rem; }
 	.check input { width: 17px; height: 17px; accent-color: var(--accent); }
 	.check small { grid-column: 2; color: var(--text-secondary); font-size: .7rem; }
@@ -996,8 +1179,8 @@
 	.btn:hover { border-color: var(--accent); color: var(--accent); }
 	.btn:active { transform: scale(0.965); }
 	.btn.danger:hover { border-color: var(--danger, #e0455a); color: var(--danger, #e0455a); }
-	.btn.accent { border-color: var(--accent); background: var(--accent); color: #fff; box-shadow: 0 3px 10px color-mix(in srgb, var(--accent), transparent 55%), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
-	.btn.accent:hover { color: #fff; filter: brightness(1.08); }
+	.btn.accent { border-color: var(--accent); background: var(--accent); color: var(--accent-contrast, #fff); box-shadow: 0 3px 10px color-mix(in srgb, var(--accent), transparent 55%), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+	.btn.accent:hover { color: var(--accent-contrast, #fff); filter: brightness(1.08); }
 	.warn { margin: 0; color: var(--text-secondary); font-size: .84rem; line-height: 1.6; }
 
 	.legacy-label { margin: 0 0 .5rem; padding-top: 1.1rem; border-top: 1px solid var(--border-subtle); }
@@ -1011,7 +1194,7 @@
 	.hist-item.active { border-color: var(--accent); transform: scale(1.05); }
 	.hist-item .thumb { width: 100%; height: 100%; background-size: cover; background-position: center; opacity: 0.6; transition: opacity 0.2s ease; }
 	.hist-item:hover .thumb, .hist-item.active .thumb { opacity: 1; }
-	.hist-item .del-btn { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 4px; padding: 2px; cursor: pointer; opacity: 0; transition: opacity 0.2s ease; display: flex; align-items: center; justify-content: center; }
+	.hist-item .del-btn { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.6); color: var(--accent-contrast, #fff); border: none; border-radius: 4px; padding: 2px; cursor: pointer; opacity: 0; transition: opacity 0.2s ease; display: flex; align-items: center; justify-content: center; }
 	.hist-item:hover .del-btn { opacity: 1; }
 	.hist-item .del-btn:hover { background: var(--danger); }
 
@@ -1038,7 +1221,7 @@
 
 	.snapshot-vault { margin: 1.1rem 0 1.2rem; padding: 0.95rem 1rem; border-radius: 14px; background: var(--surface-subtle); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 0.75rem; }
 	.vault-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
-	.btn-snap-create { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.38rem 0.75rem; border-radius: 8px; border: none; background: var(--accent); color: white; font-size: 0.75rem; font-weight: 750; cursor: pointer; }
+	.btn-snap-create { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.38rem 0.75rem; border-radius: 8px; border: none; background: var(--accent); color: var(--accent-contrast, white); font-size: 0.75rem; font-weight: 750; cursor: pointer; }
 	.btn-snap-create:disabled { opacity: 0.6; cursor: wait; }
 	.snap-empty { font-size: 0.76rem; color: var(--text-secondary); padding: 0.4rem 0; }
 	.snap-list { display: flex; flex-direction: column; gap: 0.45rem; max-height: 220px; overflow-y: auto; }
@@ -1082,6 +1265,131 @@
 	}
 	.btn-theme-gear:active {
 		transform: scale(0.96);
+	}
+
+	/* Study Flow Settings Grid */
+	.study-flow-settings-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+		gap: 0.75rem;
+		margin-bottom: 0.5rem;
+	}
+
+	.flow-setting-card {
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		gap: 0.65rem;
+		padding: 0.95rem;
+		border-radius: 14px;
+		border: 1.5px solid var(--border-subtle);
+		background: color-mix(in srgb, var(--surface-subtle) 65%, transparent);
+		cursor: pointer;
+		transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+		text-align: left;
+	}
+
+	.flow-setting-card:hover {
+		border-color: color-mix(in srgb, var(--accent) 50%, var(--border-subtle));
+		background: color-mix(in srgb, var(--surface-panel) 90%, transparent);
+		transform: translateY(-2px);
+		box-shadow: 0 10px 24px -6px rgba(0, 0, 0, 0.16);
+	}
+
+	.flow-setting-card.on {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 8%, var(--surface-panel));
+		box-shadow: 0 0 0 1px var(--accent), 0 12px 28px -6px color-mix(in srgb, var(--accent) 24%, transparent);
+	}
+
+	.flow-card-head {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.7rem;
+	}
+
+	.flow-emoji {
+		font-size: 1.55rem;
+		line-height: 1;
+		flex: 0 0 auto;
+		padding: 0.3rem;
+		border-radius: 10px;
+		background: color-mix(in srgb, var(--surface-panel) 90%, transparent);
+		border: 1px solid var(--border-subtle);
+	}
+
+	.flow-meta {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		flex: 1;
+		min-width: 0;
+	}
+
+	.flow-title-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.4rem;
+	}
+
+	.flow-name {
+		font-size: 0.88rem;
+		font-weight: 800;
+		color: var(--text-primary);
+		letter-spacing: -0.015em;
+	}
+
+	.flow-badge {
+		font-size: 0.58rem;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: 0.12rem 0.45rem;
+		border-radius: 99px;
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		border: 1px solid var(--border-subtle);
+	}
+
+	.flow-badge.active-badge {
+		background: var(--accent);
+		color: var(--accent-contrast, #ffffff);
+		border-color: var(--accent);
+	}
+
+	.flow-desc {
+		font-size: 0.73rem;
+		line-height: 1.4;
+		color: var(--text-secondary);
+		margin: 0;
+	}
+
+	.flow-card-foot {
+		display: flex;
+		justify-content: flex-end;
+		padding-top: 0.25rem;
+		border-top: 1px solid color-mix(in srgb, var(--border-subtle) 60%, transparent);
+	}
+
+	.active-tag {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.68rem;
+		font-weight: 800;
+		color: var(--accent);
+	}
+
+	.switch-tag {
+		font-size: 0.68rem;
+		font-weight: 700;
+		color: var(--text-secondary);
+		transition: color 0.15s;
+	}
+
+	.flow-setting-card:hover .switch-tag {
+		color: var(--accent);
 	}
 
 	/* Dashboard Layout Options */
@@ -1218,7 +1526,7 @@
 		padding: 2px 6px;
 		border-radius: 99px;
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 	}
 	.layout-desc {
 		margin: 0;
@@ -1251,6 +1559,289 @@
 	}
 	.btn-card-preview:active {
 		transform: scale(0.97);
+	}
+
+	.pet-settings-card {
+		display: flex;
+		align-items: center;
+		justify-content: space-around;
+		gap: 1.5rem;
+		padding: 1.25rem 1.4rem;
+		border-radius: 16px;
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
+		flex-wrap: wrap;
+	}
+
+	.pet-preview-stage {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.pet-form-picker {
+		display: flex;
+		flex-direction: column;
+		gap: 0.6rem;
+		flex: 1;
+		min-width: 220px;
+	}
+
+	.picker-label {
+		font-size: 0.64rem;
+		font-weight: 800;
+		color: var(--text-secondary);
+		letter-spacing: 0.05em;
+	}
+
+	.pwa-settings-card {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		padding: 0.9rem 1.1rem;
+		border-radius: 14px;
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
+		flex-wrap: wrap;
+	}
+
+	.pwa-settings-info {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		flex: 1;
+		min-width: 200px;
+	}
+
+	.pwa-badge {
+		display: inline-block;
+		font-size: 0.62rem;
+		font-weight: 800;
+		letter-spacing: 0.05em;
+		padding: 0.12rem 0.5rem;
+		border-radius: 99px;
+		width: fit-content;
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		color: var(--accent);
+		border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+	}
+
+	.pwa-badge.installed {
+		background: color-mix(in srgb, var(--success, #2f9e6e) 15%, transparent);
+		color: var(--success, #2f9e6e);
+		border-color: color-mix(in srgb, var(--success, #2f9e6e) 30%, transparent);
+	}
+
+	.pwa-settings-info b {
+		font-size: 0.88rem;
+		font-weight: 750;
+		color: var(--text-primary);
+	}
+
+	.pwa-settings-info small {
+		font-size: 0.73rem;
+		color: var(--text-secondary);
+		line-height: 1.35;
+	}
+
+	.prestige-chamber {
+		margin-top: 1rem;
+		margin-bottom: 1.15rem;
+		padding: 1rem 1.1rem;
+		border-radius: 14px;
+		background: color-mix(in srgb, var(--accent) 7%, var(--surface-subtle));
+		border: 1px solid color-mix(in srgb, var(--accent) 26%, var(--border-subtle));
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+	}
+	.prestige-head {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		flex-wrap: wrap;
+	}
+	.prestige-title-group {
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+	.prestige-eyebrow {
+		font-size: 0.62rem;
+		font-weight: 800;
+		letter-spacing: 0.1em;
+		color: var(--text-secondary);
+	}
+	.prestige-stars-row {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.prestige-star-badge {
+		font-size: 0.92rem;
+		font-weight: 850;
+		color: #ffd700;
+		letter-spacing: 0.02em;
+	}
+	.ascension-count-pill {
+		font-size: 0.68rem;
+		font-weight: 700;
+		color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		padding: 0.15rem 0.55rem;
+		border-radius: 99px;
+	}
+	.btn-ascend {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.45rem 0.95rem;
+		border-radius: 99px;
+		background: linear-gradient(135deg, #ffd700, #ff8787, #b197fc);
+		color: #1a0f02;
+		font-weight: 800;
+		font-size: 0.78rem;
+		border: none;
+		cursor: pointer;
+		box-shadow: 0 4px 16px rgba(255, 215, 0, 0.35);
+		transition: transform 0.18s var(--ease-ios-spring), box-shadow 0.2s ease;
+	}
+	.btn-ascend:hover {
+		transform: translateY(-1px) scale(1.03);
+		box-shadow: 0 6px 22px rgba(255, 215, 0, 0.5);
+	}
+	.btn-ascend:active {
+		transform: scale(0.96);
+	}
+	.prestige-desc {
+		margin: 0;
+		font-size: 0.76rem;
+		color: var(--text-secondary);
+		line-height: 1.45;
+	}
+	.prestige-progress-wrap {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+	}
+	.prestige-progress-bar {
+		height: 6px;
+		border-radius: 99px;
+		background: color-mix(in srgb, var(--text-primary) 12%, transparent);
+		overflow: hidden;
+	}
+	.prestige-progress-fill {
+		height: 100%;
+		border-radius: 99px;
+		background: linear-gradient(90deg, var(--accent), #ffd700);
+		transition: width 0.4s ease;
+	}
+	.prestige-progress-labels {
+		display: flex;
+		justify-content: space-between;
+		font-size: 0.7rem;
+		color: var(--text-secondary);
+	}
+	.ascend-ready-banner {
+		padding: 0.5rem 0.75rem;
+		border-radius: 10px;
+		background: color-mix(in srgb, #ffd700 15%, transparent);
+		border: 1px solid color-mix(in srgb, #ffd700 35%, transparent);
+		font-size: 0.76rem;
+		color: var(--text-primary);
+		font-weight: 650;
+	}
+
+	.prestige-caution-box {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.55rem;
+		padding: 0.65rem 0.8rem;
+		border-radius: 10px;
+		background: color-mix(in srgb, #f59f00 10%, var(--surface-subtle));
+		border: 1px solid color-mix(in srgb, #f59f00 32%, var(--border-subtle));
+		margin-top: 0.15rem;
+	}
+	.prestige-caution-box :global(.caution-icon) {
+		color: #f59f00;
+		flex-shrink: 0;
+		margin-top: 1px;
+	}
+	.prestige-caution-box .caution-copy {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+	.prestige-caution-box .caution-copy b {
+		font-size: 0.72rem;
+		color: #f59f00;
+		font-weight: 800;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+	}
+	.prestige-caution-box .caution-copy small {
+		font-size: 0.7rem;
+		color: var(--text-secondary);
+		line-height: 1.35;
+	}
+
+	.modal-caution-card {
+		text-align: left;
+		background: color-mix(in srgb, #f59f00 8%, var(--surface-subtle));
+		border: 1.5px solid color-mix(in srgb, #f59f00 36%, var(--border-subtle));
+		border-radius: 14px;
+		padding: 0.85rem 1rem;
+		box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+	}
+	.modal-caution-header {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		color: #f59f00;
+		font-size: 0.75rem;
+		font-weight: 850;
+		letter-spacing: 0.04em;
+		margin-bottom: 0.35rem;
+	}
+	.modal-caution-header .warn-badge {
+		display: grid;
+		place-items: center;
+		color: #f59f00;
+	}
+	.modal-caution-text {
+		font-size: 0.78rem;
+		color: var(--text-primary);
+		line-height: 1.45;
+		margin: 0 0 0.55rem;
+	}
+	.modal-caution-checklist {
+		list-style: none;
+		padding: 0;
+		margin: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+	}
+	.modal-caution-checklist li {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.45rem;
+		font-size: 0.72rem;
+		line-height: 1.35;
+		color: var(--text-secondary);
+	}
+	.modal-caution-checklist .chk-good {
+		color: var(--success, #42b883);
+		font-weight: 900;
+		flex-shrink: 0;
+	}
+	.modal-caution-checklist .chk-warn {
+		flex-shrink: 0;
+		font-size: 0.76rem;
 	}
 
 	@media (max-width: 768px) {

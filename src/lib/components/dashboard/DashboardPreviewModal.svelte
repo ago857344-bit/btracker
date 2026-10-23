@@ -227,7 +227,7 @@
 		padding: 3px 8px;
 		border-radius: 99px;
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		flex-shrink: 0;
 	}
 
@@ -452,7 +452,7 @@
 		border-radius: 12px;
 		border: none;
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		font-size: 0.82rem;
 		font-weight: 800;
 		cursor: pointer;

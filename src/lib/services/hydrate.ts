@@ -183,6 +183,32 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 	}
 	const known = new Set(merged.ui.widgets.map((w) => w.id));
 	for (const widget of DEFAULT_WIDGETS) if (!known.has(widget.id)) merged.ui.widgets.push({ ...widget });
+
+	// Migrate layout: disable due-homework, set new-target to span 1, yearly-heatmap to span 2 beside new-target
+	if (!saved.ui || !(saved.ui as any).v4_heatmap_layout) {
+		const dueHw = merged.ui.widgets.find((w) => w.id === 'due-homework');
+		if (dueHw) dueHw.enabled = false;
+		const newTarget = merged.ui.widgets.find((w) => w.id === 'new-target');
+		if (newTarget) newTarget.span = 1;
+		const heatmap = merged.ui.widgets.find((w) => w.id === 'yearly-heatmap');
+		if (heatmap) {
+			heatmap.span = 2;
+			if (newTarget) {
+				heatmap.order = newTarget.order + 0.5;
+			}
+		}
+		merged.ui.widgets.sort((a, b) => a.order - b.order).forEach((w, idx) => { w.order = idx; });
+		(merged.ui as any).v4_heatmap_layout = true;
+	}
+
+	// Clean any previously expanded chapter names in timetable periods back to raw codes (e.g. "Definite Integration (M18)" -> "M18")
+	if (merged.timetable?.periods) {
+		for (const p of merged.timetable.periods) {
+			if (p.topic) {
+				p.topic = p.topic.replace(/^.+\s+\(([PMC]\d+)\)$/, '$1');
+			}
+		}
+	}
 	
 	// Auto-heal and reconcile custom exercises from question bitmasks in d
 	const builtInCodes = new Set(['I', '1', '2', '3', '4', 'M', 'A']);

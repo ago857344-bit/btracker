@@ -141,7 +141,7 @@
 	.btn { display: inline-flex; align-items: center; gap: .4rem; height: 36px; padding: 0 .95rem; border-radius: 11px; font-size: .78rem; font-weight: 750; border: 1px solid transparent; cursor: pointer; }
 	.btn.ghost { color: var(--text-secondary); border-color: var(--border-subtle); background: transparent; }
 	.btn.ghost:hover { color: var(--text-primary); }
-	.btn.solid { color: white; background: var(--accent); }
+	.btn.solid { color: var(--accent-contrast, white); background: var(--accent); }
 	.btn.danger { width: 36px; justify-content: center; padding: 0; color: var(--danger, #e0455a); border-color: var(--border-subtle); background: transparent; margin-right: auto; }
 	.btn.danger:hover { border-color: var(--danger, #e0455a); background: color-mix(in srgb, var(--danger, #e0455a), transparent 88%); }
 </style>

@@ -446,7 +446,7 @@
 		justify-content: space-between;
 		gap: 1rem;
 		padding-bottom: 0.75rem;
-		border-bottom: 1px solid color-mix(in srgb, var(--border-subtle, rgba(255, 255, 255, 0.1)) 40%, transparent);
+		border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 40%, transparent);
 	}
 	.view-title {
 		margin: 0.2rem 0 0;
@@ -718,7 +718,7 @@
 	}
 	.pill-btn.active {
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 	}
 	.btn-log-trigger {
 		display: grid;
@@ -934,7 +934,7 @@
 	.btn-solid {
 		padding: 0.45rem 1.25rem;
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		border: none;
 		font-size: 0.76rem;
 		font-weight: 750;

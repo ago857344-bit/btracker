@@ -9,7 +9,7 @@ const ASSETS = [
 ];
 
 const ROUTES = [
-  '/', '/log', '/plan', '/focus', '/review', '/revise', '/stats', '/todo', '/tests', '/settings', '/flashcards', '/reminders'
+  '/', '/log', '/plan', '/focus', '/review', '/revise', '/dump', '/stats', '/todo', '/tests', '/settings', '/reminders'
 ];
 
 self.addEventListener('install', (event: any) => {

@@ -94,7 +94,7 @@
 	.stepper button { width: 28px; height: 28px; border: 1px solid var(--border-subtle); border-radius: 9px; color: var(--text-secondary); background: var(--surface-panel); font-size: 1rem; line-height: 1; }
 	.stepper button:hover { color: var(--accent); border-color: var(--accent); }
 	.stepper b { min-width: 28px; text-align: center; font-size: 1rem; font-variant-numeric: tabular-nums; }
-	.save { width: 100%; margin-top: 1.1rem; padding: .8rem; border: 0; border-radius: 13px; color: #fff; background: var(--accent); font-size: .9rem; font-weight: 800; letter-spacing: .02em; box-shadow: 0 8px 18px color-mix(in srgb, var(--accent), transparent 66%); }
+	.save { width: 100%; margin-top: 1.1rem; padding: .8rem; border: 0; border-radius: 13px; color: var(--accent-contrast, #fff); background: var(--accent); font-size: .9rem; font-weight: 800; letter-spacing: .02em; box-shadow: 0 8px 18px color-mix(in srgb, var(--accent), transparent 66%); }
 	.save.saved { background: var(--success, #2f9e6e); box-shadow: none; }
 	.brand { margin: .8rem 0 0; text-align: center; color: var(--text-secondary); font-size: .6rem; font-weight: 800; letter-spacing: .18em; }
 </style>

@@ -356,10 +356,12 @@
 		display: flex;
 		gap: 0.4rem;
 		align-items: center;
+		flex-wrap: wrap;
 	}
 
 	.custom-row input[type='date'] {
-		flex: 1;
+		flex: 1 1 130px;
+		min-width: 0;
 		height: 32px;
 		padding: 0 0.5rem;
 		border: 1px solid var(--border-subtle);
@@ -376,7 +378,7 @@
 		border: none;
 		border-radius: 8px;
 		background: var(--accent);
-		color: white;
+		color: var(--accent-contrast, #fff);
 		font-size: 0.72rem;
 		font-weight: 750;
 		cursor: pointer;
@@ -442,7 +444,7 @@
 		display: flex;
 		flex-direction: column;
 		align-items: flex-start;
-		padding: 0.5rem 0.6rem;
+		padding: 0.45rem 0.55rem;
 		border-radius: 9px;
 		border: 1px solid var(--border-subtle);
 		background: var(--surface-subtle);
@@ -450,7 +452,9 @@
 		text-align: left;
 		transition: all 0.15s;
 		font-family: inherit;
-		gap: 0.15rem;
+		gap: 0.12rem;
+		min-width: 0;
+		overflow: hidden;
 	}
 
 	.preset-card:hover {
@@ -478,14 +482,22 @@
 	}
 
 	.card-name {
-		font-size: 0.76rem;
+		font-size: 0.74rem;
 		color: var(--text-primary);
 		font-weight: 750;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 100%;
 	}
 
 	.card-date {
-		font-size: 0.64rem;
+		font-size: 0.62rem;
 		color: var(--text-secondary);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		max-width: 100%;
 	}
 
 	@media (max-width: 500px) {

@@ -1,19 +1,60 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import type { ComponentProps } from 'svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { uiClick, uiPop } from '$lib/utils/feedback';
 	import { onMount } from 'svelte';
+	import { tracker } from '$lib/stores/tracker';
 
-	const tabs = [
-		{ href: '/', label: 'Home', icon: 'home' },
-		{ href: '/log', label: 'Log', icon: 'grid' },
-		{ href: '/focus', label: 'Focus', icon: 'focus' },
-		{ href: '/todo', label: 'To Do', icon: 'list' },
-		{ href: '/settings', label: 'Settings', icon: 'settings' }
-	] as const;
+	type NavIconName = ComponentProps<NavIcon>['name'];
+	interface BottomTab {
+		href: string;
+		label: string;
+		icon: NavIconName;
+	}
 
-	$: activeIdx = Math.max(0, tabs.findIndex((t) => t.href === '/' ? $page.url.pathname === '/' : $page.url.pathname.startsWith(t.href)));
+	$: flowMode = $tracker.ui?.studyFlowMode || 'all-features';
+
+	let tabs: readonly BottomTab[] = [];
+	$: tabs = (() => {
+		if (flowMode === 'focus-log') {
+			return [
+				{ href: '/', label: 'Home', icon: 'home' },
+				{ href: '/focus', label: 'Focus', icon: 'focus' },
+				{ href: '/log', label: 'Log', icon: 'grid' },
+				{ href: '/todo', label: 'To Do', icon: 'list' },
+				{ href: '/settings', label: 'Settings', icon: 'settings' }
+			] as const;
+		}
+		if (flowMode === 'planner-routine') {
+			return [
+				{ href: '/', label: 'Home', icon: 'home' },
+				{ href: '/plan', label: 'Plan', icon: 'plan' },
+				{ href: '/todo', label: 'To Do', icon: 'list' },
+				{ href: '/focus', label: 'Focus', icon: 'focus' },
+				{ href: '/settings', label: 'Settings', icon: 'settings' }
+			] as const;
+		}
+		if (flowMode === 'revision-mocks') {
+			return [
+				{ href: '/', label: 'Home', icon: 'home' },
+				{ href: '/revise', label: 'Revise', icon: 'revise' },
+				{ href: '/tests', label: 'Tests', icon: 'tests' },
+				{ href: '/stats', label: 'Stats', icon: 'stats' },
+				{ href: '/settings', label: 'Settings', icon: 'settings' }
+			] as const;
+		}
+		return [
+			{ href: '/', label: 'Home', icon: 'home' },
+			{ href: '/log', label: 'Log', icon: 'grid' },
+			{ href: '/focus', label: 'Focus', icon: 'focus' },
+			{ href: '/todo', label: 'To Do', icon: 'list' },
+			{ href: '/settings', label: 'Settings', icon: 'settings' }
+		] as const;
+	})();
+
+	$: activeIdx = tabs.findIndex((t) => t.href === '/' ? $page.url.pathname === '/' : $page.url.pathname.startsWith(t.href));
 
 	let navEl: HTMLElement;
 	let navWidth = 0;
@@ -29,9 +70,14 @@
 	$: usableWidth = Math.max(0, navWidth - pad * 2);
 	$: tabWidth = usableWidth > 0 ? usableWidth / tabs.length : 0;
 
+	let lastValidIdx = 0;
+	$: if (activeIdx !== -1) {
+		lastValidIdx = activeIdx;
+	}
+
 	// Resting geometry
 	$: idlePillWidth = Math.max(0, tabWidth - 2);
-	$: idlePillLeft = pad + activeIdx * tabWidth + 1;
+	$: idlePillLeft = pad + (activeIdx !== -1 ? activeIdx : lastValidIdx) * tabWidth + 1;
 
 	// Dragging geometry (stretches & gets big)
 	$: dragPillWidth = Math.max(0, tabWidth * 1.38);
@@ -137,6 +183,7 @@
 		<div
 			class="active-pill"
 			class:big={isDragging}
+			class:hidden-pill={activeIdx === -1 && !isDragging}
 			style="left: {pillLeft}px; width: {pillWidth}px;"
 		>
 			<div class="pill-specular" aria-hidden="true"></div>
@@ -175,7 +222,7 @@
 			max-width: 430px;
 			height: 68px;
 			padding: 5px;
-			background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
+			background: color-mix(in srgb, var(--surface-panel, #121020) 86%, transparent) !important;
 			backdrop-filter: blur(36px) saturate(210%);
 			-webkit-backdrop-filter: blur(36px) saturate(210%);
 			border-radius: 9999px;
@@ -195,9 +242,94 @@
 		:global(:root[data-theme='duolingo']) .bottom-nav,
 		:global(:root[data-theme='anki']) .bottom-nav,
 		:global(:root[data-theme='master']) .bottom-nav {
-			background: var(--surface-popup, rgba(255, 255, 255, 0.96)) !important;
-			border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08));
-			box-shadow: 0 24px 64px -8px rgba(44, 37, 92, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.95);
+			background: color-mix(in srgb, var(--surface-panel, #ffffff) 88%, transparent) !important;
+			border: 1px solid color-mix(in srgb, var(--border-subtle) 85%, rgba(0, 0, 0, 0.08));
+			box-shadow: 0 16px 48px -8px rgba(44, 37, 92, 0.14), inset 0 1px 1px rgba(255, 255, 255, 0.95);
+		}
+
+		/* Wallpaper Mode: Bottom Navigation adapts to custom wallpaper bottom & accent */
+		:global(:root[data-wallpaper='true']) .bottom-nav,
+		:global(:root[data-live-wallpaper='true']) .bottom-nav {
+			background: color-mix(in srgb, var(--wallpaper-bottom-color, var(--surface-panel)) 48%, rgba(10, 8, 20, 0.48)) !important;
+			backdrop-filter: blur(36px) saturate(220%);
+			-webkit-backdrop-filter: blur(36px) saturate(220%);
+			border: 1px solid color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 32%, rgba(255, 255, 255, 0.22)) !important;
+			box-shadow: 0 20px 56px -8px color-mix(in srgb, var(--wallpaper-bottom-color, #000000) 65%, rgba(0, 0, 0, 0.7)),
+						inset 0 1px 1.5px rgba(255, 255, 255, 0.28) !important;
+		}
+
+		:global(:root[data-wallpaper='true'][data-wallpaper-bottom-bright='true']) .bottom-nav,
+		:global(:root[data-wallpaper='true'][data-wallpaper-luminance='bright']) .bottom-nav,
+		:global(:root[data-live-wallpaper='true'][data-wallpaper-bottom-bright='true']) .bottom-nav {
+			background: color-mix(in srgb, var(--wallpaper-bottom-color, #ffffff) 65%, rgba(255, 255, 255, 0.62)) !important;
+			backdrop-filter: blur(36px) saturate(220%);
+			-webkit-backdrop-filter: blur(36px) saturate(220%);
+			border: 1px solid color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 32%, rgba(0, 0, 0, 0.12)) !important;
+			box-shadow: 0 16px 44px -8px color-mix(in srgb, var(--wallpaper-bottom-color, #1a1a2e) 25%, rgba(0, 0, 0, 0.15)),
+						inset 0 1px 1px rgba(255, 255, 255, 0.95) !important;
+		}
+
+		:global(:root[data-theme='light']) .active-pill,
+		:global(:root[data-theme='notion']) .active-pill,
+		:global(:root[data-theme='duolingo']) .active-pill,
+		:global(:root[data-theme='anki']) .active-pill,
+		:global(:root[data-theme='master']) .active-pill {
+			background: color-mix(in srgb, var(--accent) 14%, #ffffff) !important;
+			border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent) !important;
+			box-shadow: 0 6px 20px -2px color-mix(in srgb, var(--accent) 26%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+		}
+
+		:global(:root[data-theme='light']) .active-pill.big,
+		:global(:root[data-theme='notion']) .active-pill.big,
+		:global(:root[data-theme='duolingo']) .active-pill.big,
+		:global(:root[data-theme='anki']) .active-pill.big,
+		:global(:root[data-theme='master']) .active-pill.big {
+			background: color-mix(in srgb, var(--accent) 22%, #ffffff) !important;
+			border-color: color-mix(in srgb, var(--accent) 45%, transparent) !important;
+			box-shadow: 0 10px 28px -2px color-mix(in srgb, var(--accent) 38%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+		}
+
+		/* Wallpaper Mode: Active Pill glow and accents */
+		:global(:root[data-wallpaper='true']) .active-pill,
+		:global(:root[data-live-wallpaper='true']) .active-pill {
+			background: radial-gradient(
+				circle at 50% 20%,
+				color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 45%, rgba(255, 255, 255, 0.28)),
+				color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 20%, transparent 45%)
+			) !important;
+			border: 0.5px solid color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 65%, rgba(255, 255, 255, 0.45)) !important;
+			box-shadow: 0 10px 28px -4px color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 50%, transparent),
+						inset 0 1px 2px rgba(255, 255, 255, 0.55) !important;
+		}
+
+		:global(:root[data-wallpaper='true']) .active-pill.big,
+		:global(:root[data-live-wallpaper='true']) .active-pill.big {
+			background: radial-gradient(
+				circle at 50% 18%,
+				color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 58%, rgba(255, 255, 255, 0.35)),
+				color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 30%, transparent 20%)
+			) !important;
+			border-color: color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 85%, rgba(255, 255, 255, 0.65)) !important;
+			box-shadow: 0 14px 40px color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 72%, transparent),
+						inset 0 1.5px 2px rgba(255, 255, 255, 0.72) !important;
+		}
+
+		:global(:root[data-wallpaper='true'][data-wallpaper-bottom-bright='true']) .active-pill,
+		:global(:root[data-wallpaper='true'][data-wallpaper-luminance='bright']) .active-pill,
+		:global(:root[data-live-wallpaper='true'][data-wallpaper-bottom-bright='true']) .active-pill {
+			background: color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 18%, #ffffff) !important;
+			border: 1px solid color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 40%, transparent) !important;
+			box-shadow: 0 6px 20px -2px color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 30%, transparent),
+						inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+		}
+
+		:global(:root[data-wallpaper='true'][data-wallpaper-bottom-bright='true']) .active-pill.big,
+		:global(:root[data-wallpaper='true'][data-wallpaper-luminance='bright']) .active-pill.big,
+		:global(:root[data-live-wallpaper='true'][data-wallpaper-bottom-bright='true']) .active-pill.big {
+			background: color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 28%, #ffffff) !important;
+			border-color: color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 55%, transparent) !important;
+			box-shadow: 0 10px 28px -2px color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 42%, transparent),
+						inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
 		}
 
 		/* Active Glass Pill Indicator (Apple Music Style) */
@@ -216,8 +348,15 @@
 						width 0.34s cubic-bezier(0.32, 0.72, 0, 1),
 						height 0.25s cubic-bezier(0.32, 0.72, 0, 1),
 						transform 0.25s cubic-bezier(0.32, 0.72, 0, 1),
+						opacity 0.22s ease,
 						box-shadow 0.25s ease,
 						background 0.25s ease;
+		}
+
+		.active-pill.hidden-pill {
+			opacity: 0 !important;
+			transform: translateY(-50%) scale(0.72) !important;
+			pointer-events: none;
 		}
 
 		/* Stretches and enlarges with intense reactivity while dragging */
@@ -269,6 +408,31 @@
 		.tab.active {
 			color: var(--accent);
 			opacity: 1 !important;
+		}
+
+		/* Wallpaper Mode: tab icons and labels adapt to wallpaper */
+		:global(:root[data-wallpaper='true']) .tab.active,
+		:global(:root[data-live-wallpaper='true']) .tab.active {
+			color: var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) !important;
+			text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+		}
+
+		:global(:root[data-wallpaper='true']) .tab:not(.active),
+		:global(:root[data-live-wallpaper='true']) .tab:not(.active) {
+			color: rgba(255, 255, 255, 0.76);
+		}
+
+		:global(:root[data-wallpaper='true'][data-wallpaper-bottom-bright='true']) .tab:not(.active),
+		:global(:root[data-wallpaper='true'][data-wallpaper-luminance='bright']) .tab:not(.active),
+		:global(:root[data-live-wallpaper='true'][data-wallpaper-bottom-bright='true']) .tab:not(.active) {
+			color: rgba(20, 20, 32, 0.68) !important;
+		}
+
+		:global(:root[data-wallpaper='true'][data-wallpaper-bottom-bright='true']) .tab.active,
+		:global(:root[data-wallpaper='true'][data-wallpaper-luminance='bright']) .tab.active,
+		:global(:root[data-live-wallpaper='true'][data-wallpaper-bottom-bright='true']) .tab.active {
+			color: var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) !important;
+			text-shadow: none;
 		}
 
 		.tab.drag-target .icon-wrap {

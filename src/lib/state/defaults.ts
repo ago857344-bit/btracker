@@ -1,6 +1,6 @@
 import type {
 	AnalysisFolder, AnalysisState, CustomizationState, GoalsState, MarksState, MetaState, PomodoroSettings,
-	RevisionState, TrackerState, UiPreferences, WidgetLayout, ChapterRecallData, SubtopicProgress, ModalityTag
+	RevisionState, TrackerState, UiPreferences, WidgetLayout, ChapterRecallData, SubtopicProgress, ModalityTag, StudyFlowMode
 } from '$lib/types/tracker';
 import { createInitialDecayMetrics } from './decay';
 import { dayKeyOf, lastNDays, todayKey } from './dates';
@@ -120,26 +120,110 @@ export const createMeta = (): MetaState => ({
 	dailyRevisionGoal: 3,
 	dreamCollege: ''
 });
-export const DEFAULT_WIDGETS: WidgetLayout[] = [
-	{ id: 'daily-progress', enabled: true, order: 0, span: 2 },
-	{ id: 'quote', enabled: true, order: 1, span: 1 },
-	{ id: 'subjects', enabled: true, order: 2, span: 3 },
-	{ id: 'brain-dump', enabled: true, order: 3, span: 2 },
-	{ id: 'weekly-standing', enabled: true, order: 4, span: 1 },
-	{ id: 'new-target', enabled: true, order: 5, span: 2 },
-	{ id: 'up-next', enabled: true, order: 6, span: 1 },
-	{ id: 'due-homework', enabled: true, order: 7, span: 2 },
-	{ id: 'activity', enabled: true, order: 8, span: 3, height: 'lg' },
-	{ id: 'yearly-heatmap', enabled: true, order: 9, span: 3, height: 'md' },
-	{ id: 'standing', enabled: false, order: 10, span: 1 },
-];
-export const createUiPreferences = (): UiPreferences => ({ accent: '#6d5dfc', widgets: DEFAULT_WIDGETS, reducedMotion: false, wallpaper: null, glassStrength: 100, haptics: true, sounds: true, cutoutStyle: 'auto', dashboardLayout: isMobileDevice() ? 'compact' : 'default' });
+export const WIDGET_PRESETS_BY_MODE: Record<StudyFlowMode, WidgetLayout[]> = {
+	'focus-log': [
+		{ id: 'daily-progress', enabled: true, order: 0, span: 2 },
+		{ id: 'subjects', enabled: true, order: 1, span: 2 },
+		{ id: 'quote', enabled: true, order: 2, span: 1 },
+		{ id: 'weekly-standing', enabled: true, order: 3, span: 1 },
+		{ id: 'brain-dump', enabled: true, order: 4, span: 2 },
+		{ id: 'yearly-heatmap', enabled: true, order: 5, span: 2, height: 'md' },
+		{ id: 'activity', enabled: true, order: 6, span: 3, height: 'lg' },
+		{ id: 'new-target', enabled: false, order: 7, span: 1 },
+		{ id: 'coaching-schedule', enabled: false, order: 8, span: 2 },
+		{ id: 'up-next', enabled: false, order: 9, span: 1 },
+		{ id: 'due-homework', enabled: false, order: 10, span: 2 },
+		{ id: 'revision-due', enabled: false, order: 11, span: 2 },
+		{ id: 'standing', enabled: false, order: 12, span: 1 }
+	],
+	'planner-routine': [
+		{ id: 'coaching-schedule', enabled: true, order: 0, span: 2 },
+		{ id: 'up-next', enabled: true, order: 1, span: 1 },
+		{ id: 'due-homework', enabled: true, order: 2, span: 2 },
+		{ id: 'daily-progress', enabled: true, order: 3, span: 1 },
+		{ id: 'brain-dump', enabled: true, order: 4, span: 2 },
+		{ id: 'quote', enabled: true, order: 5, span: 1 },
+		{ id: 'weekly-standing', enabled: true, order: 6, span: 1 },
+		{ id: 'activity', enabled: true, order: 7, span: 2 },
+		{ id: 'subjects', enabled: false, order: 8, span: 3 },
+		{ id: 'yearly-heatmap', enabled: false, order: 9, span: 2, height: 'md' },
+		{ id: 'new-target', enabled: false, order: 10, span: 1 },
+		{ id: 'revision-due', enabled: false, order: 11, span: 2 },
+		{ id: 'standing', enabled: false, order: 12, span: 1 }
+	],
+	'revision-mocks': [
+		{ id: 'revision-due', enabled: true, order: 0, span: 2 },
+		{ id: 'new-target', enabled: true, order: 1, span: 1 },
+		{ id: 'subjects', enabled: true, order: 2, span: 2 },
+		{ id: 'weekly-standing', enabled: true, order: 3, span: 1 },
+		{ id: 'yearly-heatmap', enabled: true, order: 4, span: 2, height: 'md' },
+		{ id: 'daily-progress', enabled: true, order: 5, span: 1 },
+		{ id: 'quote', enabled: true, order: 6, span: 1 },
+		{ id: 'brain-dump', enabled: false, order: 7, span: 2 },
+		{ id: 'coaching-schedule', enabled: false, order: 8, span: 2 },
+		{ id: 'up-next', enabled: false, order: 9, span: 1 },
+		{ id: 'due-homework', enabled: false, order: 10, span: 2 },
+		{ id: 'activity', enabled: false, order: 11, span: 3 },
+		{ id: 'standing', enabled: false, order: 12, span: 1 }
+	],
+	'all-features': [
+		{ id: 'daily-progress', enabled: true, order: 0, span: 2 },
+		{ id: 'coaching-schedule', enabled: true, order: 1, span: 2 },
+		{ id: 'revision-due', enabled: true, order: 2, span: 2 },
+		{ id: 'subjects', enabled: true, order: 3, span: 3 },
+		{ id: 'quote', enabled: true, order: 4, span: 1 },
+		{ id: 'brain-dump', enabled: true, order: 5, span: 2 },
+		{ id: 'weekly-standing', enabled: true, order: 6, span: 1 },
+		{ id: 'new-target', enabled: true, order: 7, span: 1 },
+		{ id: 'yearly-heatmap', enabled: true, order: 8, span: 2, height: 'md' },
+		{ id: 'up-next', enabled: true, order: 9, span: 1 },
+		{ id: 'due-homework', enabled: false, order: 10, span: 2 },
+		{ id: 'activity', enabled: true, order: 11, span: 3, height: 'lg' },
+		{ id: 'standing', enabled: false, order: 12, span: 1 }
+	]
+};
+
+export const getWidgetsForStudyFlow = (mode?: StudyFlowMode): WidgetLayout[] => {
+	const key = mode || 'all-features';
+	return structuredClone(WIDGET_PRESETS_BY_MODE[key] || WIDGET_PRESETS_BY_MODE['all-features']);
+};
+
+export const getDefaultNavForMode = (mode?: StudyFlowMode): string[] => {
+	switch (mode) {
+		case 'focus-log':
+			return ['/', '/focus', '/log', '/todo', '/stats'];
+		case 'planner-routine':
+			return ['/', '/plan', '/todo', '/focus', '/reminders'];
+		case 'revision-mocks':
+			return ['/', '/revise', '/tests', '/review', '/stats'];
+		case 'all-features':
+		default:
+			return ['/', '/log', '/review', '/plan', '/tests', '/dump', '/todo', '/focus', '/revise', '/stats', '/reminders'];
+	}
+};
+
+export const DEFAULT_WIDGETS: WidgetLayout[] = WIDGET_PRESETS_BY_MODE['all-features'];
+
+export const createUiPreferences = (): UiPreferences => ({
+	accent: '#6d5dfc',
+	widgets: structuredClone(DEFAULT_WIDGETS),
+	reducedMotion: false,
+	wallpaper: null,
+	glassStrength: 100,
+	haptics: true,
+	sounds: true,
+	cutoutStyle: 'auto',
+	dashboardLayout: isMobileDevice() ? 'compact' : 'default',
+	studyFlowMode: 'all-features'
+});
 export const createInitialTrackerState = (): TrackerState => ({
 	stateVersion: 5, d: {}, n: {}, r: {}, x: createCustomization(), h: [], hd: [], log: [], stat: {}, marks: createMarks(), dl: [],
 	norec: false, hwSort: 'loc', goals: createGoals(), col: [], bm: {}, notes: [], an: createAnalysis(), rev: createRevision(),
 	meta: createMeta(), lib: [], gt: [], refl: {}, sess: [], todos: [], deletedTodos: {}, chapterGrids: {}, mocks: [],
 	mistakes: [],
 	flashcards: [],
+	studyDump: { files: [] },
+	timetable: { batchName: '', periods: [] },
 	brainDump: '',
 	gamification: { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } },
 	settings: { focusPet: 'orb' },

@@ -169,5 +169,5 @@
 	.ms-add button:disabled { opacity: .4; cursor: default; }
 	.btn { height: 36px; padding: 0 1rem; border-radius: 11px; font-size: .78rem; font-weight: 750; border: 1px solid transparent; cursor: pointer; }
 	.btn.ghost { color: var(--text-secondary); border-color: var(--border-subtle); background: transparent; }
-	.btn.solid { color: white; background: var(--accent); }
+	.btn.solid { color: var(--accent-contrast, white); background: var(--accent); }
 </style>

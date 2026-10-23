@@ -3,7 +3,7 @@
 	import { fade, scale } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import { isDarkTheme, presetOf, syncThemeWallpaper } from '$lib/state/themes';
-	import { updateTracker, addTodo, openFormulaVault, formulaVaultOpen, customizingHome, openFeynmanDuck } from '$lib/stores/tracker';
+	import { updateTracker, addTodo, openFormulaVault, formulaVaultOpen, customizingHome, openFeynmanDuck, openTestDaySheet } from '$lib/stores/tracker';
 	import { JEE_FORMULAS } from '$lib/data/formulas';
 	import { subjectColor, subjectName } from '$lib/state/subjects';
 	import NavIcon from '$lib/components/NavIcon.svelte';
@@ -28,6 +28,7 @@
 	const STATIC_COMMANDS: CommandItem[] = [
 		{ id: 'home', label: 'Go to Home', icon: 'home', category: 'navigation', badge: 'Nav', action: () => { goto('/'); open = false; } },
 		{ id: 'formula', label: 'Open Formula Vault (F)', icon: 'book', category: 'navigation', badge: 'Vault', badgeColor: 'var(--accent)', action: () => { openFormulaVault(); open = false; } },
+		{ id: 'test-day-sheet', label: 'Test Day Paper Sheet: Print Mistakes & Starred Formulas', icon: 'printer', category: 'navigation', badge: 'Exam Day', badgeColor: '#10b981', action: () => { openTestDaySheet(); open = false; } },
 		{ id: 'feynman', label: '🦆 Feynman Duck: Teach to Learn (Socratic AI)', icon: 'bulb', category: 'navigation', badge: 'Socratic', badgeColor: '#f59e0b', action: () => { openFeynmanDuck(); open = false; } },
 		{ id: 'customize', label: 'Customize Home Dashboard', icon: 'settings', category: 'navigation', badge: 'Home', action: () => { goto('/'); customizingHome.set(true); open = false; } },
 		{ id: 'log', label: 'Go to Question Log', icon: 'grid', category: 'navigation', badge: 'Nav', action: () => { goto('/log'); open = false; } },
@@ -402,10 +403,10 @@
 	}
 	.result-item.selected {
 		background: var(--accent);
-		color: white;
+		color: var(--accent-contrast, white);
 	}
 	.result-item.selected :global(svg) {
-		color: white !important;
+		color: var(--accent-contrast, white) !important;
 	}
 	.item-icon-wrap {
 		width: 32px;
@@ -417,8 +418,8 @@
 		flex-shrink: 0;
 	}
 	.result-item.selected .item-icon-wrap {
-		background: rgba(255, 255, 255, 0.22);
-		color: white !important;
+		background: color-mix(in srgb, var(--accent-contrast, white) 22%, transparent);
+		color: var(--accent-contrast, white) !important;
 	}
 	.item-text {
 		display: flex;
@@ -444,7 +445,7 @@
 		opacity: 0.85;
 	}
 	.result-item.selected .item-subtitle {
-		color: rgba(255, 255, 255, 0.85);
+		color: color-mix(in srgb, var(--accent-contrast, white) 85%, transparent);
 		opacity: 1;
 	}
 	.item-badge {
@@ -460,7 +461,7 @@
 	}
 	.result-item.selected .item-badge {
 		background: rgba(255, 255, 255, 0.25);
-		color: white;
+		color: var(--accent-contrast, #fff);
 	}
 	.palette-footer {
 		display: flex;

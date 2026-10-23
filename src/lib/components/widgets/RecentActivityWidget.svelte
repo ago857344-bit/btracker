@@ -156,7 +156,7 @@
 	.log-form small { color: var(--text-secondary); font-size: .64rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
 	.log-form input, .log-form select { height: 38px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-subtle); color: var(--text-primary); font-size: .84rem; font-family: inherit; }
 	.btn { height: 36px; padding: 0 1rem; border-radius: 11px; font-size: .78rem; font-weight: 750; border: 1px solid transparent; cursor: pointer; }
-	.btn.solid { color: white; background: var(--accent); }
+	.btn.solid { color: var(--accent-contrast, white); background: var(--accent); }
 
 	@media (max-width: 480px) {
 		.head-row {

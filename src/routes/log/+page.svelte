@@ -7,7 +7,7 @@
 	import AddExerciseModal from '$lib/components/log/AddExerciseModal.svelte';
 	import { setQuestionCount, tracker } from '$lib/stores/tracker';
 	import {
-		allChapters, questionCount, syllabusChapter, syllabusModule, syllabusSubject, SYLLABUS, visibleExercises,
+		allChapters, allChaptersWithCustom, questionCount, syllabusChapter, syllabusModule, syllabusSubject, SYLLABUS, visibleExercises,
 		type SyllabusExercise
 	} from '$lib/state/syllabus';
 	import {
@@ -101,7 +101,7 @@
 						<span class="pct" class:zero={!pctOf(st)}>{pctOf(st)}%</span>
 					</div>
 				</div>
-				<p class="meta">{allChapters(sub.code).length} chapters · {st.n.toLocaleString()} questions</p>
+				<p class="meta">{allChaptersWithCustom($tracker, sub.code).length} chapters · {st.n.toLocaleString()} questions</p>
 				<div class="rail"><i style="width:{pctOf(st)}%"></i></div>
 				<div class="statline">
 					{#each bits(st) as b}<span class={b.cls}><b>{b.value}</b> {b.label}</span>{/each}
@@ -226,7 +226,7 @@
 	h1 { margin: 0 0 .35rem; font-size: clamp(1.5rem, 3vw, 2.1rem); letter-spacing: -.04em; }
 	.sub { margin: 0; max-width: 62ch; color: var(--text-secondary); font-size: .88rem; line-height: 1.55; }
 	.totalcard { display: flex; align-items: center; gap: .9rem; padding: .95rem 1.1rem; margin-bottom: 1.1rem; border: 1px solid var(--border-subtle); border-radius: 18px; background: var(--surface-panel); box-shadow: var(--shadow-card); }
-	.totalcard .pct { padding: .3rem .7rem; border-radius: 99px; background: var(--accent); color: white; font-size: .9rem; font-weight: 800; }
+	.totalcard .pct { padding: .3rem .7rem; border-radius: 99px; background: var(--accent); color: var(--accent-contrast, white); font-size: .9rem; font-weight: 800; }
 	.totalcard b { font-size: 1.05rem; }
 	.totalcard small { display: block; color: var(--text-secondary); font-size: .74rem; }
 	.grid { display: grid; gap: .9rem; }
@@ -240,7 +240,7 @@
 	.elo-tag { display: inline-flex; align-items: center; gap: .25rem; padding: .18rem .55rem; border-radius: 99px; background: color-mix(in srgb, var(--elo), transparent 85%); color: var(--elo); font-size: .64rem; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; border: 1px solid color-mix(in srgb, var(--elo), transparent 60%); }
 	h2 { margin: 0; font-size: 1.05rem; letter-spacing: -.03em; }
 	h3 { margin: 0; font-size: .95rem; letter-spacing: -.02em; }
-	.pct { padding: .18rem .55rem; border-radius: 99px; background: var(--accent); color: white; font-size: .74rem; font-weight: 800; }
+	.pct { padding: .18rem .55rem; border-radius: 99px; background: var(--accent); color: var(--accent-contrast, white); font-size: .74rem; font-weight: 800; }
 	.pct.zero { background: var(--surface-subtle); color: var(--text-secondary); }
 	.meta, .note, .exsub { margin: 0; color: var(--text-secondary); font-size: .76rem; line-height: 1.5; }
 	.rail { height: 6px; border-radius: 99px; background: var(--surface-subtle); overflow: hidden; }
@@ -270,7 +270,7 @@
 	.blabel { margin: 0 0 .6rem; color: var(--text-secondary); font-size: .72rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
 	.row { display: flex; gap: .55rem; }
 	.row input { width: 140px; height: 44px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-subtle); color: var(--text-primary); font-size: .9rem; }
-	.primary { height: 44px; padding: 0 1rem; border: 0; border-radius: 11px; background: var(--accent); color: white; font-size: .82rem; font-weight: 750; }
+	.primary { height: 44px; padding: 0 1rem; border: 0; border-radius: 11px; background: var(--accent); color: var(--accent-contrast, white); font-size: .82rem; font-weight: 750; }
 	.msg { margin: .6rem 0 0; color: var(--danger); font-size: .78rem; font-weight: 650; }
 	.emptywide { color: var(--text-secondary); font-size: .86rem; }
 

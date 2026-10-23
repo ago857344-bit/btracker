@@ -2,14 +2,14 @@
 	import { fade, fly } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
 	import { updateTracker, targetsModalOpen, celebration } from '$lib/stores/tracker';
-	import { createGoals } from '$lib/state/defaults';
+	import { createGoals, getWidgetsForStudyFlow } from '$lib/state/defaults';
 	import { currentUser } from '$lib/stores/auth';
 	import NavIcon from '$lib/components/NavIcon.svelte';
-	import type { DashboardLayout } from '$lib/types/tracker';
+	import type { DashboardLayout, StudyFlowMode } from '$lib/types/tracker';
 	import { isMobileDevice } from '$lib/state/themes';
 	import DashboardPreviewModal from '$lib/components/dashboard/DashboardPreviewModal.svelte';
 
-	const TOTAL_STEPS = 8;
+	const TOTAL_STEPS = 9;
 	let step = 1;
 	let direction = 1; // 1 = forward, -1 = backward
 	const focusInput = (node: HTMLElement) => { node.focus(); };
@@ -46,12 +46,66 @@
 		}
 	}
 
-	// Step 5: Study Hours & Daily Questions
+	// Step 5: How do you want to use BTracker?
+	let selectedStudyFlow: StudyFlowMode = 'all-features';
+
+	const STUDY_FLOW_OPTIONS: Array<{
+		id: StudyFlowMode;
+		emoji: string;
+		title: string;
+		badge: string;
+		desc: string;
+		features: string[];
+	}> = [
+		{
+			id: 'focus-log',
+			emoji: '🧘',
+			title: 'Deep Work & Study Tracker',
+			badge: 'Minimalist',
+			desc: 'Clean focus timers, question logging, and distraction-free study flow without clutter.',
+			features: ['Deep Work Timer', 'Question Log & Stats', 'Daily To-Do', 'Streaks & Soundscapes']
+		},
+		{
+			id: 'planner-routine',
+			emoji: '📅',
+			title: 'Routine & Schedule Master',
+			badge: 'Discipline',
+			desc: 'Master coaching timetable periods, balance homework backlogs, and auto-plan daily routines.',
+			features: ['Daily Planner', 'Coaching Timetable', 'Backlog & Substeps', 'AI Auto-Balancing']
+		},
+		{
+			id: 'revision-mocks',
+			emoji: '🎯',
+			title: 'Revision & Mock Optimizer',
+			badge: 'Score Booster',
+			desc: 'Never forget concepts again. Active recall flashcards, spaced repetition decay, and mock test analysis.',
+			features: ['Spaced Repetition Decay', 'Formula Flashcards', 'Mock Test Analytics', 'JEE Weightage Matrix']
+		},
+		{
+			id: 'all-features',
+			emoji: '⚡',
+			title: 'Complete Command Center',
+			badge: 'Power User',
+			desc: 'Unlock every weapon: Planning, Focus, Revision, Flashcards, Mocks, Question Log, and AI Mentor.',
+			features: ['All Features Unlocked', 'Bento Dashboard Widgets', 'Full Navigation Arsenal', 'AI Study Mentor']
+		}
+	];
+
+	function selectStudyFlow(mode: StudyFlowMode) {
+		selectedStudyFlow = mode;
+		if (mode === 'focus-log') {
+			selectedLayout = 'focus';
+		} else {
+			selectedLayout = 'default';
+		}
+	}
+
+	// Step 6: Study Hours & Daily Questions
 	let weekdayHours = 6;
 	let weekendHours = 8;
 	let dailyQuestions = 50;
 
-	// Step 6: Interactive Streak Simulation & Single-Day Freeze Demo
+	// Step 7: Interactive Streak Simulation & Single-Day Freeze Demo
 	const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 	// Demo: Mon-Wed studied, Thu missed (isolated single day -> gets freeze), Fri-Sun studied
 	let streakDemo = [true, true, true, false, true, true, true];
@@ -203,10 +257,11 @@
 			case 2: return year !== '';
 			case 3: return board !== '';
 			case 4: return targetExams.length > 0;
-			case 5: return weekdayHours > 0 && dailyQuestions > 0;
-			case 6: return true;
+			case 5: return Boolean(selectedStudyFlow);
+			case 6: return weekdayHours > 0 && dailyQuestions > 0;
 			case 7: return true;
-			case 8: return Boolean(dreamCollege.trim());
+			case 8: return true;
+			case 9: return Boolean(dreamCollege.trim());
 			default: return true;
 		}
 	}
@@ -239,6 +294,8 @@
 		updateTracker(s => {
 			s.onboarded = true;
 			if (!s.ui.dashboardLayout) s.ui.dashboardLayout = selectedLayout || 'default';
+			if (!s.ui.studyFlowMode) s.ui.studyFlowMode = 'all-features';
+			if (!s.ui.widgets || s.ui.widgets.length === 0) s.ui.widgets = getWidgetsForStudyFlow('all-features');
 		});
 		targetsModalOpen.set(false);
 		celebration.set('Setup skipped. You can configure goals & layout anytime in Settings.');
@@ -271,6 +328,8 @@
 			s.goals.week.h = Math.round(weekdayHours * 5 + weekendHours * 2);
 			s.goals.week.q = dailyQuestions * 7;
 			s.ui.dashboardLayout = selectedLayout;
+			s.ui.studyFlowMode = selectedStudyFlow;
+			s.ui.widgets = getWidgetsForStudyFlow(selectedStudyFlow);
 			s.onboarded = true;
 		});
 		targetsModalOpen.set(false);
@@ -488,8 +547,68 @@
 							</button>
 						</div>
 
-					<!-- STEP 5: Study Hours & Daily Questions -->
+					<!-- STEP 5: How do you want to use BTracker? -->
 					{:else if step === 5}
+						<div class="card-header">
+							<h1>How do you want to use BTracker?</h1>
+							<p class="subtitle">Choose the experience tailored to your study priority. Your navigation and home bento widgets will adapt instantly.</p>
+						</div>
+
+						<div class="study-flow-grid">
+							{#each STUDY_FLOW_OPTIONS as opt}
+								<div
+									role="button"
+									tabindex="0"
+									class="flow-card"
+									class:active={selectedStudyFlow === opt.id}
+									on:click={() => selectStudyFlow(opt.id)}
+									on:keydown={(e) => {
+										if (e.key === 'Enter' || e.key === ' ') {
+											e.preventDefault();
+											selectStudyFlow(opt.id);
+										}
+									}}
+								>
+									<div class="flow-card-head">
+										<span class="flow-emoji">{opt.emoji}</span>
+										<div class="flow-meta">
+											<div class="flow-title-row">
+												<span class="flow-title">{opt.title}</span>
+												<span class="flow-badge" class:active-badge={selectedStudyFlow === opt.id}>{opt.badge}</span>
+											</div>
+											<p class="flow-desc">{opt.desc}</p>
+										</div>
+									</div>
+
+									<div class="flow-features">
+										{#each opt.features as feat}
+											<span class="feature-chip">
+												<NavIcon name="check" size={11} />
+												<span>{feat}</span>
+											</span>
+										{/each}
+									</div>
+
+									<div class="flow-select-indicator">
+										{#if selectedStudyFlow === opt.id}
+											<span class="selected-pill"><NavIcon name="check" size={12} /> Active Preset</span>
+										{:else}
+											<span class="unselected-pill">Select Experience</span>
+										{/if}
+									</div>
+								</div>
+							{/each}
+						</div>
+
+						<div class="step-action-bar" style="margin-top: 1rem;">
+							<span class="selection-count">Selected: {STUDY_FLOW_OPTIONS.find(o => o.id === selectedStudyFlow)?.title}</span>
+							<button type="button" class="btn-step-continue" on:click={next}>
+								Continue <NavIcon name="chevron-right" size={14} />
+							</button>
+						</div>
+
+					<!-- STEP 6: Study Hours & Daily Questions -->
+					{:else if step === 6}
 						<div class="card-header">
 							<h1>How much will you study?</h1>
 							<p class="subtitle">Set your daily targets — we'll hold you accountable.</p>
@@ -563,8 +682,8 @@
 							</div>
 						</div>
 
-					<!-- STEP 6: Streak Demo & Single-Day Freeze Simulation -->
-					{:else if step === 6}
+					<!-- STEP 7: Streak Demo & Single-Day Freeze Simulation -->
+					{:else if step === 7}
 						<div class="card-header">
 							<h1>Keep your flame alive</h1>
 							<p class="subtitle">Miss 1 day? You get a <strong>Streak Freeze</strong>. Miss more than 1 day? You <strong>lose your streak</strong>.</p>
@@ -653,8 +772,8 @@
 							</div>
 						</div>
 
-					<!-- STEP 7: Choose Your Dashboard Structure -->
-					{:else if step === 7}
+					<!-- STEP 8: Choose Your Dashboard Structure -->
+					{:else if step === 8}
 						<div class="card-header">
 							<h1>Choose Your Dashboard Structure</h1>
 							<p class="subtitle">Select how your battle station presents timers, missions, and analytics. You can change this anytime in Settings.</p>
@@ -716,8 +835,8 @@
 							{/each}
 						</div>
 
-					<!-- STEP 8: Original JEE Blueprint & Aspirant Dossier -->
-					{:else if step === 8}
+					<!-- STEP 9: Original JEE Blueprint & Aspirant Dossier -->
+					{:else if step === 9}
 						<div class="card-header">
 							<h1>{userName || 'Candidate'}, Your JEE Battle Station is Ready</h1>
 							<p class="subtitle">Lock in your dream destination and activate your command center.</p>
@@ -802,8 +921,8 @@
 											<span>{weekdayHours}h study &bull; {dailyQuestions} Qs/day</span>
 										</div>
 										<div class="pass-item">
-											<small>WEEKLY COMMITMENT</small>
-											<span>{weekdayHours * 5 + weekendHours * 2}h total focus</span>
+											<small>EXPERIENCE FLOW</small>
+											<span>{STUDY_FLOW_OPTIONS.find(o => o.id === selectedStudyFlow)?.title || 'All Features'}</span>
 										</div>
 									</div>
 								</div>
@@ -836,7 +955,7 @@
 				<button
 					type="button"
 					class="btn-continue"
-					disabled={step === 1 ? !userName.trim() : step === 2 ? !year : step === 3 ? !board : step === 4 ? targetExams.length === 0 : step === 5 ? (weekdayHours <= 0 || dailyQuestions <= 0) : step === 8 ? !dreamCollege.trim() : false}
+					disabled={step === 1 ? !userName.trim() : step === 2 ? !year : step === 3 ? !board : step === 4 ? targetExams.length === 0 : step === 5 ? !selectedStudyFlow : step === 6 ? (weekdayHours <= 0 || dailyQuestions <= 0) : step === 9 ? !dreamCollege.trim() : false}
 					on:click={next}
 				>
 					Continue <NavIcon name="chevron-right" size={14} />
@@ -1895,7 +2014,157 @@
 		}
 	}
 
-	/* Step 7 Layout Picker */
+	/* Step 5 Study Flow Experience Picker */
+	.study-flow-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 0.85rem;
+		margin-top: 0.5rem;
+	}
+
+	@media (max-width: 680px) {
+		.study-flow-grid {
+			grid-template-columns: 1fr;
+			gap: 0.7rem;
+		}
+	}
+
+	.flow-card {
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 1rem 1.1rem;
+		border-radius: 16px;
+		background: color-mix(in srgb, var(--surface-subtle) 65%, transparent);
+		border: 1.5px solid var(--border-subtle);
+		cursor: pointer;
+		transition: all 0.22s cubic-bezier(0.32, 0.72, 0, 1);
+		text-align: left;
+	}
+
+	.flow-card:hover {
+		border-color: color-mix(in srgb, var(--accent) 50%, var(--border-subtle));
+		background: color-mix(in srgb, var(--surface-panel) 90%, transparent);
+		transform: translateY(-2px);
+		box-shadow: 0 12px 28px -6px rgba(0, 0, 0, 0.18);
+	}
+
+	.flow-card.active {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 8%, var(--surface-panel));
+		box-shadow: 0 0 0 1px var(--accent), 0 16px 36px -8px color-mix(in srgb, var(--accent) 28%, transparent);
+	}
+
+	.flow-card-head {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.75rem;
+	}
+
+	.flow-emoji {
+		font-size: 1.6rem;
+		line-height: 1;
+		flex: 0 0 auto;
+		padding: 0.35rem;
+		border-radius: 12px;
+		background: color-mix(in srgb, var(--surface-panel) 90%, transparent);
+		border: 1px solid var(--border-subtle);
+	}
+
+	.flow-meta {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		flex: 1;
+	}
+
+	.flow-title-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+	}
+
+	.flow-title {
+		font-size: 0.95rem;
+		font-weight: 800;
+		color: var(--text-primary);
+		letter-spacing: -0.02em;
+	}
+
+	.flow-badge {
+		font-size: 0.6rem;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: 0.15rem 0.5rem;
+		border-radius: 99px;
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		border: 1px solid var(--border-subtle);
+	}
+
+	.flow-badge.active-badge {
+		background: var(--accent);
+		color: #ffffff;
+		border-color: var(--accent);
+	}
+
+	.flow-desc {
+		font-size: 0.73rem;
+		line-height: 1.4;
+		color: var(--text-secondary);
+		margin: 0;
+	}
+
+	.flow-features {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.35rem;
+	}
+
+	.feature-chip {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.65rem;
+		font-weight: 700;
+		padding: 0.2rem 0.5rem;
+		border-radius: 6px;
+		background: color-mix(in srgb, var(--surface-panel) 85%, transparent);
+		color: var(--text-secondary);
+		border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, transparent);
+	}
+
+	.flow-card.active .feature-chip {
+		color: var(--text-primary);
+		border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+	}
+
+	.flow-select-indicator {
+		display: flex;
+		justify-content: flex-end;
+		margin-top: 0.1rem;
+	}
+
+	.selected-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.68rem;
+		font-weight: 800;
+		color: var(--accent);
+	}
+
+	.unselected-pill {
+		font-size: 0.68rem;
+		font-weight: 700;
+		color: var(--text-secondary);
+		opacity: 0.7;
+	}
+
+	/* Step 8 Layout Picker */
 	.layouts-wizard-grid {
 		display: grid;
 		grid-template-columns: repeat(3, 1fr);
@@ -2106,5 +2375,33 @@
 	}
 	.btn-step-continue:active {
 		transform: scale(0.97);
+	}
+
+	@media (max-width: 600px) {
+		.flow-card {
+			padding: 0.85rem 0.95rem;
+			gap: 0.55rem;
+		}
+
+		.flow-emoji {
+			font-size: 1.35rem;
+			padding: 0.25rem;
+		}
+
+		.flow-title {
+			font-size: 0.88rem;
+		}
+
+		.step-action-bar {
+			flex-direction: column;
+			gap: 0.6rem;
+			align-items: stretch;
+		}
+
+		.btn-step-continue {
+			width: 100%;
+			justify-content: center;
+			min-height: 42px;
+		}
 	}
 </style>

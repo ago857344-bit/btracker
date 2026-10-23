@@ -21,6 +21,7 @@
 	import type { ChatMessage } from '$lib/services/gemini';
 	import { SUBJECTS, subjectColor, subjectName } from '$lib/state/subjects';
 	import { buildAcademicConstraintPrompt, getUserAcademicContext } from '$lib/services/aiContext';
+	import { VoiceDictation } from '$lib/services/voice';
 
 	type DuckMood = 'curious' | 'thinking' | 'skeptical' | 'enlightened' | 'mastered';
 
@@ -38,8 +39,9 @@
 	let currentMood: DuckMood = 'curious';
 	let chatBox: HTMLElement;
 	let isRecording = false;
-	let recognition: any = null;
+	const voiceDictation = new VoiceDictation();
 	let voiceSupported = false;
+	let voiceError = '';
 	let soundEnabled = true;
 
 	// Scorecard state
@@ -74,42 +76,13 @@
 
 	$: hasTickedChapters = (academicContext.tickmarkedChapters[subject as 'P' | 'C' | 'M'] || []).length > 0;
 
-	// Initialize speech recognition if available in browser
+	// Check speech recognition capability
 	onMount(() => {
-		if (typeof window !== 'undefined') {
-			const SpeechRec = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-			if (SpeechRec) {
-				voiceSupported = true;
-				recognition = new SpeechRec();
-				recognition.continuous = false;
-				recognition.interimResults = true;
-				recognition.lang = 'en-US';
-
-				recognition.onresult = (event: any) => {
-					let transcript = '';
-					for (let i = event.resultIndex; i < event.results.length; ++i) {
-						transcript += event.results[i][0].transcript;
-					}
-					if (transcript) {
-						draft = draft ? `${draft} ${transcript}` : transcript;
-					}
-				};
-
-				recognition.onerror = () => {
-					isRecording = false;
-				};
-
-				recognition.onend = () => {
-					isRecording = false;
-				};
-			}
-		}
+		voiceSupported = VoiceDictation.isSupported();
 	});
 
 	onDestroy(() => {
-		if (recognition && isRecording) {
-			recognition.stop();
-		}
+		voiceDictation.stop();
 	});
 
 	// Subscribe to initial topic passed via store
@@ -154,26 +127,47 @@ Explain what happens from **first principles**—avoid reciting formulas without
 		scrollToBottom();
 	}
 
-	function toggleVoice() {
-		if (!recognition) return;
+	async function toggleVoice() {
+		voiceError = '';
 		if (isRecording) {
-			recognition.stop();
+			voiceDictation.stop();
 			isRecording = false;
-		} else {
-			try {
-				recognition.start();
-				isRecording = true;
-			} catch (e) {
-				isRecording = false;
-			}
+			return;
+		}
+
+		isRecording = true;
+		const started = await voiceDictation.start(
+			{
+				onStart: () => {
+					isRecording = true;
+				},
+				onInterim: (text) => {
+					draft = text;
+				},
+				onResult: (text) => {
+					draft = text;
+				},
+				onError: (err) => {
+					voiceError = err;
+					isRecording = false;
+				},
+				onEnd: () => {
+					isRecording = false;
+				}
+			},
+			draft
+		);
+
+		if (!started) {
+			isRecording = false;
 		}
 	}
 
 	async function sendMessage() {
 		if (!draft.trim() || loading) return;
 
-		if (isRecording && recognition) {
-			recognition.stop();
+		if (isRecording) {
+			voiceDictation.stop();
 			isRecording = false;
 		}
 
@@ -718,9 +712,12 @@ Explain what happens from **first principles**—avoid reciting formulas without
 										title={isRecording ? 'Stop Voice Input' : 'Speak Your Explanation'}
 										on:click={toggleVoice}
 									>
-										<NavIcon name="headphones" size={13} />
+										<NavIcon name="mic" size={13} />
 										<span>{isRecording ? 'Listening...' : 'Voice Dictate'}</span>
 									</button>
+								{/if}
+								{#if voiceError}
+									<span class="voice-error-tip">{voiceError}</span>
 								{/if}
 								<span class="tip-shortcut">Press <b>Cmd+Enter</b> to send</span>
 							</div>
@@ -1156,7 +1153,7 @@ Explain what happens from **first principles**—avoid reciting formulas without
 
 	.bubble.user {
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		border-top-right-radius: 4px;
 		box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 35%, transparent);
 	}
@@ -1201,7 +1198,7 @@ Explain what happens from **first principles**—avoid reciting formulas without
 
 	.bubble.user .bubble-content p {
 		margin: 0;
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 	}
 
 	/* Typing state */
@@ -1281,7 +1278,7 @@ Explain what happens from **first principles**—avoid reciting formulas without
 		padding: 0.35rem 0.8rem;
 		border-radius: 8px;
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		border: none;
 		font-size: 0.74rem;
 		font-weight: 800;
@@ -1388,7 +1385,7 @@ Explain what happens from **first principles**—avoid reciting formulas without
 		border-radius: 8px;
 		border: none;
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		font-size: 0.76rem;
 		font-weight: 800;
 		cursor: pointer;
@@ -1566,7 +1563,7 @@ Explain what happens from **first principles**—avoid reciting formulas without
 
 	.save-fc-btn:hover {
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 	}
 
 	.saved-pill {
@@ -1636,7 +1633,7 @@ Explain what happens from **first principles**—avoid reciting formulas without
 
 	.action-btn.resume-btn {
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		border: none;
 	}
 

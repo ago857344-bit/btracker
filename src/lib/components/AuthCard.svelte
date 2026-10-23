@@ -113,13 +113,13 @@
 
 	.signed { display: flex; align-items: center; gap: .8rem; padding: .85rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-subtle); }
 	.signed img { width: 42px; height: 42px; border-radius: 99px; object-fit: cover; }
-	.ini { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 99px; background: var(--accent); color: #fff; font-weight: 800; }
+	.ini { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 99px; background: var(--accent); color: var(--accent-contrast, #fff); font-weight: 800; }
 	.signed div { display: grid; gap: .1rem; min-width: 0; }
 	.signed strong { font-size: .9rem; color: var(--text-primary); }
 	.signed span { color: var(--text-secondary); font-size: .74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.ok { display: flex; align-items: center; gap: .45rem; margin: .9rem 0; color: var(--success); font-size: .8rem; font-weight: 650; }
 
-	.submit { width: 100%; height: 44px; border: 0; border-radius: 11px; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent), #e0455a 35%)); color: #fff; font-size: .86rem; font-weight: 800; letter-spacing: .01em; cursor: pointer; font-family: inherit; box-shadow: 0 10px 24px color-mix(in srgb, var(--accent), transparent 62%); transition: filter .14s ease; }
+	.submit { width: 100%; height: 44px; border: 0; border-radius: 11px; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent), #e0455a 35%)); color: var(--accent-contrast, #fff); font-size: .86rem; font-weight: 800; letter-spacing: .01em; cursor: pointer; font-family: inherit; box-shadow: 0 10px 24px color-mix(in srgb, var(--accent), transparent 62%); transition: filter .14s ease; }
 	.submit:hover:not(:disabled) { filter: brightness(1.08); }
 	.submit:disabled { opacity: .7; cursor: default; }
 </style>

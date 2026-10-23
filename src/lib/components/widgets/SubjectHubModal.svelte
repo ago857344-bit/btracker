@@ -4,7 +4,7 @@
 	import { addSubjectSession, plannerPrompt, tracker } from '$lib/stores/tracker';
 	import { chaptersOf, subjectColor, subjectName } from '$lib/state/subjects';
 	import { longDateKey } from '$lib/state/dates';
-	import { allChapters } from '$lib/state/syllabus';
+	import { allChaptersWithCustom } from '$lib/state/syllabus';
 	import { chapterStats, subjectStats, accuracyOf, pctOf } from '$lib/state/questions';
 	import { getEloRank } from '$lib/state/gamification';
 	import { goto } from '$app/navigation';
@@ -20,7 +20,7 @@
 	const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, Number.isFinite(value) ? Math.round(value) : min));
 
 	$: chapters = chaptersOf(sub);
-	$: sylChapters = allChapters(sub);
+	$: sylChapters = allChaptersWithCustom($tracker, sub);
 	$: st = subjectStats($tracker, sub);
 	$: eloVal = ($tracker.gamification?.elo || { P: 300, C: 300, M: 300 })[sub as "P" | "C" | "M"] || 300;
 	$: elo = getEloRank(eloVal);
@@ -168,7 +168,7 @@
 	.step-row input::-webkit-outer-spin-button, .step-row input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 	.acc { margin: 0; color: var(--text-secondary); font-size: .78rem; }
 	.acc b { color: var(--text-primary); }
-	.save { height: 40px; border: 0; border-radius: 12px; color: white; font-size: .82rem; font-weight: 800; letter-spacing: .03em; cursor: pointer; font-family: inherit; }
+	.save { height: 40px; border: 0; border-radius: 12px; color: var(--accent-contrast, #fff);; font-size: .82rem; font-weight: 800; letter-spacing: .03em; cursor: pointer; font-family: inherit; }
 	.past-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; max-height: 300px; overflow: auto; }
 	.past-list li { display: flex; align-items: center; gap: .6rem; padding: .6rem .7rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); }
 	.past-list .dot { width: 9px; height: 9px; border-radius: 99px; }

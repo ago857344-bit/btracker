@@ -232,5 +232,5 @@
 	.btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.1rem; border-radius: 10px; font-size: 0.82rem; font-weight: 750; cursor: pointer; border: 0; }
 	.btn.ghost { background: transparent; color: var(--text-secondary); }
 	.btn.ghost:hover { color: var(--text-primary); }
-	.btn.solid { background: var(--accent); color: #fff; box-shadow: 0 4px 12px color-mix(in srgb, var(--accent), transparent 60%); }
+	.btn.solid { background: var(--accent); color: var(--accent-contrast, #fff); box-shadow: 0 4px 12px color-mix(in srgb, var(--accent), transparent 60%); }
 </style>

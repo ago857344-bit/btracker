@@ -86,7 +86,7 @@
 	.name-row { display: flex; gap: .5rem; }
 	input[type="text"], input[type="time"], select { width: 100%; height: 36px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-subtle); color: var(--text-primary); font-size: .82rem; font-family: inherit; }
 	input:focus, select:focus { outline: none; border-color: var(--accent); }
-	.add-btn { display: grid; flex: 0 0 36px; place-items: center; border: 0; border-radius: 10px; color: white; background: var(--accent); cursor: pointer; transition: opacity .16s ease; }
+	.add-btn { display: grid; flex: 0 0 36px; place-items: center; border: 0; border-radius: 10px; color: var(--accent-contrast, white); background: var(--accent); cursor: pointer; transition: opacity .16s ease; }
 	.add-btn:disabled { opacity: .4; cursor: default; }
 	.swatches { display: flex; gap: .6rem; justify-content: flex-start; }
 	.swatch { width: 26px; height: 26px; border: 2px solid transparent; border-radius: 99px; cursor: pointer; transition: transform .12s ease, border-color .12s ease; }

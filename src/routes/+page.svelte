@@ -17,6 +17,8 @@
 	import RecentActivityWidget from '$lib/components/widgets/RecentActivityWidget.svelte';
 	import YearlyHeatmapWidget from '$lib/components/widgets/YearlyHeatmapWidget.svelte';
 	import BrainDumpWidget from '$lib/components/widgets/BrainDumpWidget.svelte';
+	import CoachingScheduleWidget from '$lib/components/widgets/CoachingScheduleWidget.svelte';
+	import RevisionDueWidget from '$lib/components/widgets/RevisionDueWidget.svelte';
 	import TargetsModal from '$lib/components/TargetsModal.svelte';
 	import MinimalistLayout from '$lib/components/dashboard/MinimalistLayout.svelte';
 	import FocusLayout from '$lib/components/dashboard/FocusLayout.svelte';
@@ -28,8 +30,8 @@
 	import type { WidgetLayout } from '$lib/types/tracker';
 
 	let mobileFilter: 'all' | 'priority' | 'analytics' = 'all';
-	const PRIORITY_WIDGETS = new Set(['daily-progress', 'up-next', 'due-homework', 'quote', 'brain-dump']);
-	const ANALYTICS_WIDGETS = new Set(['subjects', 'weekly-standing', 'activity', 'yearly-heatmap', 'standing', 'new-target']);
+	const PRIORITY_WIDGETS = new Set(['daily-progress', 'up-next', 'coaching-schedule', 'due-homework', 'quote', 'brain-dump', 'revision-due']);
+	const ANALYTICS_WIDGETS = new Set(['subjects', 'weekly-standing', 'activity', 'yearly-heatmap', 'standing', 'new-target', 'revision-due']);
 
 	const registry: Record<WidgetLayout['id'], { title: string; eyebrow: string; icon: ComponentProps<NavIcon>['name']; comp: any }> = {
 		'daily-progress': { title: 'Daily progress', eyebrow: 'Today', icon: 'focus', comp: DailyProgressWidget },
@@ -40,7 +42,9 @@
 		subjects: { title: 'Subject hubs', eyebrow: 'Questions solved', icon: 'layers', comp: SubjectCardsWidget },
 		standing: { title: 'Daily standing', eyebrow: 'Output', icon: 'trophy', comp: DailyStandingWidget },
 		'up-next': { title: 'Up next', eyebrow: 'Planner', icon: 'list', comp: UpNextWidget },
+		'coaching-schedule': { title: 'Batch Timetable', eyebrow: "Next Day's Periods", icon: 'clock', comp: CoachingScheduleWidget },
 		'brain-dump': { title: 'Brain Dump & Scratchpad', eyebrow: 'Quick Notes', icon: 'edit', comp: BrainDumpWidget },
+		'revision-due': { title: 'Revision & Mock Queue', eyebrow: 'Active Recall', icon: 'revise', comp: RevisionDueWidget },
 		activity: { title: 'Recent activity', eyebrow: 'Feed', icon: 'history', comp: RecentActivityWidget },
 		'yearly-heatmap': { title: '365-Day Study Matrix', eyebrow: 'Yearly Consistency', icon: 'history', comp: YearlyHeatmapWidget }
 	};
@@ -57,6 +61,55 @@
 		updateTracker((state) => {
 			for (const w of state.ui.widgets) w.enabled = true;
 		});
+	}
+
+	let draggedWidgetId: WidgetLayout['id'] | null = null;
+	let dragOverWidgetId: WidgetLayout['id'] | null = null;
+
+	function handleDragStart(id: WidgetLayout['id'], e: DragEvent) {
+		draggedWidgetId = id;
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('text/plain', id);
+		}
+	}
+
+	function handleDragOver(id: WidgetLayout['id'], e: DragEvent) {
+		e.preventDefault();
+		if (draggedWidgetId === id) return;
+		dragOverWidgetId = id;
+		if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+	}
+
+	function handleDragLeave(id: WidgetLayout['id']) {
+		if (dragOverWidgetId === id) dragOverWidgetId = null;
+	}
+
+	function handleDrop(targetId: WidgetLayout['id'], e: DragEvent) {
+		e.preventDefault();
+		dragOverWidgetId = null;
+		if (!draggedWidgetId || draggedWidgetId === targetId) return;
+
+		updateTracker((state) => {
+			const widgets = [...state.ui.widgets];
+			const fromIdx = widgets.findIndex((w) => w.id === draggedWidgetId);
+			const toIdx = widgets.findIndex((w) => w.id === targetId);
+			if (fromIdx === -1 || toIdx === -1) return;
+
+			const [moved] = widgets.splice(fromIdx, 1);
+			widgets.splice(toIdx, 0, moved);
+			widgets.forEach((w, idx) => {
+				w.order = idx;
+			});
+			state.ui.widgets = widgets;
+		});
+
+		draggedWidgetId = null;
+	}
+
+	function handleDragEnd() {
+		draggedWidgetId = null;
+		dragOverWidgetId = null;
 	}
 
 	// In customize mode show every widget (even hidden) so it can be re-enabled.
@@ -188,12 +241,27 @@
 
 		<div class="grid">
 			{#each filteredVisible as widget (widget.id)}
-				<div class="cell" class:span-2={widget.span === 2} class:span-3={widget.span === 3} animate:flip={{ duration: 260 }}>
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div
+					class="cell"
+					class:span-2={widget.span === 2}
+					class:span-3={widget.span === 3}
+					class:is-dragging={draggedWidgetId === widget.id}
+					class:is-drag-over={dragOverWidgetId === widget.id}
+					draggable={$customizingHome}
+					on:dragstart={(e) => handleDragStart(widget.id, e)}
+					on:dragover={(e) => handleDragOver(widget.id, e)}
+					on:dragleave={() => handleDragLeave(widget.id)}
+					on:drop={(e) => handleDrop(widget.id, e)}
+					on:dragend={handleDragEnd}
+					animate:flip={{ duration: 260 }}
+				>
 					<WidgetShell
 						title={registry[widget.id].title}
 						eyebrow={registry[widget.id].eyebrow}
 						icon={registry[widget.id].icon}
 						height={widget.height ?? 'md'}
+						span={widget.span}
 						enabled={widget.enabled}
 						editing={$customizingHome}
 						on:move={(e) => reorderWidget(widget.id, e.detail)}
@@ -213,9 +281,10 @@
 <style>
 	.home { display: grid; gap: 1.6rem; padding-top: 0.25rem; }
 	.hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; padding-top: 0.25rem; }
-	.eyebrow { margin: 0 0 .35rem; color: var(--accent); font-size: .76rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-	h1 { margin: 0; font-size: clamp(1.9rem, 4vw, 2.7rem); line-height: 1.18; letter-spacing: -.04em; padding-top: 0.12em; }
-	h1 span { color: var(--text-secondary); }
+	.eyebrow { margin: 0 0 .35rem; color: var(--accent); font-size: .76rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; text-shadow: none !important; }
+	h1 { margin: 0; font-size: clamp(1.9rem, 4vw, 2.7rem); line-height: 1.18; letter-spacing: -.04em; padding-top: 0.12em; text-shadow: none !important; }
+	h1 span { color: var(--text-secondary); text-shadow: none !important; }
+	.sub { text-shadow: none !important; }
 	.hero-tools { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
 
 	.customize-toggle {
@@ -274,15 +343,28 @@
 	.banner-actions { display: flex; align-items: center; gap: .5rem; }
 	.btn-subtle { padding: .42rem .75rem; border-radius: 8px; border: 1px solid var(--border-subtle); background: var(--surface-panel); color: var(--text-primary); font-size: .75rem; font-weight: 700; cursor: pointer; }
 	.btn-subtle:hover { border-color: var(--accent); }
-	.btn-done { padding: .42rem .9rem; border-radius: 8px; border: none; background: var(--accent); color: white; font-size: .75rem; font-weight: 800; cursor: pointer; }
+	.btn-done { padding: .42rem .9rem; border-radius: 8px; border: none; background: var(--accent); color: var(--accent-contrast, white); font-size: .75rem; font-weight: 800; cursor: pointer; }
 
 	
 	/* Restored 3-column grid */
 	.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.15rem; grid-auto-flow: dense; }
-	.cell { display: flex; min-width: 0; }
+	.cell { display: flex; min-width: 0; transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.2s ease; }
 	.cell.span-2 { grid-column: span 2; }
 	.cell.span-3 { grid-column: span 3; }
 	.cell :global(.widget) { flex: 1; }
+	.cell[draggable="true"] { cursor: grab; }
+	.cell[draggable="true"]:active { cursor: grabbing; }
+	.cell.is-dragging {
+		opacity: 0.35;
+		transform: scale(0.96);
+	}
+	.cell.is-drag-over {
+		outline: 2px dashed var(--accent);
+		outline-offset: 4px;
+		border-radius: var(--radius-card);
+		transform: translateY(-2px);
+		box-shadow: 0 0 20px color-mix(in srgb, var(--accent) 40%, transparent);
+	}
 	
 	.mobile-cat-filter {
 		display: none;

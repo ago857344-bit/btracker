@@ -20,19 +20,21 @@
 	import StreakButton from '$lib/components/StreakButton.svelte';
 	import TriRingsButton from '$lib/components/ui/TriRingsButton.svelte';
 	import FormulaVault from '$lib/components/FormulaVault.svelte';
+	import TestDaySheetModal from '$lib/components/tests/TestDaySheetModal.svelte';
 	import PwaBanner from '$lib/components/PwaBanner.svelte';
 	import DynamicIsland from '$lib/components/ui/DynamicIsland.svelte';
+	import PipFloatingIsland from '$lib/components/ui/PipFloatingIsland.svelte';
 	import Onboarding from '$lib/components/Onboarding.svelte';
 	import FeynmanDuckModal from '$lib/components/feynman/FeynmanDuckModal.svelte';
 	import { hydrateTracker } from '$lib/services/hydrate';
 	import { startSync } from '$lib/services/sync';
 	import { THEME_PRESETS, isDarkTheme, wallpaperCss, resolveLiveWallpaper, resolveEcoMode, isMobileDevice, isBuiltinWallpaper, EXTRA_WALLPAPERS } from '$lib/state/themes';
 	import { authReady, authConfigured, currentUser, hasSkippedLogin, syncStatus } from '$lib/stores/auth';
-	import { saveStatus, tracker, formulaVaultOpen, targetsModalOpen, autoCheckStreakFreeze } from '$lib/stores/tracker';
+	import { saveStatus, tracker, formulaVaultOpen, testDaySheetOpen, targetsModalOpen, autoCheckStreakFreeze } from '$lib/stores/tracker';
 	import { loadout } from '$lib/stores/cosmetics';
 	import { globalTimer } from '$lib/stores/timerState';
 	import HotkeyCheatsheetModal from '$lib/components/ui/HotkeyCheatsheetModal.svelte';
-	import { sampleVideoFrame, analyzeWallpaperLuminance } from '$lib/utils/wallpaperContrast';
+	import { sampleVideoFrame, analyzeWallpaperLuminance, clearWallpaperContrast, activeWallpaperColors } from '$lib/utils/wallpaperContrast';
 
 	let collapsed = false;
 	let mobileOpen = false;
@@ -91,20 +93,64 @@
 
 
 	let pointerRaf: number | null = null;
+	let lastTiltedEl: HTMLElement | null = null;
 	function handleGlobalPointerMove(e: PointerEvent) {
 		if (e.pointerType === 'touch') return;
 		if (pointerRaf) return;
 		pointerRaf = requestAnimationFrame(() => {
 			pointerRaf = null;
-			const target = (e.target as HTMLElement | null)?.closest?.(
-				'.specular-card, .bento-card, .widget, .card, .panel, .sec, .r-card, .chapter-card, .kpi, .day-detail, .your-goals, .auth-card, .idle-stat-card, .question-list, .top-widget-slot, .flat-pane, .heatmap-flat-pane, .hero-timer-card, .mission-card, .rail-card, .subject-card, .kpi-hero-card, .sub-pocket-card, .pocket-exam-card, .cadence-card, .pocket-quote-card'
-			) as HTMLElement | null;
-			if (target) {
+
+			const el = e.target as HTMLElement | null;
+			// Popups, modals, dialogs, drawers, and menus NEVER tilt
+			if (!el || el.closest('.modal-card, .modal-backdrop, [role="dialog"], .menu, .drawer, .goals-drawer, .no-tilt, header, nav, .bottom-nav')) {
+				if (lastTiltedEl) {
+					lastTiltedEl.style.removeProperty('--tilt-x');
+					lastTiltedEl.style.removeProperty('--tilt-y');
+					lastTiltedEl.style.removeProperty('--card-lift');
+					lastTiltedEl = null;
+				}
+				return;
+			}
+
+			// Only allow ultra-subtle tilt on dashboard widgets and bento cards
+			const target = el.closest?.('.widget, .bento-card') as HTMLElement | null;
+
+			if (lastTiltedEl && lastTiltedEl !== target) {
+				lastTiltedEl.style.removeProperty('--tilt-x');
+				lastTiltedEl.style.removeProperty('--tilt-y');
+				lastTiltedEl.style.removeProperty('--card-lift');
+			}
+			lastTiltedEl = target;
+
+			if (target && !target.closest('.no-tilt, [role="dialog"]')) {
 				const rect = target.getBoundingClientRect();
-				target.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-				target.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
+				const mouseX = e.clientX - rect.left;
+				const mouseY = e.clientY - rect.top;
+				target.style.setProperty('--mouse-x', `${mouseX}px`);
+				target.style.setProperty('--mouse-y', `${mouseY}px`);
+
+				// Micro-depth tilt: only 1.8 deg max to avoid peripheral distortion
+				const centerX = rect.width / 2;
+				const centerY = rect.height / 2;
+				const deltaX = Math.max(-1, Math.min(1, (mouseX - centerX) / (centerX || 1)));
+				const deltaY = Math.max(-1, Math.min(1, (mouseY - centerY) / (centerY || 1)));
+				const maxTilt = 1.8;
+				const tiltX = -deltaY * maxTilt;
+				const tiltY = deltaX * maxTilt;
+				target.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+				target.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+				target.style.setProperty('--card-lift', '-2px');
 			}
 		});
+	}
+
+	function handleGlobalPointerOut(e: PointerEvent) {
+		if (!e.relatedTarget && lastTiltedEl) {
+			lastTiltedEl.style.removeProperty('--tilt-x');
+			lastTiltedEl.style.removeProperty('--tilt-y');
+			lastTiltedEl.style.removeProperty('--card-lift');
+			lastTiltedEl = null;
+		}
 	}
 
 	function handleGlobalPointerDown(e: Event) {
@@ -122,7 +168,7 @@
 
 	const titles: Record<string, string> = {
 		'/': 'Home', '/log': 'Question Log', '/review': 'Review', '/plan': 'Plan', '/focus': 'Focus', '/todo': 'To Do', '/revise': 'Revise',
-		'/stats': 'Stats', '/reminders': 'Reminders', '/settings': 'Settings'
+		'/dump': 'Study Dump', '/tests': 'Tests', '/stats': 'Stats', '/reminders': 'Reminders', '/settings': 'Settings'
 	};
 	$: isAuthRoute = $page.url.pathname === '/login' || $page.url.pathname.startsWith('/auth/');
 	$: currentTitle = titles[$page.url.pathname] ?? 'BTracker';
@@ -163,6 +209,8 @@
 		root.style.setProperty('--accent', state.ui.accent);
 		root.style.setProperty('--accent-strong', `color-mix(in srgb, ${state.ui.accent}, black 14%)`);
 		root.style.setProperty('--accent-soft', `color-mix(in srgb, ${state.ui.accent}, transparent ${isDarkTheme(state.theme) ? '82%' : '88%'})`);
+		const isBrightAccent = state.theme === 'god-mode' || state.theme === 'catalyst' || state.theme === 'initiate' || state.theme === 'aurora' || state.theme === 'celestial';
+		root.style.setProperty('--accent-contrast', isBrightAccent ? '#070602' : '#ffffff');
 		
 		if (isDarkTheme(state.theme)) {
 			root.style.setProperty('--surface-popup', state.theme === 'catalyst' || state.theme === 'green' ? 'rgba(21, 33, 26, 0.96)' : 'rgba(18, 16, 32, 0.96)');
@@ -172,8 +220,7 @@
 			root.style.setProperty('--surface-popup-solid', '#ffffff');
 		}
 		
-		const themeDef = THEME_PRESETS.find(t => t.id === state.theme);
-		if (themeDef && themeDef.confetti) {
+		const themeDef = THEME_PRESETS.find(t => t.id === state.theme);		if (themeDef && themeDef.confetti) {
 			root.style.setProperty('--aurora-1', themeDef.confetti[0] || state.ui.accent);
 			root.style.setProperty('--aurora-2', themeDef.confetti[1] || '#69db7c');
 			root.style.setProperty('--aurora-3', themeDef.confetti[2] || '#b197fc');
@@ -210,9 +257,16 @@
 		} else {
 			root.removeAttribute('data-clear-glass');
 			if (isDarkTheme(state.theme)) {
-				root.style.setProperty('--surface-panel', `color-mix(in srgb, #0a0a10, transparent ${t}%)`);
-				root.style.setProperty('--surface-panel-ai', `color-mix(in srgb, #0a0a10, transparent ${Math.min(t, 15)}%)`);
-				root.style.setProperty('--surface-subtle', `color-mix(in srgb, #0a0a10, transparent ${st}%)`);
+				// Use theme-specific base colour so panels match the theme palette rather than generic near-black
+				const DARK_THEME_BASES: Record<string, string> = {
+					aurora: '#040e1d', initiate: '#040a10', 'god-mode': '#0e0c04', catalyst: '#050e06',
+					celestial: '#0a0618', challenger: '#100502', quantum: '#04051a', axiom: '#100408',
+					obsidian: '#120e24', quizlet: '#0c1128', green: '#061210', red: '#120408'
+				};
+				const base = DARK_THEME_BASES[state.theme] ?? '#0a0a10';
+				root.style.setProperty('--surface-panel', `color-mix(in srgb, ${base}, transparent ${t}%)`);
+				root.style.setProperty('--surface-panel-ai', `color-mix(in srgb, ${base}, transparent ${Math.min(t, 15)}%)`);
+				root.style.setProperty('--surface-subtle', `color-mix(in srgb, ${base}, transparent ${st}%)`);
 			} else {
 				root.style.setProperty('--surface-panel', `color-mix(in srgb, #ffffff, transparent ${t}%)`);
 				root.style.setProperty('--surface-panel-ai', `color-mix(in srgb, #ffffff, transparent ${Math.min(t, 15)}%)`);
@@ -237,6 +291,7 @@
 		} else {
 			root.removeAttribute('data-eco');
 		}
+		root.removeAttribute('data-ambient-shader');
 	}
 
 	$: isFirstTimeOrUnauth = isAuthRoute || (!$currentUser && !$hasSkippedLogin);
@@ -315,19 +370,36 @@
 		bgVideo.play().catch(() => {});
 	}
 
-	$: if (browser && currentWallpaperStr && !activeVideoUrl) {
-		const rawUrl = currentWallpaperStr.startsWith('url(')
-			? currentWallpaperStr.slice(4, -1).replace(/["']/g, '')
-			: currentWallpaperStr;
-		if (rawUrl && !rawUrl.startsWith('builtin:')) {
-			analyzeWallpaperLuminance(rawUrl);
+	$: if (browser) {
+		if (currentWallpaperStr && !activeVideoUrl) {
+			const rawUrl = currentWallpaperStr.startsWith('url(')
+				? currentWallpaperStr.slice(4, -1).replace(/["']/g, '')
+				: currentWallpaperStr;
+			if (rawUrl) {
+				analyzeWallpaperLuminance(rawUrl);
+			}
+		} else if (!currentWallpaperStr && !activeVideoUrl) {
+			clearWallpaperContrast();
 		}
 	}
 
 	$: showOnboarding = ((!isAuthRoute && $authReady && $syncStatus !== 'pulling' && !!$currentUser && !$tracker.onboarded)) || $targetsModalOpen;
+
+	const LIGHT_THEMES = new Set(['light', 'notion', 'duolingo', 'anki', 'master']);
+	$: defaultThemeColor = LIGHT_THEMES.has(effectiveTheme) ? '#f7f7fb' : '#11101b';
+	$: hasActiveWallpaper = Boolean((currentWallpaperStr || activeVideoUrl) && !isFirstTimeOrUnauth);
+	$: themeColorMeta = (hasActiveWallpaper && $activeWallpaperColors.bottomHex)
+		? $activeWallpaperColors.bottomHex
+		: defaultThemeColor;
+
+	$: if (browser && themeColorMeta) {
+		const metaThemeTags = document.querySelectorAll('meta[name="theme-color"]');
+		metaThemeTags.forEach((tag) => tag.setAttribute('content', themeColorMeta));
+	}
 </script>
 
 <svelte:head>
+	<meta name="theme-color" content={themeColorMeta} />
 	{#if activeVideoUrl}
 		<link rel="preload" as="video" href={activeVideoUrl} type="video/mp4" fetchpriority="high" />
 	{/if}
@@ -337,6 +409,7 @@
 	on:pointerdown={handleGlobalPointerDown}
 	on:touchstart={handleGlobalPointerDown}
 	on:pointermove={handleGlobalPointerMove}
+	on:pointerout={handleGlobalPointerOut}
 	on:keydown={(event) => {
 		if (event.key === 'Escape') {
 			mobileOpen = false;
@@ -393,6 +466,7 @@
 				sampleVideoFrame(e.currentTarget);
 			}}
 			on:canplay={(e) => { e.currentTarget.muted = true; e.currentTarget.play().catch(() => {}); }}
+			on:ended={(e) => { e.currentTarget.currentTime = 0; e.currentTarget.play().catch(() => {}); }}
 		>
 			<source src={activeVideoUrl} type="video/mp4" />
 		</video>
@@ -437,8 +511,10 @@
 		<MobileBottomNav />
 		<GlobalOverlays />
 		<DynamicIsland />
+		<PipFloatingIsland />
 		<AIOmentor />
 		<FormulaVault bind:open={$formulaVaultOpen} />
+		<TestDaySheetModal bind:open={$testDaySheetOpen} />
 		<PwaBanner />
 
 		<CommandPalette />
@@ -488,9 +564,9 @@
 	}
 	.page-heading, .topbar-actions { display: flex; align-items: center; }
 	.page-heading { gap: .85rem; }
-	.breadcrumb { margin: 0 0 .2rem; color: rgba(255, 255, 255, 0.78); font-size: .72rem; font-weight: 650; text-shadow: 0 1px 4px rgba(0, 0, 0, 0.85); }
+	.breadcrumb { margin: 0 0 .2rem; color: rgba(255, 255, 255, 0.78); font-size: .72rem; font-weight: 650; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
 	.breadcrumb span { margin: 0 .26rem; color: rgba(255, 255, 255, 0.35); }
-	h2 { margin: 0; font-size: 1.15rem; line-height: 1.1; letter-spacing: -.035em; font-weight: 800; color: #ffffff; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.9); }
+	h2 { margin: 0; font-size: 1.15rem; line-height: 1.1; letter-spacing: -.035em; font-weight: 800; color: #ffffff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
 	.topbar-center {
 		display: flex;
 		align-items: center;
@@ -508,14 +584,14 @@
 		height: 36px;
 		padding: 0 .85rem;
 		border-radius: 999px;
-		background: rgba(0, 0, 0, 0.42);
+		background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 28%, rgba(20, 16, 38, 0.65)), color-mix(in srgb, var(--accent) 18%, rgba(12, 10, 24, 0.78)));
 		backdrop-filter: blur(16px);
 		-webkit-backdrop-filter: blur(16px);
-		border: 1px solid rgba(255, 255, 255, 0.16);
+		border: 1.5px solid color-mix(in srgb, var(--accent) 65%, rgba(255, 255, 255, 0.35));
 		color: #ffffff;
 		font-size: .74rem;
 		font-weight: 700;
-		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+		box-shadow: 0 4px 18px -2px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 14px -2px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 1px color-mix(in srgb, var(--accent) 45%, rgba(255, 255, 255, 0.5));
 		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 	}
 	.save-state i { display: block; width: 7px; height: 7px; border-radius: 99px; background: var(--success); box-shadow: 0 0 6px var(--success); }
@@ -525,25 +601,37 @@
 	.topbar-actions :global(.tri-rings-btn),
 	.topbar-actions :global(.signin),
 	.topbar-actions :global(.avatar-btn) {
-		background: rgba(0, 0, 0, 0.42) !important;
+		background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 28%, rgba(20, 16, 38, 0.65)), color-mix(in srgb, var(--accent) 18%, rgba(12, 10, 24, 0.78))) !important;
 		backdrop-filter: blur(16px) !important;
 		-webkit-backdrop-filter: blur(16px) !important;
-		border: 1px solid rgba(255, 255, 255, 0.16) !important;
+		border: 1.5px solid color-mix(in srgb, var(--accent) 65%, rgba(255, 255, 255, 0.35)) !important;
 		color: #ffffff !important;
-		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28) !important;
+		box-shadow: 0 4px 18px -2px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 14px -2px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 1px color-mix(in srgb, var(--accent) 45%, rgba(255, 255, 255, 0.5)) !important;
 		transition: all 0.2s var(--ease-ios-spring) !important;
 	}
 	.topbar-actions :global(.streak-button:hover),
 	.topbar-actions :global(.tri-rings-btn:hover),
 	.topbar-actions :global(.signin:hover),
 	.topbar-actions :global(.avatar-btn:hover) {
-		border-color: rgba(255, 255, 255, 0.35) !important;
-		background: rgba(0, 0, 0, 0.62) !important;
-		box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45) !important;
-		transform: translateY(-1px) !important;
+		border-color: var(--accent) !important;
+		background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 40%, rgba(25, 20, 48, 0.70)), color-mix(in srgb, var(--accent) 28%, rgba(15, 12, 28, 0.82))) !important;
+		box-shadow: 0 6px 24px -2px color-mix(in srgb, var(--accent) 65%, transparent), 0 0 20px color-mix(in srgb, var(--accent) 45%, transparent), inset 0 1px 1px color-mix(in srgb, var(--accent) 60%, rgba(255, 255, 255, 0.7)) !important;
+		transform: translateY(-1px) scale(1.02) !important;
+	}
+	.topbar-actions :global(.streak-button .flame) {
+		color: var(--accent) !important;
+		filter: drop-shadow(0 0 7px color-mix(in srgb, var(--accent) 80%, transparent)) !important;
 	}
 	.topbar-actions :global(.streak-button .count),
-	.topbar-actions :global(.tri-rings-btn .count-pill),
+	.topbar-actions :global(.tri-rings-btn .count-pill) {
+		color: #ffffff !important;
+		text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 70%, transparent), 0 1px 2px rgba(0, 0, 0, 0.6) !important;
+		font-weight: 850 !important;
+	}
+	.topbar-actions :global(.tri-rings-btn .count-pill.complete) {
+		color: var(--success, #2af598) !important;
+		text-shadow: 0 0 10px rgba(42, 245, 152, 0.6), 0 1px 2px rgba(0, 0, 0, 0.6) !important;
+	}
 	.topbar-actions :global(.signin) {
 		color: #ffffff !important;
 	}
@@ -555,7 +643,7 @@
 		height: 36px;
 		padding: 0 1rem;
 		border-radius: 12px;
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		background: var(--accent);
 		border: 1px solid rgba(255, 255, 255, 0.25);
 		box-shadow: 0 4px 16px color-mix(in srgb, var(--accent), transparent 30%), 0 2px 6px rgba(0, 0, 0, 0.3);
@@ -578,13 +666,13 @@
 		width: 38px;
 		height: 38px;
 		place-items: center;
-		border: 1px solid rgba(255, 255, 255, 0.18);
-		border-radius: 11px;
-		color: #ffffff;
-		background: rgba(0, 0, 0, 0.42);
+		border: 1.5px solid color-mix(in srgb, var(--accent) 65%, rgba(255, 255, 255, 0.35));
+		border-radius: 12px;
+		color: var(--accent-contrast, #ffffff);
+		background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 28%, rgba(20, 16, 38, 0.65)), color-mix(in srgb, var(--accent) 18%, rgba(12, 10, 24, 0.78)));
 		backdrop-filter: blur(16px);
 		-webkit-backdrop-filter: blur(16px);
-		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+		box-shadow: 0 4px 18px -2px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 14px -2px color-mix(in srgb, var(--accent) 30%, transparent);
 	}
 	.scrim { display: none; }
 	.auth-loading { display: grid; min-height: 100vh; place-items: center; background: var(--surface-canvas); color: var(--text-secondary); font-size: .9rem; font-weight: 650; }
@@ -613,11 +701,12 @@
 			width: 38px;
 			height: 38px;
 			border-radius: 50%;
-			border: 1px solid rgba(255, 255, 255, 0.18);
-			background: rgba(0, 0, 0, 0.42);
+			border: 1.5px solid color-mix(in srgb, var(--accent) 65%, rgba(255, 255, 255, 0.35));
+			background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 28%, rgba(20, 16, 38, 0.65)), color-mix(in srgb, var(--accent) 18%, rgba(12, 10, 24, 0.78)));
 			backdrop-filter: blur(16px);
 			-webkit-backdrop-filter: blur(16px);
-			color: #ffffff;
+			color: var(--accent-contrast, #ffffff);
+			box-shadow: 0 4px 18px -2px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 14px -2px color-mix(in srgb, var(--accent) 30%, transparent);
 		}
 		.mobile-menu:active {
 			transform: scale(0.92);
@@ -650,11 +739,21 @@
 		}
 	}
 
-	:global(:root[data-theme='light']) .breadcrumb {
+	:global(:root[data-theme='light']) .breadcrumb,
+	:global(:root[data-theme='notion']) .breadcrumb,
+	:global(:root[data-theme='duolingo']) .breadcrumb,
+	:global(:root[data-theme='anki']) .breadcrumb,
+	:global(:root[data-theme='master']) .breadcrumb,
+	:global(:root[data-wallpaper-luminance='bright']) .breadcrumb {
 		color: var(--text-secondary) !important;
 		text-shadow: none !important;
 	}
-	:global(:root[data-theme='light']) h2 {
+	:global(:root[data-theme='light']) h2,
+	:global(:root[data-theme='notion']) h2,
+	:global(:root[data-theme='duolingo']) h2,
+	:global(:root[data-theme='anki']) h2,
+	:global(:root[data-theme='master']) h2,
+	:global(:root[data-wallpaper-luminance='bright']) h2 {
 		color: var(--text-primary) !important;
 		text-shadow: none !important;
 	}
@@ -663,16 +762,108 @@
 	:global(:root[data-theme='light']) .topbar-actions :global(.streak-button),
 	:global(:root[data-theme='light']) .topbar-actions :global(.tri-rings-btn),
 	:global(:root[data-theme='light']) .topbar-actions :global(.signin),
-	:global(:root[data-theme='light']) .topbar-actions :global(.avatar-btn) {
-		background: rgba(255, 255, 255, 0.85) !important;
-		border-color: rgba(0, 0, 0, 0.1) !important;
+	:global(:root[data-theme='light']) .topbar-actions :global(.avatar-btn),
+	:global(:root[data-theme='notion']) .save-state,
+	:global(:root[data-theme='notion']) .mobile-menu,
+	:global(:root[data-theme='notion']) .topbar-actions :global(.streak-button),
+	:global(:root[data-theme='notion']) .topbar-actions :global(.tri-rings-btn),
+	:global(:root[data-theme='notion']) .topbar-actions :global(.signin),
+	:global(:root[data-theme='notion']) .topbar-actions :global(.avatar-btn),
+	:global(:root[data-theme='duolingo']) .save-state,
+	:global(:root[data-theme='duolingo']) .mobile-menu,
+	:global(:root[data-theme='duolingo']) .topbar-actions :global(.streak-button),
+	:global(:root[data-theme='duolingo']) .topbar-actions :global(.tri-rings-btn),
+	:global(:root[data-theme='duolingo']) .topbar-actions :global(.signin),
+	:global(:root[data-theme='duolingo']) .topbar-actions :global(.avatar-btn),
+	:global(:root[data-theme='anki']) .save-state,
+	:global(:root[data-theme='anki']) .mobile-menu,
+	:global(:root[data-theme='anki']) .topbar-actions :global(.streak-button),
+	:global(:root[data-theme='anki']) .topbar-actions :global(.tri-rings-btn),
+	:global(:root[data-theme='anki']) .topbar-actions :global(.signin),
+	:global(:root[data-theme='anki']) .topbar-actions :global(.avatar-btn),
+	:global(:root[data-theme='master']) .save-state,
+	:global(:root[data-theme='master']) .mobile-menu,
+	:global(:root[data-theme='master']) .topbar-actions :global(.streak-button),
+	:global(:root[data-theme='master']) .topbar-actions :global(.tri-rings-btn),
+	:global(:root[data-theme='master']) .topbar-actions :global(.signin),
+	:global(:root[data-theme='master']) .topbar-actions :global(.avatar-btn),
+	:global(:root[data-wallpaper-luminance='bright']) .save-state,
+	:global(:root[data-wallpaper-luminance='bright']) .mobile-menu,
+	:global(:root[data-wallpaper-luminance='bright']) .topbar-actions :global(.streak-button),
+	:global(:root[data-wallpaper-luminance='bright']) .topbar-actions :global(.tri-rings-btn),
+	:global(:root[data-wallpaper-luminance='bright']) .topbar-actions :global(.signin),
+	:global(:root[data-wallpaper-luminance='bright']) .topbar-actions :global(.avatar-btn) {
+		background: color-mix(in srgb, var(--accent) 22%, rgba(255, 255, 255, 0.90)) !important;
+		border: 1.5px solid color-mix(in srgb, var(--accent) 55%, rgba(0, 0, 0, 0.14)) !important;
 		color: var(--text-primary) !important;
-		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08) !important;
+		box-shadow: 0 3px 14px color-mix(in srgb, var(--accent) 28%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
 		text-shadow: none !important;
+	}
+	:global(:root[data-theme='light']) .topbar-actions :global(.streak-button:hover),
+	:global(:root[data-theme='light']) .topbar-actions :global(.tri-rings-btn:hover),
+	:global(:root[data-theme='light']) .topbar-actions :global(.signin:hover),
+	:global(:root[data-theme='light']) .topbar-actions :global(.avatar-btn:hover),
+	:global(:root[data-theme='notion']) .topbar-actions :global(.streak-button:hover),
+	:global(:root[data-theme='notion']) .topbar-actions :global(.tri-rings-btn:hover),
+	:global(:root[data-theme='notion']) .topbar-actions :global(.signin:hover),
+	:global(:root[data-theme='notion']) .topbar-actions :global(.avatar-btn:hover),
+	:global(:root[data-theme='duolingo']) .topbar-actions :global(.streak-button:hover),
+	:global(:root[data-theme='duolingo']) .topbar-actions :global(.tri-rings-btn:hover),
+	:global(:root[data-theme='duolingo']) .topbar-actions :global(.signin:hover),
+	:global(:root[data-theme='duolingo']) .topbar-actions :global(.avatar-btn:hover),
+	:global(:root[data-theme='anki']) .topbar-actions :global(.streak-button:hover),
+	:global(:root[data-theme='anki']) .topbar-actions :global(.tri-rings-btn:hover),
+	:global(:root[data-theme='anki']) .topbar-actions :global(.signin:hover),
+	:global(:root[data-theme='anki']) .topbar-actions :global(.avatar-btn:hover),
+	:global(:root[data-theme='master']) .topbar-actions :global(.streak-button:hover),
+	:global(:root[data-theme='master']) .topbar-actions :global(.tri-rings-btn:hover),
+	:global(:root[data-theme='master']) .topbar-actions :global(.signin:hover),
+	:global(:root[data-theme='master']) .topbar-actions :global(.avatar-btn:hover),
+	:global(:root[data-wallpaper-luminance='bright']) .topbar-actions :global(.streak-button:hover),
+	:global(:root[data-wallpaper-luminance='bright']) .topbar-actions :global(.tri-rings-btn:hover),
+	:global(:root[data-wallpaper-luminance='bright']) .topbar-actions :global(.signin:hover),
+	:global(:root[data-wallpaper-luminance='bright']) .topbar-actions :global(.avatar-btn:hover) {
+		border-color: var(--accent) !important;
+		background: color-mix(in srgb, var(--accent) 32%, rgba(255, 255, 255, 0.96)) !important;
+		box-shadow: 0 4px 18px -2px color-mix(in srgb, var(--accent) 45%, transparent) !important;
 	}
 	:global(:root[data-theme='light']) .topbar-actions :global(.streak-button .count),
 	:global(:root[data-theme='light']) .topbar-actions :global(.tri-rings-btn .count-pill),
-	:global(:root[data-theme='light']) .topbar-actions :global(.signin) {
+	:global(:root[data-theme='notion']) .topbar-actions :global(.streak-button .count),
+	:global(:root[data-theme='notion']) .topbar-actions :global(.tri-rings-btn .count-pill),
+	:global(:root[data-theme='duolingo']) .topbar-actions :global(.streak-button .count),
+	:global(:root[data-theme='duolingo']) .topbar-actions :global(.tri-rings-btn .count-pill),
+	:global(:root[data-theme='anki']) .topbar-actions :global(.streak-button .count),
+	:global(:root[data-theme='anki']) .topbar-actions :global(.tri-rings-btn .count-pill),
+	:global(:root[data-theme='master']) .topbar-actions :global(.streak-button .count),
+	:global(:root[data-theme='master']) .topbar-actions :global(.tri-rings-btn .count-pill),
+	:global(:root[data-wallpaper-luminance='bright']) .topbar-actions :global(.streak-button .count),
+	:global(:root[data-wallpaper-luminance='bright']) .topbar-actions :global(.tri-rings-btn .count-pill) {
+		color: var(--accent) !important;
+		font-weight: 850 !important;
+	}
+	:global(:root[data-theme='light']) .topbar-actions :global(.tri-rings-btn .count-pill.complete),
+	:global(:root[data-theme='notion']) .topbar-actions :global(.tri-rings-btn .count-pill.complete),
+	:global(:root[data-theme='duolingo']) .topbar-actions :global(.tri-rings-btn .count-pill.complete),
+	:global(:root[data-theme='anki']) .topbar-actions :global(.tri-rings-btn .count-pill.complete),
+	:global(:root[data-theme='master']) .topbar-actions :global(.tri-rings-btn .count-pill.complete),
+	:global(:root[data-wallpaper-luminance='bright']) .topbar-actions :global(.tri-rings-btn .count-pill.complete) {
+		color: var(--success, #2af598) !important;
+	}
+	:global(:root[data-theme='light']) .topbar-actions :global(.streak-button .flame),
+	:global(:root[data-theme='notion']) .topbar-actions :global(.streak-button .flame),
+	:global(:root[data-theme='duolingo']) .topbar-actions :global(.streak-button .flame),
+	:global(:root[data-theme='anki']) .topbar-actions :global(.streak-button .flame),
+	:global(:root[data-theme='master']) .topbar-actions :global(.streak-button .flame),
+	:global(:root[data-wallpaper-luminance='bright']) .topbar-actions :global(.streak-button .flame) {
+		color: var(--accent) !important;
+	}
+	:global(:root[data-theme='light']) .topbar-actions :global(.signin),
+	:global(:root[data-theme='notion']) .topbar-actions :global(.signin),
+	:global(:root[data-theme='duolingo']) .topbar-actions :global(.signin),
+	:global(:root[data-theme='anki']) .topbar-actions :global(.signin),
+	:global(:root[data-theme='master']) .topbar-actions :global(.signin),
+	:global(:root[data-wallpaper-luminance='bright']) .topbar-actions :global(.signin) {
 		color: var(--text-primary) !important;
 	}
 

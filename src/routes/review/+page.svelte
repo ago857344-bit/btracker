@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { tracker, updateTracker, celebration } from '$lib/stores/tracker';
 	import { isFlag, resultOf } from '$lib/state/questions';
-	import { allChapters, cellKey, questionCount, visibleExercises } from '$lib/state/syllabus';
+	import { allChaptersWithCustom, cellKey, questionCount, visibleExercises } from '$lib/state/syllabus';
 	import { subjectColor, subjectName } from '$lib/state/subjects';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import type { Flashcard } from '$lib/types/tracker';
@@ -60,7 +60,7 @@
 	$: questions = (() => {
 		const next: ReviewQuestion[] = [];
 		for (const subject of ['P', 'C', 'M']) {
-			for (const chapter of allChapters(subject)) {
+			for (const chapter of allChaptersWithCustom($tracker, subject)) {
 				for (const exercise of visibleExercises($tracker, subject, chapter.no)) {
 					const count = questionCount($tracker, subject, chapter.no, exercise.code);
 					const cells = $tracker.d[cellKey(subject, chapter.no, exercise.code)] ?? [];
@@ -202,7 +202,7 @@
 	}
 	.tabs button:hover { color: var(--text-primary); }
 	.tabs button.active {
-		color: #fff;
+		color: var(--accent-contrast, #fff);
 		background: var(--accent);
 		box-shadow: 0 2px 10px color-mix(in srgb, var(--accent), transparent 60%), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 		font-weight: 750;

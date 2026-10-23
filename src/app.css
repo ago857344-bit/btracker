@@ -14,10 +14,12 @@
   --surface-subtle: #f0eff9;
   --text-primary: #24213a;
   --text-secondary: #716e86;
+  --text-tertiary: color-mix(in srgb, var(--text-secondary) 75%, transparent);
   --border-subtle: #e7e5f1;
   --accent: #6d5dfc;
   --accent-strong: #5142df;
   --accent-soft: #ebe9ff;
+  --accent-contrast: #ffffff;
   --success: #42b883;
   --warning: #f6ad55;
   --danger: #ef6c7b;
@@ -49,11 +51,13 @@
 :root[data-theme='duolingo'],
 :root[data-theme='anki'],
 :root[data-theme='master'] {
+  color-scheme: light;
   --surface-canvas: #f7f7fb;
   --surface-panel: #ffffff;
   --surface-subtle: #f0eff9;
   --text-primary: #24213a;
   --text-secondary: #716e86;
+  --text-tertiary: color-mix(in srgb, var(--text-secondary) 75%, transparent);
   --border-subtle: #e7e5f1;
   --accent-soft: #ebe9ff;
   --shadow-card: 0 4px 6px -1px rgb(44 37 92 / 5%), 0 14px 40px -4px rgb(44 37 92 / 12%);
@@ -73,6 +77,22 @@
   --surface-popup-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08));
 }
 
+:root[data-theme='dark'],
+:root[data-theme='obsidian'],
+:root[data-theme='quizlet'],
+:root[data-theme='green'],
+:root[data-theme='red'],
+:root[data-theme='aurora'],
+:root[data-theme='initiate'],
+:root[data-theme='god-mode'],
+:root[data-theme='catalyst'],
+:root[data-theme='celestial'],
+:root[data-theme='challenger'],
+:root[data-theme='quantum'],
+:root[data-theme='axiom'] {
+  color-scheme: dark;
+}
+
 :root[data-theme='dark'] {
   --surface-canvas: #11101b;
   --surface-panel: #1a1827;
@@ -80,7 +100,10 @@
   --text-primary: #f7f5ff;
   --text-secondary: #bbb5d0;
   --border-subtle: #302c43;
+  --accent: #8b7bff;
+  --accent-strong: #705ff7;
   --accent-soft: #29264a;
+  --accent-contrast: #ffffff;
   --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 10%), 0 14px 40px -4px rgb(0 0 0 / 30%);
   --shadow-modal: 0 24px 60px -8px rgb(0 0 0 / 60%), 0 12px 24px rgb(0 0 0 / 40%);
   --shadow-hover: 0 10px 15px -3px rgb(0 0 0 / 10%), 0 24px 50px -8px rgb(0 0 0 / 40%);
@@ -275,7 +298,27 @@ select:hover, input[type="text"]:hover, input[type="number"]:hover, .method:hove
 :root[data-theme='light'] input[type="text"],
 :root[data-theme='light'] input[type="number"],
 :root[data-theme='light'] .method,
-:root[data-theme='light'] .glass-element {
+:root[data-theme='light'] .glass-element,
+:root[data-theme='notion'] select,
+:root[data-theme='notion'] input[type="text"],
+:root[data-theme='notion'] input[type="number"],
+:root[data-theme='notion'] .method,
+:root[data-theme='notion'] .glass-element,
+:root[data-theme='duolingo'] select,
+:root[data-theme='duolingo'] input[type="text"],
+:root[data-theme='duolingo'] input[type="number"],
+:root[data-theme='duolingo'] .method,
+:root[data-theme='duolingo'] .glass-element,
+:root[data-theme='anki'] select,
+:root[data-theme='anki'] input[type="text"],
+:root[data-theme='anki'] input[type="number"],
+:root[data-theme='anki'] .method,
+:root[data-theme='anki'] .glass-element,
+:root[data-theme='master'] select,
+:root[data-theme='master'] input[type="text"],
+:root[data-theme='master'] input[type="number"],
+:root[data-theme='master'] .method,
+:root[data-theme='master'] .glass-element {
 	background: rgba(255, 255, 255, 0.5) !important;
 	border-color: rgba(0, 0, 0, 0.05);
 	box-shadow: inset 0 1px 4px rgba(255, 255, 255, 0.5);
@@ -285,7 +328,27 @@ select:hover, input[type="text"]:hover, input[type="number"]:hover, .method:hove
 :root[data-theme='light'] input[type="text"]:hover,
 :root[data-theme='light'] input[type="number"]:hover,
 :root[data-theme='light'] .method:hover,
-:root[data-theme='light'] .glass-element:hover {
+:root[data-theme='light'] .glass-element:hover,
+:root[data-theme='notion'] select:hover,
+:root[data-theme='notion'] input[type="text"]:hover,
+:root[data-theme='notion'] input[type="number"]:hover,
+:root[data-theme='notion'] .method:hover,
+:root[data-theme='notion'] .glass-element:hover,
+:root[data-theme='duolingo'] select:hover,
+:root[data-theme='duolingo'] input[type="text"]:hover,
+:root[data-theme='duolingo'] input[type="number"]:hover,
+:root[data-theme='duolingo'] .method:hover,
+:root[data-theme='duolingo'] .glass-element:hover,
+:root[data-theme='anki'] select:hover,
+:root[data-theme='anki'] input[type="text"]:hover,
+:root[data-theme='anki'] input[type="number"]:hover,
+:root[data-theme='anki'] .method:hover,
+:root[data-theme='anki'] .glass-element:hover,
+:root[data-theme='master'] select:hover,
+:root[data-theme='master'] input[type="text"]:hover,
+:root[data-theme='master'] input[type="number"]:hover,
+:root[data-theme='master'] .method:hover,
+:root[data-theme='master'] .glass-element:hover {
 	background: rgba(255, 255, 255, 0.7) !important;
 	box-shadow: 0 4px 12px rgba(0,0,0,0.05), inset 0 1px 4px rgba(255, 255, 255, 0.6);
 }
@@ -305,7 +368,11 @@ body::before {
 		radial-gradient(circle at 15% 50%, rgba(109, 93, 252, 0.05), transparent 40%),
 		radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.04), transparent 40%);
 }
-:root[data-theme='light'] body::before {
+:root[data-theme='light'] body::before,
+:root[data-theme='notion'] body::before,
+:root[data-theme='duolingo'] body::before,
+:root[data-theme='anki'] body::before,
+:root[data-theme='master'] body::before {
 	background-image: 
 		radial-gradient(circle at 15% 50%, rgba(109, 93, 252, 0.03), transparent 40%),
 		radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.02), transparent 40%);
@@ -347,7 +414,43 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 :root[data-theme='light'] .item:hover, 
 :root[data-theme='light'] .chip:hover,
 :root[data-theme='light'] .btn:hover:not(:disabled),
-:root[data-theme='light'] .nav-item:hover {
+:root[data-theme='light'] .nav-item:hover,
+:root[data-theme='notion'] button:hover:not(:disabled), 
+:root[data-theme='notion'] .tb:hover, 
+:root[data-theme='notion'] .ic:hover, 
+:root[data-theme='notion'] aside a:hover, 
+:root[data-theme='notion'] .row:hover, 
+:root[data-theme='notion'] .item:hover, 
+:root[data-theme='notion'] .chip:hover,
+:root[data-theme='notion'] .btn:hover:not(:disabled),
+:root[data-theme='notion'] .nav-item:hover,
+:root[data-theme='duolingo'] button:hover:not(:disabled), 
+:root[data-theme='duolingo'] .tb:hover, 
+:root[data-theme='duolingo'] .ic:hover, 
+:root[data-theme='duolingo'] aside a:hover, 
+:root[data-theme='duolingo'] .row:hover, 
+:root[data-theme='duolingo'] .item:hover, 
+:root[data-theme='duolingo'] .chip:hover,
+:root[data-theme='duolingo'] .btn:hover:not(:disabled),
+:root[data-theme='duolingo'] .nav-item:hover,
+:root[data-theme='anki'] button:hover:not(:disabled), 
+:root[data-theme='anki'] .tb:hover, 
+:root[data-theme='anki'] .ic:hover, 
+:root[data-theme='anki'] aside a:hover, 
+:root[data-theme='anki'] .row:hover, 
+:root[data-theme='anki'] .item:hover, 
+:root[data-theme='anki'] .chip:hover,
+:root[data-theme='anki'] .btn:hover:not(:disabled),
+:root[data-theme='anki'] .nav-item:hover,
+:root[data-theme='master'] button:hover:not(:disabled), 
+:root[data-theme='master'] .tb:hover, 
+:root[data-theme='master'] .ic:hover, 
+:root[data-theme='master'] aside a:hover, 
+:root[data-theme='master'] .row:hover, 
+:root[data-theme='master'] .item:hover, 
+:root[data-theme='master'] .chip:hover,
+:root[data-theme='master'] .btn:hover:not(:disabled),
+:root[data-theme='master'] .nav-item:hover {
 	box-shadow: 0 6px 16px -4px rgba(44, 37, 92, 0.15), 0 4px 8px -2px rgba(44, 37, 92, 0.08) !important;
 }
 
@@ -387,9 +490,34 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	box-shadow: var(--shadow-card), var(--vision-bevel-inner);
 	overflow: hidden;
 	transition:
-		transform 0.22s var(--ease-ios-spring),
+		transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
 		box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
 		border-color 0.28s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	/* Gentle micro-depth 3D tilt exclusively on desktop dashboard widgets */
+	.widget,
+	.bento-card {
+		transform-style: preserve-3d;
+		perspective: 1000px;
+		transform: perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(var(--card-lift, 0px));
+		will-change: transform;
+	}
+}
+
+/* Modals, popups, menus, and drawers MUST remain 100% rock-solid and flat */
+.modal-card,
+.modal-backdrop,
+[role="dialog"],
+.menu,
+.goals-drawer,
+.no-tilt,
+.no-tilt * {
+	transform: none !important;
+	--tilt-x: 0deg !important;
+	--tilt-y: 0deg !important;
+	perspective: none !important;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -558,7 +686,7 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	.cadence-card:hover,
 	.pocket-quote-card:hover {
 		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 45%);
-		transform: translateY(-2px);
+		--card-lift: -3px;
 		box-shadow: 0 16px 44px -6px rgba(0, 0, 0, 0.38), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.12));
 	}
 
@@ -571,7 +699,8 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 	.mission-card:active,
 	.rail-card:active,
 	.subject-card:active {
-		transform: translateY(0px) scale(0.99);
+		--card-lift: 0px;
+		transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale(0.988);
 		transition: transform 0.12s var(--ease-ios-press, cubic-bezier(0.2, 0.9, 0.3, 1));
 	}
 
@@ -610,11 +739,12 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 /* ========================================================================= */
 :root[data-wallpaper="true"],
 :root[data-live-wallpaper="true"] {
-	--surface-canvas: transparent;
+	--surface-canvas: transparent !important;
+	--vision-glass-bg: color-mix(in srgb, #0b0914 75%, transparent) !important;
 	/* Deep glass for dark modes: 45% black, 55% transparent */
-	--surface-panel: color-mix(in srgb, #0a0a10, transparent 8%);
-	--surface-subtle: color-mix(in srgb, #0a0a10, transparent 15%);
-	--border-subtle: color-mix(in srgb, #ffffff, transparent 85%);
+	--surface-panel: color-mix(in srgb, #0a0a10, transparent 10%);
+	--surface-subtle: color-mix(in srgb, #0a0a10, transparent 18%);
+	--border-subtle: color-mix(in srgb, #ffffff, transparent 82%);
 }
 
 :root[data-theme="light"][data-wallpaper="true"], 
@@ -653,8 +783,35 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 
 :root[data-wallpaper-luminance="bright"] .page-heading h2,
 :root[data-wallpaper-luminance="bright"] .widget h3,
-:root[data-wallpaper-luminance="bright"] .hero h1 {
-	text-shadow: 0 1px 6px rgba(0, 0, 0, 0.75);
+:root[data-wallpaper-luminance="bright"] .hero h1,
+:root[data-wallpaper-luminance="bright"] .hero h1 span,
+:root[data-wallpaper-luminance="bright"] .hero p,
+:root[data-wallpaper-luminance="bright"] .hero .sub,
+:root[data-wallpaper-luminance="bright"] .eyebrow {
+	text-shadow: none !important;
+}
+
+:root[data-theme="light"] .hero h1,
+:root[data-theme="light"] .hero h1 span,
+:root[data-theme="notion"] .hero h1,
+:root[data-theme="notion"] .hero h1 span,
+:root[data-theme="duolingo"] .hero h1,
+:root[data-theme="duolingo"] .hero h1 span,
+:root[data-theme="anki"] .hero h1,
+:root[data-theme="anki"] .hero h1 span,
+:root[data-theme="master"] .hero h1,
+:root[data-theme="master"] .hero h1 span,
+:root[data-theme="light"] .hero p,
+:root[data-theme="notion"] .hero p,
+:root[data-theme="duolingo"] .hero p,
+:root[data-theme="anki"] .hero p,
+:root[data-theme="master"] .hero p,
+:root[data-theme="light"] .eyebrow,
+:root[data-theme="notion"] .eyebrow,
+:root[data-theme="duolingo"] .eyebrow,
+:root[data-theme="anki"] .eyebrow,
+:root[data-theme="master"] .eyebrow {
+	text-shadow: none !important;
 }
 
 /* When a live video wallpaper or dark wallpaper is active, enforce high-contrast readable text */
@@ -666,7 +823,13 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 :root[data-wallpaper="true"][data-theme="catalyst"],
 :root[data-wallpaper="true"][data-theme="obsidian"],
 :root[data-wallpaper="true"][data-theme="dark"],
-:root[data-wallpaper="true"][data-theme="quizlet"] {
+:root[data-wallpaper="true"][data-theme="quizlet"],
+:root[data-wallpaper="true"][data-theme="celestial"],
+:root[data-wallpaper="true"][data-theme="red"],
+:root[data-wallpaper="true"][data-theme="green"],
+:root[data-wallpaper="true"][data-theme="challenger"],
+:root[data-wallpaper="true"][data-theme="quantum"],
+:root[data-wallpaper="true"][data-theme="axiom"] {
 	--text-primary: #ffffff !important;
 	--text-secondary: rgba(255, 255, 255, 0.72) !important;
 }
@@ -686,13 +849,35 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 :root[data-wallpaper="true"][data-wallpaper-luminance="dark"] .topbar,
 :root[data-wallpaper="true"][data-wallpaper-luminance="dark"] .eyebrow {
 	color: #ffffff;
-	text-shadow: 0 1px 4px rgba(0, 0, 0, 0.75);
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
 }
 
 :root[data-live-wallpaper="true"] aside,
 :root[data-wallpaper="true"][data-wallpaper-luminance="dark"] aside {
 	background: rgba(15, 14, 25, 0.78) !important;
 	border-right: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Wallpaper Mode Bottom Navigation Bar: dynamic wallpaper bottom color & accent */
+:root[data-wallpaper="true"] .bottom-nav,
+:root[data-live-wallpaper="true"] .bottom-nav {
+	background: color-mix(in srgb, var(--wallpaper-bottom-color, #121020) 48%, rgba(10, 8, 20, 0.48)) !important;
+	backdrop-filter: blur(36px) saturate(220%) !important;
+	-webkit-backdrop-filter: blur(36px) saturate(220%) !important;
+	border: 1px solid color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 32%, rgba(255, 255, 255, 0.22)) !important;
+	box-shadow: 0 20px 56px -8px color-mix(in srgb, var(--wallpaper-bottom-color, #000000) 65%, rgba(0, 0, 0, 0.7)),
+				inset 0 1px 1.5px rgba(255, 255, 255, 0.28) !important;
+}
+
+:root[data-wallpaper="true"][data-wallpaper-bottom-bright="true"] .bottom-nav,
+:root[data-wallpaper="true"][data-wallpaper-luminance="bright"] .bottom-nav,
+:root[data-live-wallpaper="true"][data-wallpaper-bottom-bright="true"] .bottom-nav {
+	background: color-mix(in srgb, var(--wallpaper-bottom-color, #ffffff) 65%, rgba(255, 255, 255, 0.62)) !important;
+	backdrop-filter: blur(36px) saturate(220%) !important;
+	-webkit-backdrop-filter: blur(36px) saturate(220%) !important;
+	border: 1px solid color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 32%, rgba(0, 0, 0, 0.12)) !important;
+	box-shadow: 0 16px 44px -8px color-mix(in srgb, var(--wallpaper-bottom-color, #1a1a2e) 25%, rgba(0, 0, 0, 0.15)),
+				inset 0 1px 1px rgba(255, 255, 255, 0.95) !important;
 }
 
 /* Base Glass Effect */
@@ -862,7 +1047,7 @@ aside a:active,
 input[type="date"], input[type="time"] {
 	color: var(--text-primary) !important;
 	-webkit-text-fill-color: var(--text-primary) !important;
-	color-scheme: dark light;
+	color-scheme: inherit;
 }
 input[type="date"]::-webkit-datetime-edit, 
 input[type="date"]::-webkit-datetime-edit-fields-wrapper,
@@ -897,7 +1082,31 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 :root[data-theme='light'] .gm-backdrop,
 :root[data-theme='light'] .island-scrim,
 :root[data-theme='light'] .overlay .backdrop,
-:root[data-theme='light'] .scrim {
+:root[data-theme='light'] .scrim,
+:root[data-theme='notion'] .modal-backdrop,
+:root[data-theme='notion'] .vault-backdrop,
+:root[data-theme='notion'] .gm-backdrop,
+:root[data-theme='notion'] .island-scrim,
+:root[data-theme='notion'] .overlay .backdrop,
+:root[data-theme='notion'] .scrim,
+:root[data-theme='duolingo'] .modal-backdrop,
+:root[data-theme='duolingo'] .vault-backdrop,
+:root[data-theme='duolingo'] .gm-backdrop,
+:root[data-theme='duolingo'] .island-scrim,
+:root[data-theme='duolingo'] .overlay .backdrop,
+:root[data-theme='duolingo'] .scrim,
+:root[data-theme='anki'] .modal-backdrop,
+:root[data-theme='anki'] .vault-backdrop,
+:root[data-theme='anki'] .gm-backdrop,
+:root[data-theme='anki'] .island-scrim,
+:root[data-theme='anki'] .overlay .backdrop,
+:root[data-theme='anki'] .scrim,
+:root[data-theme='master'] .modal-backdrop,
+:root[data-theme='master'] .vault-backdrop,
+:root[data-theme='master'] .gm-backdrop,
+:root[data-theme='master'] .island-scrim,
+:root[data-theme='master'] .overlay .backdrop,
+:root[data-theme='master'] .scrim {
 	background: rgba(20, 16, 40, 0.42) !important;
 }
 
@@ -918,7 +1127,6 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 .selbar,
 .rangebar,
 .ai-report,
-.bottom-nav,
 .profile-container,
 aside.mobile-open {
 	/* Dense 96% opacity prevents underlying text bleed-through while keeping glass depth */
@@ -934,11 +1142,11 @@ aside.mobile-open {
 }
 
 /* Light Mode Acrylic Tokens */
-:root[data-theme='light'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
-:root[data-theme='notion'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
-:root[data-theme='duolingo'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
-:root[data-theme='anki'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
-:root[data-theme='master'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open) {
+:root[data-theme='light'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
+:root[data-theme='notion'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
+:root[data-theme='duolingo'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
+:root[data-theme='anki'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
+:root[data-theme='master'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open) {
 	background: var(--surface-popup, rgba(255, 255, 255, 0.96)) !important;
 	border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08)) !important;
 	box-shadow:
@@ -1058,15 +1266,44 @@ aside.mobile-open {
 	--text-secondary: #e2e8f0 !important;
 }
 
+:root[data-theme='light'][data-wallpaper] .modal-card,
+:root[data-theme='notion'][data-wallpaper] .modal-card,
+:root[data-theme='duolingo'][data-wallpaper] .modal-card,
+:root[data-theme='anki'][data-wallpaper] .modal-card,
+:root[data-theme='master'][data-wallpaper] .modal-card {
+	color: var(--text-primary) !important;
+	--text-primary: #24213a !important;
+	--text-secondary: #716e86 !important;
+}
+
 /* ========================================================================= */
 /* ELO TIER THEMES — full palettes + reward animations                        */
 /* ========================================================================= */
+:root[data-theme='aurora'] {
+	--accent: #00e5ff;
+	--accent-strong: #00b8d4;
+	--accent-contrast: #03080e;
+	--surface-canvas: #050b14;
+	--surface-panel: #0a192f;
+	--surface-subtle: #0f2442;
+	--surface-popup: rgba(10, 25, 47, 0.96);
+	--surface-popup-solid: #0a192f;
+	--text-primary: #e6f9ff;
+	--text-secondary: #90b8d0;
+	--border-subtle: rgba(0, 229, 255, 0.16);
+	--accent-soft: rgba(0, 229, 255, 0.12);
+	--shadow-card: 0 14px 40px rgb(0 0 0 / 38%);
+}
+
 :root[data-theme='initiate'] {
 	--accent: #00e5ff;
 	--accent-strong: #00b8d4;
+	--accent-contrast: #020608;
 	--surface-canvas: #05090c;
 	--surface-panel: #0a1318;
 	--surface-subtle: #0f1b21;
+	--surface-popup: rgba(10, 19, 24, 0.96);
+	--surface-popup-solid: #0a1318;
 	--text-primary: #e8fcff;
 	--text-secondary: #9cc4cf;
 	--border-subtle: rgba(0, 229, 255, 0.14);
@@ -1077,9 +1314,12 @@ aside.mobile-open {
 :root[data-theme='challenger'] {
 	--accent: #ff4500; /* Emergency Orange */
 	--accent-strong: #cc3700;
+	--accent-contrast: #ffffff;
 	--surface-canvas: #140704;
 	--surface-panel: #1e0d08;
 	--surface-subtle: #2a130c;
+	--surface-popup: rgba(30, 13, 8, 0.96);
+	--surface-popup-solid: #1e0d08;
 	--text-primary: #fff3ee;
 	--text-secondary: #d4a391;
 	--border-subtle: rgba(255, 69, 0, 0.2);
@@ -1093,21 +1333,28 @@ aside.mobile-open {
 :root[data-theme='master'] {
 	--accent: #0072c6;
 	--accent-strong: #005a9e;
+	--accent-contrast: #ffffff;
 	--surface-canvas: #f0f7ff;
 	--surface-panel: #ffffff;
 	--surface-subtle: #e6f2ff;
+	--surface-popup: rgba(255, 255, 255, 0.96);
+	--surface-popup-solid: #ffffff;
 	--text-primary: #1a2733;
 	--text-secondary: #4a5c6e;
 	--border-subtle: rgba(0, 114, 198, 0.2);
+	--accent-soft: #dbeafe;
 }
 
 :root[data-theme='god-mode'] {
 	--accent: #ffd700; /* Gold */
 	--accent-strong: #ccac00;
+	--accent-contrast: #070602;
 	--success: #00ffd5;
 	--surface-canvas: #070602;
 	--surface-panel: #14110a;
 	--surface-subtle: #1d180c;
+	--surface-popup: rgba(20, 17, 10, 0.96);
+	--surface-popup-solid: #14110a;
 	--border-subtle: rgba(255, 215, 0, 0.18);
 	--accent-soft: rgba(255, 215, 0, 0.13);
 	--text-primary: #fffbee;
@@ -1125,9 +1372,12 @@ aside.mobile-open {
 :root[data-theme='quantum'] {
 	--accent: #7c8cff;
 	--accent-strong: #5c6ef0;
+	--accent-contrast: #ffffff;
 	--surface-canvas: #05061a;
 	--surface-panel: #0b0d28;
 	--surface-subtle: #121535;
+	--surface-popup: rgba(11, 13, 40, 0.96);
+	--surface-popup-solid: #0b0d28;
 	--text-primary: #eef0ff;
 	--text-secondary: #a6abd8;
 	--border-subtle: rgba(124, 140, 255, 0.18);
@@ -1138,30 +1388,71 @@ aside.mobile-open {
 :root[data-theme='catalyst'] {
 	--accent: #a3e635;
 	--accent-strong: #84cc16;
+	--accent-contrast: #040a05;
 	--success: #22c55e;
 	--surface-canvas: #040a05;
 	--surface-panel: #0a150b;
 	--surface-subtle: #102011;
+	--surface-popup: rgba(10, 21, 11, 0.96);
+	--surface-popup-solid: #0a150b;
 	--text-primary: #f2ffe6;
 	--text-secondary: #a9c79a;
 	--border-subtle: rgba(163, 230, 53, 0.16);
 	--accent-soft: rgba(163, 230, 53, 0.12);
 	--shadow-card: 0 14px 40px rgb(0 0 0 / 36%);
 }
-/* Lime is too bright for white button text. */
-:root[data-theme='catalyst'] .quick-add, :root[data-theme='catalyst'] .brand-mark { color: #0a1a02; }
 
 :root[data-theme='axiom'] {
 	--accent: #ff5c8a;
 	--accent-strong: #e64576;
+	--accent-contrast: #ffffff;
 	--surface-canvas: #10040a;
 	--surface-panel: #1a0912;
 	--surface-subtle: #240e19;
+	--surface-popup: rgba(26, 9, 18, 0.96);
+	--surface-popup-solid: #1a0912;
 	--text-primary: #fff0f5;
 	--text-secondary: #d6a5b6;
 	--border-subtle: rgba(255, 92, 138, 0.18);
 	--accent-soft: rgba(255, 92, 138, 0.13);
 	--shadow-card: 0 14px 40px rgb(0 0 0 / 34%);
+}
+
+:root[data-theme='celestial'] {
+	--accent: #b197fc;
+	--accent-strong: #9775fa;
+	--accent-contrast: #070512;
+	--success: #38d9a9;
+	--surface-canvas: #070512;
+	--surface-panel: #110d22;
+	--surface-subtle: #191430;
+	--surface-popup: rgba(17, 13, 34, 0.96);
+	--surface-popup-solid: #110d22;
+	--text-primary: #f8f6ff;
+	--text-secondary: #b8b1db;
+	--border-subtle: rgba(177, 151, 252, 0.22);
+	--accent-soft: rgba(177, 151, 252, 0.14);
+	--shadow-card: 0 14px 40px rgb(0 0 0 / 40%);
+}
+:root[data-theme='celestial'] h1, :root[data-theme='celestial'] h2 {
+	text-shadow: 0 0 14px rgba(177, 151, 252, 0.45);
+}
+
+/* Universal high-contrast text rules for bright accent themes */
+:root[data-theme='god-mode'] :is(.quick-add, .brand-mark, .btn.accent, .btn.primary, .primary, .primary-btn, .solid, .btn.solid, .add, .kind-row button.selected, .tabs button.active, .pct, .badge.accent, .cta.accent, .sample-btn.primary, .preset.on, .kind.on, .state-pill, .theme.on, .btn-snap-create, .btn-done, .apply, .day-cell.today .num, .month-cell.today .num, .plan-day, .due-badge),
+:root[data-theme='catalyst'] :is(.quick-add, .brand-mark, .btn.accent, .btn.primary, .primary, .primary-btn, .solid, .btn.solid, .add, .kind-row button.selected, .tabs button.active, .pct, .badge.accent, .cta.accent, .sample-btn.primary, .preset.on, .kind.on, .state-pill, .theme.on, .btn-snap-create, .btn-done, .apply, .day-cell.today .num, .month-cell.today .num, .plan-day, .due-badge),
+:root[data-theme='initiate'] :is(.quick-add, .brand-mark, .btn.accent, .btn.primary, .primary, .primary-btn, .solid, .btn.solid, .add, .kind-row button.selected, .tabs button.active, .pct, .badge.accent, .cta.accent, .sample-btn.primary, .preset.on, .kind.on, .state-pill, .theme.on, .btn-snap-create, .btn-done, .apply, .day-cell.today .num, .month-cell.today .num, .plan-day, .due-badge),
+:root[data-theme='aurora'] :is(.quick-add, .brand-mark, .btn.accent, .btn.primary, .primary, .primary-btn, .solid, .btn.solid, .add, .kind-row button.selected, .tabs button.active, .pct, .badge.accent, .cta.accent, .sample-btn.primary, .preset.on, .kind.on, .state-pill, .theme.on, .btn-snap-create, .btn-done, .apply, .day-cell.today .num, .month-cell.today .num, .plan-day, .due-badge),
+:root[data-theme='celestial'] :is(.quick-add, .brand-mark, .btn.accent, .btn.primary, .primary, .primary-btn, .solid, .btn.solid, .add, .kind-row button.selected, .tabs button.active, .pct, .badge.accent, .cta.accent, .sample-btn.primary, .preset.on, .kind.on, .state-pill, .theme.on, .btn-snap-create, .btn-done, .apply, .day-cell.today .num, .month-cell.today .num, .plan-day, .due-badge) {
+	color: var(--accent-contrast, #070602) !important;
+}
+
+:root[data-theme='god-mode'] :is(.quick-add:hover, .btn.accent:hover, .btn.primary:hover, .primary:hover, .primary-btn:hover, .solid:hover, .add:hover, .sample-btn.primary:hover, .btn-triage:hover:not(:disabled)),
+:root[data-theme='catalyst'] :is(.quick-add:hover, .btn.accent:hover, .btn.primary:hover, .primary:hover, .primary-btn:hover, .solid:hover, .add:hover, .sample-btn.primary:hover, .btn-triage:hover:not(:disabled)),
+:root[data-theme='initiate'] :is(.quick-add:hover, .btn.accent:hover, .btn.primary:hover, .primary:hover, .primary-btn:hover, .solid:hover, .add:hover, .sample-btn.primary:hover, .btn-triage:hover:not(:disabled)),
+:root[data-theme='aurora'] :is(.quick-add:hover, .btn.accent:hover, .btn.primary:hover, .primary:hover, .primary-btn:hover, .solid:hover, .add:hover, .sample-btn.primary:hover, .btn-triage:hover:not(:disabled)),
+:root[data-theme='celestial'] :is(.quick-add:hover, .btn.accent:hover, .btn.primary:hover, .primary:hover, .primary-btn:hover, .solid:hover, .add:hover, .sample-btn.primary:hover, .btn-triage:hover:not(:disabled)) {
+	color: var(--accent-contrast, #070602) !important;
 }
 
 /* ========================================================================= */
@@ -1316,20 +1607,20 @@ aside.mobile-open {
 /* UNIVERSAL POPUP, MENU, SIDEBAR & BOTTOM-NAV IMMUNITY                      */
 /* Popups and floating overlays strictly maintain 96% dense smoked acrylic  */
 /* ========================================================================= */
-:root[data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .bottom-nav, .profile-container, aside.mobile-open),
-:root[data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .bottom-nav, .profile-container, aside.mobile-open) {
+:root[data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .profile-container, aside.mobile-open),
+:root[data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .profile-container, aside.mobile-open) {
 	background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
 	backdrop-filter: blur(36px) saturate(210%) !important;
 	-webkit-backdrop-filter: blur(36px) saturate(210%) !important;
 	border: 1px solid var(--surface-popup-border, color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16))) !important;
 }
 
-:root[data-theme='light'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
-:root[data-theme='light'][data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
-:root[data-theme='notion'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
-:root[data-theme='duolingo'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
-:root[data-theme='anki'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open),
-:root[data-theme='master'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .bottom-nav, .profile-container, aside.mobile-open) {
+:root[data-theme='light'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
+:root[data-theme='light'][data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
+:root[data-theme='notion'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
+:root[data-theme='duolingo'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
+:root[data-theme='anki'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
+:root[data-theme='master'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open) {
 	background: var(--surface-popup, rgba(255, 255, 255, 0.96)) !important;
 }
 
@@ -1362,7 +1653,15 @@ aside.glass:not(.mobile-open) {
 }
 
 :root[data-theme='light'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
-:root[data-theme='light'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim) {
+:root[data-theme='light'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
+:root[data-theme='notion'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
+:root[data-theme='notion'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
+:root[data-theme='duolingo'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
+:root[data-theme='duolingo'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
+:root[data-theme='anki'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
+:root[data-theme='anki'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
+:root[data-theme='master'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
+:root[data-theme='master'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim) {
 	background: rgba(20, 16, 40, 0.42) !important;
 }
 

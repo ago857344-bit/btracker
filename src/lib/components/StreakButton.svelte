@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
+	import { celebrateConfetti } from '$lib/utils/confetti';
 	import { celebration, hydration, intelligence, streakDays, tracker, useStreakFreeze, earnStreakFreeze } from '$lib/stores/tracker';
 	import { todayKey, addDaysKey, focusMinutesOn } from '$lib/state/dates';
 
@@ -133,7 +134,7 @@
 		</div>
 		<div class="freeze-actions">
 			{#if ($tracker.streakFreezes?.available ?? 2) < 4}
-				<button type="button" class="btn-freeze" on:click={() => { earnStreakFreeze(); celebration.set('Claimed 1 Streak Freeze shield!'); }}>
+				<button type="button" class="btn-freeze" on:click={() => { earnStreakFreeze(); celebration.set('Claimed 1 Streak Freeze shield!'); celebrateConfetti({ count: 60 }); }}>
 					+ Claim 1 Freeze
 				</button>
 			{/if}
@@ -169,10 +170,39 @@
 </Modal>
 
 <style>
-	.streak-button { display: inline-flex; align-items: center; gap: .34rem; height: 36px; padding: 0 .72rem; border: 1px solid var(--border-subtle); border-radius: 11px; color: var(--text-primary); background: var(--surface-panel); font-family: inherit; }
-	.streak-button:hover { border-color: #f59e0b; }
-	.streak-button .flame { display: grid; place-items: center; color: #f59e0b; }
-	.streak-button .count { font-size: .82rem; font-weight: 800; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+	.streak-button {
+		display: inline-flex;
+		align-items: center;
+		gap: .34rem;
+		height: 36px;
+		padding: 0 .72rem;
+		border: 1.5px solid color-mix(in srgb, var(--accent) 60%, var(--border-subtle));
+		border-radius: 11px;
+		color: var(--text-primary);
+		background: color-mix(in srgb, var(--accent) 24%, var(--surface-panel));
+		font-family: inherit;
+		box-shadow: 0 4px 14px -2px color-mix(in srgb, var(--accent) 35%, transparent);
+		transition: all 0.2s var(--ease-ios-spring, ease);
+	}
+	.streak-button:hover {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 34%, var(--surface-panel));
+		box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent);
+	}
+	.streak-button .flame {
+		display: grid;
+		place-items: center;
+		color: var(--accent, #f59e0b);
+		filter: drop-shadow(0 0 6px color-mix(in srgb, var(--accent) 75%, transparent));
+	}
+	.streak-button .count {
+		font-size: .82rem;
+		font-weight: 850;
+		letter-spacing: -.02em;
+		font-variant-numeric: tabular-nums;
+		color: var(--text-primary);
+		text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent);
+	}
 
 	.hero { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: .6rem; margin-bottom: .4rem; }
 	.stat { display: flex; align-items: center; justify-content: center; gap: .6rem; padding: .85rem .9rem; border: 1px solid var(--border-subtle); border-radius: 15px; background: var(--surface-subtle); }
@@ -242,16 +272,16 @@
 		color: #071720;
 	}
 	.streak-button.lost {
-		border-color: var(--border-subtle);
-		opacity: 0.72;
+		border-color: color-mix(in srgb, var(--accent) 40%, var(--border-subtle));
+		opacity: 0.9;
 	}
 	.streak-button.lost .flame {
-		color: var(--text-tertiary);
-		filter: grayscale(1);
+		color: color-mix(in srgb, var(--accent) 55%, var(--text-tertiary));
+		filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 40%, transparent));
 	}
 	.streak-button.frozen {
 		border-color: #38bdf8;
-		background: color-mix(in srgb, #38bdf8 12%, var(--surface-panel));
+		background: color-mix(in srgb, #38bdf8 20%, var(--surface-panel));
 	}
 	.streak-button.frozen .count {
 		color: #38bdf8;

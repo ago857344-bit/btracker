@@ -273,7 +273,7 @@
 
 	.btn-send-todo:hover:not(:disabled) {
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 	}
 
 	.btn-send-todo:disabled {

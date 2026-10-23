@@ -470,7 +470,7 @@
 
 	.tt-today {
 		background: var(--accent, #6d5dfc);
-		color: #fff;
+		color: var(--accent-contrast, #ffffff);
 		font-size: 8px;
 		font-weight: 800;
 		padding: 1px 4px;

@@ -241,7 +241,7 @@
 	header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 	h1 { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -.04em; }
 	header p { margin: .3rem 0 0; color: var(--text-secondary); font-size: .82rem; }
-	.add { display: inline-flex; align-items: center; gap: .45rem; padding: .65rem 1.15rem; border: 0; border-radius: 12px; color: #fff; background: var(--accent); font-size: .84rem; font-weight: 750; box-shadow: 0 8px 18px color-mix(in srgb, var(--accent), transparent 66%); }
+	.add { display: inline-flex; align-items: center; gap: .45rem; padding: .65rem 1.15rem; border: 0; border-radius: 12px; color: var(--accent-contrast, #fff); background: var(--accent); font-size: .84rem; font-weight: 750; box-shadow: 0 8px 18px color-mix(in srgb, var(--accent), transparent 66%); }
 
 	.heatmap-section {
 		padding: 1rem 1.1rem;
@@ -278,7 +278,7 @@
 
 	.tabs { display: inline-flex; gap: .25rem; padding: .3rem; border: 1px solid var(--border-subtle); border-radius: 999px; background: var(--surface-panel); width: fit-content; }
 	.tabs button { padding: .5rem 1.05rem; border: 0; border-radius: 999px; background: transparent; color: var(--text-secondary); font-size: .78rem; font-weight: 750; }
-	.tabs button.active { color: #fff; background: var(--accent); }
+	.tabs button.active { color: var(--accent-contrast, #fff); background: var(--accent); }
 
 	.filters { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
 	.search { display: inline-flex; align-items: center; gap: .5rem; flex: 1; min-width: 190px; padding: .55rem .8rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-panel); color: var(--text-secondary); }
@@ -300,7 +300,7 @@
 		color: var(--text-primary); font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease;
 	}
 	.sample-btn:hover { border-color: var(--accent); color: var(--accent); }
-	.sample-btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+	.sample-btn.primary { background: var(--accent); color: var(--accent-contrast, #fff); border-color: var(--accent); }
 	.view-toggle { display: flex; gap: 0.5rem; margin-bottom: 2rem; background: var(--surface-subtle); padding: 0.4rem; border-radius: 12px; width: fit-content; border: 1px solid var(--border-subtle); }
 	.view-toggle button { padding: 0.6rem 1.2rem; border-radius: 8px; border: none; background: transparent; color: var(--text-secondary); font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
 	.view-toggle button:hover { color: var(--text-primary); }

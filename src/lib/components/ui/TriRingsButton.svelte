@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
+	import { celebrateConfetti } from '$lib/utils/confetti';
 	import { dailyProgress, revisedToday, tracker, updateTracker, setDailyGoal } from '$lib/stores/tracker';
 
 	let open = false;
@@ -52,6 +53,14 @@
 	// Average completion percentage across all 3 rings
 	$: overallPct = Math.round(((Math.min(1, hourPct || 0) + Math.min(1, questionPct || 0) + Math.min(1, revisionPct || 0)) / 3) * 100);
 
+	let prevClosedCount = 0;
+	$: if (closedCount === 3 && prevClosedCount < 3) {
+		prevClosedCount = 3;
+		if (typeof window !== 'undefined') celebrateConfetti({ count: 75 });
+	} else if (closedCount < 3) {
+		prevClosedCount = closedCount;
+	}
+
 	// Editable Goal Values
 	let editH = hourGoal;
 	let editQ = questionGoal;
@@ -86,7 +95,7 @@
 <!-- Topbar Micro-Widget Button -->
 <button
 	type="button"
-	class="tri-rings-btn specular-card"
+	class="tri-rings-btn no-tilt"
 	class:trifecta={closedCount === 3}
 	aria-label="Daily activity rings: {closedCount} of 3 closed"
 	title="Activity Rings: Focus ({Math.round(hourPct * 100)}%), Questions ({Math.round(questionPct * 100)}%), Revision ({Math.round(revisionPct * 100)}%)"
@@ -137,8 +146,8 @@
 				<defs>
 					<!-- Neon Ring Gradients -->
 					<linearGradient id="redGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-						<stop offset="0%" stop-color="#ff6b8b" />
-						<stop offset="100%" stop-color="#ff3366" />
+						<stop offset="0%" stop-color="color-mix(in srgb, var(--accent, #ff6b8b) 70%, white)" />
+						<stop offset="100%" stop-color="var(--accent, #ff3366)" />
 					</linearGradient>
 					<linearGradient id="greenGradient" x1="0%" y1="0%" x2="100%" y2="100%">
 						<stop offset="0%" stop-color="#2af598" />
@@ -151,7 +160,7 @@
 
 					<!-- Glow Filters -->
 					<filter id="ringGlowRed" x="-20%" y="-20%" width="140%" height="140%">
-						<feDropShadow dx="0" dy="0" stdDeviation="3.5" flood-color="#ff3366" flood-opacity="0.55" />
+						<feDropShadow dx="0" dy="0" stdDeviation="3.5" flood-color="var(--accent, #ff3366)" flood-opacity="0.55" />
 					</filter>
 					<filter id="ringGlowGreen" x="-20%" y="-20%" width="140%" height="140%">
 						<feDropShadow dx="0" dy="0" stdDeviation="3.5" flood-color="#2af598" flood-opacity="0.55" />
@@ -201,12 +210,22 @@
 		</div>
 
 		<!-- Status Banner -->
-		<div class="rings-status-card" class:trifecta-done={closedCount === 3}>
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div
+			class="rings-status-card"
+			class:trifecta-done={closedCount === 3}
+			on:click={() => closedCount === 3 && celebrateConfetti({ count: 90 })}
+			role={closedCount === 3 ? 'button' : undefined}
+			tabindex={closedCount === 3 ? 0 : undefined}
+			style={closedCount === 3 ? 'cursor: pointer;' : ''}
+			title={closedCount === 3 ? 'Click for fireworks celebration!' : undefined}
+		>
 			{#if closedCount === 3}
 				<span class="status-icon">🏆</span>
 				<div>
-					<b>Trifecta Complete!</b>
-					<small>All 3 daily rings are closed. Incredible dedication and focus today!</small>
+					<b>Trifecta Complete! 🎉</b>
+					<small>All 3 daily rings are closed. Incredible dedication and focus today! (Click to celebrate)</small>
 				</div>
 			{:else if closedCount === 2}
 				<span class="status-icon">⚡</span>
@@ -304,7 +323,7 @@
 
 	<!-- Optional In-Modal Goal Editor -->
 	{#if isEditingGoals}
-		<div class="goals-drawer specular-card">
+		<div class="goals-drawer no-tilt">
 			<div class="drawer-header">
 				<h5>Adjust Daily Ring Targets</h5>
 				<small>Update daily focus hours, questions, and revision goals.</small>
@@ -356,25 +375,27 @@
 		gap: 0.44rem;
 		height: 36px;
 		padding: 0 0.65rem 0 0.5rem;
-		border: 1px solid var(--border-subtle);
+		border: 1.5px solid color-mix(in srgb, var(--accent) 60%, var(--border-subtle));
 		border-radius: 11px;
 		color: var(--text-primary);
-		background: var(--surface-panel);
+		background: color-mix(in srgb, var(--accent) 24%, var(--surface-panel));
 		font-family: inherit;
 		cursor: pointer;
 		user-select: none;
 		-webkit-tap-highlight-color: transparent;
+		box-shadow: 0 4px 14px -2px color-mix(in srgb, var(--accent) 35%, transparent);
 		transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1),
 			border-color 0.15s ease,
 			box-shadow 0.15s ease;
 	}
 	.tri-rings-btn:hover {
-		border-color: color-mix(in srgb, #ff3366 40%, var(--border-subtle));
-		box-shadow: 0 0 16px rgba(255, 51, 102, 0.15);
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 34%, var(--surface-panel));
+		box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent);
 	}
 	.tri-rings-btn.trifecta {
-		border-color: color-mix(in srgb, #2af598 60%, var(--border-subtle));
-		box-shadow: 0 0 18px rgba(42, 245, 152, 0.22);
+		border-color: color-mix(in srgb, #2af598 60%, var(--accent));
+		box-shadow: 0 0 18px rgba(42, 245, 152, 0.35);
 	}
 
 	.mini-rings {
@@ -388,9 +409,9 @@
 		stroke-width: 3.2;
 		stroke-linecap: round;
 	}
-	.red-track { stroke: rgba(255, 51, 102, 0.2); }
-	.green-track { stroke: rgba(42, 245, 152, 0.2); }
-	.blue-track { stroke: rgba(0, 242, 254, 0.2); }
+	.red-track { stroke: color-mix(in srgb, var(--accent, #ff3366) 36%, transparent); }
+	.green-track { stroke: rgba(42, 245, 152, 0.25); }
+	.blue-track { stroke: rgba(0, 242, 254, 0.25); }
 
 	.ring-fill {
 		fill: none;
@@ -398,7 +419,10 @@
 		stroke-linecap: round;
 		transition: stroke-dashoffset 0.8s cubic-bezier(0.32, 0.72, 0, 1);
 	}
-	.red-fill { stroke: #ff3366; }
+	.red-fill {
+		stroke: var(--accent, #ff3366);
+		filter: drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 75%, transparent));
+	}
 	.green-fill { stroke: #2af598; }
 	.blue-fill { stroke: #00f2fe; }
 
@@ -407,14 +431,16 @@
 		align-items: center;
 		gap: 0.22rem;
 		font-size: 0.8rem;
-		font-weight: 800;
+		font-weight: 850;
 		letter-spacing: -0.02em;
 		font-variant-numeric: tabular-nums;
-		color: var(--text-secondary);
+		color: var(--text-primary);
+		text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 70%, transparent);
 	}
 	.count-pill.complete {
 		color: #2af598;
 		font-weight: 850;
+		text-shadow: 0 0 8px rgba(42, 245, 152, 0.6);
 	}
 	.sparkle {
 		color: #ffd700;
@@ -559,7 +585,7 @@
 		border-radius: 50%;
 		flex-shrink: 0;
 	}
-	.dot-red { background: #ff3366; box-shadow: 0 0 8px rgba(255, 51, 102, 0.6); }
+	.dot-red { background: var(--accent, #ff3366); box-shadow: 0 0 8px color-mix(in srgb, var(--accent, #ff3366) 60%, transparent); }
 	.dot-green { background: #2af598; box-shadow: 0 0 8px rgba(42, 245, 152, 0.6); }
 	.dot-blue { background: #00f2fe; box-shadow: 0 0 8px rgba(0, 242, 254, 0.6); }
 
@@ -619,7 +645,7 @@
 		border-radius: 99px;
 		transition: width 0.7s cubic-bezier(0.32, 0.72, 0, 1);
 	}
-	.fill-red { background: linear-gradient(90deg, #ff6b8b, #ff3366); box-shadow: 0 0 10px rgba(255, 51, 102, 0.5); }
+	.fill-red { background: linear-gradient(90deg, color-mix(in srgb, var(--accent, #ff6b8b) 70%, white), var(--accent, #ff3366)); box-shadow: 0 0 10px color-mix(in srgb, var(--accent, #ff3366) 50%, transparent); }
 	.fill-green { background: linear-gradient(90deg, #2af598, #009efd); box-shadow: 0 0 10px rgba(42, 245, 152, 0.5); }
 	.fill-blue { background: linear-gradient(90deg, #00f2fe, #4facfe); box-shadow: 0 0 10px rgba(0, 242, 254, 0.5); }
 
@@ -692,7 +718,7 @@
 		border-radius: 8px;
 		border: 0;
 		background: var(--accent);
-		color: white;
+		color: var(--accent-contrast, white);
 		font-size: 0.76rem;
 		font-weight: 750;
 		cursor: pointer;
@@ -724,7 +750,7 @@
 		border-radius: 10px;
 		border: 0;
 		background: var(--accent);
-		color: white;
+		color: var(--accent-contrast, white);
 		font-size: 0.8rem;
 		font-weight: 750;
 		cursor: pointer;

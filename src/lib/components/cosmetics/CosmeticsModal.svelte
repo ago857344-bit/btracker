@@ -256,7 +256,7 @@
 		border: 0;
 		border-radius: 10px;
 		background: var(--accent);
-		color: white;
+		color: var(--accent-contrast, white);
 		font-size: 0.82rem;
 		font-weight: 750;
 		cursor: pointer;

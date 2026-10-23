@@ -164,5 +164,5 @@
 	.btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.65rem 1.2rem; border-radius: 10px; font-size: 0.85rem; font-weight: 750; cursor: pointer; border: 0; }
 	.btn.ghost { background: transparent; color: var(--text-secondary); }
 	.btn.ghost:hover { color: var(--text-primary); background: var(--surface-subtle); }
-	.btn.solid { background: var(--accent); color: #fff; box-shadow: 0 4px 12px color-mix(in srgb, var(--accent), transparent 60%); }
+	.btn.solid { background: var(--accent); color: var(--accent-contrast, #fff); box-shadow: 0 4px 12px color-mix(in srgb, var(--accent), transparent 60%); }
 </style>

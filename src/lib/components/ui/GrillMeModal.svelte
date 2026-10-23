@@ -176,7 +176,7 @@ Keep your responses concise and format math cleanly with KaTeX. DO NOT answer th
 	.msg { display: flex; gap: .8rem; align-items: flex-start; }
 	.msg.user { flex-direction: row-reverse; }
 	
-	.avatar { flex: 0 0 24px; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: white; display: grid; place-items: center; }
+	.avatar { flex: 0 0 24px; width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: var(--accent-contrast, white); display: grid; place-items: center; }
 	
 	.bubble { padding: .8rem 1rem; border-radius: 12px; font-size: .9rem; line-height: 1.5; color: var(--text-primary); max-width: 85%; }
 	.msg.model .bubble { background: var(--surface-subtle); border-top-left-radius: 4px; }
@@ -191,7 +191,7 @@ Keep your responses concise and format math cleanly with KaTeX. DO NOT answer th
 	.gm-input { padding: 1rem 1.5rem; background: var(--surface-subtle); border-top: 1px solid var(--border-subtle); display: flex; gap: .6rem; }
 	.gm-input input { flex: 1; background: var(--surface-canvas); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: .8rem 1rem; border-radius: 12px; font-size: .95rem; }
 	.gm-input input:focus { outline: none; border-color: var(--accent); }
-	.send-btn { flex: 0 0 44px; width: 44px; height: 44px; border-radius: 12px; background: var(--accent); color: white; border: none; cursor: pointer; display: grid; place-items: center; }
+	.send-btn { flex: 0 0 44px; width: 44px; height: 44px; border-radius: 12px; background: var(--accent); color: var(--accent-contrast, white); border: none; cursor: pointer; display: grid; place-items: center; }
 	.send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 	.dot-pulse { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #4285f4; box-shadow: 12px 0 0 0 #ea4335, 24px 0 0 0 #fbbc05; animation: gemini-typing 1.5s infinite; }

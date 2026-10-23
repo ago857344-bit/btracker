@@ -78,8 +78,9 @@
 
 	// Active Tasks & Missions
 	$: today = todayKey();
-	$: activeMissions = ($tracker.h || []).filter(task => !task.done);
-	$: doneMissions = ($tracker.hd || []).filter(task => task.done);
+	$: isClassTask = (t: any) => Boolean(t.isClass === true || t.kind === 'class' || t.locked === true || (t.title && t.title.toLowerCase().startsWith('[class]')));
+	$: activeMissions = ($tracker.h || []).filter(task => !task.done && !isClassTask(task));
+	$: doneMissions = ($tracker.hd || []).filter(task => task.done && !isClassTask(task));
 	$: allMissions = [...activeMissions, ...doneMissions];
 
 	// Active Chapter Checklist
@@ -743,7 +744,7 @@
 		align-items: center;
 		justify-content: space-between;
 		padding-bottom: 0.75rem;
-		border-bottom: 1px solid color-mix(in srgb, var(--border-subtle, rgba(255, 255, 255, 0.1)) 40%, transparent);
+		border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 40%, transparent);
 	}
 
 	.telemetry-left {
@@ -974,8 +975,8 @@
 		all: unset;
 		appearance: none;
 		-webkit-appearance: none;
-		background: rgba(255, 255, 255, 0.08);
-		border: 1px solid rgba(255, 255, 255, 0.14);
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
 		color: var(--text-secondary);
 		cursor: pointer;
 		padding: 2px 5px;
@@ -988,7 +989,7 @@
 	}
 	.btn-edit-badge:hover {
 		opacity: 1;
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		background: var(--accent);
 		border-color: var(--accent);
 		box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
@@ -1070,7 +1071,7 @@
 		background: rgba(0, 0, 0, 0.42);
 		backdrop-filter: blur(16px);
 		-webkit-backdrop-filter: blur(16px);
-		border: 1px solid rgba(255, 255, 255, 0.12);
+		border: 1px solid var(--border-subtle);
 		border-radius: 12px;
 		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
 		gap: 3px;
@@ -1096,13 +1097,13 @@
 		transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
 	}
 	.preset-pill:hover:not(:disabled) {
-		color: #ffffff;
-		background: rgba(255, 255, 255, 0.08);
-		border-color: rgba(255, 255, 255, 0.12);
+		color: var(--text-primary);
+		background: var(--surface-subtle);
+		border-color: var(--border-subtle);
 	}
 	.preset-pill.active {
 		background: var(--accent) !important;
-		color: #ffffff !important;
+		color: var(--accent-contrast, #ffffff) !important;
 		font-weight: 800;
 		border-color: color-mix(in srgb, var(--accent) 70%, #ffffff) !important;
 		box-shadow: 0 2px 12px color-mix(in srgb, var(--accent) 55%, transparent) !important;
@@ -1119,7 +1120,7 @@
 		background: rgba(0, 0, 0, 0.45);
 		backdrop-filter: blur(16px);
 		-webkit-backdrop-filter: blur(16px);
-		border: 1px solid rgba(255, 255, 255, 0.12);
+		border: 1px solid var(--border-subtle);
 		border-radius: 12px;
 		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
 		box-sizing: border-box;
@@ -1131,16 +1132,16 @@
 		box-sizing: border-box;
 		cursor: pointer;
 		padding: 0.35rem 0.6rem;
-		background: rgba(255, 255, 255, 0.08);
-		border: 1px solid rgba(255, 255, 255, 0.14);
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
 		border-radius: 8px;
-		color: #ffffff;
+		color: var(--text-primary);
 		font-size: 0.72rem;
 		font-weight: 800;
 		transition: all 0.15s ease;
 	}
 	.stepper-btn:hover {
-		background: rgba(255, 255, 255, 0.16);
+		background: var(--surface-subtle);
 		border-color: var(--accent);
 		color: var(--accent);
 	}
@@ -1158,9 +1159,9 @@
 		width: 100%;
 		padding: 0.35rem 1.6rem 0.35rem 0.45rem;
 		background: rgba(0, 0, 0, 0.4);
-		border: 1px solid rgba(255, 255, 255, 0.16);
+		border: 1px solid var(--border-subtle);
 		border-radius: 8px;
-		color: #ffffff;
+		color: var(--text-primary);
 		font-size: 0.85rem;
 		font-weight: 800;
 		outline: none;
@@ -1187,7 +1188,7 @@
 		cursor: pointer;
 		padding: 0.35rem 0.75rem;
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		border-radius: 8px;
 		font-size: 0.72rem;
 		font-weight: 800;
@@ -1199,43 +1200,79 @@
 	}
 
 	/* Light mode adjustments */
-	:global(:root[data-theme='light']) .dial-track {
+	:global(:root[data-theme='light']) .dial-track,
+	:global(:root[data-theme='notion']) .dial-track,
+	:global(:root[data-theme='duolingo']) .dial-track,
+	:global(:root[data-theme='anki']) .dial-track,
+	:global(:root[data-theme='master']) .dial-track {
 		stroke: rgba(0, 0, 0, 0.1);
 		fill: rgba(255, 255, 255, 0.55);
 	}
-	:global(:root[data-theme='light']) .dial-digits {
+	:global(:root[data-theme='light']) .dial-digits,
+	:global(:root[data-theme='notion']) .dial-digits,
+	:global(:root[data-theme='duolingo']) .dial-digits,
+	:global(:root[data-theme='anki']) .dial-digits,
+	:global(:root[data-theme='master']) .dial-digits {
 		color: #1a1827;
 		text-shadow: none;
 	}
-	:global(:root[data-theme='light']) .duration-presets {
-		background: rgba(255, 255, 255, 0.8);
-		border-color: rgba(0, 0, 0, 0.08);
+	:global(:root[data-theme='light']) .duration-presets,
+	:global(:root[data-theme='notion']) .duration-presets,
+	:global(:root[data-theme='duolingo']) .duration-presets,
+	:global(:root[data-theme='anki']) .duration-presets,
+	:global(:root[data-theme='master']) .duration-presets {
+		background: var(--vision-glass-bg);
+		border-color: var(--border-subtle);
 		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 	}
-	:global(:root[data-theme='light']) .preset-pill {
-		color: #4b5563;
+	:global(:root[data-theme='light']) .preset-pill,
+	:global(:root[data-theme='notion']) .preset-pill,
+	:global(:root[data-theme='duolingo']) .preset-pill,
+	:global(:root[data-theme='anki']) .preset-pill,
+	:global(:root[data-theme='master']) .preset-pill {
+		color: var(--text-secondary);
 	}
-	:global(:root[data-theme='light']) .preset-pill:hover:not(:disabled) {
-		background: rgba(0, 0, 0, 0.05);
-		color: #111827;
+	:global(:root[data-theme='light']) .preset-pill:hover:not(:disabled),
+	:global(:root[data-theme='notion']) .preset-pill:hover:not(:disabled),
+	:global(:root[data-theme='duolingo']) .preset-pill:hover:not(:disabled),
+	:global(:root[data-theme='anki']) .preset-pill:hover:not(:disabled),
+	:global(:root[data-theme='master']) .preset-pill:hover:not(:disabled) {
+		background: var(--surface-subtle);
+		color: var(--text-primary);
 	}
-	:global(:root[data-theme='light']) .preset-pill.active {
+	:global(:root[data-theme='light']) .preset-pill.active,
+	:global(:root[data-theme='notion']) .preset-pill.active,
+	:global(:root[data-theme='duolingo']) .preset-pill.active,
+	:global(:root[data-theme='anki']) .preset-pill.active,
+	:global(:root[data-theme='master']) .preset-pill.active {
 		background: var(--accent) !important;
-		color: #ffffff !important;
+		color: var(--accent-contrast, #ffffff) !important;
 	}
-	:global(:root[data-theme='light']) .custom-duration-stepper {
-		background: rgba(255, 255, 255, 0.9);
-		border-color: rgba(0, 0, 0, 0.08);
+	:global(:root[data-theme='light']) .custom-duration-stepper,
+	:global(:root[data-theme='notion']) .custom-duration-stepper,
+	:global(:root[data-theme='duolingo']) .custom-duration-stepper,
+	:global(:root[data-theme='anki']) .custom-duration-stepper,
+	:global(:root[data-theme='master']) .custom-duration-stepper {
+		background: var(--surface-panel);
+		border-color: var(--border-subtle);
 	}
-	:global(:root[data-theme='light']) .stepper-btn {
-		background: rgba(0, 0, 0, 0.05);
-		border-color: rgba(0, 0, 0, 0.1);
-		color: #111827;
+	:global(:root[data-theme='light']) .stepper-btn,
+	:global(:root[data-theme='notion']) .stepper-btn,
+	:global(:root[data-theme='duolingo']) .stepper-btn,
+	:global(:root[data-theme='anki']) .stepper-btn,
+	:global(:root[data-theme='master']) .stepper-btn {
+		background: var(--surface-subtle);
+		border-color: var(--border-subtle);
+		color: var(--text-primary);
 	}
-	:global(:root[data-theme='light']) .stepper-input {
-		background: rgba(255, 255, 255, 0.95);
-		border-color: rgba(0, 0, 0, 0.15);
-		color: #111827;
+	:global(:root[data-theme='light']) .stepper-input,
+	:global(:root[data-theme='notion']) .stepper-input,
+	:global(:root[data-theme='duolingo']) .stepper-input,
+	:global(:root[data-theme='anki']) .stepper-input,
+	:global(:root[data-theme='master']) .stepper-input {
+		background: var(--surface-panel);
+		border-color: var(--border-subtle);
+		color: var(--text-primary);
 	}
 
 	/* Controls Panel */
@@ -1265,8 +1302,8 @@
 	}
 	.metric-container {
 		padding: 0.85rem 1rem;
-		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
-		background: color-mix(in srgb, var(--surface-panel, rgba(255, 255, 255, 0.03)) 60%, transparent);
+		border: 1px solid var(--border-subtle);
+		background: color-mix(in srgb, var(--surface-panel) 60%, transparent);
 	}
 	.metric-label {
 		display: block;
@@ -1307,7 +1344,7 @@
 		height: 48px;
 		padding: 0 1.5rem;
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		border: none;
 		font-size: 0.82rem;
 		font-weight: 800;
@@ -1328,9 +1365,9 @@
 		font-size: 0.65rem;
 		padding: 0.15rem 0.4rem;
 		border-radius: 4px;
-		background: rgba(0, 0, 0, 0.28);
-		border: 1px solid rgba(255, 255, 255, 0.18);
-		color: #ffffff;
+		background: color-mix(in srgb, var(--accent-contrast, #ffffff) 18%, transparent);
+		border: 1px solid color-mix(in srgb, var(--accent-contrast, #ffffff) 28%, transparent);
+		color: var(--accent-contrast, #ffffff);
 	}
 	.btn-icon-subtle {
 		display: grid;
@@ -1357,7 +1394,7 @@
 		gap: 1rem;
 		margin-bottom: 1.25rem;
 		padding-bottom: 0.85rem;
-		border-bottom: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+		border-bottom: 1px solid var(--border-subtle);
 	}
 	.deck-title {
 		margin: 0;
@@ -1394,7 +1431,7 @@
 	}
 	.segment-btn.active {
 		background: var(--accent);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		box-shadow: 0 2px 10px color-mix(in srgb, var(--accent), transparent 50%);
 	}
 
@@ -1460,8 +1497,8 @@
 		font-weight: 800;
 		letter-spacing: 0.08em;
 		padding: 0.25rem 0.55rem;
-		background: rgba(255, 255, 255, 0.06);
-		border: 1px solid rgba(255, 255, 255, 0.1);
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
 		color: var(--text-secondary, #a3a3a3);
 	}
 
@@ -1478,8 +1515,8 @@
 		height: 48px;
 		display: grid;
 		place-items: center;
-		background: rgba(255, 255, 255, 0.05);
-		border: 1px solid rgba(255, 255, 255, 0.1);
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
 		color: #10b981;
 		margin-bottom: 0.75rem;
 	}
@@ -1523,7 +1560,8 @@
 		text-transform: uppercase;
 		letter-spacing: 0.06em;
 		padding: 0.15rem 0.45rem;
-		background: rgba(255, 255, 255, 0.05);
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
 	}
 	.ch-weight-tag {
 		font-size: 0.62rem;
@@ -1557,7 +1595,7 @@
 	.progress-bar-track {
 		flex: 1;
 		height: 6px;
-		background: rgba(255, 255, 255, 0.08);
+		background: color-mix(in srgb, var(--text-primary) 10%, transparent);
 		overflow: hidden;
 	}
 	.progress-bar-fill {
@@ -1776,7 +1814,7 @@
 		align-items: center;
 		justify-content: space-between;
 		padding-top: 0.75rem;
-		border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.08));
+		border-top: 1px solid var(--border-subtle);
 	}
 	.author-name {
 		margin: 0;

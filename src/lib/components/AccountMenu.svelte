@@ -64,12 +64,49 @@
 
 <style>
 	.account { position: relative; }
-	.avatar-btn { display: grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 1px solid var(--border-subtle); border-radius: 99px; background: var(--surface-panel); overflow: hidden; }
-	.avatar-btn:hover { border-color: var(--accent); }
+	.avatar-btn {
+		display: grid;
+		place-items: center;
+		width: 36px;
+		height: 36px;
+		padding: 0;
+		border: 1.5px solid color-mix(in srgb, var(--accent) 60%, var(--border-subtle));
+		border-radius: 99px;
+		background: color-mix(in srgb, var(--accent) 24%, var(--surface-panel));
+		overflow: hidden;
+		box-shadow: 0 4px 14px -2px color-mix(in srgb, var(--accent) 35%, transparent);
+		transition: all 0.2s var(--ease-ios-spring, ease);
+	}
+	.avatar-btn:hover {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 34%, var(--surface-panel));
+		box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent);
+	}
 	.avatar-btn img { width: 100%; height: 100%; object-fit: cover; }
-	.initials { color: var(--accent); font-size: .76rem; font-weight: 800; letter-spacing: .02em; }
-	.signin { display: inline-flex; align-items: center; gap: .42rem; height: 36px; padding: 0 .8rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-panel); color: var(--text-secondary); font-size: .78rem; font-weight: 700; cursor: pointer; font-family: inherit; }
-	.signin:hover { color: var(--accent); border-color: var(--accent); }
+	.initials { color: var(--text-primary); font-size: .76rem; font-weight: 850; letter-spacing: .02em; text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 80%, transparent); }
+	.signin {
+		display: inline-flex;
+		align-items: center;
+		gap: .42rem;
+		height: 36px;
+		padding: 0 .8rem;
+		border: 1.5px solid color-mix(in srgb, var(--accent) 60%, var(--border-subtle));
+		border-radius: 11px;
+		background: color-mix(in srgb, var(--accent) 24%, var(--surface-panel));
+		color: var(--text-primary);
+		font-size: .78rem;
+		font-weight: 750;
+		cursor: pointer;
+		font-family: inherit;
+		box-shadow: 0 4px 14px -2px color-mix(in srgb, var(--accent) 35%, transparent);
+		transition: all 0.2s var(--ease-ios-spring, ease);
+	}
+	.signin:hover {
+		color: var(--text-primary);
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 34%, var(--surface-panel));
+		box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent);
+	}
 	.menu { position: absolute; z-index: 70; top: calc(100% + .5rem); right: 0; width: 230px; padding: .5rem; border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16)); border-radius: 16px; background: color-mix(in srgb, var(--surface-panel, #121020) 96%, transparent); backdrop-filter: blur(36px) saturate(210%); -webkit-backdrop-filter: blur(36px) saturate(210%); box-shadow: 0 18px 48px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15); }
 	.who { display: grid; gap: .12rem; padding: .5rem .6rem .6rem; border-bottom: 1px solid var(--border-subtle); }
 	.who strong { color: var(--text-primary); font-size: .86rem; }

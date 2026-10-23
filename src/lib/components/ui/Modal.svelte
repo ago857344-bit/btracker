@@ -139,7 +139,7 @@
 {#if open}
 	<div use:portal class="modal-backdrop" transition:fade={{ duration: 180 }} role="presentation" on:click={close} on:keydown={() => {}}>
 		<div
-			class="modal-card glass specular-card"
+			class="modal-card glass no-tilt"
 			class:solid
 			class:swiping={isSwiping}
 			bind:this={modalCardEl}

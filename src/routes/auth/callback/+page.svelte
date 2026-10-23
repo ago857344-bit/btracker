@@ -85,7 +85,7 @@
 		border: 0;
 		border-radius: 11px;
 		background: var(--accent);
-		color: white;
+		color: var(--accent-contrast, #fff);
 		font-size: 0.85rem;
 		font-weight: 700;
 		cursor: pointer;

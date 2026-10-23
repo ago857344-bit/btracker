@@ -1,5 +1,5 @@
 import type { TrackerState } from '$lib/types/tracker';
-import { allChapters, cellKey, questionCount, syllabusChapter, syllabusModule, syllabusSubject, visibleExercises } from '$lib/state/syllabus';
+import { allChapters, allChaptersWithCustom, cellKey, questionCount, syllabusChapter, syllabusModule, syllabusSubject, visibleExercises } from '$lib/state/syllabus';
 
 /* Question cell = 6 bits: done | result(2) | review | stars(2).
    result: 0 none / 1 correct / 2 wrong / 3 could not solve. */
@@ -52,7 +52,7 @@ export function moduleStats(state: TrackerState, sc: string, moduleId: number): 
 
 export function subjectStats(state: TrackerState, sc: string): QuestionStats {
 	const total = blankStats();
-	for (const chapter of allChapters(sc)) addTo(total, chapterStats(state, sc, chapter.no));
+	for (const chapter of allChaptersWithCustom(state, sc)) addTo(total, chapterStats(state, sc, chapter.no));
 	return total;
 }
 
@@ -113,8 +113,11 @@ export function toRange(indices: number[]): string {
 	return out.join(',');
 }
 
-export const chapterTitle = (sc: string, chNo: number) => {
+export const chapterTitle = (sc: string, chNo: number, state?: TrackerState) => {
 	const chapter = syllabusChapter(sc, chNo);
-	return chapter ? `${chapter.no}. ${chapter.name}` : '';
+	if (chapter) return `${chapter.no}. ${chapter.name}`;
+	const customDefs = state?.x?.chs?.[sc] || [];
+	const def = customDefs.find((c) => c.no === chNo);
+	return def ? `${chNo}. ${def.name}` : '';
 };
 export const subjectShort = (sc: string) => syllabusSubject(sc)?.short ?? sc;

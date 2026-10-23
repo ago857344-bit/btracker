@@ -6,13 +6,13 @@
 	import { fade, slide } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { subjectColor, CHAPTERS } from '$lib/state/subjects';
-	import { allChapters, SYLLABUS } from '$lib/state/syllabus';
+	import { allChapters, allChaptersWithCustom, SYLLABUS } from '$lib/state/syllabus';
 	import { extractPdfText, matchChapters, matchChaptersAI, type ChapterMatch } from '$lib/services/btest';
 import { triageTodos } from '$lib/services/aiTriage';
 import { buildAcademicConstraintPrompt } from '$lib/services/aiContext';
 	import {
 		addChecklistColumn, addTodo, addTodos, celebration, CHECKLIST_DEFAULT_COLS, clearDoneTodos, deleteTodo,
-		removeChecklistColumn, reorderTodo, toggleChecklistCell, toggleChapterStarted, toggleTodo, tracker, updateTracker, addTodoSubtask, toggleTodoSubtask, deleteTodoSubtask
+		removeChecklistColumn, reorderTodo, toggleChecklistCell, toggleChapterStarted, toggleTodo, tracker, updateTracker, addTodoSubtask, toggleTodoSubtask, deleteTodoSubtask, addTodoSubsteps, transferTodosToPlanner
 	} from '$lib/stores/tracker';
 
 	let isDesktop = false;
@@ -116,7 +116,7 @@ async function runAiTriage() {
 	$: grids = $tracker.chapterGrids;
 	$: clGrid = grids?.[clSub];
 	$: clCols = clGrid?.cols ?? CHECKLIST_DEFAULT_COLS;
-	$: clChapters = allChapters(clSub);
+	$: clChapters = allChaptersWithCustom($tracker, clSub);
 
 	$: isChStarted = (chNo: number) => {
 		const hasManualStart = Boolean(clGrid?.started?.[chNo]);
@@ -155,7 +155,7 @@ async function runAiTriage() {
 	});
 
 	const checklistPct = (subCode: string, source: typeof grids) => {
-		const chapters = allChapters(subCode);
+		const chapters = allChaptersWithCustom($tracker, subCode);
 		const grid = source?.[subCode];
 		const cols = grid?.cols ?? CHECKLIST_DEFAULT_COLS;
 		const total = chapters.length * cols.length;
@@ -181,6 +181,7 @@ async function runAiTriage() {
 	let matches: ChapterMatch[] = [];
 	let selected = new Set<string>();
 	let scanned = false;
+	let integrateSubsteps = true;
 
 	const key = (m: ChapterMatch) => `${m.code}:${m.no}`;
 
@@ -212,7 +213,10 @@ async function runAiTriage() {
 	function addSelected() {
 		const chosen = matches.filter((m) => selected.has(key(m)));
 		const added = addTodos(chosen.map((m) => ({ title: `${m.subName}: ${m.name}`, sub: m.code, ch: m.no, source: 'btest' as const })));
-		celebration.set(added ? `${added} chapter task${added > 1 ? 's' : ''} added` : 'No new tasks (already added)');
+		if (integrateSubsteps && added > 0) {
+			addTodoSubsteps('btest', ['Ex 1', 'Ex 2']);
+		}
+		celebration.set(added ? `${added} chapter task${added > 1 ? 's' : ''} added${integrateSubsteps ? ' with Ex 1 & Ex 2 substeps' : ''}` : 'No new tasks (already added)');
 		tab = 'tasks';
 		taskFilter = 'all';
 		matches = []; selected = new Set(); scanned = false; fileName = '';
@@ -253,9 +257,37 @@ async function runAiTriage() {
 					Completed ({done.length})
 				</button>
 			</div>
-            <button type="button" class="btn-triage" class:loading={triaging} on:click={runAiTriage} disabled={triaging || !todos.some(t => !t.done)}>
-                <NavIcon name="sparkles" size={13} /> {triaging ? 'Triaging...' : 'AI Smart Triage'}
-            </button>
+			<div class="toolbar-actions">
+				{#if todos.some(t => !t.done && (!t.subtasks || t.subtasks.length === 0))}
+					<button
+						type="button"
+						class="btn-action-tool"
+						title="Bulk add standard Ex 1 &amp; Ex 2 substeps to tasks"
+						on:click={() => {
+							const updated = addTodoSubsteps('btest', ['Ex 1', 'Ex 2']);
+							celebration.set(updated > 0 ? `Added Ex 1 & Ex 2 to ${updated} tasks!` : 'Substeps already integrated.');
+						}}
+					>
+						<NavIcon name="plus" size={12} /> + Ex 1 &amp; Ex 2
+					</button>
+				{/if}
+				{#if open.length > 0}
+					<button
+						type="button"
+						class="btn-action-tool"
+						title="Transfer active to-dos to daily planner"
+						on:click={() => {
+							const transferred = transferTodosToPlanner();
+							celebration.set(transferred > 0 ? `Sent ${transferred} tasks to Daily Planner! 🚀` : 'All tasks already in planner.');
+						}}
+					>
+						<NavIcon name="plan" size={12} /> Send to Plan
+					</button>
+				{/if}
+				<button type="button" class="btn-triage" class:loading={triaging} on:click={runAiTriage} disabled={triaging || !todos.some(t => !t.done)}>
+					<NavIcon name="sparkles" size={13} /> {triaging ? 'Triaging...' : 'AI Smart Triage'}
+				</button>
+			</div>
         </div>
 
 		{#if todos.length}
@@ -608,6 +640,13 @@ async function runAiTriage() {
 				</div>
 
 				{#if matches.length}
+					<label class="substep-toggle">
+						<input type="checkbox" bind:checked={integrateSubsteps} />
+						<span>Integrate 2 standard substeps (Ex 1 &amp; Ex 2) in each task</span>
+					</label>
+				{/if}
+
+				{#if matches.length}
 					<ul class="matches">
 						{#each matches as m (key(m))}
 							<li>
@@ -662,7 +701,7 @@ async function runAiTriage() {
 		transition: all 0.22s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1));
 	}
 	.tabs button.selected {
-		color: #fff;
+		color: var(--accent-contrast, #fff);
 		background: var(--accent);
 		box-shadow: 0 2px 10px color-mix(in srgb, var(--accent), transparent 60%), inset 0 1px 0 rgba(255, 255, 255, 0.3);
 		font-weight: 750;
@@ -695,7 +734,7 @@ async function runAiTriage() {
 		border: 0;
 		border-radius: 9999px;
 		background: var(--accent);
-		color: #fff;
+		color: var(--accent-contrast, #fff);
 		font-size: .8rem;
 		font-weight: 750;
 		font-family: inherit;
@@ -764,7 +803,7 @@ async function runAiTriage() {
 		border: 1.5px solid color-mix(in srgb, var(--text-secondary), transparent 40%);
 		border-radius: 9999px;
 		background: transparent;
-		color: #fff;
+		color: var(--accent-contrast, #fff);
 		transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 	}
 	.check-btn:hover .check-circle {
@@ -780,7 +819,7 @@ async function runAiTriage() {
 		width: 18px;
 		height: 18px;
 	}
-	.check { display: grid; flex: 0 0 20px; place-items: center; width: 20px; height: 20px; border: 2px solid var(--border-subtle); border-radius: 99px; background: transparent; color: #fff; cursor: pointer; }
+	.check { display: grid; flex: 0 0 20px; place-items: center; width: 20px; height: 20px; border: 2px solid var(--border-subtle); border-radius: 99px; background: transparent; color: var(--accent-contrast, #fff); cursor: pointer; }
 	.check.checked { border-color: #2f9e6e; background: #2f9e6e; }
 	.dot { flex: 0 0 9px; width: 9px; height: 9px; border-radius: 99px; }
 	.title { flex: 1; min-width: 0; font-size: .86rem; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -806,11 +845,13 @@ async function runAiTriage() {
 
 	.result-head { display: flex; align-items: center; justify-content: space-between; gap: .8rem; flex-wrap: wrap; }
 	.result-head b { font-size: .9rem; }
+	.substep-toggle { display: inline-flex; align-items: center; gap: .6rem; padding: .55rem .85rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-subtle); color: var(--text-primary); font-size: .8rem; font-weight: 650; cursor: pointer; user-select: none; }
+	.substep-toggle input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
 	.result-actions { display: flex; gap: .45rem; flex-wrap: wrap; }
 	.ghost, .solid { height: 44px; padding: 0 .85rem; border-radius: 10px; font-size: .76rem; font-weight: 750; cursor: pointer; font-family: inherit; }
 	.ghost { border: 1px solid var(--border-subtle); background: var(--surface-panel); color: var(--text-secondary); }
 	.ghost:hover { color: var(--text-primary); border-color: var(--accent); }
-	.solid { border: 0; background: var(--accent); color: #fff; }
+	.solid { border: 0; background: var(--accent); color: var(--accent-contrast, #fff); }
 	.solid:disabled { opacity: .45; cursor: default; }
 
 	.matches {
@@ -1092,7 +1133,7 @@ async function runAiTriage() {
 	}
 	.cl-filter-btn.active {
 		background: var(--accent);
-		color: #fff;
+		color: var(--accent-contrast, #fff);
 		border-color: var(--accent);
 	}
 	.indicator-dot {
@@ -1103,7 +1144,7 @@ async function runAiTriage() {
 	}
 	.indicator-dot.ongoing { background: var(--accent); }
 	.indicator-dot.done { background: #2f9e6e; }
-	.cl-filter-btn.active .indicator-dot { background: #fff; }
+	.cl-filter-btn.active .indicator-dot { background: var(--accent-contrast, #fff); }
 
 	.ch-cell {
 		display: flex;
@@ -1215,6 +1256,8 @@ async function runAiTriage() {
 		.tabs { width: 100%; display: flex; }
 		.tabs button { flex: 1; padding: 0 0.5rem; text-align: center; }
 		.task-toolbar { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+		.toolbar-actions { width: 100%; display: flex; flex-wrap: wrap; gap: 0.35rem; }
+		.toolbar-actions > * { flex: 1 1 auto; justify-content: center; }
 		.btn-triage { width: 100%; justify-content: center; }
 		.row { padding: 0.75rem 0.75rem; gap: 0.5rem; }
 		.subtasks-container { padding: 8px 10px 8px 24px; touch-action: pan-y; }
@@ -1290,7 +1333,7 @@ async function runAiTriage() {
 
 
 .btn-triage { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.8rem; border-radius: 99px; background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); font-size: 0.76rem; font-weight: 750; border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); cursor: pointer; transition: all 0.2s; }
-	.btn-triage:hover:not(:disabled) { background: var(--accent); color: white; }
+	.btn-triage:hover:not(:disabled) { background: var(--accent); color: var(--accent-contrast, white); }
 	.btn-triage.loading { opacity: 0.6; pointer-events: none; }
 	.roi-tag { font-size: 0.68rem; font-weight: 800; padding: 0.2rem 0.5rem; border-radius: 6px; letter-spacing: 0.02em; text-transform: uppercase; margin-right: 0.3rem; }
 	.roi-tag.high-roi { background: color-mix(in srgb, var(--success) 20%, transparent); color: var(--success); border: 1px solid color-mix(in srgb, var(--success) 40%, transparent); }
@@ -1332,8 +1375,34 @@ async function runAiTriage() {
 	}
 	.filter-pill.active {
 		background: var(--accent);
-		color: #fff;
+		color: var(--accent-contrast, #fff);
 		border-color: var(--accent);
+	}
+
+	.toolbar-actions {
+		display: flex;
+		align-items: center;
+		gap: .4rem;
+		flex-wrap: wrap;
+	}
+	.btn-action-tool {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.4rem 0.65rem;
+		border-radius: 99px;
+		background: color-mix(in srgb, var(--surface-subtle) 80%, transparent);
+		color: var(--text-primary);
+		font-size: 0.72rem;
+		font-weight: 700;
+		border: 1px solid var(--border-subtle);
+		cursor: pointer;
+		transition: all 0.2s;
+	}
+	.btn-action-tool:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 10%, transparent);
 	}
 
 </style>

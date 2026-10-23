@@ -75,5 +75,5 @@
 	.footer { margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; }
 	.btn-cancel { padding: 0.5rem 1.25rem; background: transparent; color: var(--text-secondary); border: none; font-weight: 600; cursor: pointer; }
 	.btn-cancel:hover { color: var(--text-primary); }
-	.btn-done { padding: 0.5rem 1.25rem; background: var(--accent); color: white; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
+	.btn-done { padding: 0.5rem 1.25rem; background: var(--accent); color: var(--accent-contrast, white); border: none; border-radius: 8px; font-weight: 700; cursor: pointer; }
 </style>

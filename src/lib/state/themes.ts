@@ -40,7 +40,8 @@ export const STATIC_THEME_GRADIENTS: Record<string, string> = {
 	initiate: 'radial-gradient(ellipse at 50% 25%, rgba(0, 229, 255, 0.18) 0%, transparent 60%), linear-gradient(175deg, #05090c 0%, #0a1318 60%, #030508 100%)',
 	master: 'radial-gradient(ellipse at 50% 20%, rgba(77, 171, 247, 0.2) 0%, transparent 60%), linear-gradient(175deg, #f0f7ff 0%, #e6f2ff 100%)',
 	'god-mode': 'radial-gradient(ellipse at 50% 15%, rgba(255, 215, 0, 0.22) 0%, transparent 65%), linear-gradient(175deg, #070602 0%, #14110a 60%, #030200 100%)',
-	catalyst: 'radial-gradient(ellipse at 50% 20%, rgba(163, 230, 53, 0.18) 0%, transparent 60%), linear-gradient(175deg, #040a05 0%, #0a150b 60%, #020503 100%)'
+	catalyst: 'radial-gradient(ellipse at 50% 20%, rgba(163, 230, 53, 0.18) 0%, transparent 60%), linear-gradient(175deg, #040a05 0%, #0a150b 60%, #020503 100%)',
+	celestial: 'radial-gradient(ellipse at 50% 15%, rgba(177, 151, 252, 0.22) 0%, transparent 65%), linear-gradient(175deg, #070512 0%, #130a24 60%, #030209 100%)'
 };
 
 /**
@@ -148,6 +149,12 @@ export const THEME_PRESETS: ThemePreset[] = [
 		unlock: { kind: 'subject', sub: 'C', min: 1000 }, fx: 'reaction',
 		wallpaper: videoWp('catalyst lab.mp4'),
 		confetti: ['#a3e635', '#22c55e', '#facc15', '#ffffff']
+	},
+	{
+		id: 'celestial', label: 'Celestial Prestige', blurb: 'Chromatic prism & cosmic starfield for ascended grinders', accent: '#b197fc', dark: true,
+		unlock: { kind: 'prestige', min: 1 }, fx: 'celestial',
+		wallpaper: videoWp('cosmic-violet-nebula.mp4'),
+		confetti: ['#ff6b6b', '#ffd43b', '#69db7c', '#4dabf7', '#b197fc', '#ffffff']
 	},
 ];
 

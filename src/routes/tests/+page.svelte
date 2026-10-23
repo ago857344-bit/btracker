@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { tracker, updateTracker, celebration, openFeynmanDuck } from '$lib/stores/tracker';
+	import { tracker, updateTracker, celebration, openFeynmanDuck, openTestDaySheet } from '$lib/stores/tracker';
 	import type { MockTest, MistakeLog, Flashcard } from '$lib/types/tracker';
 	import { applyEloResult } from '$lib/state/gamification';
 	import Modal from '$lib/components/ui/Modal.svelte';
@@ -185,15 +185,21 @@
 				<h1>Assessments</h1>
 				<p>Track your test performance and log mistakes to improve.</p>
 			</div>
-			{#if viewMode === 'mocks'}
-				<button class="primary-btn" on:click={() => showModal = true}>
-					<NavIcon name="plus" size={16} /> Log Test
+			<div class="header-actions">
+				<button type="button" class="paper-sheet-btn" on:click={() => openTestDaySheet()} title="Generate Test Day Paper Sheet">
+					<NavIcon name="printer" size={15} />
+					<span>Test Day Sheet</span>
 				</button>
-			{:else}
-				<button class="primary-btn" on:click={() => showMistakeModal = true}>
-					<NavIcon name="plus" size={16} /> Log Mistake
-				</button>
-			{/if}
+				{#if viewMode === 'mocks'}
+					<button class="primary-btn" on:click={() => showModal = true}>
+						<NavIcon name="plus" size={16} /> Log Test
+					</button>
+				{:else}
+					<button class="primary-btn" on:click={() => showMistakeModal = true}>
+						<NavIcon name="plus" size={16} /> Log Mistake
+					</button>
+				{/if}
+			</div>
 		</div>
 
 		<div class="view-tabs" role="tablist">
@@ -299,6 +305,21 @@
 					<option value="Time">Time</option>
 				</select>
 			</div>
+		</div>
+
+		<!-- Test Day Paper Sheet Callout Banner -->
+		<div class="sheet-cta-banner glass">
+			<div class="cta-left">
+				<div class="cta-icon"><NavIcon name="printer" size={18} /></div>
+				<div class="cta-text">
+					<b>Test Day Paper Sheet Generator</b>
+					<p>Compile your personal mistakes, common traps to avoid, and starred formulas into a high-density, printable exam cheat sheet.</p>
+				</div>
+			</div>
+			<button type="button" class="btn-sheet-cta" on:click={() => openTestDaySheet()}>
+				<NavIcon name="printer" size={14} />
+				<span>Generate Paper Sheet</span>
+			</button>
 		</div>
 
 		<div class="grid">
@@ -440,7 +461,73 @@
 	.glass { background: var(--surface-panel); border: 1px solid var(--border-subtle); backdrop-filter: var(--glass-filter); -webkit-backdrop-filter: var(--glass-filter); border-radius: 16px; }
 	
 	header { padding: 1.5rem; display: flex; flex-direction: column; }
-	.header-content { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; }
+	.header-content { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap; }
+	.header-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+	.paper-sheet-btn {
+		background: color-mix(in srgb, var(--accent) 12%, transparent);
+		color: var(--accent);
+		border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+		padding: 0.7rem 1.15rem;
+		border-radius: 12px;
+		font-weight: 700;
+		font-size: 0.88rem;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		cursor: pointer;
+		transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+	}
+	.paper-sheet-btn:hover {
+		background: color-mix(in srgb, var(--accent) 22%, transparent);
+		border-color: var(--accent);
+		transform: translateY(-1px);
+		box-shadow: 0 4px 14px -3px color-mix(in srgb, var(--accent) 30%, transparent);
+	}
+
+	.sheet-cta-banner {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1.25rem;
+		padding: 1.1rem 1.4rem;
+		background: color-mix(in srgb, var(--accent) 8%, var(--surface-panel));
+		border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border-subtle));
+		border-radius: 14px;
+		margin-bottom: 0.5rem;
+		flex-wrap: wrap;
+	}
+	.cta-left { display: flex; align-items: center; gap: 1rem; flex: 1; min-width: 250px; }
+	.cta-icon {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 40px;
+		height: 40px;
+		border-radius: 12px;
+		background: color-mix(in srgb, var(--accent) 18%, transparent);
+		color: var(--accent);
+		border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+		flex-shrink: 0;
+	}
+	.cta-text b { display: block; font-size: 0.95rem; font-weight: 800; color: var(--text-primary); margin-bottom: 0.15rem; }
+	.cta-text p { margin: 0; font-size: 0.8rem; color: var(--text-secondary); line-height: 1.35; }
+	.btn-sheet-cta {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.45rem;
+		padding: 0.65rem 1.15rem;
+		border-radius: 10px;
+		background: var(--accent);
+		color: var(--accent-contrast, #ffffff);
+		border: 1px solid var(--accent);
+		font-weight: 750;
+		font-size: 0.82rem;
+		cursor: pointer;
+		transition: all 0.18s ease;
+		box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--accent) 40%, transparent);
+		white-space: nowrap;
+	}
+	.btn-sheet-cta:hover { filter: brightness(1.1); transform: translateY(-1px); }
 	h1 { font-size: 1.75rem; margin: 0 0 0.5rem 0; color: var(--text-primary); }
 	p { margin: 0; color: var(--text-secondary); }
 	
@@ -454,7 +541,7 @@
 	.tabs button:hover { color: var(--text-primary); }
 	.tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
 	
-	.primary-btn { background: var(--accent); color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
+	.primary-btn { background: var(--accent); color: var(--accent-contrast, white); border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
 	.primary-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px color-mix(in srgb, var(--accent), transparent 60%); }
 	.primary-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 	

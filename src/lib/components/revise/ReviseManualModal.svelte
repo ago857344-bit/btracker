@@ -77,5 +77,5 @@
 	.card ul li { margin-bottom: 0.2rem; }
 	
 	.actions { display: flex; justify-content: flex-end; padding-top: 0.5rem; }
-	.btn.solid { background: var(--accent); color: #fff; padding: 0.6rem 1.4rem; border-radius: 10px; font-weight: 800; font-size: 0.85rem; border: none; cursor: pointer; box-shadow: 0 4px 12px color-mix(in srgb, var(--accent), transparent 60%); }
+	.btn.solid { background: var(--accent); color: var(--accent-contrast, #fff); padding: 0.6rem 1.4rem; border-radius: 10px; font-weight: 800; font-size: 0.85rem; border: none; cursor: pointer; box-shadow: 0 4px 12px color-mix(in srgb, var(--accent), transparent 60%); }
 </style>

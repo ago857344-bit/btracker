@@ -482,7 +482,7 @@
 		</label>
 		<div style="display: flex; justify-content: flex-end; gap: 0.5rem;">
 			<button type="button" on:click={() => (showEditCount = false)} style="padding: 0.5rem 1rem; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-weight: 600;">Cancel</button>
-			<button type="button" on:click={saveCount} style="padding: 0.5rem 1rem; background: var(--accent); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 700;">Save</button>
+			<button type="button" on:click={saveCount} style="padding: 0.5rem 1rem; background: var(--accent); color: var(--accent-contrast, white); border: none; border-radius: 8px; cursor: pointer; font-weight: 700;">Save</button>
 		</div>
 	</Modal>
 {/if}
@@ -495,7 +495,7 @@
 	.eyebrow { margin: 0 0 .2rem; color: var(--text-secondary); font-size: .68rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
 	.statline { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem; color: var(--text-secondary); font-size: .76rem; font-weight: 650; }
 	.statline b { color: var(--text-primary); }
-	.statline .pct { padding: .2rem .55rem; border-radius: 99px; background: var(--accent); color: white; font-weight: 800; }
+	.statline .pct { padding: .2rem .55rem; border-radius: 99px; background: var(--accent); color: var(--accent-contrast, white); font-weight: 800; }
 	.statline .ok b { color: var(--success); }
 	.statline .no b { color: var(--danger); }
 	.statline .cant b { color: var(--warning); }
@@ -512,7 +512,7 @@
 	.blabel { color: var(--text-secondary); font-size: .7rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
 	.rangebar input { flex: 1; min-width: 150px; height: 34px; padding: 0 .65rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-panel); color: var(--text-primary); font-size: .82rem; }
 	.rangebar select { height: 34px; border: 1px solid var(--border-subtle); border-radius: 10px; background: var(--surface-panel); color: var(--text-primary); font-size: .8rem; padding: 0 .5rem; }
-	.apply { height: 34px; padding: 0 .9rem; border: 0; border-radius: 10px; background: var(--accent); color: white; font-size: .78rem; font-weight: 750; }
+	.apply { height: 34px; padding: 0 .9rem; border: 0; border-radius: 10px; background: var(--accent); color: var(--accent-contrast, white); font-size: .78rem; font-weight: 750; }
 	.msg { font-size: .74rem; font-weight: 650; color: var(--danger); }
 	.msg.ok { color: var(--success); }
 	.mistake-sync-banner {
@@ -613,14 +613,14 @@
 	.sheet.dragging .qn { cursor: grabbing; }
 	.qrow.head .qn-head { display: flex; align-items: center; gap: .4rem; }
 	.selall { display: grid; place-items: center; width: 20px; height: 20px; border: 1.5px solid var(--border-subtle); border-radius: 6px; color: transparent; background: var(--surface-panel); }
-	.selall[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: white; }
+	.selall[aria-pressed="true"] { border-color: var(--accent); background: var(--accent); color: var(--accent-contrast, white); }
 	.qrow.done .qn { color: var(--text-primary); }
 	.check { display: grid; place-items: center; width: 26px; height: 26px; border: 1.5px solid var(--border-subtle); border-radius: 8px; color: transparent; background: var(--surface-panel); }
-	.check.on { border-color: var(--success); background: var(--success); color: white; }
+	.check.on { border-color: var(--success); background: var(--success); color: var(--accent-contrast, #fff); }
 	.c-bub { display: flex; align-items: center; gap: .3rem; }
 	.bub { display: grid; place-items: center; width: 26px; height: 26px; border: 1.5px solid var(--border-subtle); border-radius: 99px; color: var(--text-secondary); background: var(--surface-panel); }
-	.bub.c.on { border-color: var(--success); background: var(--success); color: white; }
-	.bub.w.on { border-color: var(--danger); background: var(--danger); color: white; }
+	.bub.c.on { border-color: var(--success); background: var(--success); color: var(--accent-contrast, #fff); }
+	.bub.w.on { border-color: var(--danger); background: var(--danger); color: var(--accent-contrast, #fff); }
 	.why { height: 22px; padding: 0 .45rem; border: 1px solid var(--danger); border-radius: 99px; background: transparent; color: var(--danger); font-size: .6rem; font-weight: 800; letter-spacing: .04em; }
 	.c-note input { width: 100%; height: 30px; padding: 0 .55rem; border: 1px solid transparent; border-radius: 9px; background: transparent; color: var(--text-primary); font-size: .8rem; }
 	.c-note input:hover, .c-note input:focus { border-color: var(--border-subtle); background: var(--surface-panel); outline: none; }
@@ -637,7 +637,7 @@
 	.selbar .n { color: var(--accent); font-size: .78rem; font-weight: 800; }
 	.confirm-body { margin: 0; color: var(--text-secondary); font-size: .86rem; line-height: 1.55; }
 	.ghostbtn { height: 36px; padding: 0 .9rem; border: 1px solid var(--border-subtle); border-radius: 10px; background: transparent; color: var(--text-secondary); font-size: .8rem; font-weight: 700; }
-	.dangerbtn { height: 36px; padding: 0 1rem; border: 0; border-radius: 10px; background: var(--danger); color: white; font-size: .8rem; font-weight: 750; }
+	.dangerbtn { height: 36px; padding: 0 1rem; border: 0; border-radius: 10px; background: var(--danger); color: var(--accent-contrast, #fff); font-size: .8rem; font-weight: 750; }
 	@media (max-width: 860px) {
 		.qrow { grid-template-columns: 42px 36px 80px 1fr auto 72px; padding-inline: .35rem; gap: .25rem; }
 		.c-note { display: none; }

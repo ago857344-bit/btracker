@@ -7,6 +7,9 @@
 	import { renderReportImage, renderDailyReportImage } from '$lib/services/reportCardImage';
 	import { loadout } from '$lib/stores/cosmetics';
 	import { todayKey, lastNDays, shortDateKey, weekdayShort, formatMinutes } from '$lib/state/dates';
+	import BTrackerWrappedModal from '$lib/components/stats/BTrackerWrappedModal.svelte';
+
+	let wrappedOpen = false;
 
 	// If a new week started while the app was open, capture the fresh baseline.
 	$: if ($hydration === 'ready' && $tracker.gamification?.week?.start !== currentWeekStartKey()) {
@@ -131,6 +134,9 @@
 			{/if}
 
 			<div class="actions">
+				<button type="button" class="btn wrapped-btn" on:click={() => (wrappedOpen = true)} title="Play Spotify-Wrapped style animated season recap">
+					<NavIcon name="sparkles" size={14} /> Wrapped Story
+				</button>
 				<button type="button" class="btn solid" on:click={download} disabled={busy}>
 					<NavIcon name="download" size={14} /> Download PNG
 				</button>
@@ -249,6 +255,8 @@
 			</div>
 		</div>
 	{/if}
+
+	<BTrackerWrappedModal bind:open={wrappedOpen} />
 </div>
 
 <style>
@@ -323,7 +331,7 @@
 
 	.custom-select select {
 		appearance: none;
-		background: var(--surface-bg, rgba(255, 255, 255, 0.06));
+		background: var(--surface-subtle);
 		border: 1px solid var(--border-subtle);
 		border-radius: 10px;
 		color: var(--text-primary);
@@ -375,13 +383,25 @@
 	}
 
 	.btn.solid {
-		color: #fff;
+		color: var(--accent-contrast, #fff);
 		background: var(--accent);
 		box-shadow: 0 4px 12px color-mix(in srgb, var(--accent), transparent 60%);
 	}
 
 	.btn.solid:hover:not(:disabled) {
 		filter: brightness(1.08);
+	}
+
+	.btn.wrapped-btn {
+		background: linear-gradient(135deg, #7c3aed, #db2777);
+		color: #ffffff;
+		border: 1px solid rgba(255, 255, 255, 0.25);
+		box-shadow: 0 4px 14px -2px rgba(124, 58, 237, 0.4);
+	}
+
+	.btn.wrapped-btn:hover:not(:disabled) {
+		filter: brightness(1.15);
+		transform: translateY(-1px);
 	}
 
 	.btn.ghost {
@@ -459,7 +479,7 @@
 	}
 
 	.hero-stat.hours {
-		background: color-mix(in srgb, var(--accent) 10%, var(--surface-bg));
+		background: color-mix(in srgb, var(--accent) 10%, var(--surface-subtle));
 		border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
 	}
 
@@ -506,7 +526,7 @@
 
 	/* Daily Graph */
 	.graph-card {
-		background: var(--surface-bg, rgba(255, 255, 255, 0.03));
+		background: var(--surface-subtle);
 		border: 1px solid var(--border-subtle);
 		border-radius: 12px;
 		padding: 14px;
@@ -584,7 +604,7 @@
 	}
 
 	.subject-box {
-		background: var(--surface-bg, rgba(255, 255, 255, 0.03));
+		background: var(--surface-subtle);
 		border: 1px solid var(--border-subtle);
 		border-radius: 12px;
 		padding: 12px 14px;

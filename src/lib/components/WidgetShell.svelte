@@ -33,6 +33,9 @@
 	on:pointermove={handlePointerMove}
 >
 	<header class="widget-head">
+		{#if editing}
+			<span class="drag-grip" title="Drag to reorder"><NavIcon name="menu" size={15} /></span>
+		{/if}
 		<span class="widget-icon"><NavIcon name={icon} size={17} /></span>
 		<div class="widget-titles">
 			{#if eyebrow}<p class="eyebrow">{eyebrow}</p>{/if}
@@ -42,7 +45,7 @@
 			{#if editing}
 				<button type="button" class="tool" title="Move up" on:click={() => dispatch('move', -1)}><NavIcon name="chevron" size={15} /></button>
 				<button type="button" class="tool flip" title="Move down" on:click={() => dispatch('move', 1)}><NavIcon name="chevron" size={15} /></button>
-				<button type="button" class="tool" title="Resize" on:click={() => dispatch('resize')}><span class="resize-glyph">↔</span></button>
+				<button type="button" class="tool span-btn" title="Cycle size: 1-col / 2-col / 3-col" on:click={() => dispatch('resize')}><span class="resize-glyph">{span === 3 ? '3x' : span === 2 ? '2x' : '1x'}</span></button>
 				<button type="button" class="tool danger" title={enabled ? 'Hide widget' : 'Show widget'} on:click={() => dispatch('toggle')}>{enabled ? '−' : '+'}</button>
 			{:else}
 				<slot name="actions" />
@@ -123,7 +126,20 @@
 	.tool:hover { color: var(--accent); border-color: var(--accent); transform: scale(1.08); }
 	.tool.danger:hover { color: var(--danger); border-color: var(--danger); }
 	.tool.flip :global(svg) { transform: rotate(90deg); }
-	.resize-glyph { font-size: .82rem; }
+	.resize-glyph { font-size: .74rem; font-weight: 800; }
+	.drag-grip {
+		display: grid;
+		place-items: center;
+		color: var(--accent);
+		opacity: 0.85;
+		cursor: grab;
+		padding-right: 0.2rem;
+		transition: opacity 0.15s ease, transform 0.15s ease;
+	}
+	.drag-grip:hover {
+		opacity: 1;
+		transform: scale(1.15);
+	}
 	.widget-body { position: relative; z-index: 3; flex: 1; min-height: 0; }
 	.span-2 { grid-column: span 2; }
 	.span-3 { grid-column: span 3; }

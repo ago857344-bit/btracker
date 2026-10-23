@@ -8,10 +8,12 @@
 	import { getLevelData } from '$lib/state/gamification';
 	import { subjectColor, subjectName } from '$lib/state/subjects';
 	import NavIcon from '$lib/components/NavIcon.svelte';
+	import { pipIslandOpen, openPipIsland } from '$lib/stores/pip';
+	import { openNativePip } from '$lib/services/pip';
 
 	let expanded = false;
-
-	$: cutoutStyle = ($tracker?.ui?.cutoutStyle || 'auto') as 'auto' | 'island' | 'notch' | 'dot' | 'dock';
+	let cutoutStyle: 'auto' | 'island' | 'notch' | 'dot' | 'dock' | 'pip' = 'auto';
+	$: cutoutStyle = ($tracker?.ui?.cutoutStyle || 'auto') as 'auto' | 'island' | 'notch' | 'dot' | 'dock' | 'pip';
 
 	$: isSessionActive = Boolean($globalTimer.running || $globalTimer.sessionStarted);
 	$: subColor = $globalTimer.subject ? subjectColor($globalTimer.subject) : '#6d5dfc';
@@ -47,7 +49,7 @@
 		triggerHaptic(expanded ? [10, 18, 8] : 8);
 	}
 
-	function setCutoutStyle(style: 'auto' | 'island' | 'notch' | 'dot' | 'dock', e?: MouseEvent) {
+	function setCutoutStyle(style: 'auto' | 'island' | 'notch' | 'dot' | 'dock' | 'pip', e?: MouseEvent) {
 		if (e) e.stopPropagation();
 		triggerHaptic(12);
 		updateTracker((draft) => {
@@ -82,7 +84,7 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-{#if isSessionActive && !isFocusPage}
+{#if isSessionActive && !isFocusPage && cutoutStyle !== 'pip' && !$pipIslandOpen}
 	<!-- Backdrop scrim when expanded -->
 	{#if expanded}
 		<div
@@ -166,6 +168,19 @@
 										<polygon points="6 4 20 12 6 20 6 4"></polygon>
 									</svg>
 								{/if}
+							</button>
+							<button
+								type="button"
+								class="quick-pip-btn"
+								title="Switch to Floating Mini PiP Island"
+								on:click|stopPropagation={() => {
+									triggerHaptic(12);
+									setCutoutStyle('pip');
+									openPipIsland();
+								}}
+								aria-label="Picture in Picture"
+							>
+								<NavIcon name="pip" size={12} />
 							</button>
 							<button
 								type="button"
@@ -381,6 +396,18 @@
 							>
 								🛡️ Notch Safe
 							</button>
+							<button
+								type="button"
+								class="cutout-chip"
+								class:active={(cutoutStyle as string) === 'pip'}
+								on:click={(e) => {
+									setCutoutStyle('pip', e);
+									openPipIsland();
+								}}
+								title="Floating Mini PiP: Freely draggable floating island anywhere on screen"
+							>
+								🪟 Floating PiP
+							</button>
 						</div>
 					</div>
 
@@ -394,6 +421,18 @@
 								on:click={() => $globalTimer.addFive()}
 							>
 								+5m
+							</button>
+
+							<button
+								type="button"
+								class="island-btn secondary"
+								title="Pop Out into Mini Floating Island"
+								on:click={() => {
+									expanded = false;
+									openPipIsland();
+								}}
+							>
+								<NavIcon name="pip" size={14} /> PiP
 							</button>
 
 							<button
@@ -520,7 +559,8 @@
 	:global(:root[data-theme='light']) .dynamic-island.dock-mode,
 	:global(:root[data-theme='notion']) .dynamic-island.dock-mode,
 	:global(:root[data-theme='duolingo']) .dynamic-island.dock-mode,
-	:global(:root[data-theme='anki']) .dynamic-island.dock-mode {
+	:global(:root[data-theme='anki']) .dynamic-island.dock-mode,
+	:global(:root[data-theme='master']) .dynamic-island.dock-mode {
 		background: color-mix(in srgb, var(--surface-panel, #ffffff) 96%, transparent) !important;
 		color: var(--text-primary, #24213a) !important;
 		border: 1px solid color-mix(in srgb, var(--island-accent, var(--accent)) 25%, var(--border-subtle, rgba(0, 0, 0, 0.1))) !important;
@@ -534,22 +574,27 @@
 	:global(:root[data-theme='notion']) .dynamic-island.dock-mode .time-readout,
 	:global(:root[data-theme='duolingo']) .dynamic-island.dock-mode .time-readout,
 	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .time-readout,
+	:global(:root[data-theme='master']) .dynamic-island.dock-mode .time-readout,
 	:global(:root[data-theme='light']) .dynamic-island.dock-mode .daily-stat-item,
 	:global(:root[data-theme='notion']) .dynamic-island.dock-mode .daily-stat-item,
 	:global(:root[data-theme='duolingo']) .dynamic-island.dock-mode .daily-stat-item,
 	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .daily-stat-item,
+	:global(:root[data-theme='master']) .dynamic-island.dock-mode .daily-stat-item,
 	:global(:root[data-theme='light']) .dynamic-island.dock-mode .card-value,
 	:global(:root[data-theme='notion']) .dynamic-island.dock-mode .card-value,
 	:global(:root[data-theme='duolingo']) .dynamic-island.dock-mode .card-value,
 	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .card-value,
+	:global(:root[data-theme='master']) .dynamic-island.dock-mode .card-value,
 	:global(:root[data-theme='light']) .dynamic-island.dock-mode .subject-full,
 	:global(:root[data-theme='notion']) .dynamic-island.dock-mode .subject-full,
 	:global(:root[data-theme='duolingo']) .dynamic-island.dock-mode .subject-full,
 	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .subject-full,
+	:global(:root[data-theme='master']) .dynamic-island.dock-mode .subject-full,
 	:global(:root[data-theme='light']) .dynamic-island.dock-mode .large-time,
 	:global(:root[data-theme='notion']) .dynamic-island.dock-mode .large-time,
 	:global(:root[data-theme='duolingo']) .dynamic-island.dock-mode .large-time,
-	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .large-time {
+	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .large-time,
+	:global(:root[data-theme='master']) .dynamic-island.dock-mode .large-time {
 		color: var(--text-primary, #24213a) !important;
 	}
 
@@ -557,14 +602,17 @@
 	:global(:root[data-theme='notion']) .dynamic-island.dock-mode .stat-divider,
 	:global(:root[data-theme='duolingo']) .dynamic-island.dock-mode .stat-divider,
 	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .stat-divider,
+	:global(:root[data-theme='master']) .dynamic-island.dock-mode .stat-divider,
 	:global(:root[data-theme='light']) .dynamic-island.dock-mode .quick-expand-btn,
 	:global(:root[data-theme='notion']) .dynamic-island.dock-mode .quick-expand-btn,
 	:global(:root[data-theme='duolingo']) .dynamic-island.dock-mode .quick-expand-btn,
 	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .quick-expand-btn,
+	:global(:root[data-theme='master']) .dynamic-island.dock-mode .quick-expand-btn,
 	:global(:root[data-theme='light']) .dynamic-island.dock-mode .chapter-label,
 	:global(:root[data-theme='notion']) .dynamic-island.dock-mode .chapter-label,
 	:global(:root[data-theme='duolingo']) .dynamic-island.dock-mode .chapter-label,
-	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .chapter-label {
+	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .chapter-label,
+	:global(:root[data-theme='master']) .dynamic-island.dock-mode .chapter-label {
 		color: var(--text-secondary, #716e86) !important;
 	}
 
@@ -572,10 +620,12 @@
 	:global(:root[data-theme='notion']) .dynamic-island.dock-mode .idle-stat-card,
 	:global(:root[data-theme='duolingo']) .dynamic-island.dock-mode .idle-stat-card,
 	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .idle-stat-card,
+	:global(:root[data-theme='master']) .dynamic-island.dock-mode .idle-stat-card,
 	:global(:root[data-theme='light']) .dynamic-island.dock-mode .cutout-bar,
 	:global(:root[data-theme='notion']) .dynamic-island.dock-mode .cutout-bar,
 	:global(:root[data-theme='duolingo']) .dynamic-island.dock-mode .cutout-bar,
-	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .cutout-bar {
+	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .cutout-bar,
+	:global(:root[data-theme='master']) .dynamic-island.dock-mode .cutout-bar {
 		background: rgba(0, 0, 0, 0.04) !important;
 		border-color: rgba(0, 0, 0, 0.07) !important;
 	}
@@ -584,17 +634,20 @@
 	:global(:root[data-theme='notion']) .dynamic-island.dock-mode .card-head,
 	:global(:root[data-theme='duolingo']) .dynamic-island.dock-mode .card-head,
 	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .card-head,
+	:global(:root[data-theme='master']) .dynamic-island.dock-mode .card-head,
 	:global(:root[data-theme='light']) .dynamic-island.dock-mode .cutout-label,
 	:global(:root[data-theme='notion']) .dynamic-island.dock-mode .cutout-label,
 	:global(:root[data-theme='duolingo']) .dynamic-island.dock-mode .cutout-label,
-	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .cutout-label {
+	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .cutout-label,
+	:global(:root[data-theme='master']) .dynamic-island.dock-mode .cutout-label {
 		color: var(--text-secondary, #716e86) !important;
 	}
 
 	:global(:root[data-theme='light']) .dynamic-island.dock-mode .cutout-chip,
 	:global(:root[data-theme='notion']) .dynamic-island.dock-mode .cutout-chip,
 	:global(:root[data-theme='duolingo']) .dynamic-island.dock-mode .cutout-chip,
-	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .cutout-chip {
+	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .cutout-chip,
+	:global(:root[data-theme='master']) .dynamic-island.dock-mode .cutout-chip {
 		background: rgba(0, 0, 0, 0.05);
 		border-color: rgba(0, 0, 0, 0.08);
 		color: var(--text-secondary);
@@ -603,9 +656,10 @@
 	:global(:root[data-theme='light']) .dynamic-island.dock-mode .cutout-chip.active,
 	:global(:root[data-theme='notion']) .dynamic-island.dock-mode .cutout-chip.active,
 	:global(:root[data-theme='duolingo']) .dynamic-island.dock-mode .cutout-chip.active,
-	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .cutout-chip.active {
+	:global(:root[data-theme='anki']) .dynamic-island.dock-mode .cutout-chip.active,
+	:global(:root[data-theme='master']) .dynamic-island.dock-mode .cutout-chip.active {
 		background: var(--island-accent, var(--accent)) !important;
-		color: #ffffff !important;
+		color: var(--accent-contrast, #ffffff) !important;
 	}
 
 	.dynamic-island:focus-visible {
@@ -908,6 +962,7 @@
 		background: var(--island-accent, #6d5dfc);
 		border-color: transparent;
 		box-shadow: 0 0 14px var(--island-accent);
+		color: var(--accent-contrast, #ffffff) !important;
 	}
 
 	.quick-toggle-btn.start-btn {
@@ -918,7 +973,27 @@
 
 	.quick-toggle-btn.start-btn:hover {
 		background: var(--accent, #6d5dfc);
-		color: #ffffff !important;
+		color: var(--accent-contrast, #ffffff) !important;
+	}
+
+	.quick-pip-btn {
+		width: 26px;
+		height: 26px;
+		background: rgba(255, 255, 255, 0.08);
+		border: 1px solid rgba(255, 255, 255, 0.15);
+		border-radius: 50%;
+		color: rgba(255, 255, 255, 0.75);
+		display: grid;
+		place-items: center;
+		cursor: pointer;
+		padding: 0;
+		transition: all 0.18s ease;
+	}
+
+	.quick-pip-btn:hover {
+		background: rgba(255, 255, 255, 0.2);
+		color: #ffffff;
+		transform: scale(1.08);
 	}
 
 	.quick-expand-btn {
@@ -1159,7 +1234,7 @@
 	.cutout-chip.active {
 		background: var(--island-accent, #6d5dfc);
 		border-color: var(--island-accent, #6d5dfc);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		box-shadow: 0 0 12px color-mix(in srgb, var(--island-accent, #6d5dfc) 50%, transparent);
 	}
 
@@ -1195,7 +1270,7 @@
 	.island-btn.primary {
 		flex: 1;
 		background: var(--island-accent, #6d5dfc);
-		color: #ffffff;
+		color: var(--accent-contrast, #ffffff);
 		box-shadow: 0 4px 14px color-mix(in srgb, var(--island-accent, #6d5dfc) 45%, transparent);
 	}
 

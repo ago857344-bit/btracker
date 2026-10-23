@@ -200,7 +200,8 @@
 		}
 	}
 	.metric {
-		background: var(--surface-bg);
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
 		padding: 12px;
 		border-radius: 12px;
 		display: flex;

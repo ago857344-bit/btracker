@@ -4,6 +4,7 @@
 	import StatRing from '$lib/components/StatRing.svelte';
 	import { loadout } from '$lib/stores/cosmetics';
 	import NavIcon from '$lib/components/NavIcon.svelte';
+	import FocusPetCompanion from '$lib/components/focus/FocusPetCompanion.svelte';
 
 	import { tracker } from '$lib/stores/tracker';
 
@@ -17,11 +18,11 @@
 	export let accent: string = 'var(--accent)';
 
 	const dispatch = createEventDispatcher<{
-  start: void;
-  pause: void;
-  exit: void;
-  penalty: void;
-}>();
+		start: void;
+		pause: void;
+		exit: void;
+		penalty: { reason?: string } | void;
+	}>();
 
 	$: focusPet = $tracker.settings?.focusPet || 'orb';
 	let isShattering = false;
@@ -47,18 +48,32 @@
 
 	let quoteIndex = 0;
 
-  onMount(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden && running && phase === 'focus') {
-        dispatch('penalty');
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  });
+	onMount(() => {
+		const handleVisibilityChange = () => {
+			if (document.hidden && running && phase === 'focus') {
+				dispatch('penalty', { reason: 'Browser Tab Switch' });
+			}
+		};
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
+		// Native macOS OS-Level Process & Window Blocker via Tauri
+		const tauriPoll = setInterval(async () => {
+			if (running && phase === 'focus' && typeof window !== 'undefined' && '__TAURI_INTERNALS__' in window) {
+				try {
+					const { invoke } = await import('@tauri-apps/api/core');
+					const res = await invoke<{ blocked: boolean; frontmost_app: string; matched_term: string }>('check_distraction_and_refocus');
+					if (res && res.blocked) {
+						dispatch('penalty', { reason: `${res.frontmost_app || 'App'} (${res.matched_term})` });
+					}
+				} catch {}
+			}
+		}, 1800);
+
+		return () => {
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+			clearInterval(tauriPoll);
+		};
+	});
 
 	
 	// Soundscapes State
@@ -120,28 +135,7 @@
 			<StatRing value={ringProgress} size={330} stroke={18} skin={phase === 'break' ? 'classic' : $loadout.timer} color={phase === 'break' ? 'var(--success, #2f9e6e)' : accent}>
 				<div class="ring-stack">
 					<div class="focus-pet-container" class:shatter={isShattering} style="--pet-scale: {1 + (ringProgress / 100) * 0.3}">
-						{#if focusPet === 'orb'}
-							<div class="pet-orb">
-								<div class="orb-core"></div>
-								<div class="orb-aura"></div>
-							</div>
-						{:else if focusPet === 'crystal'}
-							<div class="pet-crystal">
-								<svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-									<path d="M12 2L4 10l8 12 8-12-8-10z" fill="color-mix(in srgb, var(--accent) 70%, white)" />
-									<path d="M12 2v20l8-12-8-10z" fill="var(--accent)" opacity="0.6"/>
-								</svg>
-								<div class="crystal-glow"></div>
-							</div>
-						{:else if focusPet === 'flame'}
-							<div class="pet-flame">
-								<svg width="44" height="44" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-									<path d="M12 2c0 0-5 6-5 11a5 5 0 0 0 10 0c0-5-5-11-5-11z" fill="var(--accent)" opacity="0.6" class="flame-outer" />
-									<path d="M12 8c0 0-2.5 3-2.5 6a2.5 2.5 0 0 0 5 0c0-3-2.5-6-2.5-6z" fill="#fff" class="flame-inner" />
-								</svg>
-								<div class="flame-glow"></div>
-							</div>
-						{/if}
+						<FocusPetCompanion {running} size="compact" />
 					</div>
 
 					<div class="timer-text-wrap">
@@ -358,7 +352,7 @@
 		letter-spacing: 0.15em;
 		border-radius: 999px;
 		border: none;
-		color: white;
+		color: var(--accent-contrast, white);
 		background: var(--btn, var(--accent));
 		cursor: pointer;
 		box-shadow: 0 8px 24px color-mix(in srgb, var(--btn, var(--accent)), transparent 60%);
@@ -519,65 +513,6 @@
 		transition: transform 0.3s ease;
 		pointer-events: none;
 		z-index: 3;
-	}
-
-	.pet-orb {
-		position: relative;
-		width: 48px; height: 48px;
-		display: flex; justify-content: center; align-items: center;
-	}
-	.orb-core {
-		width: 100%; height: 100%;
-		border-radius: 50%;
-		background: radial-gradient(circle at 30% 30%, #fff, var(--accent) 50%, transparent 80%);
-		box-shadow: 0 0 20px 5px var(--accent), inset 0 0 20px var(--accent);
-		animation: orb-spin 4s linear infinite;
-	}
-	.orb-aura {
-		position: absolute;
-		inset: -15px;
-		border-radius: 50%;
-		background: conic-gradient(from 0deg, transparent, var(--accent), transparent 40%, var(--accent), transparent 80%);
-		opacity: 0.4;
-		animation: orb-spin 8s linear infinite reverse;
-		filter: blur(8px);
-	}
-
-	.pet-crystal {
-		position: relative;
-		display: flex; justify-content: center; align-items: center;
-		animation: crystal-float 4s ease-in-out infinite;
-	}
-	.crystal-glow {
-		position: absolute;
-		width: 30px; height: 8px;
-		bottom: -15px;
-		background: var(--accent);
-		filter: blur(8px);
-		border-radius: 50%;
-		animation: crystal-shadow 4s ease-in-out infinite;
-	}
-
-	.pet-flame {
-		position: relative;
-		display: flex; justify-content: center; align-items: center;
-	}
-	.flame-outer {
-		transform-origin: center bottom;
-		animation: flicker-outer 2s ease-in-out infinite alternate;
-	}
-	.flame-inner {
-		transform-origin: center bottom;
-		animation: flicker-inner 1.5s ease-in-out infinite alternate;
-	}
-	.flame-glow {
-		position: absolute;
-		width: 40px; height: 40px;
-		border-radius: 50%;
-		background: var(--accent);
-		filter: blur(15px);
-		opacity: 0.5;
-		animation: pulse-glow 2s infinite alternate;
 	}
 
 	@keyframes orb-spin {

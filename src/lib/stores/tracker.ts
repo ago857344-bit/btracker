@@ -1,15 +1,15 @@
 import { derived, get, writable } from 'svelte/store';
-import { createInitialTrackerState } from '$lib/state/defaults';
+import { createInitialTrackerState, getWidgetsForStudyFlow, getDefaultNavForMode } from '$lib/state/defaults';
 import { saveTrackerState } from '$lib/services/persistence';
 import { addDaysKey, focusMinutesOn, dayKeyOf, lastNDays, sessionDayKey, startOfWeek, todayKey } from '$lib/state/dates';
 import { SUBJECTS, dayPartOf, intervalFor, subjectColor, subjectName } from '$lib/state/subjects';
 import { cellKey, questionCount, questionKey, syllabusChapter } from '$lib/state/syllabus';
 import { isDone, isFlag, resultOf, setDone, setFlag, setResult, setStars, starsOf, subjectStats } from '$lib/state/questions';
-import { applyEloResult } from '$lib/state/gamification';
+import { applyEloResult, ascend, canAscend } from '$lib/state/gamification';
 import { updateDecayAfterRevision } from '$lib/state/decay';
 import type {
 	GoalTarget, HomeworkItem, StudySession, TimerState, TrackerGoal, TrackerState, WidgetLayout,
-	ConfidenceRating
+	ConfidenceRating, CoachingTimetable, TimetablePeriod, StudyFlowMode
 } from '$lib/types/tracker';
 
 export const tracker = writable<TrackerState>(createInitialTrackerState());
@@ -193,6 +193,16 @@ export function logStudySession(session: StudySession) {
 	}
 }
 
+/** Trigger Ascension (Prestige) for students who reached God Tier (1600+ Elo). */
+export function triggerAscend(): boolean {
+	let success = false;
+	updateTracker((state) => {
+		if (!state.gamification) state.gamification = { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } };
+		success = ascend(state.gamification);
+	});
+	return success;
+}
+
 /** Convenience wrapper that builds a StudySession tuple from timer results. */
 export function recordFocus(opts: { startedEpochMinutes: number; durationMinutes: number; activity: string; deadlineId: string | null; speedrun?: number; target?: number; completed?: number; subject?: string | null; chapter?: string | null }) {
 	const dur = Math.max(1, Math.round(opts.durationMinutes));
@@ -245,6 +255,8 @@ export function openFeynmanDuck(params?: FeynmanDuckParams) {
 export function closeFeynmanDuck() {
 	feynmanDuckOpen.set(false);
 }
+
+export { testDaySheetOpen, openTestDaySheet, closeTestDaySheet } from '$lib/stores/testDaySheet';
 
 export function addFlashcard(card: { front: string; back: string; subject: string; chapter: string }) {
 	updateTracker((s) => {
@@ -300,6 +312,15 @@ export function toggleTask(id: string): boolean {
 		const list = s.h.some((item) => item.id === id) ? s.h : s.hd;
 		const task = list.find((item) => item.id === id);
 		if (!task) return;
+		// Timetable coaching classes are scheduled fixtures and can NEVER be ticked or toggled
+		if (
+			task.isClass === true ||
+			task.kind === 'class' ||
+			task.locked === true ||
+			(task.title && task.title.toLowerCase().startsWith('[class]'))
+		) {
+			return;
+		}
 		task.done = !task.done;
 		task.fin = task.done ? Date.now() : undefined;
 		done = Boolean(task.done);
@@ -447,6 +468,85 @@ export function deleteTodoSubtask(todoId: string, subtaskId: string) {
 			todo.updated = Date.now();
 		}
 	});
+}
+
+/**
+ * Bulk adds standard substeps (e.g. ['Ex 1', 'Ex 2']) to todos matching a source filter ('btest', 'all', etc.)
+ */
+export function addTodoSubsteps(filterSource: string = 'btest', substeps: string[] = ['Ex 1', 'Ex 2']): number {
+	const cleanSubsteps = substeps.map((s) => s.trim()).filter(Boolean);
+	if (!cleanSubsteps.length) return 0;
+	let updatedCount = 0;
+	updateTracker((s) => {
+		const hasExplicitBtest = s.todos.some((t) => t.source === 'btest' || t.source === 'syllabus' || (t.title && t.title.toLowerCase().includes('btest')));
+		for (const todo of s.todos) {
+			const matchesSource =
+				!filterSource ||
+				filterSource === 'all' ||
+				todo.source === filterSource ||
+				(filterSource === 'btest' && (
+					todo.source === 'btest' ||
+					todo.source === 'syllabus' ||
+					todo.source === 'pdf' ||
+					(todo.title && todo.title.toLowerCase().includes('btest')) ||
+					// Resilient fallback: if no explicit btest source exists, match any syllabus chapter todo or open todo
+					(!hasExplicitBtest && (Boolean(todo.ch) || Boolean(todo.sub)))
+				));
+
+			if (matchesSource) {
+				todo.subtasks ??= [];
+				const existing = new Set(todo.subtasks.map((st) => st.title.trim().toLowerCase()));
+				let addedToThisTodo = false;
+				for (const title of cleanSubsteps) {
+					if (!existing.has(title.toLowerCase())) {
+						todo.subtasks.push({ id: uid(), title, done: false });
+						existing.add(title.toLowerCase());
+						addedToThisTodo = true;
+					}
+				}
+				if (addedToThisTodo) {
+					todo.done = false;
+					todo.updated = Date.now();
+					updatedCount++;
+				}
+			}
+		}
+	});
+	return updatedCount;
+}
+
+/**
+ * Transfers active/open To Do items to the daily planner ($tracker.h) on targetDayKey
+ */
+export function transferTodosToPlanner(targetDayKey?: string): number {
+	const day = targetDayKey || todayKey();
+	let transferred = 0;
+	updateTracker((s) => {
+		s.h ??= [];
+		const openTodos = s.todos.filter((t) => !t.done);
+		const existingTitles = new Set([
+			...(s.h || []),
+			...(s.hd || [])
+		].map((task) => (task.title || '').trim().toLowerCase()).filter(Boolean));
+
+		for (const todo of openTodos) {
+			if (!existingTitles.has(todo.title.trim().toLowerCase())) {
+				s.h.push({
+					id: uid(),
+					title: todo.title,
+					due: day,
+					done: false,
+					s: todo.sub as any,
+					ch: todo.ch,
+					hrs: 1,
+					subs: (todo.subtasks || []).map((st) => st.title)
+				});
+				existingTitles.add(todo.title.trim().toLowerCase());
+				transferred++;
+			}
+		}
+	});
+	return transferred;
 }
 
 export function clearDoneTodos() {
@@ -649,7 +749,20 @@ export const revisedToday = derived(tracker, ($t) => Object.values($t.rev.items)
 
 export const upNextTasks = derived(tracker, ($t) => {
 	const today = todayKey();
-	return $t.h.filter((item) => !item.done && item.due && item.due <= today).slice(0, 6);
+	return $t.h
+		.filter(
+			(item) =>
+				!item.done &&
+				item.due &&
+				item.due <= today &&
+				!(
+					item.isClass === true ||
+					item.kind === 'class' ||
+					item.locked === true ||
+					(item.title && item.title.toLowerCase().startsWith('[class]'))
+				)
+		)
+		.slice(0, 6);
 });
 
 export interface ActivityEntry {
@@ -1334,5 +1447,99 @@ export function logMockTestScore(score: number, total: number, subjectScores: Re
 				}
 			}
 		}
+	});
+}
+
+/* Coaching Timetable -------------------------------------------------- */
+
+export function setCoachingTimetable(timetable: CoachingTimetable) {
+	updateTracker((s) => {
+		s.timetable = timetable;
+	});
+}
+
+export function addTimetablePeriod(period: Omit<TimetablePeriod, 'id'>) {
+	updateTracker((s) => {
+		if (!s.timetable) s.timetable = { batchName: '', periods: [] };
+		if (!s.timetable.periods) s.timetable.periods = [];
+		s.timetable.periods.push({
+			...period,
+			id: uid()
+		});
+		s.timetable.updatedAt = Date.now();
+	});
+}
+
+export function updateTimetablePeriod(id: string, updates: Partial<TimetablePeriod>) {
+	updateTracker((s) => {
+		if (!s.timetable?.periods) return;
+		const p = s.timetable.periods.find((item) => item.id === id);
+		if (p) {
+			Object.assign(p, updates);
+			s.timetable.updatedAt = Date.now();
+		}
+	});
+}
+
+export function deleteTimetablePeriod(id: string) {
+	updateTracker((s) => {
+		if (!s.timetable?.periods) return;
+		s.timetable.periods = s.timetable.periods.filter((item) => item.id !== id);
+		s.timetable.updatedAt = Date.now();
+	});
+}
+
+export function clearCoachingTimetable() {
+	updateTracker((s) => {
+		s.timetable = { batchName: '', periods: [] };
+	});
+}
+
+export function addPeriodToPlanner(period: TimetablePeriod, targetDayKey: string) {
+	updateTracker((s) => {
+		s.h.push({
+			id: uid(),
+			kind: 'class',
+			isClass: true,
+			locked: true,
+			title: `[Class] ${period.topic || period.subject}`,
+			due: targetDayKey,
+			done: false,
+			s: (['P', 'C', 'M'].includes(period.subject) ? period.subject : undefined) as any,
+			st: period.startTime,
+			en: period.endTime,
+			subs: []
+		});
+	});
+}
+
+/** Sets the active study flow experience mode and applies its curated widget preset */
+export function applyStudyFlowMode(mode: StudyFlowMode) {
+	updateTracker((s) => {
+		s.ui.studyFlowMode = mode;
+		s.ui.widgets = getWidgetsForStudyFlow(mode);
+		s.ui.pinnedNav = undefined; // Syncs navigation to the new mode
+	});
+}
+
+/** Toggles pinning of a specific route in the sidebar navigation */
+export function togglePinnedNavTool(href: string) {
+	if (href === '/') return; // Home is always pinned
+	updateTracker((s) => {
+		const currentPinned = s.ui.pinnedNav
+			? [...s.ui.pinnedNav]
+			: getDefaultNavForMode(s.ui.studyFlowMode);
+		if (currentPinned.includes(href)) {
+			s.ui.pinnedNav = currentPinned.filter((h) => h !== href);
+		} else {
+			s.ui.pinnedNav = [...currentPinned, href];
+		}
+	});
+}
+
+/** Resets pinned tools back to the active Study Flow mode defaults */
+export function resetPinnedNavToDefault() {
+	updateTracker((s) => {
+		s.ui.pinnedNav = undefined;
 	});
 }

@@ -156,9 +156,10 @@
 	}
 
 	// Active Tasks
+	$: isClassTask = (t: any) => Boolean(t.isClass === true || t.kind === 'class' || t.locked === true || (t.title && t.title.toLowerCase().startsWith('[class]')));
 	$: today = todayKey();
-	$: pendingTasks = ($tracker.h || []).filter((t) => !t.done);
-	$: completedTasks = ($tracker.hd || []).filter((t) => t.done);
+	$: pendingTasks = ($tracker.h || []).filter((t) => !t.done && !isClassTask(t));
+	$: completedTasks = ($tracker.hd || []).filter((t) => t.done && !isClassTask(t));
 	$: allTasks = [...pendingTasks, ...completedTasks];
 
 	// Focus Today
@@ -1160,7 +1161,7 @@
 		border-radius: 8px;
 		border: none;
 		background: var(--accent);
-		color: white;
+		color: var(--accent-contrast, white);
 		font-size: 0.68rem;
 		font-weight: 800;
 		cursor: pointer;
@@ -1225,7 +1226,7 @@
 	}
 	.timer-btn.running .dock-icon-wrap {
 		background: var(--success);
-		color: white;
+		color: var(--accent-contrast, #fff);
 		box-shadow: 0 0 12px color-mix(in srgb, var(--success) 60%, transparent);
 	}
 
@@ -1267,7 +1268,7 @@
 		padding: 0.1rem 0.35rem;
 		border-radius: 99px;
 		background: var(--accent);
-		color: white;
+		color: var(--accent-contrast, white);
 		font-size: 0.62rem;
 		font-weight: 800;
 	}
@@ -1321,7 +1322,7 @@
 		border-radius: 8px;
 		border: none;
 		background: var(--accent);
-		color: white;
+		color: var(--accent-contrast, white);
 		cursor: pointer;
 	}
 
@@ -1379,7 +1380,7 @@
 		border-radius: 7px;
 		border: 1.5px solid var(--border-subtle);
 		background: var(--surface-subtle);
-		color: white;
+		color: var(--accent-contrast, #fff);
 		cursor: pointer;
 	}
 	.task-chk.on {
@@ -1890,7 +1891,7 @@
 		border-radius: 10px;
 		border: none;
 		background: var(--accent);
-		color: white;
+		color: var(--accent-contrast, white);
 		font-size: 0.8rem;
 		font-weight: 800;
 		cursor: pointer;

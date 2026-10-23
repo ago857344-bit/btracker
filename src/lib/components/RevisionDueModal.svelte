@@ -87,7 +87,7 @@
 	.btn { display: inline-flex; align-items: center; gap: .38rem; height: 33px; padding: 0 .8rem; border: 1px solid transparent; border-radius: 10px; font-size: .74rem; font-weight: 750; white-space: nowrap; cursor: pointer; }
 	.btn.ghost { color: var(--text-secondary); border-color: var(--border-subtle); background: transparent; }
 	.btn.ghost:hover { color: var(--text-primary); }
-	.btn.solid { color: white; background: var(--accent); }
+	.btn.solid { color: var(--accent-contrast, white); background: var(--accent); }
 	.hub-link { display: inline-flex; align-items: center; gap: .4rem; margin-right: auto; color: var(--accent); font-size: .78rem; font-weight: 750; text-decoration: none; }
 	.hub-link:hover { text-decoration: underline; }
 </style>

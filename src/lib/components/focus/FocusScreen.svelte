@@ -5,6 +5,7 @@
 
 	import { onDestroy } from 'svelte';
 	import { parseVoiceLog } from '$lib/services/voiceParsing';
+	import { VoiceDictation } from '$lib/services/voice';
 	import { fade, fly } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import StatRing from '$lib/components/StatRing.svelte';
@@ -18,8 +19,12 @@
 	import WeeklyReportCard from '$lib/components/focus/WeeklyReportCard.svelte';
 	import StopwatchReportModal from '$lib/components/focus/StopwatchReportModal.svelte';
 	import DeepWorkMode from '$lib/components/focus/DeepWorkMode.svelte';
+	import LectureTheater from '$lib/components/focus/LectureTheater.svelte';
+	import FocusPetCompanion from '$lib/components/focus/FocusPetCompanion.svelte';
 	import GhostPacer from '$lib/components/focus/GhostPacer.svelte';
 	import AnimatedNumber from '$lib/components/ui/AnimatedNumber.svelte';
+	import { pipIslandOpen, openPipIsland, closePipIsland } from '$lib/stores/pip';
+	import { toggleNativePip, nativePipActive } from '$lib/services/pip';
 	import {
 		tracker, updateTracker, recordFocus, logManualMinutes, addSubjectSession, stopwatchReports,
 		weeklyFocusMinutes, peakProductivity, subjectHealth, setWeeklyGoalHours, setStreakGoalHours,
@@ -41,6 +46,8 @@
 	let focusLen = $tracker?.pom?.focus || 25; let shortLen = 5; let longLen = 15;
 	let customOpen = false; let customValue = focusLen;
 	let deepWorkMode = false;
+	let lectureTheaterOpen = false;
+	let moreMenuOpen = false;
 
 	let running = false;
 	let phase: 'focus' | 'break' = 'focus';
@@ -62,41 +69,68 @@
 
 	let isListening = false;
 	let voiceFeedback = '';
+	const voiceLogger = new VoiceDictation();
 	
-	function startVoiceLog() {
-		if (typeof window === 'undefined') return;
-		const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-		if (!SpeechRecognition) {
-			voiceFeedback = 'Voice not supported in this browser.';
+	async function startVoiceLog() {
+		if (isListening) {
+			voiceLogger.stop();
+			isListening = false;
+			voiceFeedback = '';
 			return;
 		}
-		
-		const recognition = new SpeechRecognition();
-		recognition.lang = 'en-US';
-		recognition.interimResults = false;
-		
-		recognition.onstart = () => { isListening = true; voiceFeedback = 'Listening...'; };
-		
-		recognition.onresult = async (event: any) => {
-			const transcript = event.results[0][0].transcript;
-			voiceFeedback = 'Thinking...';
-			const res = await parseVoiceLog(transcript);
-			if (res) {
-				if (res.minutes) logMinutes = res.minutes;
-				if (res.subject) logSubject = res.subject;
-				if (res.chapter) logChapter = res.chapter;
-				voiceFeedback = 'Ready to log!';
-				setTimeout(() => voiceFeedback = '', 2000);
-			} else {
-				voiceFeedback = 'Could not understand.';
+
+		isListening = true;
+		voiceFeedback = 'Listening...';
+		let recordedText = '';
+
+		await voiceLogger.start({
+			continuous: false,
+			onStart: () => {
+				isListening = true;
+				voiceFeedback = 'Listening...';
+			},
+			onInterim: (text) => {
+				recordedText = text;
+			},
+			onResult: async (text) => {
+				recordedText = text;
+				voiceLogger.stop();
+				voiceFeedback = 'Thinking...';
+				const res = await parseVoiceLog(text);
+				if (res) {
+					if (res.minutes) logMinutes = res.minutes;
+					if (res.subject) logSubject = res.subject;
+					if (res.chapter) logChapter = res.chapter;
+					voiceFeedback = 'Ready to log!';
+					setTimeout(() => (voiceFeedback = ''), 2000);
+				} else {
+					voiceFeedback = 'Could not understand.';
+				}
+				isListening = false;
+			},
+			onError: (err) => {
+				isListening = false;
+				voiceFeedback = err;
+			},
+			onEnd: async () => {
+				isListening = false;
+				if (voiceFeedback === 'Listening...' && recordedText) {
+					voiceFeedback = 'Thinking...';
+					const res = await parseVoiceLog(recordedText);
+					if (res) {
+						if (res.minutes) logMinutes = res.minutes;
+						if (res.subject) logSubject = res.subject;
+						if (res.chapter) logChapter = res.chapter;
+						voiceFeedback = 'Ready to log!';
+						setTimeout(() => (voiceFeedback = ''), 2000);
+					} else {
+						voiceFeedback = 'Could not understand.';
+					}
+				} else if (voiceFeedback === 'Listening...') {
+					voiceFeedback = '';
+				}
 			}
-			isListening = false;
-		};
-		
-		recognition.onerror = () => { isListening = false; voiceFeedback = 'Error listening.'; };
-		recognition.onend = () => { isListening = false; if (voiceFeedback === 'Listening...') voiceFeedback = ''; };
-		
-		recognition.start();
+		});
 	}
 
 	let focusChapter = '';
@@ -259,28 +293,29 @@
 		}
 	}
 
-	function handleTabSwitchPenalty() {
-  if (running) {
-    primary(); // pause timer
-    alert("🚨 TAB SWITCH DETECTED! 🚨\n\nDeep Work interrupted. Your timer has been paused. Stay on this tab to maintain your focus momentum!");
-    
-    // Play an alarm sound
-    try {
-      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(150, ctx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 1.5);
-      gain.gain.setValueAtTime(0.5, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start();
-      osc.stop(ctx.currentTime + 1.5);
-    } catch(e) {}
-  }
-}
+	function handleTabSwitchPenalty(e?: CustomEvent<{ reason?: string } | void>) {
+		if (running) {
+			primary(); // pause timer
+			const triggerReason = (e?.detail && typeof e.detail === 'object' && e.detail.reason) ? `\nReason: ${e.detail.reason}` : '';
+			alert(`🚨 DISTRACTION DETECTED! 🚨${triggerReason}\n\nDeep Work interrupted. Your timer has been paused. Stay locked into your study session!`);
+			
+			// Play an alarm sound
+			try {
+				const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+				const osc = ctx.createOscillator();
+				const gain = ctx.createGain();
+				osc.type = 'sawtooth';
+				osc.frequency.setValueAtTime(150, ctx.currentTime);
+				osc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 1.5);
+				gain.gain.setValueAtTime(0.5, ctx.currentTime);
+				gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+				osc.connect(gain);
+				gain.connect(ctx.destination);
+				osc.start();
+				osc.stop(ctx.currentTime + 1.5);
+			} catch(e) {}
+		}
+	}
 
 function aiStart(s: string, seconds: number, ch: string, mode: 'timer' | 'stopwatch' = 'timer') {
 	if (running) { running = false; clearInterval(interval); countdownEndsAt = null; countUpStartedAt = null; }
@@ -564,7 +599,10 @@ function primary() {
 	onDestroy(() => { clearInterval(interval); clearInterval(clockTimer); try { ambient?.src.stop(); } catch { /* noop */ } });
 </script>
 
-<section class="focus">
+<svelte:window on:keydown={(e) => e.key === 'Escape' && (moreMenuOpen = false)} />
+
+<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+<section class="focus" on:click={() => (moreMenuOpen = false)}>
 	<header class="page-head">
 		<div class="titles">
 			<h1>Focus &amp; Analytics <a class="palette" href="/settings" title="Theme & colors"><NavIcon name="palette" size={15} /></a></h1>
@@ -577,14 +615,57 @@ function primary() {
 	</header>
 
 	<div class="toolbar">
-		<button type="button" class="tb" on:click={share}><NavIcon name="share" size={14} /> SHARE</button>
 		<button type="button" class="tb accent" on:click={() => (logOpen = true)}><NavIcon name="plus" size={14} /> LOG</button>
 		<button type="button" class="tb" class:on={deepWorkMode} disabled={tab === 'stopwatch' ? !swValid : !focusValid} title={tab === 'stopwatch' && !swValid ? 'Select subject and chapter to enter Deep Work' : !focusValid ? 'Select subject and chapter to enter Deep Work' : 'Deep Work Mode'} on:click={() => (deepWorkMode = !deepWorkMode)}><NavIcon name="expand" size={14} /> DEEP WORK</button>
-		<button type="button" class="tb" style="color: #f59e0b; border-color: rgba(245, 158, 11, 0.35); background: rgba(245, 158, 11, 0.08);" title="Rubber Duck Study Companion (Explain to Learn)" on:click={() => openFeynmanDuck({ subject: subject || 'P', chapter: focusChapter || (tab === 'stopwatch' ? swChapter : ''), concept: focusChapter ? `${focusChapter} Core Principles` : 'Current Study Session' })}>🦆 TEACH DUCK</button>
-		{#if tab === 'stopwatch'}
-			<button type="button" class="tb" on:click={() => (reportsOpen = true)}><NavIcon name="history" size={14} /> REPORTS</button>
-		{/if}
+
+		<!-- More menu dropdown -->
+		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+		<div class="more-wrap" on:click|stopPropagation>
+			<button type="button" class="tb more-btn" class:on={moreMenuOpen} on:click={() => (moreMenuOpen = !moreMenuOpen)}>
+				<NavIcon name="grid" size={14} /> MORE
+			</button>
+			{#if moreMenuOpen}
+				<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+				<div class="more-menu" on:click|stopPropagation role="menu" tabindex="-1">
+					<button type="button" class="menu-item" on:click={() => { share(); moreMenuOpen = false; }}>
+						<NavIcon name="share" size={14} /> Share
+					</button>
+					<button type="button" class="menu-item" on:click={() => {
+						if ($pipIslandOpen) closePipIsland(); else { openPipIsland(); celebration.set('Mini PiP Floating Island opened!'); }
+						moreMenuOpen = false;
+					}}>
+						<NavIcon name="pip" size={14} /> Mini PiP
+					</button>
+					<button type="button" class="menu-item lecture-item" on:click={() => { lectureTheaterOpen = true; moreMenuOpen = false; }}>
+						<NavIcon name="tv" size={14} /> Lecture Theater
+					</button>
+					<button type="button" class="menu-item duck-item" on:click={() => {
+						openFeynmanDuck({ subject: subject || 'P', chapter: focusChapter || (tab === 'stopwatch' ? swChapter : ''), concept: focusChapter ? `${focusChapter} Core Principles` : 'Current Study Session' });
+						moreMenuOpen = false;
+					}}>
+						🦆 Teach Duck
+					</button>
+					{#if tab === 'stopwatch'}
+						<button type="button" class="menu-item" on:click={() => { reportsOpen = true; moreMenuOpen = false; }}>
+							<NavIcon name="history" size={14} /> Reports
+						</button>
+					{/if}
+				</div>
+			{/if}
+		</div>
+
 		<span class="spacer"></span>
+		<button
+			type="button"
+			class="ic"
+			class:on={$nativePipActive}
+			title="Pop out into native OS Picture-in-Picture window"
+			on:click={async () => {
+				await toggleNativePip();
+			}}
+		>
+			<NavIcon name="pip" size={15} />
+		</button>
 		<button type="button" class="ic" class:on={ambientOn} title="Ambient noise" on:click={toggleAmbient}><NavIcon name="headphones" size={15} /></button>
 		<button type="button" class="ic" title="Full screen" on:click={toggleFullscreen}><NavIcon name="expand" size={15} /></button>
 		<button type="button" class="ic" class:on={locked} title={locked ? 'Unlock controls' : 'Lock controls'} on:click={() => (locked = !locked)}><NavIcon name="lock" size={15} /></button>
@@ -621,7 +702,7 @@ function primary() {
 					<div class="kinds">
 						<button type="button" class="kind amber" class:on={swKind === 'questions'} disabled={locked} on:click={() => (swKind = 'questions')}>QUESTIONS</button>
 						<button type="button" class="kind" class:on={swKind === 'theory'} disabled={locked} on:click={() => (swKind = 'theory')}>THEORY</button>
-							<button type="button" class="kind green" class:on={swKind === 'revision'} disabled={locked} style="background: var(--success); color: white;" on:click={() => (swKind = 'revision')}>REVISION</button>
+							<button type="button" class="kind green" class:on={swKind === 'revision'} disabled={locked} style="background: var(--success); color: var(--accent-contrast, #fff);" on:click={() => (swKind = 'revision')}>REVISION</button>
 					</div>
 					<p class="label">SELECT SUBJECT</p>
 					<div class="chips">
@@ -684,6 +765,9 @@ function primary() {
 
 			<div class="dial" class:break={phase === 'break' && tab === 'focus'}>
 				<StatRing value={ringProgress} size={280} stroke={16} skin={phase === 'break' && tab === 'focus' ? 'classic' : $loadout.timer} color={phase === 'break' && tab === 'focus' ? 'var(--success, #2f9e6e)' : accent}>
+					<div class="pet-dial-slot">
+						<FocusPetCompanion {running} size="compact" />
+					</div>
 					{#if running && tab !== 'stopwatch'}<span class="state-pill">{phase === 'break' ? 'ON BREAK' : 'FOCUSING'}</span>{/if}
 					{#if tab === 'stopwatch' && !running && elapsed === 0}
 						<span class="state-pill amber">⚡ COUNTS UP INFINITE</span>
@@ -892,6 +976,8 @@ function primary() {
 	/>
 {/if}
 
+<LectureTheater bind:open={lectureTheaterOpen} />
+
 <style>
 	.focus { display: grid; gap: 1.2rem; }
 	.page-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
@@ -907,6 +993,46 @@ function primary() {
 	.tb:hover { color: var(--accent); border-color: var(--accent); }
 	.tb.accent { color: var(--accent); border-color: color-mix(in srgb, var(--accent), transparent 60%); background: var(--accent-soft); }
 	.tb.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+
+	.more-wrap { position: relative; }
+	.more-btn.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+	.more-menu {
+		position: absolute;
+		top: calc(100% + 6px);
+		left: 0;
+		z-index: 50;
+		min-width: 180px;
+		padding: 6px;
+		border: 1px solid var(--border-subtle);
+		border-radius: 12px;
+		background: var(--surface-panel);
+		box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+	.menu-item {
+		display: flex;
+		align-items: center;
+		gap: .55rem;
+		width: 100%;
+		padding: .55rem .7rem;
+		border: 0;
+		border-radius: 8px;
+		background: transparent;
+		color: var(--text-primary);
+		font-size: .78rem;
+		font-weight: 600;
+		cursor: pointer;
+		font-family: inherit;
+		text-align: left;
+	}
+	.menu-item:hover { background: var(--accent-soft); color: var(--accent); }
+	.menu-item.lecture-item { color: #ef4444; }
+	.menu-item.lecture-item:hover { background: rgba(239, 68, 68, 0.1); }
+	.menu-item.duck-item { color: #f59e0b; }
+	.menu-item.duck-item:hover { background: rgba(245, 158, 11, 0.1); }
+
 	.spacer { flex: 1; }
 	.ic { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--border-subtle); border-radius: 10px; color: var(--text-secondary); background: var(--surface-panel); }
 	.ic:hover, .ic.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
@@ -938,7 +1064,7 @@ function primary() {
 	}
 	.tab:active { transform: scale(0.96); }
 	.tab.active {
-		color: #fff;
+		color: var(--accent-contrast, #fff);
 		background: var(--accent);
 		box-shadow: 0 3px 12px color-mix(in srgb, var(--accent), transparent 50%), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 	}
@@ -969,7 +1095,7 @@ function primary() {
 	.preset-row { display: flex; gap: .45rem; flex-wrap: wrap; justify-content: center; }
 	.preset { padding: .48rem .95rem; border: 1px solid var(--border-subtle); border-radius: 999px; background: var(--surface-panel); color: var(--text-secondary); font-size: .76rem; font-weight: 750; }
 	.preset:hover { border-color: var(--accent); color: var(--accent); }
-	.preset.on { color: #fff; border-color: var(--accent); background: var(--accent); }
+	.preset.on { color: var(--accent-contrast, #fff); border-color: var(--accent); background: var(--accent); }
 	.custom { display: inline-flex; align-items: center; gap: .35rem; }
 	.custom input { width: 64px; padding: .45rem .5rem; border: 1px solid var(--border-subtle); border-radius: 9px; background: var(--surface-panel); color: var(--text-primary); }
 	.custom button { padding: .45rem .7rem; border: 1px solid var(--accent); border-radius: 9px; color: var(--accent); background: var(--accent-soft); font-weight: 750; font-size: .74rem; }
@@ -979,8 +1105,8 @@ function primary() {
 	.chip.on { color: var(--text-primary); border-color: var(--c); box-shadow: 0 0 0 3px color-mix(in srgb, var(--c), transparent 78%), 0 6px 16px color-mix(in srgb, var(--c), transparent 70%); }
 	.kinds { display: flex; gap: .45rem; justify-content: center; }
 	.kind { padding: .5rem 1.1rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-panel); color: var(--text-secondary); font-size: .72rem; font-weight: 800; letter-spacing: .06em; }
-	.kind.on { color: #fff; border-color: var(--accent); background: var(--accent); }
-	.kind.amber.on { border-color: #d99a2b; background: #d99a2b; }
+	.kind.on { color: var(--accent-contrast, #fff); border-color: var(--accent); background: var(--accent); }
+	.kind.amber.on { border-color: #d99a2b; background: #d99a2b; color: #fff; }
 	.hint { margin: 0; color: var(--danger, #e0455a); font-size: .72rem; font-weight: 700; }
 	.policy { display: flex; gap: .6rem; align-items: flex-start; padding: .75rem .9rem; border: 1px dashed color-mix(in srgb, var(--danger, #e0455a), transparent 55%); border-radius: 12px; background: color-mix(in srgb, var(--danger, #e0455a), transparent 94%); color: var(--text-secondary); font-size: .7rem; line-height: 1.5; text-align: left; }
 	.policy :global(svg) { flex: 0 0 15px; margin-top: 2px; color: var(--danger, #e0455a); }
@@ -994,8 +1120,9 @@ function primary() {
 	.breather .bicon + .bicon { display: none; }
 
 	.dial { margin: .3rem 0; }
-	.state-pill { padding: .28rem .8rem; border-radius: 999px; background: var(--accent); color: #fff; font-size: .62rem; font-weight: 800; letter-spacing: .12em; }
-	.state-pill.amber { background: #d99a2b; }
+	.pet-dial-slot { margin-bottom: 0.2rem; display: flex; justify-content: center; transform: scale(0.9); }
+	.state-pill { padding: .28rem .8rem; border-radius: 999px; background: var(--accent); color: var(--accent-contrast, #fff); font-size: .62rem; font-weight: 800; letter-spacing: .12em; }
+	.state-pill.amber { background: #d99a2b; color: #fff; }
 	.dial .time { margin-top: .5rem; font-size: 3.5rem; font-weight: 800; letter-spacing: -.06em; line-height: 1; font-variant-numeric: tabular-nums; }
 	.dial-label { margin-top: .45rem; color: var(--text-secondary); font-size: .78rem; font-weight: 650; letter-spacing: .02em; }
 	.theory-card { display: grid; gap: .25rem; width: 100%; max-width: 420px; padding: .85rem 1rem; border: 1px solid color-mix(in srgb, #2b8ba6, transparent 55%); border-radius: 13px; background: color-mix(in srgb, #2b8ba6, transparent 92%); }
@@ -1016,7 +1143,7 @@ function primary() {
 	}
 	.primary:active, .stop:active, .ghost:active { transform: scale(0.96); }
 	.primary {
-		color: #fff;
+		color: var(--accent-contrast, #fff);
 		background: var(--btn, var(--accent));
 		box-shadow: 0 4px 14px color-mix(in srgb, var(--btn, var(--accent)), transparent 55%), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 	}
@@ -1084,7 +1211,7 @@ function primary() {
 
 	.btn { padding: .6rem 1.15rem; border-radius: 11px; border: 1px solid transparent; font-size: .82rem; font-weight: 750; }
 	.btn.ghost { color: var(--text-secondary); border-color: var(--border-subtle); background: var(--surface-panel); }
-	.btn.solid { color: #fff; background: var(--accent); }
+	.btn.solid { color: var(--accent-contrast, #fff); background: var(--accent); }
 	.bump-row { display: flex; gap: .45rem; margin-top: .8rem; }
 	.bump { flex: 1; padding: .5rem; border: 1px solid var(--border-subtle); border-radius: 10px; color: var(--accent); background: var(--accent-soft); font-size: .76rem; font-weight: 800; }
 
@@ -1131,7 +1258,7 @@ function primary() {
 	.voice-box { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1rem; margin-bottom: 1rem; background: var(--surface-subtle); border-radius: 12px; }
 	.voice-btn { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1.2rem; border-radius: 99px; background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent); font-weight: 700; cursor: pointer; transition: all 0.2s; }
 	.voice-btn:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); }
-	.voice-btn.active { background: var(--danger); color: white; border-color: var(--danger); animation: pulse 1.5s infinite; }
+	.voice-btn.active { background: var(--danger); color: var(--accent-contrast, #fff); border-color: var(--danger); animation: pulse 1.5s infinite; }
 	.voice-feedback { margin-top: 0.6rem; font-size: 0.8rem; font-weight: 600; color: var(--accent); }
 	@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 

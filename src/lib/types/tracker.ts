@@ -6,7 +6,7 @@
 export type SubjectCode = 'P' | 'C' | 'M' | (string & {});
 export type DayKey = `${number}-${number}-${number}` | string;
 export type QuestionKey = string;
-export type ThemeId = 'aurora' | 'light' | 'dark' | 'red' | 'green' | 'custom' | 'notion' | 'duolingo' | 'anki' | 'obsidian' | 'quizlet' | 'challenger' | 'god-mode' | 'initiate' | 'master' | 'quantum' | 'catalyst' | 'axiom';
+export type ThemeId = 'aurora' | 'light' | 'dark' | 'red' | 'green' | 'custom' | 'notion' | 'duolingo' | 'anki' | 'obsidian' | 'quizlet' | 'challenger' | 'god-mode' | 'initiate' | 'master' | 'quantum' | 'catalyst' | 'axiom' | 'celestial';
 export type TimerKind = 'pomo' | 'endless' | 'speed';
 
 export interface CustomSubject { code: SubjectCode; name: string; accent: string; short?: string }
@@ -49,6 +49,8 @@ export interface HomeworkItem {
 	rec?: 'once' | 'daily' | 'weekly';
 	hrs?: number;
 	test?: boolean;
+	locked?: boolean;
+	isClass?: boolean;
 	subs?: string[];
 	[key: string]: unknown;
 }
@@ -67,7 +69,7 @@ export interface TodoItem {
 	done: boolean;
 	sub?: SubjectCode;
 	ch?: number;
-	source?: 'manual' | 'btest' | 'brain-dump';
+	source?: 'manual' | 'btest' | 'brain-dump' | 'syllabus' | string;
 	created: number;
 	updated?: number;
 	subtasks?: TodoSubtask[];
@@ -251,9 +253,11 @@ export interface PomodoroSettings {
 	kind?: TimerKind; srQ?: number; srM?: number;
 }
 
+export type StudyFlowMode = 'focus-log' | 'planner-routine' | 'revision-mocks' | 'all-features';
+
 export interface WidgetLayout {
 	id: 'quote' | 'weekly-standing' | 'new-target' | 'daily-progress' | 'due-homework'
-		| 'subjects' | 'standing' | 'up-next' | 'activity' | 'yearly-heatmap' | 'brain-dump';
+		| 'subjects' | 'standing' | 'up-next' | 'activity' | 'yearly-heatmap' | 'brain-dump' | 'coaching-schedule' | 'revision-due';
 	enabled: boolean; order: number; span: 1 | 2 | 3; height?: 'sm' | 'md' | 'lg';
 }
 /** Equipped cosmetics; an absent slot means "match the active theme". */
@@ -263,7 +267,25 @@ export interface CosmeticLoadout {
 }
 export type DashboardLayout = 'default' | 'minimalist' | 'focus' | 'compact';
 
-export interface UiPreferences { devMode?: boolean; accent: string; widgets: WidgetLayout[]; reducedMotion: boolean; wallpaper?: string | null; wallpaperHistory?: string[]; glassStrength?: number; haptics?: boolean; sounds?: boolean; cosmetics?: CosmeticLoadout; liveWallpaper?: boolean; ecoMode?: boolean; cutoutStyle?: 'auto' | 'island' | 'notch' | 'dot' | 'dock'; dashboardLayout?: DashboardLayout; }
+export interface UiPreferences {
+	devMode?: boolean;
+	accent: string;
+	widgets: WidgetLayout[];
+	reducedMotion: boolean;
+	wallpaper?: string | null;
+	wallpaperHistory?: string[];
+	glassStrength?: number;
+	haptics?: boolean;
+	sounds?: boolean;
+	cosmetics?: CosmeticLoadout;
+	liveWallpaper?: boolean;
+	ecoMode?: boolean;
+	cutoutStyle?: 'auto' | 'island' | 'notch' | 'dot' | 'dock' | 'pip';
+	dashboardLayout?: DashboardLayout;
+	studyFlowMode?: StudyFlowMode;
+	pinnedNav?: string[];
+	pipIslandOpen?: boolean;
+}
 
 
 
@@ -286,6 +308,30 @@ export interface MistakeLog {
 	errorType: 'Silly' | 'Formula' | 'Conceptual' | 'Time';
 	description: string;
 	testName?: string;
+}
+
+export type TimetableDay = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
+
+export interface TimetablePeriod {
+	id: string;
+	day: TimetableDay;
+	date?: string; // "YYYY-MM-DD" e.g. "2026-10-12"
+	startTime: string; // "11:15"
+	endTime: string;   // "14:45"
+	subject: SubjectCode | string; // 'P' | 'C' | 'M' | 'Test' | string
+	topic: string;
+	teacher?: string;
+	room?: string;
+	batch?: string;
+	notes?: string;
+}
+
+export interface CoachingTimetable {
+	batchName?: string;
+	institution?: string;
+	dateRange?: string;
+	periods: TimetablePeriod[];
+	updatedAt?: number;
 }
 
 export interface TrackerState {
@@ -325,6 +371,7 @@ export interface TrackerState {
 	mocks: MockTest[];
 	mistakes: MistakeLog[];
 	flashcards?: Flashcard[];
+	timetable?: CoachingTimetable;
 	brainDump?: string;
 	gamification?: {
 		xp: number;
@@ -345,6 +392,7 @@ export interface TrackerState {
 		available: number;
 		usedDates: string[];
 	};
+	studyDump?: StudyDumpState;
 	onboarded?: boolean;
 }
 
@@ -394,4 +442,23 @@ export interface ChapterPriority {
 	weightage: 1 | 2 | 3;
 	/** Health status for color-coded UI */
 	health: 'fresh' | 'fading' | 'critical';
+}
+
+export type DumpSection = 'P' | 'C' | 'M' | 'others';
+
+export interface DumpFileMeta {
+	id: string;
+	name: string;
+	section: DumpSection;
+	size: number;
+	mimeType: string;
+	uploadedAt: number;
+	tags?: string[];
+	notes?: string;
+}
+
+export interface StudyDumpState {
+	files: DumpFileMeta[];
+	lastSyncAt?: number;
+	sectionZipSizes?: Partial<Record<DumpSection, number>>;
 }
