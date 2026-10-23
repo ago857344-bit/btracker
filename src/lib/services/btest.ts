@@ -98,7 +98,7 @@ export async function extractImageText(file: File): Promise<string> {
 
 	if (!res.ok) {
 		const errData = await res.json().catch(() => ({}));
-		throw new Error(errData.error || `Image extraction failed. Add OPENAI_API_KEY or GEMINI_API_KEY to your environment variables.`);
+		throw new Error(errData.error || `Image extraction failed. Add OPENROUTER_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY to your environment variables.`);
 	}
 	const data = await res.json();
 	if (data.error) throw new Error(data.error);

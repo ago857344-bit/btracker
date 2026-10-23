@@ -23,9 +23,10 @@ export async function POST({ request }) {
 		const groqKey = env.GROQ_API_KEY;
 		const geminiKey = env.GEMINI_API_KEY;
 		const openaiKey = env.OPENAI_API_KEY;
+		const openrouterKey = env.OPENROUTER_API_KEY;
 
-		if (!groqKey && !geminiKey && !openaiKey) {
-			return json({ error: 'No AI API key configured on the server. Set GROQ_API_KEY, GEMINI_API_KEY, or OPENAI_API_KEY in your environment variables.' }, { status: 500 });
+		if (!groqKey && !geminiKey && !openaiKey && !openrouterKey) {
+			return json({ error: 'No AI API key configured on the server. Set GROQ_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY in your environment variables.' }, { status: 500 });
 		}
 
 		// Check if this is a vision request (contains inline image data)
@@ -33,7 +34,7 @@ export async function POST({ request }) {
 			turn.parts?.some((part: any) => part.inlineData)
 		);
 
-		// ── 1. Try OpenAI for vision requests (most reliable) ───────────────────
+		// ── 1. Try OpenAI for vision requests ───────────────────────────────────
 		if (openaiKey && hasVision) {
 			try {
 				// Convert Gemini-style parts to OpenAI vision format
@@ -54,7 +55,7 @@ export async function POST({ request }) {
 
 				const controller = new AbortController();
 				const timeout = setTimeout(() => controller.abort(), 30_000);
-				
+
 				const res = await fetch('https://api.openai.com/v1/chat/completions', {
 					method: 'POST',
 					headers: {
@@ -76,7 +77,66 @@ export async function POST({ request }) {
 					return json({ text });
 				}
 			} catch (e) {
-				console.warn('OpenAI vision failed, falling back to Gemini:', e);
+				console.warn('OpenAI vision failed, falling back to OpenRouter/Gemini:', e);
+			}
+		}
+
+		// ── 1b. Try OpenRouter for vision requests (has free vision models) ────
+		if (openrouterKey && hasVision) {
+			const openrouterMessages = history.map((turn: any) => {
+				const content: any[] = [];
+				for (const part of turn.parts || []) {
+					if (part.inlineData) {
+						content.push({
+							type: 'image_url',
+							image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
+						});
+					} else if (part.text) {
+						content.push({ type: 'text', text: part.text });
+					}
+				}
+				return { role: turn.role === 'model' ? 'assistant' : 'user', content };
+			});
+
+			// Free vision models on OpenRouter, tried in order
+			const OPENROUTER_VISION_MODELS = [
+				'meta-llama/llama-3.2-11b-vision-instruct:free',
+				'qwen/qwen2-vl-7b-instruct:free',
+				'google/gemma-3-4b-it:free'
+			];
+
+			for (const model of OPENROUTER_VISION_MODELS) {
+				try {
+					const controller = new AbortController();
+					const timeout = setTimeout(() => controller.abort(), 30_000);
+
+					const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+							Authorization: `Bearer ${openrouterKey}`,
+							'HTTP-Referer': 'https://btracker.app',
+							'X-Title': 'BTracker'
+						},
+						body: JSON.stringify({
+							model,
+							messages: openrouterMessages,
+							max_tokens: 4096
+						}),
+						signal: controller.signal
+					});
+					clearTimeout(timeout);
+
+					if (res.ok) {
+						const data = await res.json();
+						const text = data.choices?.[0]?.message?.content ?? '';
+						if (text && text.trim().length >= 10) {
+							return json({ text });
+						}
+					}
+				} catch (e) {
+					console.warn(`OpenRouter model ${model} failed, trying next:`, e);
+				}
 			}
 		}
 
