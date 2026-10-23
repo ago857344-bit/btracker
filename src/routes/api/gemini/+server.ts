@@ -1,6 +1,8 @@
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 
+export const maxDuration = 60;
+
 // Convert Gemini-style history to OpenAI-style messages
 function toOpenAIMessages(history: any[], systemInstruction?: string) {
 	const messages: { role: string; content: string }[] = [];
@@ -122,10 +124,10 @@ export async function POST({ request }) {
 			}
 
 			let openrouterErr: { status: number; message: string } | null = null;
-			for (const model of visionModels.slice(0, 6)) {
+			for (const model of visionModels.slice(0, 3)) {
 				try {
 					const controller = new AbortController();
-					const timeout = setTimeout(() => controller.abort(), 30_000);
+					const timeout = setTimeout(() => controller.abort(), 18_000);
 
 					const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
 						method: 'POST',

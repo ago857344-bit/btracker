@@ -66,13 +66,29 @@ export function matchChapters(text: string, threshold = 0.72): ChapterMatch[] {
 	return matches;
 }
 
+/** Downscales an image via canvas so the request body stays well under Vercel's ~4.5MB limit. */
+async function downscaleImage(file: File, maxDim = 1600, quality = 0.85): Promise<Blob> {
+	const bitmap = await createImageBitmap(file);
+	const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+	const canvas = document.createElement('canvas');
+	canvas.width = Math.round(bitmap.width * scale);
+	canvas.height = Math.round(bitmap.height * scale);
+	canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+	bitmap.close();
+	return new Promise((resolve, reject) => {
+		canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Image resize failed'))), 'image/jpeg', quality);
+	});
+}
+
 /** Extracts text from a JPEG or PNG syllabus image using vision API (OpenAI or Gemini). */
 export async function extractImageText(file: File): Promise<string> {
+	// Phone photos are 3-8MB; base64 adds ~33%. Resize to keep the request under Vercel's body limit.
+	const small = file.size > 1_000_000 ? await downscaleImage(file) : file;
 	const base64 = await new Promise<string>((resolve, reject) => {
 		const reader = new FileReader();
 		reader.onload = () => resolve((reader.result as string).split(',')[1]);
 		reader.onerror = reject;
-		reader.readAsDataURL(file);
+		reader.readAsDataURL(small);
 	});
 
 	const res = await fetch('/api/gemini', {
@@ -84,7 +100,7 @@ export async function extractImageText(file: File): Promise<string> {
 				parts: [
 					{
 						inlineData: {
-							mimeType: file.type,
+							mimeType: 'image/jpeg',
 							data: base64
 						}
 					},
