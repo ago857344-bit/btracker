@@ -103,9 +103,13 @@ export async function POST({ request }) {
 			// Discover free vision models dynamically so deprecations never break us
 			let visionModels: string[] = [];
 			try {
+				const controller = new AbortController();
+				const timeout = setTimeout(() => controller.abort(), 5_000);
 				const modelsRes = await fetch('https://openrouter.ai/api/v1/models', {
-					headers: { Authorization: `Bearer ${openrouterKey}` }
+					headers: { Authorization: `Bearer ${openrouterKey}` },
+					signal: controller.signal
 				});
+				clearTimeout(timeout);
 				if (modelsRes.ok) {
 					const modelsData = await modelsRes.json();
 					visionModels = (modelsData.data ?? [])
@@ -123,51 +127,44 @@ export async function POST({ request }) {
 				visionModels = ['google/gemma-3-4b-it:free'];
 			}
 
-			let openrouterErr: { status: number; message: string } | null = null;
-			for (const model of visionModels.slice(0, 3)) {
-				try {
-					const controller = new AbortController();
-					const timeout = setTimeout(() => controller.abort(), 18_000);
+			// Single request with server-side model fallback — much faster than
+			// sequential attempts when free models have long queue times
+			try {
+				const controller = new AbortController();
+				const timeout = setTimeout(() => controller.abort(), 45_000);
 
-					const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-							Authorization: `Bearer ${openrouterKey}`,
-							'HTTP-Referer': 'https://btracker.app',
-							'X-Title': 'BTracker'
-						},
-						body: JSON.stringify({
-							model,
-							messages: openrouterMessages,
-							max_tokens: 4096
-						}),
-						signal: controller.signal
-					});
-					clearTimeout(timeout);
+				const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${openrouterKey}`,
+						'HTTP-Referer': 'https://btracker.app',
+						'X-Title': 'BTracker'
+					},
+					body: JSON.stringify({
+						models: visionModels.slice(0, 6),
+						messages: openrouterMessages,
+						max_tokens: 4096
+					}),
+					signal: controller.signal
+				});
+				clearTimeout(timeout);
 
-					if (res.ok) {
-						const data = await res.json();
-						const text = data.choices?.[0]?.message?.content ?? '';
-						if (text && text.trim().length >= 10) {
-							return json({ text });
-						}
-					} else if (!openrouterErr) {
-						const errData = await res.json().catch(() => ({}));
-						openrouterErr = {
-							status: res.status,
-							message: errData?.error?.message ?? `OpenRouter returned status ${res.status}`
-						};
+				if (res.ok) {
+					const data = await res.json();
+					const text = data.choices?.[0]?.message?.content ?? '';
+					if (text && text.trim().length >= 10) {
+						return json({ text });
 					}
-				} catch (e: any) {
-					console.warn(`OpenRouter model ${model} failed, trying next:`, e);
+				} else {
+					const errData = await res.json().catch(() => ({}));
+					const msg = errData?.error?.message ?? `OpenRouter returned status ${res.status}`;
+					if (!geminiKey && !openaiKey) {
+						return json({ error: `OpenRouter error: ${msg}` }, { status: res.status });
+					}
 				}
-			}
-
-			// OpenRouter is configured but all models failed — surface its error
-			// instead of falling through to an unconfigured provider
-			if (openrouterErr && !geminiKey && !openaiKey) {
-				return json({ error: `OpenRouter error: ${openrouterErr.message}` }, { status: openrouterErr.status });
+			} catch (e: any) {
+				console.warn('OpenRouter vision request failed:', e?.message ?? e);
 			}
 		}
 
