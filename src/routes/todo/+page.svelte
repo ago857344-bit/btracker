@@ -66,6 +66,7 @@ async function runAiTriage() {
 	$: open = todos.filter((t) => !t.done);
 	$: done = todos.filter((t) => t.done);
 	$: displayedTodos = taskFilter === 'open' ? open : taskFilter === 'done' ? done : todos;
+	$: percentDone = todos.length > 0 ? Math.round((done.length / todos.length) * 100) : 0;
 
 	function submit() {
 		const title = draft.trim();
@@ -230,7 +231,7 @@ async function runAiTriage() {
 	<header>
 		<div>
 			<h1>To Do</h1>
-			<p>{open.length} open · {done.length} done</p>
+			<p>{open.length} open · {done.length} done{#if todos.length > 0} · <b class="num-val">{percentDone}%</b> done{/if}</p>
 		</div>
 		<div class="tabs" role="tablist">
 			<button type="button" role="tab" aria-selected={tab === 'tasks'} class:selected={tab === 'tasks'} on:click={() => tab = 'tasks'}>Tasks</button>
@@ -245,6 +246,52 @@ async function runAiTriage() {
 			<input type="text" placeholder="Add a task and press Enter…" bind:value={draft} aria-label="New task" />
 			<button type="submit" disabled={!draft.trim()}>Add</button>
 		</form>
+
+		{#if todos.length > 0}
+			<div class="todo-progress-card glass" in:fade={{ duration: 180 }}>
+				<div class="progress-info-row">
+					<div class="progress-label-wrap">
+						<span class="progress-title">
+							<NavIcon name="check" size={13} />
+							<span>Completion</span>
+						</span>
+						<span class="progress-stat-pill">
+							<b>{done.length}</b> of <b>{todos.length}</b> tasks done
+						</span>
+					</div>
+					<div class="progress-pct-badge" class:complete={percentDone === 100}>
+						<span class="pct-num num-val">{percentDone}%</span>
+					</div>
+				</div>
+
+				<div class="progress-track" role="progressbar" aria-valuenow={percentDone} aria-valuemin="0" aria-valuemax="100" aria-label="Task completion percentage">
+					<div
+						class="progress-fill"
+						class:complete={percentDone === 100}
+						style="width: {percentDone}%"
+					></div>
+				</div>
+
+				<div class="progress-footer-row">
+					<span class="progress-note">
+						{#if percentDone === 100}
+							🎉 All tasks completed! Outstanding focus.
+						{:else if percentDone >= 75}
+							🔥 Almost done! Only {open.length} task{open.length === 1 ? '' : 's'} remaining.
+						{:else if percentDone >= 50}
+							⚡ Halfway there! Great momentum.
+						{:else if percentDone > 0}
+							🎯 In progress — {open.length} task{open.length === 1 ? '' : 's'} remaining.
+						{:else}
+							Ready to make progress? Check off your first task!
+						{/if}
+					</span>
+					{#if open.length > 0}
+						<span class="remaining-badge">{open.length} remaining</span>
+					{/if}
+				</div>
+			</div>
+		{/if}
         
 		<div class="task-toolbar">
 			<div class="task-filters">
@@ -750,6 +797,112 @@ async function runAiTriage() {
 	}
 	.add button:active:not(:disabled) { transform: scale(0.93); }
 	.add button:disabled { opacity: .45; cursor: default; }
+
+	.todo-progress-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.65rem;
+		padding: 0.95rem 1.15rem;
+		border-radius: 18px;
+		background: color-mix(in srgb, var(--surface-panel), transparent 45%);
+		border: 0.5px solid color-mix(in srgb, rgba(255, 255, 255, 0.18), var(--border-subtle) 80%);
+		backdrop-filter: blur(16px);
+		-webkit-backdrop-filter: blur(16px);
+		box-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.05), inset 0 1px 1px rgba(255, 255, 255, 0.08);
+	}
+	.progress-info-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+	}
+	.progress-label-wrap {
+		display: flex;
+		align-items: center;
+		gap: 0.6rem;
+		flex-wrap: wrap;
+	}
+	.progress-title {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		font-size: 0.8rem;
+		font-weight: 800;
+		color: var(--text-primary);
+		letter-spacing: -0.01em;
+	}
+	.progress-stat-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.18rem 0.55rem;
+		border-radius: 9999px;
+		background: var(--surface-subtle);
+		border: 0.5px solid color-mix(in srgb, var(--border-subtle), transparent 40%);
+		font-size: 0.72rem;
+		color: var(--text-secondary);
+	}
+	.progress-stat-pill b {
+		color: var(--text-primary);
+		font-weight: 800;
+	}
+	.progress-pct-badge {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.2rem 0.6rem;
+		border-radius: 9999px;
+		background: color-mix(in srgb, var(--accent) 15%, var(--surface-subtle));
+		border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+		color: var(--accent);
+		font-size: 0.82rem;
+		font-weight: 850;
+		letter-spacing: -0.02em;
+	}
+	.progress-pct-badge.complete {
+		background: color-mix(in srgb, var(--success, #22c55e) 18%, var(--surface-subtle));
+		border-color: color-mix(in srgb, var(--success, #22c55e) 35%, transparent);
+		color: var(--success, #22c55e);
+	}
+	.progress-track {
+		width: 100%;
+		height: 8px;
+		border-radius: 9999px;
+		background: color-mix(in srgb, var(--surface-subtle) 90%, transparent);
+		overflow: hidden;
+		box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+	}
+	.progress-fill {
+		height: 100%;
+		border-radius: 9999px;
+		background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 70%, #60a5fa));
+		box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 45%, transparent);
+		transition: width 0.45s cubic-bezier(0.32, 0.72, 0, 1), background 0.3s ease;
+	}
+	.progress-fill.complete {
+		background: linear-gradient(90deg, #10b981, #22c55e);
+		box-shadow: 0 0 14px color-mix(in srgb, #22c55e 50%, transparent);
+	}
+	.progress-footer-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		font-size: 0.72rem;
+	}
+	.progress-note {
+		color: var(--text-secondary);
+		font-weight: 600;
+	}
+	.remaining-badge {
+		color: var(--text-secondary);
+		font-weight: 700;
+		font-size: 0.7rem;
+		white-space: nowrap;
+	}
+	.num-val {
+		font-variant-numeric: tabular-nums;
+		letter-spacing: -0.015em;
+	}
 
 	.list {
 		list-style: none;

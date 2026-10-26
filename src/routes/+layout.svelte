@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { browser, dev } from '$app/environment';
-	import { goto, beforeNavigate } from '$app/navigation';
+	import { goto, beforeNavigate, afterNavigate } from '$app/navigation';
 	import { onMount, tick } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { page } from '$app/stores';
@@ -171,6 +171,12 @@
 	beforeNavigate(() => {
 		if (mobileOpen) {
 			mobileOpen = false;
+		}
+	});
+
+	afterNavigate(({ to }) => {
+		if (isPreview && to?.url && window.parent !== window) {
+			window.parent.postMessage({ type: 'btracker-preview-navigated', path: to.url.pathname }, window.location.origin);
 		}
 	});
 

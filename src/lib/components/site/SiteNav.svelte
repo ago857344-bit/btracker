@@ -15,6 +15,7 @@
 	];
 
 	$: pathname = $page.url.pathname;
+	$: isMock = $page.url.searchParams.get('mode') === 'mock';
 	$: if (pathname) mobileOpen = false;
 
 	function isActive(href: string) {
@@ -52,9 +53,9 @@
 		</nav>
 
 		<div class="seg" role="group" aria-label="Product view">
-			<span class="seg-pill" aria-hidden="true"></span>
-			<a class="on" href="/welcome" data-sveltekit-preload-data="hover">Study Tracker</a>
-			<a href="/welcome?mode=mock" data-sveltekit-preload-data="hover">Mock Engine</a>
+			<span class="seg-pill" class:mock={isMock} aria-hidden="true"></span>
+			<a class:on={!isMock} href="/welcome" data-sveltekit-preload-data="hover">Study Tracker</a>
+			<a class:on={isMock} href="/welcome?mode=mock" data-sveltekit-preload-data="hover">Mock Engine</a>
 		</div>
 
 		<div class="actions">
@@ -82,9 +83,9 @@
 	{#if mobileOpen}
 		<nav class="m-sheet" id="site-mobile-menu" aria-label="Mobile navigation">
 			<div class="m-seg" role="group" aria-label="Product view">
-				<span class="m-seg-pill" aria-hidden="true"></span>
-				<a class="on" href="/welcome" on:click={() => (mobileOpen = false)}>Study Tracker</a>
-				<a href="/welcome?mode=mock" on:click={() => (mobileOpen = false)}>Mock Engine</a>
+				<span class="m-seg-pill" class:mock={isMock} aria-hidden="true"></span>
+				<a class:on={!isMock} href="/welcome" on:click={() => (mobileOpen = false)}>Study Tracker</a>
+				<a class:on={isMock} href="/welcome?mode=mock" on:click={() => (mobileOpen = false)}>Mock Engine</a>
 			</div>
 			{#each links as link}
 				<a
@@ -220,6 +221,10 @@
 		background: var(--color-cream);
 		border: 1px solid var(--color-line);
 		box-shadow: 0 1px 3px rgba(20, 20, 19, 0.08);
+		transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+	}
+	.seg-pill.mock {
+		transform: translateX(100%);
 	}
 	.seg a {
 		position: relative;
@@ -341,6 +346,10 @@
 		background: var(--color-cream);
 		border: 1px solid var(--color-line);
 		box-shadow: 0 1px 3px rgba(20, 20, 19, 0.08);
+		transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+	}
+	.m-seg-pill.mock {
+		transform: translateX(100%);
 	}
 	.m-seg a {
 		position: relative;

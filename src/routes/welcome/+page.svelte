@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { fade } from 'svelte/transition';
+	import { page } from '$app/stores';
+	import { browser } from '$app/environment';
 	import BrandLogo from '$lib/components/BrandLogo.svelte';
 	import DownloadModal from '$lib/components/DownloadModal.svelte';
 	import GetStartedModal from '$lib/components/GetStartedModal.svelte';
@@ -304,6 +306,39 @@
 	$: stageData = stages[stage];
 	$: activePin = pinSteps[pinStage];
 
+	$: urlMode = $page.url.searchParams.get('mode');
+	$: if (browser && urlMode === 'mock' && mode !== 'mock') {
+		setMode('mock');
+	} else if (browser && !urlMode && mode === 'mock' && $page.url.pathname === '/welcome') {
+		setMode('tracker');
+	}
+
+	function handleNavClick(href: string) {
+		mobileOpen = false;
+		if (href.startsWith('/welcome#')) {
+			const hash = href.slice(8);
+			if (mode === 'mock') {
+				setMode('tracker');
+				setTimeout(() => {
+					const el = document.querySelector(hash);
+					el?.scrollIntoView({ behavior: 'smooth' });
+				}, 120);
+			} else {
+				const el = document.querySelector(hash);
+				el?.scrollIntoView({ behavior: 'smooth' });
+			}
+		} else if (href.startsWith('/#')) {
+			const hash = href.slice(1);
+			if (mode === 'mock') {
+				setMode('tracker');
+				setTimeout(() => {
+					const el = document.querySelector(hash);
+					el?.scrollIntoView({ behavior: 'smooth' });
+				}, 120);
+			}
+		}
+	}
+
 	function setMode(next: Mode) {
 		if (mode === next) return;
 		mode = next;
@@ -364,6 +399,14 @@
 	}
 
 	function goPreview(href: string) {
+		if (href === '__mobile_menu__') {
+			const iframe = previewIframeEl;
+			const doc = iframe?.contentDocument;
+			const btn = doc?.querySelector<HTMLElement>('.mobile-menu');
+			btn?.click();
+			setTimeout(measurePreviewSpots, 200);
+			return;
+		}
 		if (previewPath === href && previewReady) return;
 		previewPath = href;
 		if (previewReady) {
@@ -475,6 +518,24 @@
 			seen.add(key);
 			spots.push({ key, href, label, x: rect.left * scale, y: rect.top * scale, w: rect.width * scale, h: rect.height * scale });
 		}
+
+		// Also detect and map the mobile topbar menu button so it is fully clickable in mobile viewports
+		const mobileMenuBtn = doc.querySelector<HTMLButtonElement>('.mobile-menu');
+		if (mobileMenuBtn) {
+			const rect = mobileMenuBtn.getBoundingClientRect();
+			if (rect.width > 0 && rect.height > 0) {
+				spots.push({
+					key: `__mobile_menu__:${Math.round(rect.left)}:${Math.round(rect.top)}`,
+					href: '__mobile_menu__',
+					label: 'Toggle Navigation',
+					x: rect.left * scale,
+					y: rect.top * scale,
+					w: rect.width * scale,
+					h: rect.height * scale
+				});
+			}
+		}
+
 		previewSpots = spots;
 	}
 
@@ -682,7 +743,7 @@
 	}
 
 	function onResize() {
-		if (window.innerWidth > 820) mobileOpen = false;
+		if (window.innerWidth > 900) mobileOpen = false;
 		measureFaq();
 		updatePin();
 		updateHero();
@@ -800,7 +861,7 @@
 
 			<nav class="wx-links" aria-label="Main navigation">
 				{#each navLinks as link}
-					<a href={link.href}>{link.label}</a>
+					<a href={link.href} on:click|preventDefault={() => handleNavClick(link.href)}>{link.label}</a>
 				{/each}
 			</nav>
 
@@ -898,7 +959,10 @@
 				</button>
 			</div>
 			{#each navLinks as link}
-				<a href={link.href} on:click={() => (mobileOpen = false)}>{link.label}</a>
+				<a href={link.href} on:click|preventDefault={() => handleNavClick(link.href)}>
+					<span>{link.label}</span>
+					<span class="wx-sheet-arrow" aria-hidden="true">→</span>
+				</a>
 			{/each}
 			<div class="wx-sheet-actions">
 				<button
@@ -996,9 +1060,6 @@
 										bind:this={previewIframeEl}
 										src={previewInitialSrc}
 										title="BTracker Mock Engine — view only"
-										tabindex="-1"
-										aria-hidden="true"
-										inert
 										on:load={handlePreviewFrameLoad}
 									></iframe>
 									{#each previewSpots as spot (spot.key)}
@@ -1794,7 +1855,7 @@
 		right: 0;
 		display: flex;
 		justify-content: center;
-		z-index: 80;
+		z-index: 100;
 		pointer-events: none;
 		padding: 0 14px;
 	}
@@ -1922,31 +1983,40 @@
 		display: none;
 		align-items: center;
 		justify-content: center;
-		width: 38px;
-		height: 38px;
+		width: 40px;
+		height: 40px;
 		border-radius: 50%;
-		border: 1px solid var(--line);
-		background: transparent;
+		border: 1.5px solid var(--line);
+		background: var(--cream);
 		color: var(--ink);
 		cursor: pointer;
+		touch-action: manipulation;
+		transition: transform 0.16s ease, border-color 0.16s ease;
+	}
+	.wx-burger:active {
+		transform: scale(0.92);
 	}
 
 	.wx-sheet-scrim {
 		position: fixed;
 		inset: 0;
-		z-index: 70;
-		background: rgba(15, 46, 32, 0.24);
-		backdrop-filter: blur(3px);
+		z-index: 90;
+		background: rgba(15, 46, 32, 0.32);
+		backdrop-filter: blur(4px);
+		-webkit-backdrop-filter: blur(4px);
 		border: 0;
 		cursor: pointer;
 	}
 	.wx-sheet {
 		position: fixed;
-		top: 74px;
+		top: 76px;
 		left: 50%;
 		transform: translateX(-50%);
 		width: min(440px, calc(100vw - 28px));
-		z-index: 90;
+		max-height: calc(100vh - 96px);
+		overflow-y: auto;
+		-webkit-overflow-scrolling: touch;
+		z-index: 95;
 		background: var(--cream);
 		border: 1px solid var(--line);
 		border-radius: 24px;
@@ -1954,7 +2024,7 @@
 		box-shadow: 0 30px 60px -20px rgba(20, 20, 19, 0.35);
 		display: flex;
 		flex-direction: column;
-		gap: 2px;
+		gap: 3px;
 	}
 	.wx-sheet-seg {
 		display: grid;
@@ -1982,14 +2052,23 @@
 		box-shadow: 0 1px 3px rgba(20, 20, 19, 0.08);
 	}
 	.wx-sheet > a {
-		padding: 12px 10px;
-		border-radius: 10px;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 12px 14px;
+		border-radius: 12px;
 		font-size: 15px;
-		font-weight: 500;
+		font-weight: 550;
 		color: var(--ink);
+		transition: background 0.15s ease;
 	}
-	.wx-sheet > a:hover {
-		background: rgba(20, 20, 19, 0.04);
+	.wx-sheet > a:hover, .wx-sheet > a:active {
+		background: rgba(20, 20, 19, 0.06);
+	}
+	.wx-sheet-arrow {
+		font-size: 14px;
+		color: var(--muted);
+		opacity: 0.7;
 	}
 	.wx-sheet-actions {
 		display: flex;
@@ -2770,6 +2849,10 @@
 		}
 	}
 	@media (max-width: 900px) {
+		.wx-nav-pill {
+			width: 100%;
+			justify-content: space-between;
+		}
 		.wx-seg {
 			display: none;
 		}
@@ -2777,6 +2860,12 @@
 			display: flex;
 		}
 		.wx-nav-cta {
+			display: none;
+		}
+		.wx-btn-download {
+			display: none;
+		}
+		.wx-login {
 			display: none;
 		}
 	}
@@ -4446,7 +4535,41 @@
 			0 36px 84px -28px rgba(15, 46, 32, 0.3);
 	}
 
+	.wx-preview.mock .wx-real iframe {
+		pointer-events: auto;
+	}
+
 	.wx-mock-preview-footer {
 		margin-top: 14px;
+	}
+
+	@media (max-width: 760px) {
+		.wx-mock-focus {
+			padding-top: clamp(80px, 16vw, 105px);
+			padding-bottom: 45px;
+		}
+		.wx-mock-title {
+			font-size: clamp(2rem, 8vw, 3rem);
+			margin-bottom: 12px;
+		}
+		.wx-mock-lede {
+			font-size: 0.95rem;
+			line-height: 1.5;
+			margin-bottom: 22px;
+			padding: 0 4px;
+		}
+		.wx-mock-preview-wrap {
+			margin-bottom: 24px;
+		}
+		.wx-preview.focused {
+			border-radius: 18px;
+		}
+		.wx-preview.mock .wx-browser-bar {
+			padding: 8px 12px;
+		}
+		.wx-preview.mock .wx-browser-url {
+			font-size: 9px;
+			padding: 3px 8px;
+		}
 	}
 </style>

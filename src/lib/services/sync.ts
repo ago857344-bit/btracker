@@ -216,7 +216,7 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 	for (const item of primH) {
 		seenHIds.add(item.id);
 		const sec = secHMap.get(item.id);
-		mergedH.push(sec ? { ...item, ...sec } : { ...item });
+		mergedH.push(sec ? { ...sec, ...item } : { ...item });
 	}
 
 	for (const item of secH) {

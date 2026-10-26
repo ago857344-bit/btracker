@@ -47,7 +47,12 @@ export async function getAIPlannerBalance(
 	academicConstraint: string = '',
 	scheduledClasses: { date: string; subject: string; topic: string }[] = []
 ): Promise<Record<string, string>> {
-	const prompt = `
+	if (!tasks || tasks.length === 0 || !days || days.length === 0) {
+		return {};
+	}
+
+	try {
+		const prompt = `
 STUDENT ELO: Physics (${Math.floor(elo.P)}), Chemistry (${Math.floor(elo.C)}), Math (${Math.floor(elo.M)})
 Lowest Elo = Weakest subject (needs more focus/earlier scheduling).
 ${academicConstraint}
@@ -60,7 +65,7 @@ PENDING TASKS TO BALANCE:
 ${JSON.stringify(tasks, null, 2)}
 `;
 
-	const sys = `You are an elite JEE study schedule optimizer. 
+		const sys = `You are an elite JEE study schedule optimizer. 
 Assign a date to each task ID from the available dates list.
 
 CRITICAL BALANCING RULES:
@@ -76,22 +81,52 @@ CRITICAL BALANCING RULES:
 OUTPUT STRICTLY A VALID JSON OBJECT mapping task IDs to date strings, e.g. {"task1": "${days[0]}", "task2": "${days[1] || days[0]}"}. 
 Do not include Markdown fences like \`\`\`json. Return ONLY the raw JSON object.`;
 
-	const res = await askGemini(prompt, sys);
-	try {
-		const match = res.match(/\{[\s\S]*\}/);
-		if (match) {
-			return JSON.parse(match[0]);
+		const res = await askGemini(prompt, sys);
+		if (res && typeof res === 'string') {
+			const match = res.match(/\{[\s\S]*\}/);
+			let parsed: any = null;
+			if (match) {
+				parsed = JSON.parse(match[0]);
+			} else {
+				const cleanRes = res.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+				parsed = JSON.parse(cleanRes);
+			}
+
+			if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && Object.keys(parsed).length > 0) {
+				const validDays = new Set(days);
+				const validatedMap: Record<string, string> = {};
+				for (const [taskId, dateStr] of Object.entries(parsed)) {
+					if (typeof dateStr === 'string' && validDays.has(dateStr)) {
+						validatedMap[taskId] = dateStr;
+					} else {
+						validatedMap[taskId] = days[0];
+					}
+				}
+				if (Object.keys(validatedMap).length > 0) {
+					return validatedMap;
+				}
+			}
 		}
-		const cleanRes = res.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
-		return JSON.parse(cleanRes);
 	} catch (err) {
-		console.warn('AI planner balance JSON parse failed, falling back to round-robin:', err);
-		const fallbackMap: Record<string, string> = {};
-		tasks.forEach((t, i) => {
-			fallbackMap[t.id] = days[i % days.length];
-		});
-		return fallbackMap;
+		console.warn('AI planner balance JSON parse failed or network error, falling back to smart distribution:', err);
 	}
+
+	// Smart fallback: distribute tasks across days, prioritizing weaker subjects earlier
+	const fallbackMap: Record<string, string> = {};
+	const subjectElo: Record<string, number> = {
+		P: elo?.P ?? 300,
+		C: elo?.C ?? 300,
+		M: elo?.M ?? 300
+	};
+	const sortedTasks = [...tasks].sort((a, b) => {
+		const eloA = subjectElo[a.sub] ?? 300;
+		const eloB = subjectElo[b.sub] ?? 300;
+		return eloA - eloB;
+	});
+	sortedTasks.forEach((t, i) => {
+		fallbackMap[t.id] = days[i % days.length];
+	});
+	return fallbackMap;
 }
 
 export async function getAICrashCourse(

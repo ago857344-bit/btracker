@@ -549,6 +549,8 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 [role="dialog"],
 .menu,
 .goals-drawer,
+.chat-panel,
+.mentor-bubble,
 .no-tilt,
 .no-tilt * {
 	transform: none !important;
@@ -1025,6 +1027,8 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 .selbar,
 .rangebar,
 .ai-report,
+.chat-panel,
+.mentor-bubble,
 aside.mobile-open {
 	/* Dense 96% opacity prevents underlying text bleed-through while keeping glass depth */
 	background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
@@ -1039,11 +1043,11 @@ aside.mobile-open {
 }
 
 /* Light Mode Acrylic Tokens */
-:root[data-theme='light'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
-:root[data-theme='notion'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
-:root[data-theme='duolingo'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
-:root[data-theme='anki'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
-:root[data-theme='master'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open) {
+:root[data-theme='light'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
+:root[data-theme='notion'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
+:root[data-theme='duolingo'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
+:root[data-theme='anki'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
+:root[data-theme='master'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open) {
 	background: var(--surface-popup, rgba(255, 255, 255, 0.96)) !important;
 	border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08)) !important;
 	box-shadow:
@@ -1504,20 +1508,20 @@ aside.mobile-open {
 /* UNIVERSAL POPUP, MENU, SIDEBAR & BOTTOM-NAV IMMUNITY                      */
 /* Popups and floating overlays strictly maintain 96% dense smoked acrylic  */
 /* ========================================================================= */
-:root[data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, aside.mobile-open),
-:root[data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, aside.mobile-open) {
+:root[data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, aside.mobile-open),
+:root[data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, aside.mobile-open) {
 	background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
 	backdrop-filter: blur(36px) saturate(210%) !important;
 	-webkit-backdrop-filter: blur(36px) saturate(210%) !important;
 	border: 1px solid var(--surface-popup-border, color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16))) !important;
 }
 
-:root[data-theme='light'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
-:root[data-theme='light'][data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
-:root[data-theme='notion'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
-:root[data-theme='duolingo'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
-:root[data-theme='anki'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
-:root[data-theme='master'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open) {
+:root[data-theme='light'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
+:root[data-theme='light'][data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
+:root[data-theme='notion'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
+:root[data-theme='duolingo'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
+:root[data-theme='anki'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
+:root[data-theme='master'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open) {
 	background: var(--surface-popup, rgba(255, 255, 255, 0.96)) !important;
 }
 
@@ -1577,11 +1581,16 @@ body[data-sheet-open="true"] {
 	overflow: hidden;
 }
 
-/* Marketing preview iframe: image-like frame, never scrolls. */
+/* Marketing preview iframe: clean viewport container */
 html.btracker-preview,
 html.btracker-preview body {
 	overflow: hidden;
 	scrollbar-width: none;
+}
+html.btracker-preview .app-main {
+	overflow-y: auto;
+	-webkit-overflow-scrolling: touch;
+	max-height: 100vh;
 }
 html.btracker-preview ::-webkit-scrollbar {
 	display: none;

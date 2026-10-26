@@ -628,14 +628,17 @@
 
 	@media (max-width: 768px) {
 		.tests-container { padding: 0.5rem 0; gap: 1.25rem; }
-		header { padding: 1.15rem 1rem; }
+		header { padding: 1.15rem 1rem; border-radius: 16px; }
 		.header-content { flex-direction: column; align-items: flex-start; gap: 0.85rem; margin-bottom: 1rem; }
-		.header-content .primary-btn { width: 100%; justify-content: center; min-height: 42px; }
-		.view-tabs { margin: 0 -1rem; padding: 0 1rem; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-		.tabs { overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; }
-		.analytics-grid { grid-template-columns: 1fr; }
-		.negative-analysis { grid-column: span 1; }
-		.negative-stats { gap: 1.2rem; }
+		.header-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+		.paper-sheet-btn, .header-content .primary-btn { width: 100%; justify-content: center; min-height: 42px; font-size: 0.85rem; }
+		.view-tabs { display: grid; grid-template-columns: 1fr 1fr; width: 100%; margin: 0; padding: 0.3rem; border-radius: 12px; }
+		.view-tabs button { justify-content: center; text-align: center; font-size: 0.82rem; }
+		.tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; width: 100%; overflow-x: visible; }
+		.tabs button { justify-content: center; text-align: center; padding: 0.55rem 0.25rem; font-size: 0.8rem; }
+		.analytics-grid { grid-template-columns: repeat(2, 1fr); gap: 0.65rem; }
+		.negative-analysis { grid-column: span 2; }
+		.negative-stats { gap: 1rem; }
 		.grid { grid-template-columns: 1fr; }
 		.form-row { grid-template-columns: 1fr; gap: 0.75rem; }
 		.sub-row { grid-template-columns: 65px minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 0.25rem; }

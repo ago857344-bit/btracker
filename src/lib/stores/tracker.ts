@@ -38,16 +38,62 @@ export function updateTracker(mutator: (draft: TrackerState) => void) {
 export function scheduleSave() {
 	clearTimeout(pendingSave); saveStatus.set('saving');
 	pendingSave = setTimeout(async () => {
-		const state = get(tracker);
-		try {
-			await saveTrackerState(state);
-			saveStatus.set('saved');
-			cloudSink?.(state);
-		} catch (e) {
-			console.error("Local Save Error:", e);
-			saveStatus.set('error');
-		}
+		await flushSave();
 	}, 450);
+}
+
+/** Immediately persists the current tracker state to disk/storage and cloud sink without debounce. */
+export async function flushSave(): Promise<void> {
+	clearTimeout(pendingSave);
+	pendingSave = undefined;
+	saveStatus.set('saving');
+	const state = get(tracker);
+	try {
+		await saveTrackerState(state);
+		saveStatus.set('saved');
+		cloudSink?.(state);
+	} catch (e) {
+		console.error("Local Save Error:", e);
+		saveStatus.set('error');
+	}
+}
+
+/**
+ * Auto-balances planner tasks by applying a task-to-day mapping,
+ * honoring coaching class immunity, and immediately persisting to storage.
+ */
+export async function autoBalancePlannerTasks(dayMap: Record<string, string>): Promise<number> {
+	let count = 0;
+	updateTracker((s) => {
+		for (const task of s.h || []) {
+			const isClass = Boolean(
+				task.isClass === true ||
+				task.kind === 'class' ||
+				task.locked === true ||
+				(task.title && task.title.toLowerCase().startsWith('[class]'))
+			);
+			if (dayMap[task.id] && !isClass) {
+				task.due = dayMap[task.id];
+				count++;
+			}
+		}
+	});
+	await flushSave();
+	return count;
+}
+
+if (typeof window !== 'undefined') {
+	const onUnload = () => {
+		if (pendingSave) {
+			clearTimeout(pendingSave);
+			pendingSave = undefined;
+			const state = get(tracker);
+			void saveTrackerState(state);
+			cloudSink?.(state);
+		}
+	};
+	window.addEventListener('beforeunload', onUnload);
+	window.addEventListener('pagehide', onUnload);
 }
 
 export const activeHomework = derived(tracker, ($tracker) => $tracker.h.filter((item) => !item.done));

@@ -9,7 +9,7 @@
 	import ReflectionJournal from '$lib/components/plan/ReflectionJournal.svelte';
 	import GoalsTracker from '$lib/components/plan/GoalsTracker.svelte';
 	import DailyPlannerTimetableWidget from '$lib/components/plan/DailyPlannerTimetableWidget.svelte';
-	import { applyRoutine, celebration, moveTaskToDay, reorderDayTasks, saveRoutine, toggleTask, tracker, transferTodosToPlanner } from '$lib/stores/tracker';
+	import { applyRoutine, autoBalancePlannerTasks, celebration, moveTaskToDay, reorderDayTasks, saveRoutine, toggleTask, tracker, transferTodosToPlanner } from '$lib/stores/tracker';
 	import { TASK_COLORS, SUBJECTS, subjectColor, subjectName } from '$lib/state/subjects';
 	import { addDaysKey, dayKeyOf, monthLabelOf, parseKey, startOfWeek, todayKey } from '$lib/state/dates';
 	import type { HomeworkItem } from '$lib/types/tracker';
@@ -42,12 +42,14 @@
 		aiError = '';
 		try {
 			const today = todayKey();
+			const maxDate = addDaysKey(today, balanceDays - 1);
 			// Coaching classes are strictly immune to auto-balancing and cannot be displaced
 			const pendingTasks = ($tracker.h || []).filter(
-				(task) => !task.done && task.due && task.due <= today && !isClassItem(task)
+				(task) => !task.done && !isClassItem(task) && (!task.due || task.due <= maxDate)
 			);
 			if (pendingTasks.length === 0) {
 				balancerOpen = false;
+				celebration.set('No pending tasks to balance.');
 				return;
 			}
 			
@@ -71,15 +73,8 @@
 			const constraint = buildAcademicConstraintPrompt($tracker);
 			const map = await getAIPlannerBalance(taskInput, days, elo, constraint, scheduledClasses);
 
-			tracker.update((t) => {
-				for (const task of t.h || []) {
-					// Double-check immunity: never reassign or displace a coaching class
-					if (map[task.id] && !isClassItem(task)) {
-						task.due = map[task.id];
-					}
-				}
-				return t;
-			});
+			const count = await autoBalancePlannerTasks(map);
+			celebration.set(`⚡ Auto-balanced ${count} tasks across ${balanceDays} days!`);
 			balancerOpen = false;
 		} catch (e: any) {
 			aiError = e.message || 'Failed to auto-balance schedule.';

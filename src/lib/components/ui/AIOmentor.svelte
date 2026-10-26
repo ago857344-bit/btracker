@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { renderMarkdownSync } from '$lib/services/markdown';
-	import { tracker, logBulkQuestions, logMockTestScore, addFlashcard, celebration, addTodoSubsteps, transferTodosToPlanner } from '$lib/stores/tracker';
+	import { tracker, logBulkQuestions, logMockTestScore, addFlashcard, celebration, addTodoSubsteps, transferTodosToPlanner, autoBalancePlannerTasks } from '$lib/stores/tracker';
 	import { aiMentorRequest, aiOrbFlowEvent, type DocumentContext } from '$lib/stores/aiMentor';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -465,15 +465,8 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 								}));
 								const constraint = buildAcademicConstraintPrompt($tracker);
 								getAIPlannerBalance(taskInput, days, elo, constraint, scheduledClasses)
-									.then((map) => {
-										tracker.update((t) => {
-											for (const task of t.h || []) {
-												if (map[task.id] && !isClassTask(task)) {
-													task.due = map[task.id];
-												}
-											}
-											return t;
-										});
+									.then(async (map) => {
+										await autoBalancePlannerTasks(map);
 										celebration.set(`🎯 Transferred ${transferred} tasks and auto-balanced schedule!`);
 									})
 									.catch((err) => console.error('Auto plan error:', err));
@@ -805,10 +798,16 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 			border-radius: 20px !important;
 			box-shadow: 0 24px 64px -8px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.14) !important;
 			z-index: 100005 !important;
+			background: var(--surface-popup, rgba(18, 16, 32, 0.98)) !important;
+			backdrop-filter: blur(36px) saturate(210%) !important;
+			-webkit-backdrop-filter: blur(36px) saturate(210%) !important;
 		}
 
 		.mentor-bubble {
 			max-width: min(calc(100vw - 32px), 320px);
+			background: var(--surface-popup, rgba(18, 16, 32, 0.98)) !important;
+			backdrop-filter: blur(24px) saturate(190%) !important;
+			-webkit-backdrop-filter: blur(24px) saturate(190%) !important;
 		}
 	}
 	
@@ -817,10 +816,10 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 		width: 380px; 
 		height: 520px;
 		z-index: 100005;
-		background: color-mix(in srgb, var(--surface-panel, #121020) 96%, transparent); 
+		background: var(--surface-popup, rgba(18, 16, 32, 0.96)); 
 		backdrop-filter: blur(36px) saturate(210%); 
 		-webkit-backdrop-filter: blur(36px) saturate(210%); 
-		border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16)); 
+		border: 1px solid var(--surface-popup-border, color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16))); 
 		border-radius: 20px; 
 		box-shadow: 0 24px 64px -8px rgba(0,0,0,0.55), inset 0 1px 0 rgba(255, 255, 255, 0.14); 
 		pointer-events: auto; 
@@ -829,9 +828,9 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 		overflow: hidden;
 		transform-origin: bottom right;
 	}
-	:root[data-clear-glass="true"] .chat-panel { background: var(--surface-canvas) !important; border: 1px solid var(--border-subtle) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+	:root[data-clear-glass="true"] .chat-panel { background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important; border: 1px solid var(--border-subtle) !important; }
 
-	.chat-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); background: color-mix(in srgb, var(--surface-panel), transparent 50%); }
+	.chat-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); background: var(--surface-popup-solid, var(--surface-subtle, rgba(18, 16, 32, 0.98))); }
 	.header-title { display: flex; align-items: center; gap: 10px; }
 	.header-title h3 { margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-primary); }
 	.close-btn { background: transparent; border: none; color: var(--text-secondary); font-size: 1.5rem; line-height: 1; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: all 0.15s ease; display: grid; place-items: center; }
@@ -1005,7 +1004,7 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 		white-space: nowrap;
 		scrollbar-width: none;
 		border-top: 1px solid color-mix(in srgb, var(--border-subtle), transparent 40%);
-		background: color-mix(in srgb, var(--surface-panel), transparent 40%);
+		background: var(--surface-popup-solid, var(--surface-subtle, rgba(18, 16, 32, 0.95)));
 	}
 	.shortcuts-row::-webkit-scrollbar { display: none; }
 	.action-pill {
@@ -1040,7 +1039,7 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 	.action-pill.formula-pill { border-color: color-mix(in srgb, #a855f7 50%, var(--border-subtle)); color: #c084fc; }
 	.action-pill.formula-pill:hover { background: color-mix(in srgb, #a855f7 20%, transparent); border-color: #c084fc; }
 
-	.chat-input-area { padding: 12px; display: flex; gap: 8px; border-top: 1px solid var(--border-subtle); background: color-mix(in srgb, var(--surface-panel), transparent 50%); }
+	.chat-input-area { padding: 12px; display: flex; gap: 8px; border-top: 1px solid var(--border-subtle); background: var(--surface-popup-solid, var(--surface-subtle, rgba(18, 16, 32, 0.98))); }
 	.chat-input-area input { flex: 1; background: var(--surface-subtle); border: 1px solid var(--border-subtle); border-radius: 99px; padding: 8px 16px; color: var(--text-primary); font-size: 0.85rem; outline: none; transition: border-color 0.2s; }
 	.chat-input-area input:focus { border-color: var(--accent); }
 	.send-btn { background: var(--accent); color: var(--accent-contrast, #fff); border: none; width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; transition: opacity 0.2s, transform 0.2s; }
@@ -1048,8 +1047,8 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 	.send-btn:not(:disabled):active { scale: 0.9; }
 
 	/* BUBBLE & ORB */
-	.mentor-bubble { background: var(--surface-panel-ai, var(--surface-panel)); backdrop-filter: var(--glass-filter, blur(20px) saturate(180%)); -webkit-backdrop-filter: var(--glass-filter, blur(20px) saturate(180%)); border: 1px solid var(--border-subtle); padding: 0.75rem 1rem; border-radius: 12px; border-bottom-right-radius: 2px; color: var(--text-primary); font-size: 0.85rem; font-weight: 600; max-width: 360px; box-shadow: 0 8px 24px rgba(0,0,0,0.15); pointer-events: auto; line-height: 1.5; }
-	:root[data-clear-glass="true"] .mentor-bubble { background: var(--surface-canvas) !important; border: 1px solid var(--border-subtle) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+	.mentor-bubble { background: var(--surface-popup, var(--surface-panel-ai, var(--surface-panel, rgba(18, 16, 32, 0.96)))); backdrop-filter: var(--glass-filter, blur(20px) saturate(180%)); -webkit-backdrop-filter: var(--glass-filter, blur(20px) saturate(180%)); border: 1px solid var(--surface-popup-border, var(--border-subtle)); padding: 0.75rem 1rem; border-radius: 12px; border-bottom-right-radius: 2px; color: var(--text-primary); font-size: 0.85rem; font-weight: 600; max-width: 360px; box-shadow: 0 8px 24px rgba(0,0,0,0.25); pointer-events: auto; line-height: 1.5; }
+	:root[data-clear-glass="true"] .mentor-bubble { background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important; border: 1px solid var(--border-subtle) !important; }
 
 .orb { position: relative; width: 44px; height: 44px; border: 0; background: transparent; cursor: pointer; pointer-events: auto; padding: 0; outline: none; border-radius: 50%; transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.25, 1); display: grid; place-items: center; }
 	
