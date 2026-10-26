@@ -1171,8 +1171,8 @@
 
 	@media (max-width: 768px) {
 		.vault-drawer {
-			width: 100vw;
-			max-width: 100vw;
+			width: 100%;
+			max-width: 100%;
 		}
 		.vault-header {
 			padding-top: calc(max(env(safe-area-inset-top), 24px) + 1.25rem);

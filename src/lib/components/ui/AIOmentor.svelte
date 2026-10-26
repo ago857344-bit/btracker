@@ -268,18 +268,22 @@
 
 	let lastElo = { P: 1200, C: 1200, M: 1200 };
 	
+	let initTimer: ReturnType<typeof setTimeout> | undefined;
+
 	onMount(() => {
 		if ($tracker.gamification?.elo) {
 			lastElo = { ...($tracker.gamification?.elo || lastElo) };
 		}
 		
-		setTimeout(() => {
+		initTimer = setTimeout(() => {
 			triggerMessage("I'm here. Let's conquer JEE.", 'idle', 4000);
 		}, 1000);
 
 		rafId = requestAnimationFrame(orbLoop);
 		return () => {
 			if (rafId) cancelAnimationFrame(rafId);
+			if (initTimer) clearTimeout(initTimer);
+			if (timeout) clearTimeout(timeout);
 			clearTimeout(openChatTimer);
 			clearTimeout(flowMergeTimer);
 			clearTimeout(flowCleanTimer);
@@ -583,7 +587,7 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 	</svg>
 {/if}
 
-<div class="mentor-wrapper">
+<div class="mentor-wrapper" class:open={chatOpen}>
 	{#if chatOpen}
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -749,13 +753,21 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 		position: fixed; 
 		bottom: 24px; 
 		right: 24px; 
-		z-index: 100005 !important; 
+		z-index: 95; 
 		display: flex; 
 		flex-direction: column; 
 		align-items: flex-end; 
 		gap: 12px; 
 		pointer-events: none; 
 		transition: bottom 0.3s;
+	}
+
+	.mentor-wrapper.open {
+		z-index: 100005 !important;
+	}
+
+	:global(body[data-sheet-open='true']) .mentor-wrapper {
+		display: none !important;
 	}
 	
 	.chat-backdrop {

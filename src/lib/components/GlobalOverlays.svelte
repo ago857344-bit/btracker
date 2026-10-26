@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
 	import { fly } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
@@ -21,6 +21,10 @@
 
 	let promptOpen = false;
 	$: promptOpen = Boolean($plannerPrompt);
+
+	onDestroy(() => {
+		clearTimeout(timer);
+	});
 
 	function confirmPrompt() {
 		const title = $plannerPrompt;

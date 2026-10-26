@@ -5,6 +5,7 @@
 	import { uiClick } from '$lib/utils/feedback';
 	import QuestionSheet from '$lib/components/log/QuestionSheet.svelte';
 	import AddExerciseModal from '$lib/components/log/AddExerciseModal.svelte';
+	import UniversalLog from '$lib/components/log/UniversalLog.svelte';
 	import { setQuestionCount, tracker } from '$lib/stores/tracker';
 	import {
 		allChapters, allChaptersWithCustom, questionCount, syllabusChapter, syllabusModule, syllabusSubject, SYLLABUS, visibleExercises,
@@ -59,6 +60,9 @@
 	].filter((b) => b.value > 0);
 </script>
 
+{#if $tracker.coaching_type === 'GENERIC'}
+	<UniversalLog />
+{:else}
 <nav class="crumbs" aria-label="Breadcrumb">
 	<button type="button" class:here={!view.s} on:click={() => open({})}>Question log</button>
 	{#if subject}
@@ -215,6 +219,7 @@
 		on:close={() => (showAddExercise = false)} 
 	/>
 {/if}
+{/if}
 
 <style>
 	.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; margin-bottom: 1.1rem; color: var(--border-subtle); font-size: .76rem; font-weight: 700; }
@@ -237,7 +242,7 @@
 	.card .bar { position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px; border-radius: 99px; background: var(--c, var(--accent)); }
 	.card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; }
 	.top-rights { display: flex; align-items: center; gap: .4rem; }
-	.elo-tag { display: inline-flex; align-items: center; gap: .25rem; padding: .18rem .55rem; border-radius: 99px; background: color-mix(in srgb, var(--elo), transparent 85%); color: var(--elo); font-size: .64rem; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; border: 1px solid color-mix(in srgb, var(--elo), transparent 60%); }
+	.elo-tag { display: inline-flex; align-items: center; gap: .25rem; padding: .18rem .55rem; border-radius: 99px; background: color-mix(in srgb, var(--elo), transparent 85%); color: color-mix(in srgb, var(--elo) 55%, var(--text-primary)); font-size: .64rem; font-weight: 850; letter-spacing: .05em; text-transform: uppercase; border: 1px solid color-mix(in srgb, var(--elo), transparent 60%); }
 	h2 { margin: 0; font-size: 1.05rem; letter-spacing: -.03em; }
 	h3 { margin: 0; font-size: .95rem; letter-spacing: -.02em; }
 	.pct { padding: .18rem .55rem; border-radius: 99px; background: var(--accent); color: var(--accent-contrast, white); font-size: .74rem; font-weight: 800; }

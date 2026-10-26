@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import SubjectHubModal from '$lib/components/widgets/SubjectHubModal.svelte';
@@ -7,14 +8,24 @@
 		recentActivity, logManualMinutes 
 	} from '$lib/stores/tracker';
 	import { SUBJECTS, subjectName, subjectColor } from '$lib/state/subjects';
+	import { universalBySubject, universalEntries } from '$lib/state/universal';
 	import { getEloRank } from '$lib/state/gamification';
 	import { lastNDays, focusMinutesOn, formatMinutes, weekdayShort } from '$lib/state/dates';
 
 	export let deviceMode: 'auto' | 'desktop' | 'tablet' | 'mobile' = 'auto';
 
+	$: isGeneric = $tracker.coaching_type === 'GENERIC';
+	$: genericSubjects = Object.fromEntries(
+		universalBySubject(universalEntries($tracker)).map((row) => [row.code, row])
+	);
+
 	let hubOpen = false;
 	let hubSub = 'P';
 	function openHub(code: string) {
+		if (isGeneric) {
+			void goto('/log');
+			return;
+		}
 		hubSub = code;
 		hubOpen = true;
 	}
@@ -40,14 +51,21 @@
 	$: subjectRows = SUBJECTS.map(sub => {
 		const solved = $subjectSolvedTotals[sub.code] || 0;
 		const total = SUBJECT_TOTALS[sub.code] || 650;
-		const pct = Math.min(100, Math.round((solved / total) * 100));
+		const generic = genericSubjects[sub.code];
+		const attempts = isGeneric ? (generic?.attempts ?? 0) : total;
+		const pct = isGeneric
+			? Math.round(generic?.accuracy ?? 0)
+			: Math.min(100, Math.round((solved / total) * 100));
 		const eloVal = ($tracker.gamification?.elo || { P: 300, C: 300, M: 300 })[sub.code as "P" | "C" | "M"] || 300;
 		const elo = getEloRank(eloVal);
-		return { ...sub, solved, total, pct, elo, eloVal };
+		return { ...sub, solved, total, attempts, pct, elo, eloVal };
 	});
 	$: totalSolved = subjectRows.reduce((sum, s) => sum + s.solved, 0);
 	$: totalTarget = subjectRows.reduce((sum, s) => sum + s.total, 0);
-	$: aggregatePct = Math.round((totalSolved / totalTarget) * 100) || 0;
+	$: totalAttempts = subjectRows.reduce((sum, s) => sum + s.attempts, 0);
+	$: aggregatePct = isGeneric
+		? (totalAttempts ? Math.round((totalSolved / totalAttempts) * 100) : 0)
+		: Math.round((totalSolved / totalTarget) * 100) || 0;
 
 	// 7-Day Velocity Spline Calculation
 	$: days7 = lastNDays(7);
@@ -118,14 +136,14 @@
 	<header class="analytics-head-bar">
 		<div>
 			<span class="eyebrow-tag">PERFORMANCE INTELLIGENCE</span>
-			<h1 class="view-title">Syllabus Mastery &amp; Output</h1>
+			<h1 class="view-title">{isGeneric ? 'Practice Output &amp; Accuracy' : 'Syllabus Mastery & Output'}</h1>
 		</div>
 		<div class="head-metrics font-mono">
 			<span class="metric-pill rounded-full">
 				TOTAL SOLVED: <b class="metric-highlight">{totalSolved.toLocaleString()} Qs</b>
 			</span>
 			<span class="metric-pill rounded-full">
-				AGGREGATE: <b class="metric-highlight">{aggregatePct}%</b>
+				{isGeneric ? 'ACCURACY' : 'AGGREGATE'}: <b class="metric-highlight">{aggregatePct}%</b>
 			</span>
 		</div>
 	</header>
@@ -138,11 +156,11 @@
 		<section class="bento-card subject-hub-card specular-card">
 			<div class="card-head-row">
 				<div>
-					<span class="eyebrow-tag">SYLLABUS COVERAGE</span>
+					<span class="eyebrow-tag">{isGeneric ? 'PRACTICE BY SUBJECT' : 'SYLLABUS COVERAGE'}</span>
 					<h3 class="card-title">Core Subject Distribution</h3>
 				</div>
 				<span class="coverage-subhead font-mono">
-					Progress: <b class="text-white">{aggregatePct}% Complete</b>
+					{isGeneric ? 'Accuracy' : 'Progress'}: <b class="text-white">{aggregatePct}% {isGeneric ? 'Overall' : 'Complete'}</b>
 				</span>
 			</div>
 
@@ -166,14 +184,16 @@
 										{sub.elo.name} ({Math.floor(sub.eloVal)})
 									</span>
 								</div>
-								<span class="sub-meta font-mono">Target: {sub.total} Standard JEE Problems</span>
+								<span class="sub-meta font-mono">
+									{isGeneric ? `${sub.attempts} attempted · ${sub.solved} solved` : `Target: ${sub.total} Standard JEE Problems`}
+								</span>
 							</div>
 						</div>
 
 						<!-- Center: Thick Fully Rounded Progress Bar -->
 						<div class="sub-bar-container">
 							<div class="bar-labels font-mono">
-								<span class="bar-tag">Coverage</span>
+								<span class="bar-tag">{isGeneric ? 'Accuracy' : 'Coverage'}</span>
 								<b class="bar-pct">{sub.pct}%</b>
 							</div>
 							<div class="progress-track rounded-full">
@@ -188,10 +208,10 @@
 						<div class="sub-numerics font-mono">
 							<div class="solved-count">
 								<b class="num">{sub.solved}</b>
-								<span class="den">/ {sub.total} Qs</span>
+								<span class="den">{isGeneric ? 'solved' : `/ ${sub.total} Qs`}</span>
 							</div>
 							<span class="open-link font-mono">
-								Hub <NavIcon name="arrow-right" size={11} />
+								{isGeneric ? 'Log' : 'Hub'} <NavIcon name="arrow-right" size={11} />
 							</span>
 						</div>
 					</button>
@@ -398,7 +418,9 @@
 </div>
 
 <!-- Modals -->
-<SubjectHubModal bind:open={hubOpen} sub={hubSub} />
+{#if !isGeneric}
+	<SubjectHubModal bind:open={hubOpen} sub={hubSub} />
+{/if}
 
 <Modal bind:open={logOpen} title="Quick Log Study Session" width="420px">
 	<div class="log-form-body">

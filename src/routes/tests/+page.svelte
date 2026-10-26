@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/stores';
 	import { tracker, updateTracker, celebration, openFeynmanDuck, openTestDaySheet } from '$lib/stores/tracker';
 	import type { MockTest, MistakeLog, Flashcard } from '$lib/types/tracker';
 	import { applyEloResult } from '$lib/state/gamification';
@@ -8,6 +9,12 @@
 
 	// VIEW MODE
 	let viewMode: 'mocks' | 'mistakes' = 'mocks';
+
+	$: if ($page.url.searchParams.get('view') === 'mistakes') {
+		viewMode = 'mistakes';
+	} else if ($page.url.searchParams.get('view') === 'mocks') {
+		viewMode = 'mocks';
+	}
 
 	let grillingMistake: MistakeLog | null = null;
 

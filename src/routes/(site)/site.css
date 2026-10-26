@@ -1,0 +1,136 @@
+@layer theme, base, utilities;
+
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/utilities.css' layer(utilities);
+
+@font-face {
+	font-family: 'Inter';
+	src: url('/fonts/inter-latin.woff2') format('woff2');
+	font-weight: 100 900;
+	font-style: normal;
+	font-display: swap;
+}
+
+@theme {
+	--color-cream: #fbf8f3;
+	--color-cream-2: #f4eee3;
+	--color-cream-3: #efe8dc;
+	--color-forest: #0f2e20;
+	--color-forest-2: #143a29;
+	--color-ink: #141413;
+	--color-muted: #62665c;
+	--color-line: rgba(20, 20, 19, 0.12);
+	--color-mint: #dff0e4;
+	--color-peach: #f8e2cf;
+	--color-lav: #e9e3f7;
+	--color-butter: #f6efd9;
+	--font-serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+	--font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+	--font-mono: ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
+
+/* Scoped reset: the app's global styles stay untouched because preflight is skipped. */
+.site-root,
+.site-root *,
+.site-root *::before,
+.site-root *::after {
+	box-sizing: border-box;
+}
+/* The app sets overflow-x: hidden on body, which makes body the scroll container
+   and stops position: sticky from sticking. clip keeps the guard without that side effect. */
+body:has(.site-root) {
+	overflow-x: clip;
+}
+
+.site-root {
+	background: var(--color-cream);
+	color: var(--color-ink);
+	font-family: var(--font-sans);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+	overflow-x: clip;
+	min-height: 100vh;
+	display: flex;
+	flex-direction: column;
+}
+.site-root a {
+	color: inherit;
+	text-decoration: none;
+}
+.site-root button,
+.site-root input {
+	font: inherit;
+}
+.site-root ::selection {
+	background: var(--color-mint);
+	color: var(--color-forest);
+}
+.site-root :focus-visible {
+	outline: 2px solid var(--color-forest);
+	outline-offset: 3px;
+	border-radius: 4px;
+}
+
+.site-wrap {
+	width: min(1180px, 92vw);
+	margin-inline: auto;
+}
+.site-main {
+	flex: 1 0 auto;
+	padding-top: 96px;
+}
+.site-serif {
+	font-family: var(--font-serif);
+	font-weight: 400;
+	letter-spacing: -0.025em;
+	line-height: 0.98;
+}
+.site-mono {
+	font-family: var(--font-mono);
+	font-size: 10px;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--color-muted);
+}
+
+/* Cross-fade between marketing routes via the View Transitions API. */
+::view-transition-group(root) {
+	animation-duration: 0.24s;
+}
+::view-transition-old(root) {
+	animation: site-fade-out 0.16s ease both;
+}
+::view-transition-new(root) {
+	animation: site-fade-in 0.24s ease both;
+}
+@keyframes site-fade-out {
+	to {
+		opacity: 0;
+	}
+}
+@keyframes site-fade-in {
+	from {
+		opacity: 0;
+	}
+}
+
+/* Fallback for browsers without View Transitions. */
+.site-no-vt .site-main {
+	animation: site-enter 0.24s ease both;
+}
+@keyframes site-enter {
+	from {
+		opacity: 0;
+		transform: translateY(6px);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	::view-transition-old(root),
+	::view-transition-new(root) {
+		animation: none;
+	}
+	.site-no-vt .site-main {
+		animation: none;
+	}
+}

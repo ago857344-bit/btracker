@@ -3,7 +3,7 @@
 <script lang="ts">
 	import { globalTimer } from '$lib/stores/timerState';
 
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { parseVoiceLog } from '$lib/services/voiceParsing';
 	import { VoiceDictation } from '$lib/services/voice';
 	import { fade, fly } from 'svelte/transition';
@@ -595,6 +595,18 @@ function primary() {
 		if (document.fullscreenElement) void document.exitFullscreen();
 		else void document.documentElement.requestFullscreen().catch(() => {});
 	}
+
+	onMount(() => {
+		const handleVisibilityChange = () => {
+			if (!document.hidden && running) {
+				tick();
+			}
+		};
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+		return () => {
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
+		};
+	});
 
 	onDestroy(() => { clearInterval(interval); clearInterval(clockTimer); try { ambient?.src.stop(); } catch { /* noop */ } });
 </script>

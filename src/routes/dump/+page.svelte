@@ -2232,8 +2232,8 @@ PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here</pre>
 		display: flex;
 		align-items: flex-start;
 		gap: 0.6rem;
-		background: rgba(109, 93, 252, 0.08);
-		border: 1px solid rgba(109, 93, 252, 0.2);
+		background: color-mix(in srgb, var(--accent) 8%, transparent);
+		border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
 		border-radius: 0.65rem;
 		padding: 0.75rem;
 		font-size: 0.78rem;
@@ -2718,7 +2718,7 @@ PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here</pre>
 	}
 
 	.bucket-pill code {
-		background: rgba(109, 93, 252, 0.2);
+		background: color-mix(in srgb, var(--accent) 20%, transparent);
 		color: var(--accent, #6d5dfc);
 		padding: 0.25rem 0.6rem;
 		border-radius: 4px;

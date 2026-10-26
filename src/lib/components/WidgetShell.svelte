@@ -12,14 +12,6 @@
 	export let enabled = true;
 
 	const dispatch = createEventDispatcher<{ move: -1 | 1; toggle: void; resize: void }>();
-
-	function handlePointerMove(e: PointerEvent) {
-		if (e.pointerType === 'touch') return;
-		const target = e.currentTarget as HTMLElement;
-		const rect = target.getBoundingClientRect();
-		target.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`);
-		target.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`);
-	}
 </script>
 
 <article
@@ -30,7 +22,6 @@
 	class:h-lg={height === 'lg'}
 	class:editing
 	style="--widget-accent: var(--accent)"
-	on:pointermove={handlePointerMove}
 >
 	<header class="widget-head">
 		{#if editing}

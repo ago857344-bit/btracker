@@ -105,11 +105,19 @@
 	const CATEGORIES = ['all', 'Focus & Daily', 'Planning', 'Revision & Tests', 'Knowledge'] as const;
 
 	$: flowMode = $tracker.ui?.studyFlowMode || 'all-features';
+	$: isGeneric = $tracker.coaching_type === 'GENERIC';
+	$: tools = isGeneric
+		? TOOLS.filter((tool) => tool.href !== '/review').map((tool) =>
+			tool.href === '/log'
+				? { ...tool, label: 'Universal Study Log', desc: 'Log modules, DPPs, PYQs, books and tests against standard chapters, with accuracy and doubt tracking.' }
+				: tool
+		)
+		: TOOLS;
 	$: pinnedHrefs = flowMode === 'all-features'
-		? new Set(TOOLS.map((t) => t.href))
-		: new Set($tracker.ui?.pinnedNav || getDefaultNavForMode(flowMode));
+		? new Set(tools.map((t) => t.href))
+		: new Set(($tracker.ui?.pinnedNav || getDefaultNavForMode(flowMode)).filter((href) => tools.some((tool) => tool.href === href)));
 
-	$: filteredTools = TOOLS.filter((t) => {
+	$: filteredTools = tools.filter((t) => {
 		if (activeCategory !== 'all' && t.category !== activeCategory) return false;
 		if (!query.trim()) return true;
 		const q = query.toLowerCase().trim();

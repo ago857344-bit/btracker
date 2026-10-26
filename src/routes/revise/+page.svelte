@@ -2,6 +2,7 @@
 
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
+	import { page } from '$app/stores';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import AddChapterModal from '$lib/components/revise/AddChapterModal.svelte';
 	import ReviseModal from '$lib/components/revise/ReviseModal.svelte';
@@ -33,9 +34,15 @@
 	let crashCourseKey = '';
 	let ratingFor: string | null = null;
 
+	$: if ($page.url.searchParams.get('view') === 'flashcards') {
+		viewMode = 'flashcards';
+	} else if ($page.url.searchParams.get('view') === 'topic') {
+		viewMode = 'topic';
+	}
+
 	$: today = todayKey();
 	$: horizon = addDaysKey(today, 7);
-	$: entries = Object.entries($tracker.rev.items).map(([key, item]) => ({
+	$: entries = Object.entries($tracker.rev?.items ?? {}).map(([key, item]) => ({
 		key,
 		sub: item.sub ?? key.split(':')[0],
 		ch: item.ch ?? key.split(':').slice(1).join(':'),
@@ -58,7 +65,7 @@
 		.sort((a, b) => (a.remindDate || '9999').localeCompare(b.remindDate || '9999'));
 
 	// Active Recall Hub data
-	$: recallChapters = Object.values($tracker.rev.chapters).filter((ch) => isChapterStudied($tracker, ch.chapterKey));
+	$: recallChapters = Object.values($tracker.rev?.chapters ?? {}).filter((ch) => isChapterStudied($tracker, ch.chapterKey));
 	$: dueChapters = $chaptersDueToday;
 	$: criticalChaptersList = $criticalChapters;
 	$: heatmap = $heatmapData;
@@ -315,7 +322,7 @@
 		border-radius: 10px;
 		background: rgba(245, 158, 11, 0.15);
 		border: 1px solid rgba(245, 158, 11, 0.4);
-		color: #f59e0b;
+		color: color-mix(in srgb, #f59e0b 55%, var(--text-primary));
 		font-size: 0.78rem;
 		font-weight: 750;
 		cursor: pointer;
@@ -323,7 +330,7 @@
 	}
 	.duck-header-btn:hover {
 		background: #f59e0b;
-		color: #ffffff;
+		color: #241703;
 		transform: translateY(-1px);
 		box-shadow: 0 4px 12px rgba(245, 158, 11, 0.35);
 	}

@@ -98,9 +98,17 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 		}
 	}
 
+	// Reconcile and sanitize any stray god-mode or celestial cosmetics / prestige so defaults stay clean
+	const cleanTheme = (saved.theme === 'god-mode' || saved.theme === 'celestial') ? 'light' : (saved.theme || base.theme);
+	const cleanCosmetics = { ...(saved.ui?.cosmetics || {}) };
+	if (cleanCosmetics.fx === 'celestial' || cleanCosmetics.fx === 'gilded') delete cleanCosmetics.fx;
+	if (cleanCosmetics.frame === 'celestial') delete cleanCosmetics.frame;
+	if (cleanCosmetics.title === 'ascended' || cleanCosmetics.title === 'eternal') delete cleanCosmetics.title;
+
 	const merged: TrackerState = {
 		...base,
 		...saved,
+		theme: cleanTheme,
 		d: {
 			...base.d,
 			...saved.d
@@ -144,6 +152,8 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 		ui: {
 			...base.ui,
 			...saved.ui,
+			devMode: false,
+			cosmetics: cleanCosmetics,
 			widgets: Array.isArray(saved.ui?.widgets) ? [...saved.ui.widgets] : [...base.ui.widgets]
 		},
 		gamification: {
@@ -151,7 +161,8 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 			xp: retroXp,
 			level: Math.max(saved.gamification?.level || 1, getLevelData(retroXp).level),
 			elo: retroElo,
-			v3_elo: true
+			v3_elo: true,
+			prestige: undefined
 		},
 		streakFreezes: saved.streakFreezes || base.streakFreezes || { available: 2, usedDates: [] },
 		deletedTodos: (() => {
@@ -171,6 +182,9 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 			...base.meta,
 			...(saved.meta || {})
 		},
+		coaching_type: saved.coaching_type === 'GENERIC' ? 'GENERIC' : 'BT',
+		coaching_name: saved.coaching_name?.trim()
+			|| (saved.coaching_type === 'GENERIC' ? 'Other' : 'Baktiwal Tutorials'),
 		onboarded: saved.onboarded ?? (Boolean(
 			saved.savedAt ||
 			(saved.meta?.name && saved.meta.name.trim().length > 0) ||

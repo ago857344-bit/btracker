@@ -70,11 +70,11 @@
 	$: lastWeek = weekMinutes(-1);
 	$: velocityMax = Math.max(1, thisWeek, lastWeek);
 	$: deltaPct = lastWeek ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) : thisWeek ? 100 : 0;
-	$: curTable = $tracker.marks.tables.find((table) => table.id === $tracker.marks.cur) ?? $tracker.marks.tables[0];
-	$: testRows = curTable?.rows.map((row) => {
+	$: curTable = $tracker.marks?.tables?.find((table) => table.id === $tracker.marks?.cur) ?? $tracker.marks?.tables?.[0];
+	$: testRows = (curTable?.rows ?? []).map((row) => {
 		const tot = Number(row.v['tot']) || 0; const sc = Number(row.v['sc']) || 0;
 		return { name: row.v['name'] || 'Untitled', pct: tot ? Math.round((sc / tot) * 100) : null };
-	}).filter((row) => row.pct !== null) ?? [];
+	}).filter((row) => row.pct !== null);
 	$: avgPct = testRows.length ? Math.round(testRows.reduce((sum, row) => sum + (row.pct ?? 0), 0) / testRows.length) : null;
 	$: bestTest = testRows.length ? testRows.reduce((best, row) => ((row.pct ?? 0) > (best.pct ?? 0) ? row : best)) : null;
 </script>
@@ -329,7 +329,7 @@
 
 		<section class="sec">
 			<button type="button" class="sec-head" aria-expanded={open.dna} on:click={() => toggle('dna')}>
-				<span class="dot" style="background: #8b7bff"></span> BEHAVIORAL DNA <NavIcon name="chevron-down" size={15} />
+				<span class="dot" style="background: var(--accent)"></span> BEHAVIORAL DNA <NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.dna}
 				<div class="sec-body">
@@ -470,7 +470,7 @@
 	.dna { display: flex; align-items: flex-end; gap: .6rem; height: 120px; padding: .6rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); }
 	.dcol { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: .3rem; height: 100%; }
 	.dbar { width: 100%; max-width: 30px; border-radius: 5px 5px 2px 2px; background: var(--surface-subtle); }
-	.dbar.on { background: #8b7bff; }
+	.dbar.on { background: var(--accent); }
 	.dcol span { color: var(--text-secondary); font-size: .64rem; font-weight: 800; }
 
 	.velocity { display: grid; gap: .6rem; }

@@ -35,7 +35,7 @@ import { buildAcademicConstraintPrompt } from '$lib/services/aiContext';
 let triaging = false;
 
 async function runAiTriage() {
-    const openTodos = $tracker.todos.filter(t => !t.done);
+    const openTodos = ($tracker.todos || []).filter(t => !t.done);
     if (!openTodos.length) return;
     
     triaging = true;
@@ -77,7 +77,7 @@ async function runAiTriage() {
 
 	
 	function onSubToggle(todoId: string, subtaskId: string) {
-		const item = $tracker.todos.find(t => t.id === todoId);
+		const item = ($tracker.todos || []).find(t => t.id === todoId);
 		const sub = item?.subtasks?.find(s => s.id === subtaskId);
 		const wasDone = sub?.done;
 		
@@ -98,7 +98,7 @@ async function runAiTriage() {
 	}
 
 	function onToggle(id: string) {
-		const item = $tracker.todos.find(t => t.id === id);
+		const item = ($tracker.todos || []).find(t => t.id === id);
 		const wasDone = item?.done;
 		toggleTodo(id);
 		if (wasDone) uiPop(); else uiSuccess();

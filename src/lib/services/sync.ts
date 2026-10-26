@@ -93,6 +93,18 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		}
 	}
 
+	// 4b. Subject practice sessions: union by id so a newer device never drops
+	// universal log entries (or manual BT sessions) from an older one.
+	const mergedSess = [...(base.sess || [])];
+	const seenPractice = new Set(mergedSess.map((entry) => entry.id));
+	for (const entry of remote.sess || []) {
+		if (!seenPractice.has(entry.id)) {
+			mergedSess.push(entry);
+			seenPractice.add(entry.id);
+		}
+	}
+	mergedSess.sort((a, b) => b.at - a.at);
+
 	const cloudTime = remote.savedAt && !isNaN(new Date(remote.savedAt).getTime()) ? new Date(remote.savedAt).getTime() : 0;
 	const localTime = base.savedAt && !isNaN(new Date(base.savedAt).getTime()) ? new Date(base.savedAt).getTime() : 0;
 	const cloudIsNewer = cloudTime >= localTime;
@@ -289,6 +301,7 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		},
 		stat: mergedStat,
 		log: mergedLog,
+		sess: mergedSess,
 		todos: mergedTodos,
 		deletedTodos: mergedDeletedTodos,
 		chapterGrids: Object.keys(mergedGrids).length > 0 ? mergedGrids : prefSource.chapterGrids || {},

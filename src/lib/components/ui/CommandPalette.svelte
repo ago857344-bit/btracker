@@ -3,7 +3,7 @@
 	import { fade, scale } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import { isDarkTheme, presetOf, syncThemeWallpaper } from '$lib/state/themes';
-	import { updateTracker, addTodo, openFormulaVault, formulaVaultOpen, customizingHome, openFeynmanDuck, openTestDaySheet } from '$lib/stores/tracker';
+	import { tracker, updateTracker, addTodo, openFormulaVault, formulaVaultOpen, customizingHome, openFeynmanDuck, openTestDaySheet, openWrappedStory } from '$lib/stores/tracker';
 	import { JEE_FORMULAS } from '$lib/data/formulas';
 	import { subjectColor, subjectName } from '$lib/state/subjects';
 	import NavIcon from '$lib/components/NavIcon.svelte';
@@ -30,11 +30,12 @@
 		{ id: 'formula', label: 'Open Formula Vault (F)', icon: 'book', category: 'navigation', badge: 'Vault', badgeColor: 'var(--accent)', action: () => { openFormulaVault(); open = false; } },
 		{ id: 'test-day-sheet', label: 'Test Day Paper Sheet: Print Mistakes & Starred Formulas', icon: 'printer', category: 'navigation', badge: 'Exam Day', badgeColor: '#10b981', action: () => { openTestDaySheet(); open = false; } },
 		{ id: 'feynman', label: '🦆 Feynman Duck: Teach to Learn (Socratic AI)', icon: 'bulb', category: 'navigation', badge: 'Socratic', badgeColor: '#f59e0b', action: () => { openFeynmanDuck(); open = false; } },
+		{ id: 'wrapped', label: '🌟 BTracker Season Wrapped Story (Recap)', icon: 'sparkles', category: 'navigation', badge: 'Story', badgeColor: '#8b5cf6', action: () => { openWrappedStory(); open = false; } },
 		{ id: 'customize', label: 'Customize Home Dashboard', icon: 'settings', category: 'navigation', badge: 'Home', action: () => { goto('/'); customizingHome.set(true); open = false; } },
 		{ id: 'log', label: 'Go to Question Log', icon: 'grid', category: 'navigation', badge: 'Nav', action: () => { goto('/log'); open = false; } },
 		{ id: 'tests', label: 'Go to Tests & Mistake Log', icon: 'tests', category: 'navigation', badge: 'Nav', action: () => { goto('/tests'); open = false; } },
-		{ id: 'mocks', label: 'Go to Mock Tests Dashboard', icon: 'trophy', category: 'navigation', badge: 'Tests', badgeColor: '#e17055', action: () => { goto('/mocks'); open = false; } },
-		{ id: 'flashcards', label: 'Go to Active Recall Flashcards', icon: 'layers', category: 'navigation', badge: 'Recall', badgeColor: '#6c5ce7', action: () => { goto('/flashcards'); open = false; } },
+		{ id: 'mocks', label: 'Go to Mock Tests Dashboard', icon: 'trophy', category: 'navigation', badge: 'Tests', badgeColor: '#e17055', action: () => { goto('/tests'); open = false; } },
+		{ id: 'flashcards', label: 'Go to Active Recall Flashcards', icon: 'layers', category: 'navigation', badge: 'Recall', badgeColor: '#6c5ce7', action: () => { goto('/revise?view=flashcards'); open = false; } },
 		{ id: 'todo', label: 'Go to To Do / Brain Dumps', icon: 'list', category: 'navigation', badge: 'Tasks', action: () => { goto('/todo'); open = false; } },
 		{ id: 'plan', label: 'Go to Plan', icon: 'plan', category: 'navigation', badge: 'Nav', action: () => { goto('/plan'); open = false; } },
 		{ id: 'review', label: 'Go to Review', icon: 'target', category: 'navigation', badge: 'Nav', action: () => { goto('/review'); open = false; } },
@@ -78,19 +79,26 @@
 		}));
 	})();
 
+	$: isGeneric = $tracker.coaching_type === 'GENERIC';
+	$: navigationCommands = isGeneric
+		? STATIC_COMMANDS
+			.filter((command) => command.id !== 'review')
+			.map((command) => command.id === 'log' ? { ...command, label: 'Go to Universal Study Log' } : command)
+		: STATIC_COMMANDS;
+
 	$: cleanQuery = query.trim().toLowerCase();
 	$: isExplicitFormulaSearch = /^(form(ula)?(\s+hub)?|formulae|vault)\b/i.test(cleanQuery);
 	$: searchKeyword = cleanQuery.replace(/^(form(ula)?(\s+hub)?|formulae|vault)\s*/i, '').trim();
 
 	$: filteredCommands = (() => {
 		if (cleanQuery === '') {
-			return STATIC_COMMANDS;
+			return navigationCommands;
 		}
 
 		const items: CommandItem[] = [];
 
 		if (!isExplicitFormulaSearch) {
-			for (const cmd of STATIC_COMMANDS) {
+			for (const cmd of navigationCommands) {
 				if (cmd.label.toLowerCase().includes(cleanQuery)) {
 					items.push(cmd);
 				}

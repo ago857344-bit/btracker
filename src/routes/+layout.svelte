@@ -2,12 +2,16 @@
 	import '../app.css';
 	import { browser, dev } from '$app/environment';
 	import { goto, beforeNavigate } from '$app/navigation';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import { injectAnalytics } from '@vercel/analytics/sveltekit';
 	
-	injectAnalytics({ mode: dev ? 'development' : 'production' });
+	injectAnalytics({
+		mode: dev ? 'development' : 'production',
+		// The /welcome hero embeds the app with ?preview=1; keep those from counting as visits.
+		beforeSend: (event) => (new URL(event.url).searchParams.get('preview') === '1' ? null : event)
+	});
 
 	import AppSidebar from '$lib/components/AppSidebar.svelte';
 	import MobileBottomNav from '$lib/components/MobileBottomNav.svelte';
@@ -29,16 +33,22 @@
 	import { hydrateTracker } from '$lib/services/hydrate';
 	import { startSync } from '$lib/services/sync';
 	import { THEME_PRESETS, isDarkTheme, wallpaperCss, resolveLiveWallpaper, resolveEcoMode, isMobileDevice, isBuiltinWallpaper, EXTRA_WALLPAPERS } from '$lib/state/themes';
-	import { authReady, authConfigured, currentUser, hasSkippedLogin, syncStatus } from '$lib/stores/auth';
-	import { saveStatus, tracker, formulaVaultOpen, testDaySheetOpen, targetsModalOpen, autoCheckStreakFreeze } from '$lib/stores/tracker';
+	import { authReady, authConfigured, currentUser, hasSkippedLogin, sessionResolved, syncStatus } from '$lib/stores/auth';
+	import { saveStatus, tracker, formulaVaultOpen, testDaySheetOpen, targetsModalOpen, autoCheckStreakFreeze, feynmanDuckOpen, wrappedStoryOpen } from '$lib/stores/tracker';
+	import BTrackerWrappedModal from '$lib/components/stats/BTrackerWrappedModal.svelte';
 	import { loadout } from '$lib/stores/cosmetics';
+	import { sidebarDragWidth } from '$lib/stores/sidebar';
 	import { globalTimer } from '$lib/stores/timerState';
 	import HotkeyCheatsheetModal from '$lib/components/ui/HotkeyCheatsheetModal.svelte';
 	import { sampleVideoFrame, analyzeWallpaperLuminance, clearWallpaperContrast, activeWallpaperColors } from '$lib/utils/wallpaperContrast';
 
-	let collapsed = false;
 	let mobileOpen = false;
 	let hotkeyModalOpen = false;
+	let aiMentorReady = false;
+
+	// Sidebar state lives in tracker.ui so it persists across reloads and syncs across devices.
+	$: collapsed = $tracker.ui?.sidebarCollapsed ?? false;
+	$: sidebarWidth = collapsed ? 76 : ($sidebarDragWidth ?? $tracker.ui?.sidebarWidth ?? null);
 
 	let touchStartX = 0;
 	let touchStartY = 0;
@@ -95,7 +105,7 @@
 	let pointerRaf: number | null = null;
 	let lastTiltedEl: HTMLElement | null = null;
 	function handleGlobalPointerMove(e: PointerEvent) {
-		if (e.pointerType === 'touch') return;
+		if (e.pointerType === 'touch' || isMobile || $page.url.pathname !== '/') return;
 		if (pointerRaf) return;
 		pointerRaf = requestAnimationFrame(() => {
 			pointerRaf = null;
@@ -126,8 +136,6 @@
 				const rect = target.getBoundingClientRect();
 				const mouseX = e.clientX - rect.left;
 				const mouseY = e.clientY - rect.top;
-				target.style.setProperty('--mouse-x', `${mouseX}px`);
-				target.style.setProperty('--mouse-y', `${mouseY}px`);
 
 				// Micro-depth tilt: only 1.8 deg max to avoid peripheral distortion
 				const centerX = rect.width / 2;
@@ -170,14 +178,31 @@
 		'/': 'Home', '/log': 'Question Log', '/review': 'Review', '/plan': 'Plan', '/focus': 'Focus', '/todo': 'To Do', '/revise': 'Revise',
 		'/dump': 'Study Dump', '/tests': 'Tests', '/stats': 'Stats', '/reminders': 'Reminders', '/settings': 'Settings'
 	};
+	$: isPreview = $page.url.searchParams.get('preview') === '1';
 	$: isAuthRoute = $page.url.pathname === '/login' || $page.url.pathname.startsWith('/auth/');
-	$: currentTitle = titles[$page.url.pathname] ?? 'BTracker';
+	$: isPublicLanding = !isPreview && $page.url.pathname === '/' && $authConfigured && !$currentUser && !$hasSkippedLogin;
+	$: isMarketingLanding =
+		$page.url.pathname === '/landing' ||
+		$page.url.pathname === '/welcome' ||
+		$page.url.pathname === '/download' ||
+		$page.url.pathname === '/guides' ||
+		$page.url.pathname.startsWith('/guides/') ||
+		$page.url.pathname === '/goals' ||
+		$page.url.pathname.startsWith('/goals/') ||
+		$page.url.pathname === '/playbooks' ||
+		$page.url.pathname.startsWith('/playbooks/') ||
+		$page.url.pathname === '/stages' ||
+		$page.url.pathname === '/system' ||
+		$page.url.pathname === '/faq';
+	$: currentTitle = $page.url.pathname === '/log' && $tracker.coaching_type === 'GENERIC'
+		? 'Study Log'
+		: titles[$page.url.pathname] ?? 'BTracker';
 	$: saveLabel = $saveStatus === 'saving' ? 'Saving' : $saveStatus === 'error' ? 'Save failed' : 'Saved';
-	$: if (browser && $authReady) {
+	$: if (browser && $authReady && $sessionResolved) {
 		const hasAuth = $authConfigured;
 		if (hasAuth) {
 			if (isAuthRoute && $currentUser) void goto('/', { replaceState: true });
-			else if (!isAuthRoute && !$currentUser && !$hasSkippedLogin) void goto('/login', { replaceState: true });
+			else if (!isAuthRoute && !isPublicLanding && !isMarketingLanding && !isPreview && !$currentUser && !$hasSkippedLogin) void goto('/login', { replaceState: true });
 		} else {
 			// No auth configured, allow access to all routes
 			if (isAuthRoute) void goto('/', { replaceState: true });
@@ -294,25 +319,64 @@
 		root.removeAttribute('data-ambient-shader');
 	}
 
-	$: isFirstTimeOrUnauth = isAuthRoute || (!$currentUser && !$hasSkippedLogin);
-	$: effectiveTheme = isFirstTimeOrUnauth ? 'light' : ($tracker.theme || 'light');
+	$: isFirstTimeOrUnauth = isAuthRoute || isMarketingLanding || isPreview || (!$currentUser && !$hasSkippedLogin);
+	$: effectiveTheme = isPreview ? 'light' : (isFirstTimeOrUnauth ? 'light' : ($tracker.theme || 'light'));
 	$: if (browser) {
 		applyTheme({
 			theme: effectiveTheme,
-			ui: $tracker.ui
+			ui: isPreview ? { ...$tracker.ui, accent: '#6d5dfc', wallpaper: null } : $tracker.ui
 		});
+		if (isPreview) {
+			document.documentElement.setAttribute('data-fx', 'none');
+		}
 	}
 
 	let isMobile = false;
-	onMount(() => {
-		void hydrateTracker().then(() => {
-			startSync();
-			autoCheckStreakFreeze();
+
+	// /?preview=1 renders the real app inside the marketing preview iframe. Only the
+	// whitelisted page links navigate; nothing else is focusable or saved.
+	const PREVIEW_ROUTES = new Set(['/', '/log', '/review', '/plan', '/tests', '/dump', '/todo', '/focus', '/revise', '/stats', '/reminders', '/settings']);
+	function handlePreviewMessage(event: MessageEvent) {
+		if (!isPreview || event.origin !== window.location.origin || event.source !== window.parent) return;
+		const data = event.data as { type?: string; path?: string } | null;
+		if (!data || data.type !== 'btracker-preview-nav') return;
+		if (typeof data.path !== 'string' || !PREVIEW_ROUTES.has(data.path)) return;
+		if (data.path === $page.url.pathname) return;
+		void goto(`${data.path}?preview=1`, { replaceState: true }).then(() => {
+			window.parent.postMessage({ type: 'btracker-preview-navigated', path: data.path }, window.location.origin);
 		});
+	}
+
+	onMount(() => {
+		if (isPreview) {
+			document.documentElement.classList.add('btracker-preview');
+			document.documentElement.setAttribute('data-fx', 'none');
+			document.documentElement.removeAttribute('data-wallpaper');
+			sessionResolved.set(true);
+			void hydrateTracker();
+			window.addEventListener('message', handlePreviewMessage);
+			void tick().then(() => {
+				if (window.parent !== window) {
+					window.parent.postMessage({ type: 'btracker-preview-ready', path: $page.url.pathname }, window.location.origin);
+				}
+			});
+		} else {
+			void hydrateTracker().then(() => {
+				startSync();
+				autoCheckStreakFreeze();
+			});
+		}
 		isMobile = isMobileDevice();
 		const onResize = () => { isMobile = isMobileDevice(); };
 		window.addEventListener('resize', onResize, { passive: true });
-		const stopFx = loadout.subscribe((l) => document.documentElement.setAttribute('data-fx', l.fx));
+		const stopFx = loadout.subscribe((l) => document.documentElement.setAttribute('data-fx', isPreview ? 'none' : l.fx));
+		if (!isPreview) {
+			if ('requestIdleCallback' in window) {
+				(window as any).requestIdleCallback(() => { aiMentorReady = true; }, { timeout: 1200 });
+			} else {
+				setTimeout(() => { aiMentorReady = true; }, 350);
+			}
+		}
 		const unlockVideo = () => {
 			if (bgVideo && bgVideo.paused && activeVideoUrl) {
 				bgVideo.muted = true;
@@ -325,6 +389,8 @@
 			window.removeEventListener('resize', onResize);
 			window.removeEventListener('click', unlockVideo);
 			window.removeEventListener('touchstart', unlockVideo);
+			window.removeEventListener('message', handlePreviewMessage);
+			document.documentElement.classList.remove('btracker-preview');
 			if (pointerRaf) cancelAnimationFrame(pointerRaf);
 			stopFx();
 		};
@@ -383,7 +449,7 @@
 		}
 	}
 
-	$: showOnboarding = ((!isAuthRoute && $authReady && $syncStatus !== 'pulling' && !!$currentUser && !$tracker.onboarded)) || $targetsModalOpen;
+	$: showOnboarding = !isPreview && (((!isAuthRoute && $authReady && $syncStatus !== 'pulling' && !!$currentUser && !$tracker.onboarded)) || $targetsModalOpen);
 
 	const LIGHT_THEMES = new Set(['light', 'notion', 'duolingo', 'anki', 'master']);
 	$: defaultThemeColor = LIGHT_THEMES.has(effectiveTheme) ? '#f7f7fb' : '#11101b';
@@ -400,6 +466,10 @@
 
 <svelte:head>
 	<meta name="theme-color" content={themeColorMeta} />
+	{#if isMarketingLanding}
+		<link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+		<link rel="preload" href="/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+	{/if}
 	{#if activeVideoUrl}
 		<link rel="preload" as="video" href={activeVideoUrl} type="video/mp4" fetchpriority="high" />
 	{/if}
@@ -446,9 +516,9 @@
 	}}
 />
 
-{#if isAuthRoute}
+{#if isAuthRoute || isPublicLanding || isMarketingLanding}
 	<slot />
-{:else if $authReady}
+{:else if $authReady && $sessionResolved}
 	{#if activeVideoUrl}
 		<video
 			bind:this={bgVideo}
@@ -467,16 +537,22 @@
 			}}
 			on:canplay={(e) => { e.currentTarget.muted = true; e.currentTarget.play().catch(() => {}); }}
 			on:ended={(e) => { e.currentTarget.currentTime = 0; e.currentTarget.play().catch(() => {}); }}
-		/>
+		></video>
 	{/if}
 	{#if activeVideoUrl || currentWallpaperStr}
 		<div class="wallpaper-adaptive-scrim" aria-hidden="true"></div>
 	{/if}
 	{@const themeIsCustom = THEME_PRESETS.find(t => t.id === effectiveTheme)?.unlock != null}
-	<div class:sidebar-collapsed={collapsed} class:aurora-on={$loadout.aurora || themeIsCustom} class="app-shell">
+	<div
+		class:sidebar-collapsed={collapsed}
+		class:sidebar-resizing={$sidebarDragWidth !== null}
+		class:aurora-on={$loadout.aurora || themeIsCustom}
+		style:--sidebar-w={sidebarWidth ? `${sidebarWidth}px` : undefined}
+		class="app-shell"
+	>
 		{#if ($loadout.aurora || themeIsCustom) && !activeVideoUrl}<div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>{/if}
 		{#if mobileOpen}<div class="scrim" role="button" tabindex="-1" on:click={() => (mobileOpen = false)} on:keydown={(e) => e.key === 'Escape' && (mobileOpen = false)} aria-label="Close navigation"></div>{/if}
-		<AppSidebar bind:collapsed bind:mobileOpen />
+		<AppSidebar {collapsed} bind:mobileOpen />
 		<div class="app-main">
 			<header class="topbar">
 				<div class="page-heading">
@@ -507,28 +583,47 @@
 		</div>
 
 		<MobileBottomNav />
-		<GlobalOverlays />
+		{#if !isPreview}
+			<GlobalOverlays />
+		{/if}
 		<DynamicIsland />
 		<PipFloatingIsland />
-		<AIOmentor />
-		<FormulaVault bind:open={$formulaVaultOpen} />
-		<TestDaySheetModal bind:open={$testDaySheetOpen} />
-		<PwaBanner />
+		{#if !isPreview && aiMentorReady}
+			<AIOmentor />
+		{/if}
+		{#if $formulaVaultOpen}
+			<FormulaVault bind:open={$formulaVaultOpen} />
+		{/if}
+		{#if $testDaySheetOpen}
+			<TestDaySheetModal bind:open={$testDaySheetOpen} />
+		{/if}
+		{#if !isPreview}
+			<PwaBanner />
+		{/if}
 
 		<CommandPalette />
-		<FeynmanDuckModal />
-		<HotkeyCheatsheetModal bind:open={hotkeyModalOpen} />
+		{#if $feynmanDuckOpen}
+			<FeynmanDuckModal />
+		{/if}
+		{#if hotkeyModalOpen}
+			<HotkeyCheatsheetModal bind:open={hotkeyModalOpen} />
+		{/if}
 		{#if showOnboarding}
 			<Onboarding />
 		{/if}
 	</div>
+
+	{#if $wrappedStoryOpen}
+		<BTrackerWrappedModal bind:open={$wrappedStoryOpen} />
+	{/if}
 {:else}
 	<div class="auth-loading" aria-live="polite">Checking your session…</div>
 {/if}
 
 <style>
-	.app-shell { position: relative; z-index: 1; min-height: 100vh; padding-left: 300px; background: transparent; transition: padding-left .24s ease; }
-	.app-shell.sidebar-collapsed { padding-left: 76px; }
+	.app-shell { --sidebar-w: clamp(250px, 22vw, 300px); position: relative; z-index: 1; min-height: 100vh; padding-left: var(--sidebar-w); background: transparent; transition: padding-left .24s ease; }
+	.app-shell.sidebar-collapsed { --sidebar-w: 76px; }
+	.app-shell.sidebar-resizing { transition: none; }
 	/* Isolation keeps the z-index:-1 aurora above the shell background but below its content. */
 	.app-shell.aurora-on { isolation: isolate; }
 	.aurora { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: .55; }
@@ -676,7 +771,8 @@
 	.auth-loading { display: grid; min-height: 100vh; place-items: center; background: var(--surface-canvas); color: var(--text-secondary); font-size: .9rem; font-weight: 650; }
 	
 	@media (max-width: 768px) {
-		.app-shell, .app-shell.sidebar-collapsed { padding-left: 0; }
+		.app-shell { --sidebar-w: 0px !important; padding-left: 0; }
+		.app-shell.sidebar-collapsed { padding-left: 0; }
 		.topbar-center { display: contents; }
 		.topbar {
 			min-height: calc(max(env(safe-area-inset-top), 14px) + 56px);
@@ -692,7 +788,12 @@
 		}
 		.breadcrumb { display: none; }
 		.page-heading { gap: 0.6rem; min-width: 0; flex: 1; }
+		.page-heading > div { min-width: 0; }
 		.page-heading h2 { font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
+		@media (max-width: 360px) {
+			.page-heading h2 { display: none; }
+			.topbar { padding: max(env(safe-area-inset-top), 14px) 0.6rem 0.8rem; }
+		}
 		.topbar-actions { gap: 0.35rem; flex-shrink: 0; }
 		.mobile-menu {
 			display: grid;

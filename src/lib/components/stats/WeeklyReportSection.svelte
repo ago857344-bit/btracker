@@ -1,15 +1,12 @@
 <script lang="ts">
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import WeeklyDoubleGraph from '$lib/components/charts/WeeklyDoubleGraph.svelte';
-	import { hydration, tracker, updateTracker } from '$lib/stores/tracker';
+	import { hydration, tracker, updateTracker, wrappedStoryOpen, openWrappedStory } from '$lib/stores/tracker';
 	import { buildWeekReport, currentWeekStartKey, rolloverWeekSnapshot } from '$lib/state/weekly';
 	import { buildDailyReport } from '$lib/state/dailyReport';
 	import { renderReportImage, renderDailyReportImage } from '$lib/services/reportCardImage';
 	import { loadout } from '$lib/stores/cosmetics';
 	import { todayKey, lastNDays, shortDateKey, weekdayShort, formatMinutes } from '$lib/state/dates';
-	import BTrackerWrappedModal from '$lib/components/stats/BTrackerWrappedModal.svelte';
-
-	let wrappedOpen = false;
 
 	// If a new week started while the app was open, capture the fresh baseline.
 	$: if ($hydration === 'ready' && $tracker.gamification?.week?.start !== currentWeekStartKey()) {
@@ -134,7 +131,7 @@
 			{/if}
 
 			<div class="actions">
-				<button type="button" class="btn wrapped-btn" on:click={() => (wrappedOpen = true)} title="Play Spotify-Wrapped style animated season recap">
+				<button type="button" class="btn wrapped-btn" on:click={openWrappedStory} title="Play Spotify-Wrapped style animated season recap">
 					<NavIcon name="sparkles" size={14} /> Wrapped Story
 				</button>
 				<button type="button" class="btn solid" on:click={download} disabled={busy}>
@@ -255,8 +252,6 @@
 			</div>
 		</div>
 	{/if}
-
-	<BTrackerWrappedModal bind:open={wrappedOpen} />
 </div>
 
 <style>

@@ -23,3 +23,5 @@ bttraacker/
 work/
 outputs/
 .vercel
+build-desktop/
+vibe_images/

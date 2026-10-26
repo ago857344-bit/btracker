@@ -1,10 +1,13 @@
 <script lang="ts">
 	import { page } from '$app/stores';
 	import type { ComponentProps } from 'svelte';
+	import { onMount } from 'svelte';
+	import { get } from 'svelte/store';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
 	import WorkspaceToolsModal from '$lib/components/WorkspaceToolsModal.svelte';
-	import { tracker } from '$lib/stores/tracker';
+	import { tracker, updateTracker } from '$lib/stores/tracker';
+	import { sidebarDragWidth, sidebarResizeMode } from '$lib/stores/sidebar';
 	import { chaptersDueToday } from '$lib/stores/recall-selectors';
 	import { currentUser } from '$lib/stores/auth';
 	import { getLevelData, tierEloOf } from '$lib/state/gamification';
@@ -15,12 +18,13 @@
 	export let collapsed = false;
 	export let mobileOpen = false;
 
-	$: tierElo = Math.round(tierEloOf($tracker.gamification));
+	$: isPreview = $page.url.searchParams.get('preview') === '1';
+	$: tierElo = isPreview ? 300 : Math.round(tierEloOf($tracker.gamification));
 	$: tier = eloTier(tierElo);
-	$: stars = $loadout.prestige;
-	$: frame = $loadout.frame;
+	$: stars = isPreview ? 0 : ($tracker.gamification?.prestige?.count ?? 0);
+	$: frame = isPreview ? null : $loadout.frame;
 
-	$: xp = $tracker.gamification?.xp || 0;
+	$: xp = isPreview ? 0 : ($tracker.gamification?.xp || 0);
 	$: levelData = getLevelData(xp);
 
 	type NavIconName = ComponentProps<NavIcon>['name'];
@@ -47,10 +51,18 @@
 		{ href: '/reminders', label: 'Reminders', icon: 'reminders' }
 	] as const;
 
-	$: pinnedHrefs = (flowMode === 'all-features')
+	$: isGeneric = $tracker.coaching_type === 'GENERIC';
+	$: availableTools = isGeneric ? ALL_TOOLS.filter((tool) => tool.href !== '/review') : ALL_TOOLS;
+	$: pinnedHrefs = ((flowMode === 'all-features')
 		? ALL_TOOLS.map((t) => t.href)
-		: ($tracker.ui?.pinnedNav || getDefaultNavForMode(flowMode));
-	$: primary = ALL_TOOLS.filter((item) => pinnedHrefs.includes(item.href));
+		: ($tracker.ui?.pinnedNav || getDefaultNavForMode(flowMode)))
+		.filter((href) => availableTools.some((tool) => tool.href === href));
+	$: primary = (() => {
+		const visible = Array.from(new Set(pinnedHrefs));
+		const ordered = ($tracker.ui?.navOrder ?? []).filter((href) => visible.includes(href));
+		const hrefs = [...ordered, ...visible.filter((href) => !ordered.includes(href))];
+		return hrefs.map((href) => availableTools.find((tool) => tool.href === href)).filter((tool): tool is NavItem => Boolean(tool));
+	})();
 	const ALL_SECONDARY: readonly NavItem[] = [
 		{ href: '/stats', label: 'Stats', icon: 'stats' },
 		{ href: '/reminders', label: 'Reminders', icon: 'reminders' }
@@ -85,19 +97,131 @@
 		if (typeof window !== 'undefined' && window.innerWidth <= 760) {
 			mobileOpen = false;
 		} else {
-			collapsed = !collapsed;
+			updateTracker((s) => { s.ui.sidebarCollapsed = !collapsed; });
 		}
+	}
+
+	/* ---- Drag-to-resize (desktop) ---- */
+	const MIN_WIDTH = 200;
+	const MAX_WIDTH = 420;
+	let asideEl: HTMLElement;
+	let resizing = false;
+	let resizeStartX = 0;
+	let resizeStartWidth = 0;
+
+	const clampWidth = (w: number) => Math.round(Math.min(MAX_WIDTH, Math.max(MIN_WIDTH, w)));
+
+	function startResize(e: PointerEvent) {
+		if (e.button !== undefined && e.button !== 0) return;
+		resizing = true;
+		resizeStartX = e.clientX;
+		resizeStartWidth = asideEl?.getBoundingClientRect().width ?? 280;
+		(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
+		document.body.classList.add('sidebar-resizing');
+		e.preventDefault();
+	}
+
+	function moveResize(e: PointerEvent) {
+		if (!resizing) return;
+		sidebarDragWidth.set(clampWidth(resizeStartWidth + e.clientX - resizeStartX));
+	}
+
+	function endResize() {
+		if (!resizing) return;
+		resizing = false;
+		document.body.classList.remove('sidebar-resizing');
+		const width = get(sidebarDragWidth);
+		sidebarDragWidth.set(null);
+		if (width != null) updateTracker((s) => { s.ui.sidebarWidth = width; });
+		sidebarResizeMode.set(false);
+	}
+
+	function nudgeResize(delta: number) {
+		const current = asideEl?.getBoundingClientRect().width ?? resizeStartWidth ?? 280;
+		updateTracker((s) => { s.ui.sidebarWidth = clampWidth(current + delta); });
+	}
+
+	/* ---- Drag-to-reorder nav items (desktop) ---- */
+	let dragEnabled = false;
+	let dragHref: string | null = null;
+	let dropHref: string | null = null;
+
+	onMount(() => {
+		const mq = window.matchMedia('(min-width: 761px)');
+		const sync = () => { dragEnabled = mq.matches; };
+		sync();
+		mq.addEventListener('change', sync);
+		return () => mq.removeEventListener('change', sync);
+	});
+
+	function onItemDragStart(e: DragEvent, href: string) {
+		dragHref = href;
+		dropHref = null;
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('text/plain', href);
+		}
+	}
+
+	function onItemDragOver(e: DragEvent, href: string) {
+		if (!dragHref) return;
+		e.preventDefault();
+		if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+		dropHref = href;
+	}
+
+	function onItemDrop(e: DragEvent, href: string) {
+		e.preventDefault();
+		const from = dragHref;
+		dragHref = null;
+		dropHref = null;
+		if (!from || from === href) return;
+		const hrefs = primary.map((item) => item.href).filter((h) => h !== from);
+		const to = hrefs.indexOf(href);
+		if (to < 0) return;
+		hrefs.splice(to, 0, from);
+		const hidden = ($tracker.ui?.navOrder ?? []).filter((h) => !hrefs.includes(h));
+		updateTracker((s) => { s.ui.navOrder = [...hrefs, ...hidden]; });
+	}
+
+	function onItemDragEnd() {
+		dragHref = null;
+		dropHref = null;
 	}
 </script>
 
 <aside
+	bind:this={asideEl}
 	class="glass"
 	class:collapsed
+	class:resizing
+	class:resize-mode={$sidebarResizeMode}
 	class:mobile-open={mobileOpen}
 	aria-label="Primary navigation"
 	on:touchstart={handleTouchStart}
 	on:touchend={handleTouchEnd}
 >
+	{#if !collapsed && $sidebarResizeMode}
+		<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+		<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+		<div
+			class="resize-handle"
+			role="separator"
+			aria-orientation="vertical"
+			aria-label="Resize sidebar"
+			title="Drag to resize"
+			tabindex="0"
+			on:pointerdown={startResize}
+			on:pointermove={moveResize}
+			on:pointerup={endResize}
+			on:pointercancel={endResize}
+			on:keydown={(e) => {
+				if (e.key === 'ArrowLeft') { e.preventDefault(); nudgeResize(-16); }
+				else if (e.key === 'ArrowRight') { e.preventDefault(); nudgeResize(16); }
+				else if (e.key === 'Escape') { sidebarResizeMode.set(false); }
+			}}
+		></div>
+	{/if}
 	<div class="brand-row">
 		<a class="brand" href="/" aria-label="BTracker home" on:click={closeMobile}>
 			<span class="brand-mark">B</span>
@@ -117,8 +241,23 @@
 	<nav>
 		<p class="nav-label">Workspace</p>
 		{#each primary as item (item.href)}
-			<a class:active={isActive(item.href)} href={item.href} on:click={closeMobile}>
-				<span class="nav-icon"><NavIcon name={item.icon} size={22} /></span><span class="nav-text">{item.label}</span>
+			<a
+				class:active={isActive(item.href)}
+				class:dragging={dragHref === item.href}
+				class:drop-target={dropHref === item.href && dragHref !== item.href}
+				href={item.href}
+				draggable={dragEnabled}
+				title={dragEnabled ? 'Drag to reorder' : undefined}
+				on:click={closeMobile}
+				on:dragstart={(e) => onItemDragStart(e, item.href)}
+				on:dragover={(e) => onItemDragOver(e, item.href)}
+				on:drop={(e) => onItemDrop(e, item.href)}
+				on:dragend={onItemDragEnd}
+			>
+				<span class="nav-icon"><NavIcon name={item.icon} size={22} /></span><span class="nav-text">{item.href === '/log' && isGeneric ? 'Study Log' : item.label}</span>
+				{#if dragEnabled}
+					<span class="nav-grip" aria-hidden="true"><NavIcon name="drag" size={13} /></span>
+				{/if}
 				{#if item.href === '/revise' && $chaptersDueToday.length}
 					<span class="due-badge" title="{$chaptersDueToday.length} chapter(s) due">{$chaptersDueToday.length}</span>
 				{/if}
@@ -164,10 +303,10 @@
 			</div>
 			<span class="profile-copy">
 				<div class="user-level-row">
-					<b>{$tracker.meta.name || 'My Account'}</b>
+					<b>{isPreview ? 'Student Aspirant' : ($tracker.meta.name || 'My Account')}</b>
 					<span class="elo-badge {tier.cls}" title="{tierElo} {stars ? 'season ' : ''}Elo{stars ? ` · Prestige ${stars}` : ''}">{tier.icon} {tier.name}{#if stars}<i class="stars">{stars > 3 ? `★${stars}` : '★'.repeat(stars)}</i>{/if}</span>
 				</div>
-				<small class="rank-name" class:gradient-text={frame} style={frame ? `--frame: linear-gradient(135deg, ${frame.colors?.join(', ')})` : undefined}>Lv {levelData.level} · {$loadout.title ?? levelData.title}</small>
+				<small class="rank-name" class:gradient-text={frame} style={frame ? `--frame: linear-gradient(135deg, ${frame.colors?.join(', ')})` : undefined}>Lv {levelData.level} · {isPreview ? 'Aspirant' : ($loadout.title ?? levelData.title)}</small>
 				<div class="xp-bar" title="{xp} XP / {levelData.nextTierXp} XP">
 					<div class="xp-fill" style="width: {levelData.progress}%"></div>
 				</div>
@@ -185,7 +324,7 @@
 		inset: 0 auto 0 0;
 		display: flex;
 		flex-direction: column;
-		width: clamp(250px, 22vw, 300px);
+		width: var(--sidebar-w, clamp(250px, 22vw, 300px));
 		padding: 1.2rem 1rem 1rem;
 		background: var(--surface-panel);
 		backdrop-filter: var(--glass-filter, blur(36px) saturate(210%));
@@ -198,6 +337,37 @@
 	}
 	aside::-webkit-scrollbar { display: none; }
 	aside { -ms-overflow-style: none; scrollbar-width: none; }
+	aside.resizing { transition: none; }
+	.resize-handle {
+		position: absolute;
+		top: 0;
+		right: 0;
+		width: 7px;
+		height: 100%;
+		cursor: col-resize;
+		z-index: 40;
+		touch-action: none;
+	}
+	.resize-handle::after {
+		content: '';
+		position: absolute;
+		top: 50%;
+		right: 2px;
+		width: 2px;
+		height: 44px;
+		transform: translateY(-50%);
+		border-radius: 99px;
+		background: var(--accent);
+		opacity: 0;
+		transition: opacity .15s ease;
+	}
+	.resize-handle:hover::after,
+	.resize-handle:focus-visible::after,
+	aside.resizing .resize-handle::after { opacity: .6; }
+	aside.resize-mode .resize-handle::after { opacity: .65; }
+	.resize-handle:focus-visible { outline: none; }
+	:global(body.sidebar-resizing),
+	:global(body.sidebar-resizing *) { cursor: col-resize !important; user-select: none !important; }
 	.brand-row { display: flex; align-items: center; gap: .45rem; min-height: 42px; padding: 0 .25rem .8rem; }
 	.brand {
 		display: inline-flex;
@@ -300,6 +470,19 @@
 		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 		font-weight: 700;
 	}
+	nav a[draggable='true'] { cursor: grab; }
+	nav a.dragging { opacity: .35; cursor: grabbing; }
+	nav a.drop-target { box-shadow: inset 0 2px 0 0 var(--accent); }
+	.nav-grip {
+		margin-left: auto;
+		display: grid;
+		place-items: center;
+		color: var(--text-secondary);
+		opacity: 0;
+		transition: opacity .15s ease;
+	}
+	nav a:hover .nav-grip { opacity: .6; }
+	.nav-grip + .due-badge { margin-left: 6px; }
 	.nav-icon { display: grid; flex: 0 0 24px; place-items: center; }
 	.due-badge { margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center; background: var(--accent); color: var(--accent-contrast, white); font-size: .62rem; font-weight: 800; }
 	.nav-divider { height: 1px; margin: clamp(0.5rem, 1.5vh, 1rem) .65rem clamp(0.1rem, 0.3vh, 0.2rem); background: var(--border-subtle); }
@@ -314,8 +497,8 @@
 		align-items: center;
 		gap: .55rem;
 		background: var(--surface-panel);
-		backdrop-filter: blur(36px) saturate(210%);
-		-webkit-backdrop-filter: blur(36px) saturate(210%);
+		backdrop-filter: var(--glass-filter, blur(36px) saturate(210%));
+		-webkit-backdrop-filter: var(--glass-filter, blur(36px) saturate(210%));
 		margin-top: .3rem;
 		box-shadow:
 			0 12px 32px -4px rgba(0, 0, 0, 0.45),
@@ -328,7 +511,6 @@
 	:global(:root[data-theme='duolingo']) .profile-container,
 	:global(:root[data-theme='anki']) .profile-container,
 	:global(:root[data-theme='master']) .profile-container {
-		background: var(--surface-popup, rgba(255, 255, 255, 0.96));
 		border-color: color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08));
 		box-shadow:
 			0 12px 32px -4px rgba(44, 37, 92, 0.12),
@@ -366,6 +548,7 @@
 	aside.collapsed nav a, aside.collapsed .settings-link { justify-content: center; padding-inline: 0; gap: 0; }
 	aside.collapsed .nav-divider { margin-inline: .3rem; }
 	aside.collapsed .profile-container { justify-content: center; padding-inline: 0; }
+	aside.collapsed .nav-grip { display: none; }
 	aside.collapsed :global(.signin span) { width: 0; opacity: 0; overflow: hidden; display: none; }
 	aside.collapsed :global(.signin) { justify-content: center; width: 36px; height: 36px; padding: 0; }
 	aside.collapsed :global(.signin svg) { margin: 0; }
@@ -374,6 +557,7 @@
 	.close-mobile-btn { display: none; }
 
 	@media (max-width: 760px) {
+		.resize-handle { display: none; }
 		aside {
 			width: min(290px, calc(100vw - 44px));
 			transform: translateX(-102%);

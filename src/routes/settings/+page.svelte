@@ -9,8 +9,9 @@
 	import {
 		tracker, updateTracker, replaceTracker, celebration, targetsModalOpen,
 		setProfileName, setExamDate, setWeeklyGoalHours, setStreakGoalHours, applyStudyFlowMode,
-		triggerAscend
+		updateCoachingProfile, triggerAscend
 	} from '$lib/stores/tracker';
+	import { COACHING_PRESETS, DEFAULT_BT_NAME, coachingTypeOf } from '$lib/state/coaching';
 	import { createInitialTrackerState } from '$lib/state/defaults';
 	import { mergeImportedProgress } from '$lib/state/legacy-progress';
 	import { importLegacyCode } from '$lib/state/legacy-code';
@@ -26,12 +27,13 @@
 	import { itemOf, reqMet, reqLabel, reqStatus, reqProgress, AURORA_REQ, type UnlockCtx } from '$lib/state/cosmetics';
 	import { COSMETIC_SLOTS, type Slot } from '$lib/state/cosmetics';
 
-	import type { ThemeId, TrackerState, StateSnapshot, DashboardLayout, StudyFlowMode } from '$lib/types/tracker';
+	import type { ThemeId, TrackerState, StateSnapshot, DashboardLayout, StudyFlowMode, CoachingType } from '$lib/types/tracker';
 	import { takeSnapshot, listSnapshots, restoreSnapshot, deleteSnapshot } from '$lib/services/persistence';
 	import CosmeticsModal from '$lib/components/cosmetics/CosmeticsModal.svelte';
 	import DashboardPreviewModal from '$lib/components/dashboard/DashboardPreviewModal.svelte';
 	import { analyzeWallpaperLuminance } from '$lib/utils/wallpaperContrast';
 	import { pwaInstalled, openPwaModal } from '$lib/stores/pwa';
+	import { sidebarResizeMode } from '$lib/stores/sidebar';
 	import FocusPetCompanion from '$lib/components/focus/FocusPetCompanion.svelte';
 
 	const ACCENTS = ['#6d5dfc', '#e0455a', '#d99a2b', '#2f9e6e', '#2b8ba6', '#8b7bff', '#ff5c8a', '#b44df0'];
@@ -136,7 +138,42 @@
 		}
 	}
 
-	let nameDraft = $tracker.meta.name;
+	let nameDraft = $tracker.meta?.name ?? '';
+
+	let coachingTypeDraft: CoachingType = coachingTypeOf($tracker);
+	let coachingNameDraft = $tracker.coaching_name ?? '';
+	let coachingDirty = false;
+
+	$: if (!coachingDirty) {
+		coachingTypeDraft = coachingTypeOf($tracker);
+		coachingNameDraft = $tracker.coaching_name ?? '';
+	}
+
+	function chooseCoaching(type: CoachingType) {
+		coachingTypeDraft = type;
+		if (type === 'BT') {
+			coachingNameDraft = DEFAULT_BT_NAME;
+		} else if (!coachingNameDraft.trim() || coachingNameDraft.trim() === DEFAULT_BT_NAME) {
+			coachingNameDraft = COACHING_PRESETS[0];
+		}
+		coachingDirty = true;
+	}
+
+	function pickCoachingPreset(name: string) {
+		coachingTypeDraft = 'GENERIC';
+		coachingNameDraft = name;
+		coachingDirty = true;
+	}
+
+	function saveCoachingProfile() {
+		updateCoachingProfile(coachingTypeDraft, coachingNameDraft);
+		coachingDirty = false;
+		celebration.set(
+			coachingTypeDraft === 'BT'
+				? 'Study Log switched to BT native modules.'
+				: `Study Log switched to ${coachingNameDraft.trim() || 'Universal'}.`
+		);
+	}
 
 	$: currentTierElo = Math.round(tierEloOf($tracker.gamification));
 	$: currentTier = eloTier(currentTierElo);
@@ -214,6 +251,7 @@
 
 	// Restore the real theme if the page unmounts mid-preview (nav or HMR)
 	onDestroy(() => {
+		if (previewInterval) clearInterval(previewInterval);
 		if (previewActive) {
 			previewActive = false;
 			updateTracker(s => {
@@ -319,7 +357,7 @@
 	}
 
 
-	$: if (typeof document !== 'undefined' && $tracker.meta.name !== nameDraft.trim() && document.activeElement?.tagName !== 'INPUT') nameDraft = $tracker.meta.name;
+	$: if (typeof document !== 'undefined' && $tracker.meta?.name && $tracker.meta.name !== nameDraft.trim() && document.activeElement?.tagName !== 'INPUT') nameDraft = $tracker.meta.name;
 
 	function commitName() { setProfileName(nameDraft.trim()); }
 	function setTheme(id: ThemeId) {
@@ -558,6 +596,54 @@
 					<NavIcon name="target" size={14} /> Open Targets
 				</button>
 			</div>
+		</div>
+
+		<!-- 1b. Coaching Profile -->
+		<div class="panel">
+			<h2><NavIcon name="library" size={15} /> Coaching Profile</h2>
+			<p class="hint" style="margin-top: -.55rem;">Choose which Study Log you use. BT unlocks native module sync; every other institute gets the universal log.</p>
+
+			<div class="coach-choice-grid">
+				<button type="button" class="coach-choice" class:on={coachingTypeDraft === 'BT'} on:click={() => chooseCoaching('BT')}>
+					<div class="coach-choice-head">
+						<span class="coach-dot bt">BT</span>
+						<span class="coach-tag">Native Module Sync</span>
+					</div>
+					<b>Baktiwal Tutorials</b>
+					<small>Module → chapter → exercise with question-level tracking.</small>
+				</button>
+				<button type="button" class="coach-choice" class:on={coachingTypeDraft === 'GENERIC'} on:click={() => chooseCoaching('GENERIC')}>
+					<div class="coach-choice-head">
+						<span class="coach-dot generic">U</span>
+						<span class="coach-tag subtle">Universal</span>
+					</div>
+					<b>Other institute / self-study</b>
+					<small>Log modules, DPPs, PYQs, books and tests by chapter.</small>
+				</button>
+			</div>
+
+			{#if coachingTypeDraft === 'GENERIC'}
+				<div class="coach-presets">
+					{#each COACHING_PRESETS as preset}
+						<button type="button" class="coach-preset" class:on={coachingNameDraft === preset} on:click={() => pickCoachingPreset(preset)}>
+							{preset}
+						</button>
+					{/each}
+				</div>
+				<label class="field" style="margin-top: .8rem;">
+					<span>INSTITUTE NAME</span>
+					<input
+						type="text"
+						bind:value={coachingNameDraft}
+						on:input={() => (coachingDirty = true)}
+						placeholder="e.g. Allen, Resonance, Self-Study"
+					/>
+				</label>
+			{/if}
+
+			<button type="button" class="btn accent" style="margin-top: .4rem;" disabled={!coachingDirty} on:click={saveCoachingProfile}>
+				<NavIcon name="save" size={14} /> Save Coaching Profile
+			</button>
 		</div>
 
 		<!-- 2. Appearance -->
@@ -870,6 +956,73 @@
 			</div>
 		</div>
 
+		<!-- 4b. Sidebar & Navigation -->
+		<div class="panel">
+			<h2><NavIcon name="sliders" size={15} /> Sidebar &amp; Navigation</h2>
+			<p class="muted only-desktop">Click <strong>Edit size</strong>, then drag the sidebar's right edge (or use ← →). Drag any menu item up or down to reorder. Changes apply instantly.</p>
+			<p class="muted only-mobile">Sidebar resizing and drag-to-reorder are desktop features. The resets below work everywhere.</p>
+			<div class="sidebar-edit-card">
+				<div class="sidebar-edit-row">
+					<div class="sidebar-edit-copy">
+						<b>Sidebar width</b>
+						<small class="only-desktop">
+							{$tracker.ui?.sidebarWidth ? `Custom — ${$tracker.ui.sidebarWidth}px` : 'Auto — responsive 250–300px'}
+							{$sidebarResizeMode ? '· drag the highlighted edge' : '· not editable until you click Edit size'}
+						</small>
+						<small class="only-mobile">
+							{$tracker.ui?.sidebarWidth ? `Custom — ${$tracker.ui.sidebarWidth}px` : 'Auto — responsive 250–300px'}
+							· editable on desktop
+						</small>
+					</div>
+					<div class="sidebar-edit-actions">
+						<button
+							type="button"
+							class="btn edit-size-btn"
+							class:active={$sidebarResizeMode}
+							aria-pressed={$sidebarResizeMode}
+							disabled={$tracker.ui.sidebarCollapsed ?? false}
+							on:click={() => sidebarResizeMode.update((v) => !v)}
+						>{$sidebarResizeMode ? 'Done' : 'Edit size'}</button>
+						<button
+							type="button"
+							class="btn"
+							disabled={!$tracker.ui?.sidebarWidth}
+							on:click={() => { sidebarResizeMode.set(false); updateTracker(s => { delete s.ui.sidebarWidth; }); }}
+						>Reset</button>
+					</div>
+				</div>
+				<div class="sidebar-edit-row">
+					<div class="sidebar-edit-copy">
+						<b>Menu order</b>
+						<small class="only-desktop">
+							{$tracker.ui?.navOrder?.length ? 'Custom order saved' : 'Default order'}
+							· drag nav items in the sidebar to reorder
+						</small>
+						<small class="only-mobile">
+							{$tracker.ui?.navOrder?.length ? 'Custom order saved' : 'Default order'}
+							· reorderable on desktop
+						</small>
+					</div>
+					<div class="sidebar-edit-actions">
+						<button
+							type="button"
+							class="btn"
+							disabled={!$tracker.ui?.navOrder?.length}
+							on:click={() => updateTracker(s => { delete s.ui.navOrder; })}
+						>Reset</button>
+					</div>
+				</div>
+			</div>
+			<label class="check" style="margin-top: 1rem;">
+				<input
+					type="checkbox"
+					checked={$tracker.ui.sidebarCollapsed ?? false}
+					on:change={(e) => updateTracker(s => { s.ui.sidebarCollapsed = e.currentTarget.checked; })}
+				/>
+				<span><strong>Collapse sidebar to icon rail</strong><br/>Remembers your choice and syncs across devices. Toggle anytime with the chevron on the sidebar.</span>
+			</label>
+		</div>
+
 		<!-- 5. Feedback & Feel -->
 		<div class="panel">
 			<h2><NavIcon name="bolt" size={15} /> Feedback & Feel</h2>
@@ -1151,6 +1304,24 @@
 
 	.row { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem; }
 	.hint { margin: -.4rem 0 .9rem; color: var(--text-secondary); font-size: .72rem; }
+
+	.coach-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; margin-bottom: 1rem; }
+	.coach-choice { display: flex; flex-direction: column; gap: .3rem; padding: .85rem .9rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-subtle); color: var(--text-primary); text-align: left; cursor: pointer; font-family: inherit; transition: all 0.18s var(--ease-ios-spring); }
+	.coach-choice:hover { border-color: var(--accent); transform: translateY(-1px); }
+	.coach-choice.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, var(--surface-panel)); box-shadow: 0 0 0 1px var(--accent); }
+	.coach-choice-head { display: flex; align-items: center; justify-content: space-between; gap: .4rem; margin-bottom: .2rem; }
+	.coach-dot { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; font-size: .68rem; font-weight: 850; color: #fff; }
+	.coach-dot.bt { background: linear-gradient(135deg, #6366f1, var(--accent)); }
+	.coach-dot.generic { background: linear-gradient(135deg, #0f172a, #475569); }
+	.coach-tag { font-size: .56rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; padding: .14rem .45rem; border-radius: 99px; background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); white-space: nowrap; }
+	.coach-tag.subtle { background: var(--surface-panel); color: var(--text-secondary); border-color: var(--border-subtle); }
+	.coach-choice b { font-size: .82rem; letter-spacing: -.01em; }
+	.coach-choice small { font-size: .68rem; line-height: 1.35; color: var(--text-secondary); }
+	.coach-presets { display: flex; flex-wrap: wrap; gap: .4rem; }
+	.coach-preset { padding: .35rem .7rem; border-radius: 99px; border: 1px solid var(--border-subtle); background: var(--surface-subtle); color: var(--text-secondary); font-size: .74rem; font-weight: 650; cursor: pointer; font-family: inherit; transition: all 0.15s ease; }
+	.coach-preset:hover { border-color: var(--accent); color: var(--text-primary); }
+	.coach-preset.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+	@media (max-width: 560px) { .coach-choice-grid { grid-template-columns: 1fr; } }
 
 	.swatches { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
 	.swatch { width: 40px; height: 40px; border: 2px solid transparent; border-radius: 99px; box-shadow: 0 2px 8px rgb(10 8 26 / 20%); transition: transform 0.2s var(--ease-ios-spring); }
@@ -1560,6 +1731,41 @@
 	.btn-card-preview:active {
 		transform: scale(0.97);
 	}
+
+	/* Sidebar & Navigation controls */
+	.sidebar-edit-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.55rem;
+		padding: 0.85rem 1rem;
+		border-radius: 14px;
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
+	}
+	.sidebar-edit-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+	}
+	.sidebar-edit-copy { display: flex; flex-direction: column; gap: 0.12rem; min-width: 0; }
+	.sidebar-edit-copy b { font-size: 0.82rem; color: var(--text-primary); }
+	.sidebar-edit-copy small { font-size: 0.7rem; color: var(--text-secondary); line-height: 1.4; }
+	.sidebar-edit-actions { display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0; }
+	.sidebar-edit-row .btn { padding: 0.4rem 0.8rem; font-size: 0.74rem; flex-shrink: 0; }
+	.btn.edit-size-btn.active {
+		border-color: var(--accent);
+		color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 12%, transparent);
+	}
+	.only-mobile { display: none; }
+	@media (max-width: 760px) {
+		.edit-size-btn { display: none; }
+		.only-desktop { display: none; }
+		.only-mobile { display: block; }
+	}
+	.btn:disabled { opacity: 0.45; cursor: default; }
+	.btn:disabled:hover { border-color: var(--border-subtle); color: var(--text-primary); }
 
 	.pet-settings-card {
 		display: flex;

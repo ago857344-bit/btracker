@@ -519,7 +519,7 @@
 	.group { display: grid; gap: .6rem; }
 	.group-head { display: flex; align-items: center; gap: .55rem; padding: 0 .25rem .15rem; }
 	.group-head h2 { display: inline-flex; align-items: center; gap: .4rem; margin: 0; font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text-secondary); }
-	.group-head h2.urgent { color: var(--danger, #e0455a); }
+	.group-head h2.urgent { color: color-mix(in srgb, var(--danger, #e0455a) 45%, var(--text-primary)); }
 	.group-head .count { margin-left: auto; display: grid; place-items: center; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px; background: var(--surface-subtle); color: var(--text-secondary); font-size: .66rem; font-weight: 800; }
 
 	.card-stack { display: grid; gap: .6rem; }

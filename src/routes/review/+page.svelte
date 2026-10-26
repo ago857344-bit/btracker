@@ -63,7 +63,7 @@
 			for (const chapter of allChaptersWithCustom($tracker, subject)) {
 				for (const exercise of visibleExercises($tracker, subject, chapter.no)) {
 					const count = questionCount($tracker, subject, chapter.no, exercise.code);
-					const cells = $tracker.d[cellKey(subject, chapter.no, exercise.code)] ?? [];
+					const cells = $tracker.d?.[cellKey(subject, chapter.no, exercise.code)] ?? [];
 					for (let index = 0; index < count; index++) {
 						const value = cells[index] ?? 0;
 						const retry = isFlag(value);
@@ -92,6 +92,22 @@
 
 <svelte:head><title>Review · BTracker</title></svelte:head>
 
+{#if $tracker.coaching_type === 'GENERIC'}
+	<section class="review">
+		<header class="hero">
+			<div>
+				<p class="eyebrow">Universal study log</p>
+				<h1>Review</h1>
+				<p>Doubts and retries are captured with every session you log.</p>
+			</div>
+		</header>
+		<div class="empty generic-empty">
+			<h2>Question-level review is built for BT modules</h2>
+			<p>Your universal log tracks attempted, solved and doubt counts per chapter instead. Revisit those chapters from the Study Log.</p>
+			<a class="btn-log" href="/log"><NavIcon name="layers" size={14} /> Open Study Log</a>
+		</div>
+	</section>
+{:else}
 <section class="review">
 	<header class="hero">
 		<div>
@@ -159,6 +175,7 @@
 		</div>
 	{/if}
 </section>
+{/if}
 
 <style>
 	.review { display: grid; gap: 1.2rem; max-width: 940px; }
@@ -169,11 +186,11 @@
 	.summary { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .45rem; }
 	.summary span, .marks span, .marks button { display: inline-flex; align-items: center; gap: .35rem; min-height: 28px; padding: 0 .58rem; border: 1px solid var(--border-subtle); border-radius: 99px; color: var(--text-secondary); background: var(--surface-subtle); font-size: .7rem; font-weight: 750; }
 	.summary b { margin-right: .22rem; color: var(--text-primary); }
-	.summary .retry, .marks .retry { color: var(--accent); border-color: color-mix(in srgb, var(--accent), transparent 55%); background: var(--accent-soft); }
-	.summary .stuck, .marks .stuck { color: var(--warning); border-color: color-mix(in srgb, var(--warning), transparent 55%); background: color-mix(in srgb, var(--warning), transparent 87%); }
+	.summary .retry, .marks .retry { color: color-mix(in srgb, var(--accent) 60%, var(--text-primary)); border-color: color-mix(in srgb, var(--accent), transparent 55%); background: var(--accent-soft); }
+	.summary .stuck, .marks .stuck { color: color-mix(in srgb, var(--warning) 45%, var(--text-primary)); border-color: color-mix(in srgb, var(--warning), transparent 55%); background: color-mix(in srgb, var(--warning), transparent 87%); }
 	.flashcard-btn { cursor: pointer; color: var(--text-primary); transition: all .15s ease; }
 	.flashcard-btn:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent), transparent 85%); }
-	.flashcard-badge.saved { color: var(--success); border-color: color-mix(in srgb, var(--success), transparent 55%); background: color-mix(in srgb, var(--success), transparent 88%); }
+	.flashcard-badge.saved { color: color-mix(in srgb, var(--success) 45%, var(--text-primary)); border-color: color-mix(in srgb, var(--success), transparent 55%); background: color-mix(in srgb, var(--success), transparent 88%); }
 	.tabs {
 		display: inline-flex;
 		gap: 3px;
@@ -243,6 +260,9 @@
 	.empty { padding: 3.5rem 1.25rem; border: 1px dashed var(--border-subtle); border-radius: 18px; color: var(--text-secondary); text-align: center; }
 	.empty h2 { margin: 0 0 .45rem; color: var(--text-primary); font-size: 1.05rem; }
 	.empty p { margin: 0; font-size: .82rem; }
+	.generic-empty { display: flex; flex-direction: column; align-items: center; gap: .55rem; padding: 3rem 1.25rem; }
+	.generic-empty p { max-width: 48ch; line-height: 1.55; }
+	.btn-log { display: inline-flex; align-items: center; gap: .4rem; margin-top: .6rem; padding: .6rem 1rem; border-radius: 11px; background: var(--accent); color: var(--accent-contrast, #fff); font-size: .8rem; font-weight: 750; text-decoration: none; }
 	@media (max-width: 768px) {
 		.hero { align-items: start; flex-direction: column; }
 		.tabs { width: 100%; display: flex; }

@@ -12,6 +12,7 @@
 	} from '$lib/stores/tracker';
 	import { globalTimer } from '$lib/stores/timerState';
 	import { SUBJECTS, subjectName, subjectColor } from '$lib/state/subjects';
+	import { universalBySubject, universalEntries } from '$lib/state/universal';
 	import { getEloRank } from '$lib/state/gamification';
 	import { QUOTES, quoteForDay } from '$lib/state/quotes';
 	import { formatMinutes, todayKey, lastNDays, focusMinutesOn, weekdayShort } from '$lib/state/dates';
@@ -76,9 +77,14 @@
 	let collapsedHero = false;
 
 	// Subject Hub Modal
+	$: isGeneric = $tracker.coaching_type === 'GENERIC';
 	let hubOpen = false;
 	let hubSub = 'P';
 	function openHub(code: string) {
+		if (isGeneric) {
+			void goto('/log');
+			return;
+		}
 		hubSub = code;
 		hubOpen = true;
 		haptic(10);
@@ -201,7 +207,7 @@
 			return {
 				text: `🔥 Daily goal cleared! ${$streakDays}d streak locked. Review flashcards?`,
 				cta: 'Review',
-				action: () => { haptic(10); goto('/flashcards'); }
+				action: () => { haptic(10); goto('/revise?view=flashcards'); }
 			};
 		}
 		return {
@@ -213,13 +219,20 @@
 
 	// Subject Summaries
 	const SUBJECT_TARGETS: Record<string, number> = { P: 680, C: 720, M: 650 };
+	$: genericSubjects = Object.fromEntries(
+		universalBySubject(universalEntries($tracker)).map((row) => [row.code, row])
+	);
 	$: subjectItems = SUBJECTS.map((sub) => {
 		const solved = $subjectSolvedTotals[sub.code] || 0;
 		const total = SUBJECT_TARGETS[sub.code] || 650;
-		const pct = Math.min(100, Math.round((solved / total) * 100));
+		const generic = genericSubjects[sub.code];
+		const attempts = isGeneric ? (generic?.attempts ?? 0) : total;
+		const pct = isGeneric
+			? Math.round(generic?.accuracy ?? 0)
+			: Math.min(100, Math.round((solved / total) * 100));
 		const eloVal = ($tracker.gamification?.elo || { P: 300, C: 300, M: 300 })[sub.code as 'P' | 'C' | 'M'] || 300;
 		const elo = getEloRank(eloVal);
-		return { ...sub, solved, total, pct, elo, eloVal };
+		return { ...sub, solved, total, attempts, pct, elo, eloVal };
 	});
 
 	// Exam Countdown
@@ -435,7 +448,7 @@
 		<button
 			type="button"
 			class="dock-btn"
-			on:click={() => { haptic(10); goto('/flashcards'); }}
+			on:click={() => { haptic(10); goto('/revise?view=flashcards'); }}
 		>
 			<div class="dock-icon-wrap">
 				<NavIcon name="layers" size={15} />
@@ -627,8 +640,8 @@
 							</div>
 
 							<div class="sub-stats-footer font-mono">
-								<span><b>{sub.solved}</b> / {sub.total} Solved</span>
-								<span class="pct-num"><b>{sub.pct}%</b> Target</span>
+								<span><b>{sub.solved}</b> {isGeneric ? 'Solved' : `/ ${sub.total} Solved`}</span>
+								<span class="pct-num"><b>{sub.pct}%</b> {isGeneric ? 'Accuracy' : 'Target'}</span>
 							</div>
 
 							<!-- 1-Tap Subject Fast Launchers -->
@@ -653,9 +666,9 @@
 									type="button"
 									class="sub-action-btn font-mono hub-btn"
 									on:click|stopPropagation={() => openHub(sub.code)}
-									title="Open {sub.name} Hub"
+									title={isGeneric ? `Open ${sub.name} in the study log` : `Open ${sub.name} Hub`}
 								>
-									Hub ↗
+									{isGeneric ? 'Log ↗' : 'Hub ↗'}
 								</button>
 							</div>
 						</div>
@@ -771,7 +784,9 @@
 <!-- ========================================================= -->
 <!-- MODALS                                                    -->
 <!-- ========================================================= -->
-<SubjectHubModal bind:open={hubOpen} sub={hubSub} />
+{#if !isGeneric}
+	<SubjectHubModal bind:open={hubOpen} sub={hubSub} />
+{/if}
 
 <!-- Rapid Question Counter Modal -->
 <Modal bind:open={quickLogModalOpen} title="Instant Problem Counter" width="380px">

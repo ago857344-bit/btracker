@@ -5,7 +5,7 @@
 </script>
 
 <div class="daily">
-	<StatRing value={$dailyProgress.questionPct} size={132} stroke={12}>
+	<StatRing value={$dailyProgress.questionPct} size={132} stroke={12} trackColor="color-mix(in srgb, var(--border-subtle) 65%, transparent)">
 		<span class="ring-value">{$dailyProgress.solved}</span>
 		<span class="ring-label">of {$dailyProgress.questionGoal} Qs</span>
 	</StatRing>
@@ -24,6 +24,12 @@
 </div>
 
 <style>
+	:global(.daily .stat-ring),
+	:global(.daily .ring) {
+		border: none !important;
+		outline: none !important;
+		box-shadow: none !important;
+	}
 	.daily { display: flex; align-items: center; gap: 1.5rem; height: 100%; }
 	.ring-value { font-size: 2.1rem; font-weight: 800; letter-spacing: -.06em; line-height: 1; }
 	.ring-label { margin-top: .25rem; color: var(--text-secondary); font-size: .72rem; font-weight: 650; }

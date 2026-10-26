@@ -1,5 +1,3 @@
-<svelte:head><title>Home · BTracker</title></svelte:head>
-
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
 	import { flip } from 'svelte/animate';
@@ -23,11 +21,21 @@
 	import MinimalistLayout from '$lib/components/dashboard/MinimalistLayout.svelte';
 	import FocusLayout from '$lib/components/dashboard/FocusLayout.svelte';
 	import CompactLayout from '$lib/components/dashboard/CompactLayout.svelte';
+	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
+	import { browser } from '$app/environment';
 	import { onMount } from 'svelte';
 	import { isMobileDevice } from '$lib/state/themes';
 	import { tracker, updateTracker, dashboardWidgets, updateWidget, reorderWidget, cycleWidgetSpan, customizingHome, formulaVaultOpen } from '$lib/stores/tracker';
+	import { authConfigured, currentUser, hasSkippedLogin, sessionResolved } from '$lib/stores/auth';
 	import { DEFAULT_WIDGETS } from '$lib/state/defaults';
 	import type { WidgetLayout } from '$lib/types/tracker';
+
+	$: isPreview = $page.url.searchParams.get('preview') === '1';
+	$: showLanding = !isPreview && (($authConfigured && !$currentUser && !$hasSkippedLogin) || $page.url.searchParams.get('landing') === 'true');
+	$: if (browser && showLanding) {
+		goto('/welcome', { replaceState: true });
+	}
 
 	let mobileFilter: 'all' | 'priority' | 'analytics' = 'all';
 	const PRIORITY_WIDGETS = new Set(['daily-progress', 'up-next', 'coaching-schedule', 'due-homework', 'quote', 'brain-dump', 'revision-due']);
@@ -147,13 +155,23 @@
 		}
 		return saved || 'default';
 	})();
-	$: name = $tracker.meta.name.trim();
+	$: name = $tracker.meta?.name ? $tracker.meta.name.trim() : 'Aspirant';
 	const hour = new Date().getHours();
 	$: greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
 	$: dateLabel = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }).toUpperCase();
 </script>
 
-<section class="home">
+<svelte:head>
+	{#if showLanding}
+		<title>BTracker · Track every question, from any coaching</title>
+		<meta name="description" content="BTracker is the study command center for JEE aspirants. Log questions from coaching modules, DPPs, books and tests, with native module sync for Baktiwal Tutorials." />
+	{:else}
+		<title>Home · BTracker</title>
+	{/if}
+</svelte:head>
+
+{#if !showLanding}
+	<section class="home">
 	<header class="hero">
 		<div>
 			<p class="eyebrow">{dateLabel}</p>
@@ -277,9 +295,11 @@
 </section>
 
 <TargetsModal bind:open={targetsOpen} />
+{/if}
 
 <style>
-	.home { display: grid; gap: 1.6rem; padding-top: 0.25rem; }
+	.home { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.6rem; padding-top: 0.25rem; }
+	.home > * { min-width: 0; }
 	.hero { display: flex; align-items: flex-start; justify-content: space-between; gap: 1.5rem; flex-wrap: wrap; padding-top: 0.25rem; }
 	.eyebrow { margin: 0 0 .35rem; color: var(--accent); font-size: .76rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; text-shadow: none !important; }
 	h1 { margin: 0; font-size: clamp(1.9rem, 4vw, 2.7rem); line-height: 1.18; letter-spacing: -.04em; padding-top: 0.12em; text-shadow: none !important; }

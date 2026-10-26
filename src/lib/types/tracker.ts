@@ -95,7 +95,18 @@ export interface TrackerGoal {
 
 export interface ReflectionEntry { post: string; mistakes: string; savedAt: string | null }
 
-export interface SubjectSession { id: string; day: DayKey; sub: string; ch: string; att: number; cor: number; at: number }
+export type CoachingType = 'BT' | 'GENERIC';
+export type UniversalSource = 'coaching' | 'dpp' | 'pyq' | 'book' | 'test';
+
+export interface SubjectSession {
+	id: string; day: DayKey; sub: string; ch: string; att: number; cor: number; at: number;
+	/** Present only on Universal Study Log entries; BT question sessions omit it. */
+	kind?: 'universal';
+	source?: UniversalSource;
+	sourceName?: string;
+	label?: string;
+	doubt?: number;
+}
 
 export interface MetaState {
 	name: string;
@@ -282,6 +293,12 @@ export interface UiPreferences {
 	ecoMode?: boolean;
 	cutoutStyle?: 'auto' | 'island' | 'notch' | 'dot' | 'dock' | 'pip';
 	dashboardLayout?: DashboardLayout;
+	/** Custom desktop sidebar width in px; unset = responsive default clamp. */
+	sidebarWidth?: number;
+	/** Persisted icon-rail state of the desktop sidebar. */
+	sidebarCollapsed?: boolean;
+	/** User-dragged order of sidebar nav hrefs; unset = default per-mode order. */
+	navOrder?: string[];
 	studyFlowMode?: StudyFlowMode;
 	pinnedNav?: string[];
 	pipIslandOpen?: boolean;
@@ -394,6 +411,9 @@ export interface TrackerState {
 	};
 	studyDump?: StudyDumpState;
 	onboarded?: boolean;
+	/** Missing means BT, so legacy accounts keep the native BT experience. */
+	coaching_type?: CoachingType;
+	coaching_name?: string;
 }
 
 export interface StateSnapshot {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { tracker, updateTracker, celebration, addTodos } from '$lib/stores/tracker';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { uiClick } from '$lib/utils/feedback';
@@ -34,6 +35,12 @@
 		isFocused = false;
 		commitToStore(text);
 	}
+
+	onDestroy(() => {
+		clearTimeout(saveDebounce);
+		clearTimeout(copyTimeout);
+		commitToStore(text);
+	});
 
 	function insertSnippet(snippet: string) {
 		uiClick();

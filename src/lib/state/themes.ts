@@ -112,7 +112,7 @@ const CDN_BASE = (import.meta.env.PUBLIC_WALLPAPER_CDN_URL ?? '').replace(/\/$/,
 const videoWp = (name: string) => (CDN_BASE ? `${CDN_BASE}/${encodeURIComponent(name)}` : `/videos/${name}`);
 
 export const THEME_PRESETS: ThemePreset[] = [
-	{ id: 'light', label: 'Daylight', blurb: 'Clean neutral default', accent: '#6d5dfc', dark: false, confetti: ['#6d5dfc', '#d99a2b', '#ffffff'] },
+	{ id: 'light', label: 'Daylight', blurb: 'Crisp high-contrast daylight look', accent: '#6d5dfc', dark: false, confetti: ['#6d5dfc', '#ffd700', '#2af598', '#00f2fe', '#ff3366'] },
 	{ id: 'dark', label: 'Midnight', blurb: 'Low-light night study', accent: '#8b7bff', dark: true, confetti: ['#8b7bff', '#6d5dfc', '#ffffff'] },
 	{ id: 'notion', label: 'Notion Paper', blurb: 'Warm minimal workspace', accent: '#2383e2', dark: false, confetti: ['#2383e2', '#8f979f', '#ffffff'] },
 	{ id: 'duolingo', label: 'Duolingo', blurb: 'Bright playful green', accent: '#46a302', dark: false, confetti: ['#46a302', '#89e219', '#ffc800', '#ffffff'] },

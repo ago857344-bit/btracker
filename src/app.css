@@ -1,4 +1,20 @@
 @import 'katex/dist/katex.min.css';
+
+@font-face {
+  font-family: 'Inter';
+  src: url('/fonts/inter-latin.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/fonts/plus-jakarta-sans-latin.woff2') format('woff2');
+  font-weight: 500 800;
+  font-style: normal;
+  font-display: swap;
+}
 :root {
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", system-ui, "Helvetica Neue", Inter, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -14,15 +30,15 @@
   --surface-subtle: #f0eff9;
   --text-primary: #24213a;
   --text-secondary: #716e86;
-  --text-tertiary: color-mix(in srgb, var(--text-secondary) 75%, transparent);
+  --text-tertiary: #8f8ba8;
   --border-subtle: #e7e5f1;
   --accent: #6d5dfc;
-  --accent-strong: #5142df;
+  --accent-strong: #5948f7;
   --accent-soft: #ebe9ff;
   --accent-contrast: #ffffff;
-  --success: #42b883;
-  --warning: #f6ad55;
-  --danger: #ef6c7b;
+  --success: #2f9e6e;
+  --warning: #d99a2b;
+  --danger: #e0455a;
   --radius-card: 22px;
   --radius-control: 14px;
   --ease-ios-spring: cubic-bezier(0.32, 0.72, 0, 1);
@@ -32,21 +48,46 @@
   --shadow-modal: 0 24px 60px -10px rgb(44 37 92 / 25%), 0 12px 24px rgb(44 37 92 / 15%);
   --shadow-hover: 0 10px 15px -3px rgb(44 37 92 / 6%), 0 24px 50px -8px rgb(44 37 92 / 18%);
 
-  /* Apple VisionOS / Adaptive Acrylic Tokens (Adaptive dark glass default) */
-  --vision-glass-bg: color-mix(in srgb, var(--surface-panel, #1a1827) 84%, transparent);
+  /* Apple VisionOS / Light Acrylic Tokens */
+  --vision-glass-bg: color-mix(in srgb, #ffffff 88%, transparent);
   --vision-glass-blur: blur(24px) saturate(185%);
-  --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.08), inset 0 0 0 1px rgba(255, 255, 255, 0.035);
-  --vision-bevel-border: color-mix(in srgb, var(--border-subtle, rgba(255, 255, 255, 0.1)) 80%, rgba(255, 255, 255, 0.08));
-  --vision-specular-sheen: color-mix(in srgb, var(--accent, #6d5dfc) 15%, rgba(255, 255, 255, 0.08));
-  --vision-specular-beam: color-mix(in srgb, var(--accent, #6d5dfc) 75%, rgba(255, 255, 255, 0.45));
+  --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --vision-bevel-border: color-mix(in srgb, var(--border-subtle, #e7e5f1) 85%, rgba(0, 0, 0, 0.06));
 
   /* Adaptive Popup Token */
-  --surface-popup: rgba(18, 16, 32, 0.96);
-  --surface-popup-solid: var(--surface-panel, #1a1827);
-  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.12));
+  --surface-popup: rgba(255, 255, 255, 0.96);
+  --surface-popup-solid: #ffffff;
+  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08));
 }
 
-:root[data-theme='light'],
+:root[data-theme='light'] {
+  color-scheme: light;
+  --surface-canvas: #f7f7fb;
+  --surface-panel: #ffffff;
+  --surface-subtle: #f0eff9;
+  --text-primary: #24213a;
+  --text-secondary: #716e86;
+  --text-tertiary: #8f8ba8;
+  --border-subtle: #e7e5f1;
+  --accent: #6d5dfc;
+  --accent-strong: #5948f7;
+  --accent-soft: #ebe9ff;
+  --accent-contrast: #ffffff;
+  --shadow-card: 0 4px 6px -1px rgb(44 37 92 / 5%), 0 14px 40px -4px rgb(44 37 92 / 12%);
+  --shadow-modal: 0 24px 60px -10px rgb(44 37 92 / 25%), 0 12px 24px rgb(44 37 92 / 15%);
+  --shadow-hover: 0 10px 15px -3px rgb(44 37 92 / 6%), 0 24px 50px -8px rgb(44 37 92 / 18%);
+
+  /* Light Acrylic Tokens */
+  --vision-glass-bg: color-mix(in srgb, #ffffff 88%, transparent);
+  --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  --vision-bevel-border: color-mix(in srgb, var(--border-subtle) 85%, rgba(0, 0, 0, 0.06));
+
+  /* Light Acrylic Popup Token */
+  --surface-popup: rgba(255, 255, 255, 0.96);
+  --surface-popup-solid: #ffffff;
+  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08));
+}
+
 :root[data-theme='notion'],
 :root[data-theme='duolingo'],
 :root[data-theme='anki'],
@@ -68,8 +109,6 @@
   --vision-glass-bg: color-mix(in srgb, #ffffff 88%, transparent);
   --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 0 0 1px rgba(0, 0, 0, 0.04);
   --vision-bevel-border: color-mix(in srgb, var(--border-subtle) 85%, rgba(0, 0, 0, 0.06));
-  --vision-specular-sheen: color-mix(in srgb, var(--accent, #6d5dfc) 10%, rgba(255, 255, 255, 0.55));
-  --vision-specular-beam: color-mix(in srgb, var(--accent, #6d5dfc) 45%, rgba(255, 255, 255, 0.75));
 
   /* Light Acrylic Popup Token */
   --surface-popup: rgba(255, 255, 255, 0.96);
@@ -113,8 +152,6 @@
   --vision-glass-blur: blur(24px) saturate(185%);
   --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 0 0 1px rgba(255, 255, 255, 0.035);
   --vision-bevel-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(255, 255, 255, 0.12));
-  --vision-specular-sheen: rgba(255, 255, 255, 0.075);
-  --vision-specular-beam: color-mix(in srgb, var(--accent, #6d5dfc) 55%, rgba(255, 255, 255, 0.5));
 
   /* Universal Smoked Acrylic Popup & Floating Overlay Token (Strict 96% Opacity) */
   --surface-popup: rgba(18, 16, 32, 0.96);
@@ -455,7 +492,7 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 }
 
 /* ========================================================================= */
-/* APPLE VISIONOS / SMOKED GLASS & SPECULAR CURSOR GLOW (PHASE 2)           */
+/* APPLE VISIONOS / SMOKED GLASS (PHASE 2)                                 */
 /* ========================================================================= */
 
 .specular-card,
@@ -521,145 +558,6 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 }
 
 @media (hover: hover) and (pointer: fine) {
-	/* Specular Surface Illumination Beam */
-	.specular-card::before,
-	.bento-card::before,
-	.widget::before,
-	.panel::before,
-	.sec::before,
-	.r-card::before,
-	.chapter-card::before,
-	.kpi::before,
-	.day-detail::before,
-	.your-goals::before,
-	.auth-card::before,
-	.question-list::before,
-	.top-widget-slot::before,
-	.flat-pane::before,
-	.heatmap-flat-pane::before,
-	.hero-timer-card::before,
-	.mission-card::before,
-	.rail-card::before,
-	.subject-card::before,
-	.kpi-hero-card::before,
-	.sub-pocket-card::before,
-	.pocket-exam-card::before,
-	.cadence-card::before,
-	.pocket-quote-card::before {
-		content: "";
-		position: absolute;
-		inset: 0;
-		border-radius: inherit;
-		pointer-events: none;
-		z-index: 1;
-		opacity: 0;
-		transition: opacity 0.3s ease;
-		background: radial-gradient(
-			520px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
-			var(--vision-specular-sheen),
-			transparent 65%
-		);
-	}
-
-	/* Specular Machined Border Beam (Edge Refraction) */
-	.specular-card::after,
-	.bento-card::after,
-	.widget::after,
-	.panel::after,
-	.sec::after,
-	.r-card::after,
-	.chapter-card::after,
-	.kpi::after,
-	.day-detail::after,
-	.your-goals::after,
-	.auth-card::after,
-	.question-list::after,
-	.top-widget-slot::after,
-	.flat-pane::after,
-	.heatmap-flat-pane::after,
-	.hero-timer-card::after,
-	.mission-card::after,
-	.rail-card::after,
-	.subject-card::after,
-	.kpi-hero-card::after,
-	.sub-pocket-card::after,
-	.pocket-exam-card::after,
-	.cadence-card::after,
-	.pocket-quote-card::after {
-		content: "";
-		position: absolute;
-		inset: 0;
-		border-radius: inherit;
-		padding: 1px;
-		pointer-events: none;
-		z-index: 2;
-		opacity: 0;
-		transition: opacity 0.35s ease;
-		background: radial-gradient(
-			380px circle at var(--mouse-x, -999px) var(--mouse-y, -999px),
-			var(--vision-specular-beam),
-			transparent 70%
-		);
-		-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-		mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-		-webkit-mask-composite: xor;
-		mask-composite: exclude;
-	}
-
-	.specular-card:hover::before,
-	.bento-card:hover::before,
-	.widget:hover::before,
-	.panel:hover::before,
-	.sec:hover::before,
-	.r-card:hover::before,
-	.chapter-card:hover::before,
-	.kpi:hover::before,
-	.day-detail:hover::before,
-	.your-goals:hover::before,
-	.auth-card:hover::before,
-	.question-list:hover::before,
-	.top-widget-slot:hover::before,
-	.flat-pane:hover::before,
-	.heatmap-flat-pane:hover::before,
-	.hero-timer-card:hover::before,
-	.mission-card:hover::before,
-	.rail-card:hover::before,
-	.subject-card:hover::before,
-	.kpi-hero-card:hover::before,
-	.sub-pocket-card:hover::before,
-	.pocket-exam-card:hover::before,
-	.cadence-card:hover::before,
-	.pocket-quote-card:hover::before {
-		opacity: 1;
-	}
-
-	.specular-card:hover::after,
-	.bento-card:hover::after,
-	.widget:hover::after,
-	.panel:hover::after,
-	.sec:hover::after,
-	.r-card:hover::after,
-	.chapter-card:hover::after,
-	.kpi:hover::after,
-	.day-detail:hover::after,
-	.your-goals:hover::after,
-	.auth-card:hover::after,
-	.question-list:hover::after,
-	.top-widget-slot:hover::after,
-	.flat-pane:hover::after,
-	.heatmap-flat-pane:hover::after,
-	.hero-timer-card:hover::after,
-	.mission-card:hover::after,
-	.rail-card:hover::after,
-	.subject-card:hover::after,
-	.kpi-hero-card:hover::after,
-	.sub-pocket-card:hover::after,
-	.pocket-exam-card:hover::after,
-	.cadence-card:hover::after,
-	.pocket-quote-card:hover::after {
-		opacity: 1;
-	}
-
 	/* Apple VisionOS spring elevation lift & luminous accent highlight */
 	.specular-card:hover,
 	.bento-card:hover,
@@ -704,7 +602,7 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 		transition: transform 0.12s var(--ease-ios-press, cubic-bezier(0.2, 0.9, 0.3, 1));
 	}
 
-	/* Elevate content above specular shine layers */
+	/* Keep card content above background layers */
 	.widget > *,
 	.panel > *,
 	.sec > *,
@@ -1127,7 +1025,6 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 .selbar,
 .rangebar,
 .ai-report,
-.profile-container,
 aside.mobile-open {
 	/* Dense 96% opacity prevents underlying text bleed-through while keeping glass depth */
 	background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
@@ -1142,11 +1039,11 @@ aside.mobile-open {
 }
 
 /* Light Mode Acrylic Tokens */
-:root[data-theme='light'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
-:root[data-theme='notion'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
-:root[data-theme='duolingo'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
-:root[data-theme='anki'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
-:root[data-theme='master'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open) {
+:root[data-theme='light'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
+:root[data-theme='notion'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
+:root[data-theme='duolingo'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
+:root[data-theme='anki'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
+:root[data-theme='master'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open) {
 	background: var(--surface-popup, rgba(255, 255, 255, 0.96)) !important;
 	border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08)) !important;
 	box-shadow:
@@ -1607,21 +1504,29 @@ aside.mobile-open {
 /* UNIVERSAL POPUP, MENU, SIDEBAR & BOTTOM-NAV IMMUNITY                      */
 /* Popups and floating overlays strictly maintain 96% dense smoked acrylic  */
 /* ========================================================================= */
-:root[data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .profile-container, aside.mobile-open),
-:root[data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .profile-container, aside.mobile-open) {
+:root[data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, aside.mobile-open),
+:root[data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, aside.mobile-open) {
 	background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
 	backdrop-filter: blur(36px) saturate(210%) !important;
 	-webkit-backdrop-filter: blur(36px) saturate(210%) !important;
 	border: 1px solid var(--surface-popup-border, color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16))) !important;
 }
 
-:root[data-theme='light'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
-:root[data-theme='light'][data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
-:root[data-theme='notion'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
-:root[data-theme='duolingo'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
-:root[data-theme='anki'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open),
-:root[data-theme='master'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .profile-container, aside.mobile-open) {
+:root[data-theme='light'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
+:root[data-theme='light'][data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
+:root[data-theme='notion'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
+:root[data-theme='duolingo'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
+:root[data-theme='anki'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open),
+:root[data-theme='master'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, aside.mobile-open) {
 	background: var(--surface-popup, rgba(255, 255, 255, 0.96)) !important;
+}
+
+/* The docked profile card is sidebar chrome, not a popup: it follows the
+   sidebar's glass surface so themed wallpapers read through it. */
+:root[data-clear-glass='true'] .profile-container {
+	background: transparent !important;
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
 }
 
 /* Desktop Sidebar Glass: Follows dynamic opacity slider across all themes */
@@ -1670,4 +1575,14 @@ aside.glass:not(.mobile-open) {
 /* ========================================================================= */
 body[data-sheet-open="true"] {
 	overflow: hidden;
+}
+
+/* Marketing preview iframe: image-like frame, never scrolls. */
+html.btracker-preview,
+html.btracker-preview body {
+	overflow: hidden;
+	scrollbar-width: none;
+}
+html.btracker-preview ::-webkit-scrollbar {
+	display: none;
 }

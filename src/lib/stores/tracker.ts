@@ -7,9 +7,10 @@ import { cellKey, questionCount, questionKey, syllabusChapter } from '$lib/state
 import { isDone, isFlag, resultOf, setDone, setFlag, setResult, setStars, starsOf, subjectStats } from '$lib/state/questions';
 import { applyEloResult, ascend, canAscend } from '$lib/state/gamification';
 import { updateDecayAfterRevision } from '$lib/state/decay';
+import { DEFAULT_BT_NAME } from '$lib/state/coaching';
 import type {
 	GoalTarget, HomeworkItem, StudySession, TimerState, TrackerGoal, TrackerState, WidgetLayout,
-	ConfidenceRating, CoachingTimetable, TimetablePeriod, StudyFlowMode
+	ConfidenceRating, CoachingTimetable, TimetablePeriod, StudyFlowMode, CoachingType, UniversalSource
 } from '$lib/types/tracker';
 
 export const tracker = writable<TrackerState>(createInitialTrackerState());
@@ -256,6 +257,14 @@ export function closeFeynmanDuck() {
 	feynmanDuckOpen.set(false);
 }
 
+export const wrappedStoryOpen = writable(false);
+export function openWrappedStory() {
+	wrappedStoryOpen.set(true);
+}
+export function closeWrappedStory() {
+	wrappedStoryOpen.set(false);
+}
+
 export { testDaySheetOpen, openTestDaySheet, closeTestDaySheet } from '$lib/stores/testDaySheet';
 
 export function addFlashcard(card: { front: string; back: string; subject: string; chapter: string }) {
@@ -276,6 +285,12 @@ export function addFlashcard(card: { front: string; back: string; subject: strin
 }
 
 export function setProfileName(name: string) { updateTracker((s) => { s.meta.name = name; }); }
+export function updateCoachingProfile(type: CoachingType, name: string) {
+	updateTracker((s) => {
+		s.coaching_type = type;
+		s.coaching_name = type === 'BT' ? DEFAULT_BT_NAME : (name.trim() || 'Other');
+	});
+}
 export function setExamDate(date: string | null) { updateTracker((s) => { s.meta.exam = date; }); }
 export function setWeeklyGoalHours(hours: number) { updateTracker((s) => { s.meta.weekGoalH = Math.max(1, Math.round(hours)); }); }
 export function setStreakGoalHours(hours: number) { updateTracker((s) => { s.meta.streakGoalH = Math.max(1, Math.round(hours)); }); }
@@ -672,6 +687,57 @@ export function addSubjectSession(input: { sub: string; ch: string; att: number;
 	});
 }
 
+export interface UniversalSessionInput {
+	sub: string;
+	ch: string;
+	source: UniversalSource;
+	sourceName?: string;
+	label?: string;
+	att: number;
+	solved: number;
+	doubt?: number;
+}
+
+export function logUniversalSession(input: UniversalSessionInput): string {
+	const id = uid();
+	updateTracker((s) => {
+		const day = todayKey();
+		const att = Math.max(0, Math.round(Number(input.att) || 0));
+		const solved = Math.min(att, Math.max(0, Math.round(Number(input.solved) || 0)));
+		const doubt = Math.min(solved, Math.max(0, Math.round(Number(input.doubt) || 0)));
+		s.sess.unshift({
+			id, day, sub: input.sub, ch: input.ch.trim() || 'General', att, cor: solved, at: Date.now(),
+			kind: 'universal', source: input.source,
+			sourceName: input.sourceName?.trim() || undefined,
+			label: input.label?.trim() || undefined,
+			doubt
+		});
+		const bucket = s.stat[day] ?? (s.stat[day] = {});
+		bucket[input.sub] = (Number(bucket[input.sub]) || 0) + solved;
+		if (!s.gamification) s.gamification = { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } };
+		if (att > 0) {
+			s.gamification.xp += 10 * solved;
+			applyEloResult(s.gamification, input.sub, (solved / att) * 100, 100, Math.min(1, Math.max(1, att) * 0.01));
+		}
+	});
+	return id;
+}
+
+export function deleteUniversalSession(id: string) {
+	updateTracker((s) => {
+		const entry = s.sess.find((candidate) => candidate.id === id && candidate.kind === 'universal');
+		if (!entry) return;
+		s.sess = s.sess.filter((candidate) => candidate.id !== id);
+		// Keep the day/subject heatmap honest when an accidental log is removed.
+		const bucket = s.stat[entry.day] ?? (s.stat[entry.day] = {});
+		const next = Math.max(0, (Number(bucket[entry.sub]) || 0) - (Number(entry.cor) || 0));
+		if (next > 0) bucket[entry.sub] = next;
+		else delete bucket[entry.sub];
+		if (!Object.keys(bucket).length) delete s.stat[entry.day];
+		if (s.gamification) s.gamification.xp = Math.max(0, s.gamification.xp - 10 * (Number(entry.cor) || 0));
+	});
+}
+
 export function logManualMinutes(minutes: number, subject: string | null, chapter?: string | null) {
 	const start = Math.floor(Date.now() / 60000) - minutes;
 	logStudySession([start, minutes, 'Manual', null, undefined, undefined, undefined, subject ?? undefined, chapter ?? undefined]);
@@ -796,6 +862,14 @@ export const recentActivity = derived(tracker, ($t): ActivityEntry[] => {
 
 export const subjectSolvedTotals = derived(tracker, ($t) => {
 	const out: Record<string, number> = { P: 0, C: 0, M: 0 };
+	if ($t.coaching_type === 'GENERIC') {
+		// Universal entries carry cumulative solved counts in the practice ledger,
+		// unlike BT bitmasks which need the max-of-buckets fallback below.
+		for (const entry of $t.sess ?? []) {
+			if (entry.sub in out) out[entry.sub] += Math.max(0, Number(entry.cor) || 0);
+		}
+		return out;
+	}
 	if ($t.d) {
 		for (const [key, arr] of Object.entries($t.d)) {
 			const sc = key.charAt(0);

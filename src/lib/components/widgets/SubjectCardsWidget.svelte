@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import SubjectHubModal from '$lib/components/widgets/SubjectHubModal.svelte';
 	import { subjectSolvedTotals, tracker } from '$lib/stores/tracker';
 	import { SUBJECTS } from '$lib/state/subjects';
+	import { universalBySubject, universalEntries } from '$lib/state/universal';
 	import { getEloRank } from '$lib/state/gamification';
 	import { subjectStats, pctOf } from '$lib/state/questions';
 
@@ -11,7 +13,16 @@
 
 	function openHub(code: string) { hubSub = code; hubOpen = true; }
 
+	$: isGeneric = $tracker.coaching_type === 'GENERIC';
+	$: genericRows = Object.fromEntries(
+		universalBySubject(universalEntries($tracker)).map((row) => [row.code, row])
+	);
 	$: dailyGoal = $tracker.goals.day.q;
+
+	function openSubject(code: string) {
+		if (isGeneric) void goto('/log');
+		else openHub(code);
+	}
 </script>
 
 <div class="cards">
@@ -19,8 +30,10 @@
 		{@const st = subjectStats($tracker, subject.code)}
 		{@const eloVal = ($tracker.gamification?.elo || { P: 300, C: 300, M: 300 })[subject.code as "P" | "C" | "M"] || 300}
 		{@const elo = getEloRank(eloVal)}
-		{@const solvedCount = Math.max($subjectSolvedTotals[subject.code] ?? 0, st.done)}
-		<button type="button" class="subject-card specular-card" style="--sub: {subject.color}" on:click={() => openHub(subject.code)}>
+		{@const genericRow = genericRows[subject.code]}
+		{@const solvedCount = isGeneric ? ($subjectSolvedTotals[subject.code] ?? 0) : Math.max($subjectSolvedTotals[subject.code] ?? 0, st.done)}
+		{@const progress = isGeneric ? (genericRow?.accuracy ?? 0) : pctOf(st)}
+		<button type="button" class="subject-card specular-card" style="--sub: {subject.color}" on:click={() => openSubject(subject.code)}>
 			<span class="subject-tint" aria-hidden="true"></span>
 			<span class="icon"><NavIcon name={subject.icon as any} size={18} /></span>
 			<span class="name">{subject.name}</span>
@@ -30,15 +43,17 @@
 			</span>
 			<span class="solved-wrap">
 				<b class="solved">{solvedCount.toLocaleString()}</b>
-				<small>Solved · {pctOf(st)}%</small>
+				<small>{isGeneric ? `Solved · ${progress}% accuracy` : `Solved · ${progress}%`}</small>
 			</span>
-			<div class="bar-mini"><i style="width: {pctOf(st)}%; background: {subject.color}"></i></div>
-			<span class="open">Open hub <NavIcon name="arrow-right" size={13} /></span>
+			<div class="bar-mini"><i style="width: {progress}%; background: {subject.color}"></i></div>
+			<span class="open">{isGeneric ? 'Open study log' : 'Open hub'} <NavIcon name="arrow-right" size={13} /></span>
 		</button>
 	{/each}
 </div>
 
-<SubjectHubModal bind:open={hubOpen} sub={hubSub} />
+{#if !isGeneric}
+	<SubjectHubModal bind:open={hubOpen} sub={hubSub} />
+{/if}
 
 <style>
 	.cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .7rem; height: 100%; }

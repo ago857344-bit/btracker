@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { fade, slide } from 'svelte/transition';
+	import { goto } from '$app/navigation';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import SubjectHubModal from '$lib/components/widgets/SubjectHubModal.svelte';
 	import { globalTimer } from '$lib/stores/timerState';
@@ -17,10 +18,15 @@
 
 	let activeTab: 'missions' | 'chapters' = 'missions';
 	let mobileFocusTab: 'timer' | 'deck' | 'support' = 'timer';
+	$: isGeneric = $tracker.coaching_type === 'GENERIC';
 	let hubOpen = false;
 	let hubSub = 'P';
 
 	function openHub(code: string) {
+		if (isGeneric) {
+			void goto('/log');
+			return;
+		}
 		hubSub = code;
 		hubOpen = true;
 	}
@@ -670,9 +676,9 @@
 				<div class="card-head-row">
 					<span class="eyebrow-tag flex-inline">
 						<NavIcon name="layers" size={13} />
-						SUBJECT HUBS
+						{isGeneric ? 'STUDY LOG' : 'SUBJECT HUBS'}
 					</span>
-					<span class="hubs-hint">Click to launch</span>
+					<span class="hubs-hint">{isGeneric ? 'Log a session' : 'Click to launch'}</span>
 				</div>
 
 				<div class="subjects-quick-stack">
@@ -698,7 +704,9 @@
 	</div>
 </div>
 
-<SubjectHubModal bind:open={hubOpen} sub={hubSub} />
+{#if !isGeneric}
+	<SubjectHubModal bind:open={hubOpen} sub={hubSub} />
+{/if}
 
 <style>
 	/* ========================================================================= */

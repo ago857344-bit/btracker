@@ -13,12 +13,14 @@
 
 	let currentSlide = 0;
 	const TOTAL_SLIDES = 5;
+	const SLIDES = [0, 1, 2, 3, 4];
 	const SLIDE_DURATION_MS = 6500;
 
 	let slideTimer: ReturnType<typeof setInterval> | undefined;
 	let progress = 0;
 	let isPaused = false;
 	let isExporting = false;
+	let wasOpen = false;
 
 	// 1. Calculate Wrapped Metrics
 	$: candidateName = $tracker.meta?.name || 'Aspirant';
@@ -159,16 +161,24 @@
 		};
 	})();
 
+	function cleanupTimer() {
+		if (slideTimer) {
+			clearInterval(slideTimer);
+			slideTimer = undefined;
+		}
+	}
+
 	function startTimer() {
-		clearInterval(slideTimer);
+		cleanupTimer();
 		progress = 0;
-		const step = 50;
+		const step = 40;
 		const totalSteps = SLIDE_DURATION_MS / step;
 
 		slideTimer = setInterval(() => {
 			if (isPaused) return;
 			progress += 100 / totalSteps;
 			if (progress >= 100) {
+				progress = 100;
 				nextSlide();
 			}
 		}, step);
@@ -177,28 +187,52 @@
 	function nextSlide() {
 		if (currentSlide < TOTAL_SLIDES - 1) {
 			currentSlide++;
+			progress = 0;
 			startTimer();
 			uiClick();
 		} else {
-			clearInterval(slideTimer);
+			cleanupTimer();
+			progress = 100;
 		}
 	}
 
 	function prevSlide() {
 		if (currentSlide > 0) {
 			currentSlide--;
+			progress = 0;
+			startTimer();
+			uiClick();
+		} else {
+			progress = 0;
+		}
+	}
+
+	function jumpToSlide(idx: number) {
+		if (idx >= 0 && idx < TOTAL_SLIDES) {
+			currentSlide = idx;
+			progress = 0;
 			startTimer();
 			uiClick();
 		}
 	}
 
-	function jumpToSlide(idx: number) {
-		currentSlide = idx;
-		startTimer();
+	function togglePause() {
+		isPaused = !isPaused;
 		uiClick();
 	}
 
+	function handlePointerDown(e: PointerEvent) {
+		const target = e.target as HTMLElement | null;
+		if (target?.closest('button, a, input, select, [role="button"]')) return;
+		isPaused = true;
+	}
+
+	function handlePointerUp() {
+		isPaused = false;
+	}
+
 	async function downloadWrappedPoster() {
+		if (isExporting) return;
 		isExporting = true;
 		try {
 			const blob = await renderReportImage(weeklyReport);
@@ -219,249 +253,305 @@
 		}
 	}
 
-	$: if (open) {
+	$: if (open && !wasOpen) {
+		wasOpen = true;
 		currentSlide = 0;
+		progress = 0;
+		isPaused = false;
+		if (typeof document !== 'undefined') {
+			document.body.style.overflow = 'hidden';
+		}
 		startTimer();
-	} else {
-		clearInterval(slideTimer);
+	} else if (!open && wasOpen) {
+		wasOpen = false;
+		cleanupTimer();
+		if (typeof document !== 'undefined') {
+			document.body.style.overflow = '';
+		}
 	}
 
 	onDestroy(() => {
-		clearInterval(slideTimer);
+		cleanupTimer();
+		if (typeof document !== 'undefined') {
+			document.body.style.overflow = '';
+		}
 	});
 </script>
 
 <svelte:window on:keydown={(e) => {
 	if (!open) return;
-	if (e.key === 'ArrowRight' || e.key === ' ') nextSlide();
-	if (e.key === 'ArrowLeft') prevSlide();
-	if (e.key === 'Escape') open = false;
+	if (e.key === 'ArrowRight') { e.preventDefault(); nextSlide(); }
+	else if (e.key === 'ArrowLeft') { e.preventDefault(); prevSlide(); }
+	else if (e.key === ' ') { e.preventDefault(); togglePause(); }
+	else if (e.key === 'Escape') { e.preventDefault(); open = false; }
 }} />
 
 {#if open}
-	<div
-		class="wrapped-backdrop"
-		transition:fade={{ duration: 200 }}
-		on:click={() => (open = false)}
-		on:keydown={(e) => e.key === 'Escape' && (open = false)}
-		role="button"
-		tabindex="-1"
-		aria-label="Close Story Modal"
-	></div>
+	<div class="wrapped-overlay-root" role="presentation">
+		<button
+			type="button"
+			class="wrapped-backdrop"
+			transition:fade={{ duration: 180 }}
+			on:click={() => (open = false)}
+			aria-label="Close Story Modal"
+			tabindex="-1"
+		></button>
 
-	<div
-		class="wrapped-modal"
-		transition:scale={{ start: 0.94, duration: 260 }}
-		on:mouseenter={() => (isPaused = true)}
-		on:mouseleave={() => (isPaused = false)}
-		role="dialog"
-		tabindex="-1"
-		aria-modal="true"
-	>
-		<!-- Cosmic Shader Background -->
-		<div class="shader-background slide-{currentSlide}" style="--user-accent: {archetype.color};"></div>
+		<div
+			class="wrapped-modal"
+			transition:scale={{ start: 0.94, duration: 220 }}
+			on:pointerdown={handlePointerDown}
+			on:pointerup={handlePointerUp}
+			on:pointercancel={handlePointerUp}
+			role="dialog"
+			tabindex="-1"
+			aria-modal="true"
+		>
+			<!-- Cosmic Shader Background -->
+			<div class="shader-background slide-{currentSlide}" style="--user-accent: {archetype.color};"></div>
 
-		<!-- Top Story Progress Bars -->
-		<div class="story-progress-strip">
-			{#each Array(TOTAL_SLIDES) as _, idx}
-				<div
-					class="progress-segment"
-					on:click={() => jumpToSlide(idx)}
-					on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && jumpToSlide(idx)}
-					role="button"
-					tabindex="0"
-					aria-label="Jump to slide {idx + 1}"
-				>
-					<div
-						class="segment-fill"
-						style="width: {idx < currentSlide ? '100%' : idx === currentSlide ? `${progress}%` : '0%'};"
-					></div>
-				</div>
-			{/each}
-		</div>
-
-		<!-- Story Header -->
-		<header class="story-header">
-			<div class="brand-row">
-				<div class="logo-chip">BTRACKER</div>
-				<span class="wrapped-title">SEASON WRAPPED</span>
+			<!-- Top Story Progress Bars -->
+			<div class="story-progress-strip">
+				{#each SLIDES as idx (idx)}
+					<button
+						type="button"
+						class="progress-segment"
+						class:active={idx === currentSlide}
+						class:completed={idx < currentSlide}
+						on:click|stopPropagation={() => jumpToSlide(idx)}
+						aria-label="Jump to slide {idx + 1}"
+					>
+						<div
+							class="segment-fill"
+							style="width: {idx < currentSlide ? '100%' : idx === currentSlide ? `${progress}%` : '0%'};"
+						></div>
+					</button>
+				{/each}
 			</div>
-			<button type="button" class="btn-close-story" on:click={() => (open = false)}>
-				<NavIcon name="x" size={18} />
-			</button>
-		</header>
 
-		<!-- Interactive Slide Container -->
-		<div class="story-content-viewport">
-			<!-- Slide 0: Total Output & Focus Volume -->
-			{#if currentSlide === 0}
-				<div class="slide-card" in:fly={{ y: 20, duration: 300 }}>
-					<span class="slide-subtitle font-mono">YOUR STUDY HARVEST</span>
-					<h1 class="giant-stat-number">{totalQuestions}</h1>
-					<p class="stat-unit font-mono">QUESTIONS SOLVED</p>
-
-					<div class="stat-pills-row">
-						<div class="stat-pill">
-							<b>{totalFocusHours}h</b>
-							<small>Focus Time</small>
-						</div>
-						<div class="stat-pill">
-							<b>{accuracyPercent}%</b>
-							<small>Accuracy Rate</small>
-						</div>
-						<div class="stat-pill">
-							<b>{$streakDays} Days</b>
-							<small>Hot Streak 🔥</small>
-						</div>
-					</div>
-
-					<p class="slide-editorial">
-						You put in the hours when nobody was watching. That's how ranks are built.
-					</p>
+			<!-- Story Header -->
+			<header class="story-header">
+				<div class="brand-row">
+					<div class="logo-chip">BTRACKER</div>
+					<span class="wrapped-title">SEASON WRAPPED</span>
 				</div>
-
-			<!-- Slide 1: Study Archetype (Chronotype) -->
-			{:else if currentSlide === 1}
-				<div class="slide-card" in:fly={{ y: 20, duration: 300 }}>
-					<span class="slide-subtitle font-mono">YOUR STUDY ARCHETYPE</span>
-					<div class="archetype-icon-wrapper" style="--arch-color: {archetype.color}">
-						<span class="archetype-emoji">{archetype.emoji}</span>
-					</div>
-					<h2 class="archetype-name">{archetype.name}</h2>
-					<span class="archetype-tagline font-mono">{archetype.tagline}</span>
-
-					<div class="archetype-card">
-						<p>{archetype.desc}</p>
-					</div>
+				<div class="header-actions">
+					<button type="button" class="btn-ctrl-story" on:click|stopPropagation={togglePause} title={isPaused ? "Play (Space)" : "Pause (Space)"} aria-label={isPaused ? "Play Story" : "Pause Story"}>
+						<NavIcon name={isPaused ? "play" : "pause"} size={13} />
+					</button>
+					<button type="button" class="btn-ctrl-story btn-close-story" on:click|stopPropagation={() => (open = false)} title="Close (Esc)" aria-label="Close Story">
+						<NavIcon name="x" size={17} />
+					</button>
 				</div>
+			</header>
 
-			<!-- Slide 2: Most Crushed Chapter -->
-			{:else if currentSlide === 2}
-				<div class="slide-card" in:fly={{ y: 20, duration: 300 }}>
-					<span class="slide-subtitle font-mono">CHAPTER OF THE SEASON</span>
-					<div class="trophy-badge-wrap">
-						<NavIcon name="trophy" size={32} />
-					</div>
-					<h2 class="crushed-title">{crushedChapter.name}</h2>
-					<span class="crushed-sub font-mono">{crushedChapter.subject} MASTERED</span>
+			<!-- Interactive Slide Container -->
+			<div class="story-content-viewport">
+				<!-- Slide 0: Total Output & Focus Volume -->
+				{#if currentSlide === 0}
+					<div class="slide-card" in:fly={{ y: 20, duration: 300 }}>
+						<span class="slide-subtitle font-mono">YOUR STUDY HARVEST</span>
+						<h1 class="giant-stat-number">{totalQuestions}</h1>
+						<p class="stat-unit font-mono">QUESTIONS SOLVED</p>
 
-					<div class="crushed-stats-grid">
-						<div class="c-stat">
-							<b>{crushedChapter.count}</b>
-							<small>Problems Solved</small>
-						</div>
-						<div class="c-stat">
-							<b>{crushedChapter.mastery}</b>
-							<small>Mastery Index</small>
-						</div>
-					</div>
-
-					<p class="slide-editorial">
-						A high-yield cornerstone conquered. Exam day won't catch you off guard here.
-					</p>
-				</div>
-
-			<!-- Slide 3: Biggest Elo Comeback -->
-			{:else if currentSlide === 3}
-				<div class="slide-card" in:fly={{ y: 20, duration: 300 }}>
-					<span class="slide-subtitle font-mono">BIGGEST ELO SURGE</span>
-					<div class="elo-surge-badge" style="--elo-c: {eloStats.color};">
-						<span class="surge-number">{eloStats.gain}</span>
-					</div>
-					<h2 class="crushed-title">{eloStats.subject} Dominance</h2>
-					<span class="crushed-sub font-mono">CURRENT ELO RATING: {eloStats.elo}</span>
-
-					<div class="elo-quote-card">
-						<p>“The difference between the master and the beginner is that the master has failed more times than the beginner has even tried.”</p>
-					</div>
-				</div>
-
-			<!-- Slide 4: Final Summary Poster & Share -->
-			{:else if currentSlide === 4}
-				<div class="slide-card final-slide" in:fly={{ y: 20, duration: 300 }}>
-					<div class="recap-card">
-						<div class="recap-header">
-							<b>{candidateName}</b>
-							<span class="recap-badge font-mono">{archetype.name}</span>
-						</div>
-
-						<div class="recap-grid">
-							<div class="r-cell">
-								<span class="r-label">QUESTIONS</span>
-								<b class="r-val">{totalQuestions}</b>
+						<div class="stat-pills-row">
+							<div class="stat-pill">
+								<b>{totalFocusHours}h</b>
+								<small>Focus Time</small>
 							</div>
-							<div class="r-cell">
-								<span class="r-label">FOCUS HOURS</span>
-								<b class="r-val">{totalFocusHours}h</b>
+							<div class="stat-pill">
+								<b>{accuracyPercent}%</b>
+								<small>Accuracy Rate</small>
 							</div>
-							<div class="r-cell">
-								<span class="r-label">ACCURACY</span>
-								<b class="r-val">{accuracyPercent}%</b>
-							</div>
-							<div class="r-cell">
-								<span class="r-label">TOP DOMAIN</span>
-								<b class="r-val">{eloStats.subject}</b>
+							<div class="stat-pill">
+								<b>{$streakDays} Days</b>
+								<small>Hot Streak 🔥</small>
 							</div>
 						</div>
+
+						<p class="slide-editorial">
+							You put in the hours when nobody was watching. That's how ranks are built.
+						</p>
 					</div>
 
-					<div class="final-actions">
-						<button type="button" class="btn-share-story" on:click={downloadWrappedPoster} disabled={isExporting}>
-							<NavIcon name="download" size={15} />
-							<span>{isExporting ? 'Generating...' : 'Save Wrapped Poster'}</span>
-						</button>
-						<button type="button" class="btn-restart" on:click={() => jumpToSlide(0)}>
-							<NavIcon name="history" size={14} /> Replay
-						</button>
+				<!-- Slide 1: Study Archetype (Chronotype) -->
+				{:else if currentSlide === 1}
+					<div class="slide-card" in:fly={{ y: 20, duration: 300 }}>
+						<span class="slide-subtitle font-mono">YOUR STUDY ARCHETYPE</span>
+						<div class="archetype-icon-wrapper" style="--arch-color: {archetype.color}">
+							<span class="archetype-emoji">{archetype.emoji}</span>
+						</div>
+						<h2 class="archetype-name">{archetype.name}</h2>
+						<span class="archetype-tagline font-mono">{archetype.tagline}</span>
+
+						<div class="archetype-card">
+							<p>{archetype.desc}</p>
+						</div>
 					</div>
-				</div>
+
+				<!-- Slide 2: Most Crushed Chapter -->
+				{:else if currentSlide === 2}
+					<div class="slide-card" in:fly={{ y: 20, duration: 300 }}>
+						<span class="slide-subtitle font-mono">CHAPTER OF THE SEASON</span>
+						<div class="trophy-badge-wrap">
+							<NavIcon name="trophy" size={32} />
+						</div>
+						<h2 class="crushed-title">{crushedChapter.name}</h2>
+						<span class="crushed-sub font-mono">{crushedChapter.subject} MASTERED</span>
+
+						<div class="crushed-stats-grid">
+							<div class="c-stat">
+								<b>{crushedChapter.count}</b>
+								<small>Problems Solved</small>
+							</div>
+							<div class="c-stat">
+								<b>{crushedChapter.mastery}</b>
+								<small>Mastery Index</small>
+							</div>
+						</div>
+
+						<p class="slide-editorial">
+							A high-yield cornerstone conquered. Exam day won't catch you off guard here.
+						</p>
+					</div>
+
+				<!-- Slide 3: Biggest Elo Comeback -->
+				{:else if currentSlide === 3}
+					<div class="slide-card" in:fly={{ y: 20, duration: 300 }}>
+						<span class="slide-subtitle font-mono">BIGGEST ELO SURGE</span>
+						<div class="elo-surge-badge" style="--elo-c: {eloStats.color};">
+							<span class="surge-number">{eloStats.gain}</span>
+						</div>
+						<h2 class="crushed-title">{eloStats.subject} Dominance</h2>
+						<span class="crushed-sub font-mono">CURRENT ELO RATING: {eloStats.elo}</span>
+
+						<div class="elo-quote-card">
+							<p>“The difference between the master and the beginner is that the master has failed more times than the beginner has even tried.”</p>
+						</div>
+					</div>
+
+				<!-- Slide 4: Final Summary Poster & Share -->
+				{:else if currentSlide === 4}
+					<div class="slide-card final-slide" in:fly={{ y: 20, duration: 300 }}>
+						<div class="recap-card">
+							<div class="recap-header">
+								<b>{candidateName}</b>
+								<span class="recap-badge font-mono">{archetype.name}</span>
+							</div>
+
+							<div class="recap-grid">
+								<div class="r-cell">
+									<span class="r-label">QUESTIONS</span>
+									<b class="r-val">{totalQuestions}</b>
+								</div>
+								<div class="r-cell">
+									<span class="r-label">FOCUS HOURS</span>
+									<b class="r-val">{totalFocusHours}h</b>
+								</div>
+								<div class="r-cell">
+									<span class="r-label">ACCURACY</span>
+									<b class="r-val">{accuracyPercent}%</b>
+								</div>
+								<div class="r-cell">
+									<span class="r-label">TOP DOMAIN</span>
+									<b class="r-val">{eloStats.subject}</b>
+								</div>
+							</div>
+						</div>
+
+						<div class="final-actions">
+							<button type="button" class="btn-share-story" on:click|stopPropagation={downloadWrappedPoster} disabled={isExporting}>
+								<NavIcon name="download" size={15} />
+								<span>{isExporting ? 'Generating...' : 'Save Wrapped Poster'}</span>
+							</button>
+							<button type="button" class="btn-restart" on:click|stopPropagation={() => jumpToSlide(0)}>
+								<NavIcon name="history" size={14} /> Replay
+							</button>
+						</div>
+					</div>
+				{/if}
+			</div>
+
+			<!-- Transparent Side Tap Zones for Story Navigation (behind interactive content) -->
+			{#if currentSlide > 0}
+				<button
+					type="button"
+					class="nav-zone zone-left"
+					on:click|stopPropagation={prevSlide}
+					aria-label="Previous Slide"
+					tabindex="-1"
+				></button>
+			{/if}
+			{#if currentSlide < TOTAL_SLIDES - 1}
+				<button
+					type="button"
+					class="nav-zone zone-right"
+					on:click|stopPropagation={nextSlide}
+					aria-label="Next Slide"
+					tabindex="-1"
+				></button>
+			{/if}
+
+			<!-- Floating Subtle Side Chevrons -->
+			{#if currentSlide > 0}
+				<button type="button" class="story-arrow arrow-left" on:click|stopPropagation={prevSlide} title="Previous slide (Left Arrow)" aria-label="Previous Slide">
+					<NavIcon name="chevron-left" size={15} />
+				</button>
+			{/if}
+			{#if currentSlide < TOTAL_SLIDES - 1}
+				<button type="button" class="story-arrow arrow-right" on:click|stopPropagation={nextSlide} title="Next slide (Right Arrow)" aria-label="Next Slide">
+					<NavIcon name="chevron-right" size={15} />
+				</button>
 			{/if}
 		</div>
-
-		<!-- Transparent Side Tap Zones for Story Navigation -->
-		<div
-			class="nav-zone zone-left"
-			on:click={prevSlide}
-			on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && prevSlide()}
-			role="button"
-			tabindex="0"
-			aria-label="Previous Slide"
-		></div>
-		<div
-			class="nav-zone zone-right"
-			on:click={nextSlide}
-			on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && nextSlide()}
-			role="button"
-			tabindex="0"
-			aria-label="Next Slide"
-		></div>
 	</div>
 {/if}
 
 <style>
-	.wrapped-backdrop {
+	.wrapped-overlay-root {
 		position: fixed;
 		inset: 0;
-		background: rgba(0, 0, 0, 0.84);
-		backdrop-filter: blur(14px);
-		-webkit-backdrop-filter: blur(14px);
-		z-index: 10010;
+		z-index: 999999;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: clamp(0.75rem, 2vh, 1.5rem);
+		box-sizing: border-box;
+		pointer-events: auto;
+		isolation: isolate;
+	}
+
+	.wrapped-backdrop {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		background: rgba(4, 3, 10, 0.88);
+		backdrop-filter: blur(20px);
+		-webkit-backdrop-filter: blur(20px);
+		z-index: 1;
+		cursor: pointer;
+		border: none;
+		padding: 0;
+		outline: none;
 	}
 
 	.wrapped-modal {
-		position: fixed;
-		top: 50%;
-		left: 50%;
-		transform: translate(-50%, -50%);
-		width: min(440px, 92vw);
-		height: min(720px, 90vh);
+		position: relative;
+		z-index: 2;
+		width: min(440px, 94vw);
+		height: min(720px, calc(100vh - 32px));
+		height: min(720px, calc(100dvh - 32px));
+		max-height: 94vh;
+		max-height: 94dvh;
 		border-radius: 24px;
 		overflow: hidden;
-		z-index: 10011;
 		display: flex;
 		flex-direction: column;
-		box-shadow: 0 30px 80px rgba(0, 0, 0, 0.85);
-		border: 1px solid rgba(255, 255, 255, 0.15);
+		box-shadow: 0 30px 90px rgba(0, 0, 0, 0.95), 0 0 0 1px rgba(255, 255, 255, 0.16);
+		user-select: none;
+		background: #090915;
+		margin: auto;
 	}
 
 	/* Cosmic Shader Background */
@@ -482,7 +572,7 @@
 	/* Story Segments */
 	.story-progress-strip {
 		position: relative;
-		z-index: 2;
+		z-index: 10;
 		display: flex;
 		gap: 5px;
 		padding: 0.85rem 1rem 0.4rem 1rem;
@@ -495,6 +585,14 @@
 		border-radius: 99px;
 		overflow: hidden;
 		cursor: pointer;
+		border: none;
+		padding: 0;
+		outline: none;
+		transition: background 0.15s ease;
+	}
+
+	.progress-segment:hover {
+		background: rgba(255, 255, 255, 0.45);
 	}
 
 	.segment-fill {
@@ -507,7 +605,7 @@
 	/* Header */
 	.story-header {
 		position: relative;
-		z-index: 2;
+		z-index: 10;
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -537,19 +635,103 @@
 		color: rgba(255, 255, 255, 0.8);
 	}
 
-	.btn-close-story {
-		background: transparent;
-		border: none;
-		color: rgba(255, 255, 255, 0.7);
+	.header-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+
+	.btn-ctrl-story {
+		width: 30px;
+		height: 30px;
+		border-radius: 50%;
+		background: rgba(255, 255, 255, 0.12);
+		border: 1px solid rgba(255, 255, 255, 0.18);
+		color: rgba(255, 255, 255, 0.9);
 		cursor: pointer;
 		display: grid;
 		place-items: center;
+		transition: background 0.15s ease, transform 0.15s ease, color 0.15s ease;
+		padding: 0;
 	}
+
+	.btn-ctrl-story:hover {
+		background: rgba(255, 255, 255, 0.24);
+		color: #ffffff;
+		transform: scale(1.06);
+	}
+
+	.btn-ctrl-story:active {
+		transform: scale(0.94);
+	}
+
+	.btn-close-story {
+		background: rgba(255, 255, 255, 0.15);
+	}
+
+	/* Side Floating Chevrons */
+	.story-arrow {
+		position: absolute;
+		top: 50%;
+		transform: translateY(-50%);
+		z-index: 15;
+		width: 32px;
+		height: 32px;
+		border-radius: 50%;
+		background: rgba(15, 15, 25, 0.55);
+		border: 1px solid rgba(255, 255, 255, 0.2);
+		color: rgba(255, 255, 255, 0.85);
+		display: grid;
+		place-items: center;
+		cursor: pointer;
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
+		transition: all 0.15s ease;
+		opacity: 0.65;
+		padding: 0;
+	}
+
+	.story-arrow:hover {
+		opacity: 1;
+		background: rgba(25, 25, 38, 0.85);
+		color: #ffffff;
+		transform: translateY(-50%) scale(1.1);
+	}
+
+	.story-arrow:active {
+		transform: translateY(-50%) scale(0.95);
+	}
+
+	.arrow-left {
+		left: 10px;
+	}
+
+	.arrow-right {
+		right: 10px;
+	}
+
+	/* Tap Navigation Zones */
+	.nav-zone {
+		position: absolute;
+		top: 60px;
+		bottom: 75px;
+		width: 35%;
+		z-index: 4;
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
+		background: transparent;
+		border: none;
+		padding: 0;
+		outline: none;
+	}
+
+	.zone-left { left: 0; }
+	.zone-right { right: 0; }
 
 	/* Content Viewport */
 	.story-content-viewport {
 		position: relative;
-		z-index: 1;
+		z-index: 5;
 		flex: 1;
 		display: flex;
 		align-items: center;
@@ -557,6 +739,7 @@
 		padding: 1.5rem;
 		box-sizing: border-box;
 		text-align: center;
+		pointer-events: none;
 	}
 
 	.slide-card {
@@ -565,6 +748,7 @@
 		align-items: center;
 		justify-content: center;
 		width: 100%;
+		pointer-events: auto;
 	}
 
 	.slide-subtitle {
@@ -825,6 +1009,9 @@
 		gap: 0.6rem;
 		width: 100%;
 		max-width: 320px;
+		position: relative;
+		z-index: 25;
+		pointer-events: auto;
 	}
 
 	.btn-share-story {
@@ -862,18 +1049,4 @@
 		font-size: 0.8rem;
 		cursor: pointer;
 	}
-
-	/* Tap Navigation Zones */
-	.nav-zone {
-		position: absolute;
-		top: 60px;
-		bottom: 70px;
-		width: 35%;
-		z-index: 10;
-		cursor: pointer;
-		-webkit-tap-highlight-color: transparent;
-	}
-
-	.zone-left { left: 0; }
-	.zone-right { right: 0; }
 </style>

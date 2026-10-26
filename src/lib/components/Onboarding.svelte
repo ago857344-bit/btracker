@@ -9,7 +9,7 @@
 	import { isMobileDevice } from '$lib/state/themes';
 	import DashboardPreviewModal from '$lib/components/dashboard/DashboardPreviewModal.svelte';
 
-	const TOTAL_STEPS = 9;
+	const TOTAL_STEPS = 10;
 	let step = 1;
 	let direction = 1; // 1 = forward, -1 = backward
 	const focusInput = (node: HTMLElement) => { node.focus(); };
@@ -17,13 +17,28 @@
 	// Step 1: Name
 	let userName = $currentUser?.name?.split(' ')[0] || '';
 
-	// Step 2: Year
+	// Step 2: Coaching / institute
+	let coachingChoice: 'BT' | 'GENERIC' = 'BT';
+	const INSTITUTE_PRESETS = ['Allen', 'Resonance', 'PW (Physics Wallah)', 'FIITJEE', 'Self-Study'];
+	let selectedInstitute = INSTITUTE_PRESETS[0];
+	let customInstitute = '';
+
+	$: coachingName = coachingChoice === 'BT'
+		? 'Baktiwal Tutorials'
+		: customInstitute.trim() || selectedInstitute || 'Other';
+
+	function selectInstitute(preset: string) {
+		selectedInstitute = preset;
+		customInstitute = '';
+	}
+
+	// Step 3: Year
 	let year: '11' | '12' | 'dropper' | '' = '';
 
-	// Step 3: Board
+	// Step 4: Board
 	let board: 'cbse' | 'icse' | 'ib' | 'state' | '' = '';
 
-	// Step 4: Target Exams (multi-select)
+	// Step 5: Target Exams (multi-select)
 	let targetExams: string[] = ['jee-mains', 'jee-advanced'];
 	const EXAMS = [
 		{ id: 'jee-mains', label: 'JEE Mains', emoji: '🎯' },
@@ -46,7 +61,7 @@
 		}
 	}
 
-	// Step 5: How do you want to use BTracker?
+	// Step 6: How do you want to use BTracker?
 	let selectedStudyFlow: StudyFlowMode = 'all-features';
 
 	const STUDY_FLOW_OPTIONS: Array<{
@@ -100,12 +115,12 @@
 		}
 	}
 
-	// Step 6: Study Hours & Daily Questions
+	// Step 7: Study Hours & Daily Questions
 	let weekdayHours = 6;
 	let weekendHours = 8;
 	let dailyQuestions = 50;
 
-	// Step 7: Interactive Streak Simulation & Single-Day Freeze Demo
+	// Step 8: Interactive Streak Simulation & Single-Day Freeze Demo
 	const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 	// Demo: Mon-Wed studied, Thu missed (isolated single day -> gets freeze), Fri-Sun studied
 	let streakDemo = [true, true, true, false, true, true, true];
@@ -186,7 +201,7 @@
 		};
 	})();
 
-	// Step 7: Choose Your Dashboard Structure
+	// Step 9: Choose Your Dashboard Structure
 	let selectedLayout: DashboardLayout = isMobileDevice() ? 'compact' : 'default';
 	let previewModalOpen = false;
 	let previewLayout: DashboardLayout = isMobileDevice() ? 'compact' : 'default';
@@ -221,7 +236,7 @@
 		}
 	];
 
-	// Step 8: Dream Destination & Mission Dossier (Original replacement for commitment)
+	// Step 10: Dream Destination & Mission Dossier (Original replacement for commitment)
 	let dreamCollege = 'IIT Bombay (CSE)';
 	const DREAM_OPTIONS = [
 		'IIT Bombay (CSE)',
@@ -254,14 +269,15 @@
 	function canProceed(): boolean {
 		switch (step) {
 			case 1: return userName.trim().length > 0;
-			case 2: return year !== '';
-			case 3: return board !== '';
-			case 4: return targetExams.length > 0;
-			case 5: return Boolean(selectedStudyFlow);
-			case 6: return weekdayHours > 0 && dailyQuestions > 0;
-			case 7: return true;
+			case 2: return Boolean(coachingName.trim());
+			case 3: return year !== '';
+			case 4: return board !== '';
+			case 5: return targetExams.length > 0;
+			case 6: return Boolean(selectedStudyFlow);
+			case 7: return weekdayHours > 0 && dailyQuestions > 0;
 			case 8: return true;
-			case 9: return Boolean(dreamCollege.trim());
+			case 9: return true;
+			case 10: return Boolean(dreamCollege.trim());
 			default: return true;
 		}
 	}
@@ -293,6 +309,8 @@
 		}
 		updateTracker(s => {
 			s.onboarded = true;
+			s.coaching_type = coachingChoice;
+			s.coaching_name = coachingName;
 			if (!s.ui.dashboardLayout) s.ui.dashboardLayout = selectedLayout || 'default';
 			if (!s.ui.studyFlowMode) s.ui.studyFlowMode = 'all-features';
 			if (!s.ui.widgets || s.ui.widgets.length === 0) s.ui.widgets = getWidgetsForStudyFlow('all-features');
@@ -321,6 +339,8 @@
 			s.meta.weekendHours = weekendHours;
 			s.meta.dailyQuestions = dailyQuestions;
 			s.meta.dreamCollege = college;
+			s.coaching_type = coachingChoice;
+			s.coaching_name = coachingName;
 			s.meta.weekGoalH = Math.round(weekdayHours * 5 + weekendHours * 2);
 			if (!s.goals) s.goals = createGoals();
 			s.goals.day.h = weekdayHours;
@@ -399,8 +419,83 @@
 							/>
 						</div>
 
-					<!-- STEP 2: Year -->
+					<!-- STEP 2: Coaching / Institute -->
 					{:else if step === 2}
+						<div class="card-header">
+							<h1>Where do you study{userName ? `, ${userName}` : ''}?</h1>
+							<p class="subtitle">BT students unlock native module sync. Everyone else gets the universal study log.</p>
+						</div>
+
+						<div class="coach-grid">
+							<button
+								type="button"
+								class="coach-card"
+								class:active={coachingChoice === 'BT'}
+								on:click={() => (coachingChoice = 'BT')}
+							>
+								<div class="coach-card-top">
+									<span class="coach-logo bt">BT</span>
+									<span class="coach-badge">Native Module Sync</span>
+								</div>
+								<strong>Baktiwal Tutorials</strong>
+								<p>Exact BT study log: modules, exercises and question-level bitmasks, synced to your batch.</p>
+								{#if coachingChoice === 'BT'}
+									<span class="coach-selected"><NavIcon name="check" size={12} /> Selected</span>
+								{/if}
+							</button>
+
+							<button
+								type="button"
+								class="coach-card"
+								class:active={coachingChoice === 'GENERIC'}
+								on:click={() => (coachingChoice = 'GENERIC')}
+							>
+								<div class="coach-card-top">
+									<span class="coach-logo generic">U</span>
+									<span class="coach-badge subtle">Universal</span>
+								</div>
+								<strong>Another institute / self-study</strong>
+								<p>Allen, Resonance, PW, FIITJEE or your own plan. Log any module, DPP, PYQ or book.</p>
+								{#if coachingChoice === 'GENERIC'}
+									<span class="coach-selected"><NavIcon name="check" size={12} /> Selected</span>
+								{/if}
+							</button>
+						</div>
+
+						{#if coachingChoice === 'GENERIC'}
+							<div class="institute-panel">
+								<span class="institute-label">YOUR INSTITUTE</span>
+								<div class="institute-chips">
+									{#each INSTITUTE_PRESETS as preset}
+										<button
+											type="button"
+											class="institute-chip"
+											class:active={!customInstitute.trim() && selectedInstitute === preset}
+											on:click={() => selectInstitute(preset)}
+										>
+											{preset}
+										</button>
+									{/each}
+								</div>
+								<input
+									type="text"
+									class="institute-input"
+									placeholder="Or type your institute / 'Self-Study'"
+									bind:value={customInstitute}
+								/>
+								<span class="institute-hint">Shown on your profile. You can change this later in Settings.</span>
+							</div>
+						{/if}
+
+						<div class="step-action-bar">
+							<span class="selection-count">{coachingChoice === 'BT' ? 'Baktiwal Tutorials · Native sync' : `${coachingName} · Universal log`}</span>
+							<button type="button" class="btn-step-continue" on:click={next}>
+								Continue <NavIcon name="chevron-right" size={14} />
+							</button>
+						</div>
+
+					<!-- STEP 3: Year -->
+					{:else if step === 3}
 						<div class="card-header">
 							<h1>Which year are you in{userName ? `, ${userName}` : ''}?</h1>
 							<p class="subtitle">This shapes your study pacing and JEE target timeline.</p>
@@ -450,8 +545,8 @@
 							</button>
 						</div>
 
-					<!-- STEP 3: Board -->
-					{:else if step === 3}
+					<!-- STEP 4: Board -->
+					{:else if step === 4}
 						<div class="card-header">
 							<h1>Which board are you in?</h1>
 							<p class="subtitle">You can change this anytime in Settings.</p>
@@ -515,8 +610,8 @@
 							</button>
 						</div>
 
-					<!-- STEP 4: Target Exams -->
-					{:else if step === 4}
+					<!-- STEP 5: Target Exams -->
+					{:else if step === 5}
 						<div class="card-header">
 							<h1>What are you working toward?</h1>
 							<p class="subtitle">Pick your main exams — BTracker tailors targets to them.</p>
@@ -547,8 +642,8 @@
 							</button>
 						</div>
 
-					<!-- STEP 5: How do you want to use BTracker? -->
-					{:else if step === 5}
+					<!-- STEP 6: How do you want to use BTracker? -->
+					{:else if step === 6}
 						<div class="card-header">
 							<h1>How do you want to use BTracker?</h1>
 							<p class="subtitle">Choose the experience tailored to your study priority. Your navigation and home bento widgets will adapt instantly.</p>
@@ -607,8 +702,8 @@
 							</button>
 						</div>
 
-					<!-- STEP 6: Study Hours & Daily Questions -->
-					{:else if step === 6}
+					<!-- STEP 7: Study Hours & Daily Questions -->
+					{:else if step === 7}
 						<div class="card-header">
 							<h1>How much will you study?</h1>
 							<p class="subtitle">Set your daily targets — we'll hold you accountable.</p>
@@ -682,8 +777,8 @@
 							</div>
 						</div>
 
-					<!-- STEP 7: Streak Demo & Single-Day Freeze Simulation -->
-					{:else if step === 7}
+					<!-- STEP 8: Streak Demo & Single-Day Freeze Simulation -->
+					{:else if step === 8}
 						<div class="card-header">
 							<h1>Keep your flame alive</h1>
 							<p class="subtitle">Miss 1 day? You get a <strong>Streak Freeze</strong>. Miss more than 1 day? You <strong>lose your streak</strong>.</p>
@@ -772,8 +867,8 @@
 							</div>
 						</div>
 
-					<!-- STEP 8: Choose Your Dashboard Structure -->
-					{:else if step === 8}
+					<!-- STEP 9: Choose Your Dashboard Structure -->
+					{:else if step === 9}
 						<div class="card-header">
 							<h1>Choose Your Dashboard Structure</h1>
 							<p class="subtitle">Select how your battle station presents timers, missions, and analytics. You can change this anytime in Settings.</p>
@@ -835,8 +930,8 @@
 							{/each}
 						</div>
 
-					<!-- STEP 9: Original JEE Blueprint & Aspirant Dossier -->
-					{:else if step === 9}
+					<!-- STEP 10: Original JEE Blueprint & Aspirant Dossier -->
+					{:else if step === 10}
 						<div class="card-header">
 							<h1>{userName || 'Candidate'}, Your JEE Battle Station is Ready</h1>
 							<p class="subtitle">Lock in your dream destination and activate your command center.</p>
@@ -955,7 +1050,7 @@
 				<button
 					type="button"
 					class="btn-continue"
-					disabled={step === 1 ? !userName.trim() : step === 2 ? !year : step === 3 ? !board : step === 4 ? targetExams.length === 0 : step === 5 ? !selectedStudyFlow : step === 6 ? (weekdayHours <= 0 || dailyQuestions <= 0) : step === 9 ? !dreamCollege.trim() : false}
+					disabled={step === 1 ? !userName.trim() : step === 2 ? !coachingName.trim() : step === 3 ? !year : step === 4 ? !board : step === 5 ? targetExams.length === 0 : step === 6 ? !selectedStudyFlow : step === 7 ? (weekdayHours <= 0 || dailyQuestions <= 0) : step === 10 ? !dreamCollege.trim() : false}
 					on:click={next}
 				>
 					Continue <NavIcon name="chevron-right" size={14} />
@@ -2375,6 +2470,153 @@
 	}
 	.btn-step-continue:active {
 		transform: scale(0.97);
+	}
+
+	/* Step 2 Coaching / Institute Picker */
+	.coach-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 0.85rem;
+		margin-top: 0.25rem;
+	}
+	@media (max-width: 680px) {
+		.coach-grid { grid-template-columns: 1fr; }
+	}
+	.coach-card {
+		display: flex;
+		flex-direction: column;
+		gap: 0.45rem;
+		padding: 1rem 1.1rem;
+		border-radius: 16px;
+		border: 1.5px solid var(--border-subtle);
+		background: color-mix(in srgb, var(--surface-subtle) 65%, transparent);
+		text-align: left;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all 0.2s cubic-bezier(0.32, 0.72, 0, 1);
+	}
+	.coach-card:hover {
+		border-color: color-mix(in srgb, var(--accent) 50%, var(--border-subtle));
+		transform: translateY(-2px);
+	}
+	.coach-card.active {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 8%, var(--surface-panel));
+		box-shadow: 0 0 0 1px var(--accent), 0 16px 36px -8px color-mix(in srgb, var(--accent) 28%, transparent);
+	}
+	.coach-card-top {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.5rem;
+		margin-bottom: 0.15rem;
+	}
+	.coach-logo {
+		width: 34px;
+		height: 34px;
+		border-radius: 10px;
+		display: grid;
+		place-items: center;
+		font-size: 0.8rem;
+		font-weight: 850;
+		letter-spacing: -0.02em;
+		color: #ffffff;
+	}
+	.coach-logo.bt { background: linear-gradient(135deg, #6366f1, var(--accent)); }
+	.coach-logo.generic { background: linear-gradient(135deg, #0f172a, #475569); }
+	.coach-badge {
+		font-size: 0.58rem;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		padding: 0.16rem 0.5rem;
+		border-radius: 99px;
+		background: color-mix(in srgb, var(--accent) 16%, transparent);
+		color: var(--accent);
+		border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+		white-space: nowrap;
+	}
+	.coach-badge.subtle {
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		border-color: var(--border-subtle);
+	}
+	.coach-card strong {
+		font-size: 0.94rem;
+		font-weight: 800;
+		color: var(--text-primary);
+		letter-spacing: -0.02em;
+	}
+	.coach-card p {
+		margin: 0;
+		font-size: 0.73rem;
+		line-height: 1.4;
+		color: var(--text-secondary);
+	}
+	.coach-selected {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		margin-top: 0.2rem;
+		font-size: 0.68rem;
+		font-weight: 800;
+		color: var(--accent);
+	}
+	.institute-panel {
+		display: flex;
+		flex-direction: column;
+		gap: 0.55rem;
+		margin-top: 1rem;
+		padding: 1rem 1.1rem;
+		border-radius: 16px;
+		border: 1px solid var(--border-subtle);
+		background: color-mix(in srgb, var(--surface-panel), var(--surface-canvas) 25%);
+	}
+	.institute-label {
+		font-size: 0.68rem;
+		font-weight: 800;
+		letter-spacing: 0.08em;
+		color: var(--text-secondary);
+	}
+	.institute-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.4rem;
+	}
+	.institute-chip {
+		padding: 0.35rem 0.7rem;
+		border-radius: 99px;
+		border: 1px solid var(--border-subtle);
+		background: color-mix(in srgb, var(--surface-panel), var(--surface-canvas) 30%);
+		color: var(--text-secondary);
+		font-size: 0.76rem;
+		font-weight: 650;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all 0.16s ease;
+	}
+	.institute-chip:hover { border-color: var(--accent); color: var(--text-primary); }
+	.institute-chip.active {
+		border-color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 14%, transparent);
+		color: var(--accent);
+	}
+	.institute-input {
+		width: 100%;
+		padding: 0.6rem 0.85rem;
+		border: 1px solid var(--border-subtle);
+		border-radius: 12px;
+		background: color-mix(in srgb, var(--surface-panel), transparent 30%);
+		color: var(--text-primary);
+		font-size: 0.86rem;
+		font-family: inherit;
+		outline: none;
+		transition: border-color 0.16s ease;
+	}
+	.institute-input:focus { border-color: var(--accent); }
+	.institute-hint {
+		font-size: 0.7rem;
+		color: var(--text-secondary);
 	}
 
 	@media (max-width: 600px) {

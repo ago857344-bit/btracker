@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { setReflection, tracker } from '$lib/stores/tracker';
 	import { timeOf } from '$lib/state/dates';
@@ -21,6 +22,11 @@
 		clearTimeout(saveTimer);
 		saveTimer = setTimeout(() => setReflection(day, tab, text), 600);
 	}
+
+	onDestroy(() => {
+		clearTimeout(saveTimer);
+		setReflection(day, tab, text);
+	});
 
 	function wrap(before: string, after = before) {
 		const el = textarea;

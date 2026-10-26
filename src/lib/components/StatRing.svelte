@@ -34,7 +34,7 @@
 	$: headY = center + radius * Math.sin(headAngle);
 </script>
 
-<div class="ring skin-{skin}" style="width:{size}px;height:{size}px;--ring-color:{color}">
+<div class="stat-ring skin-{skin}" style="width:{size}px;height:{size}px;--ring-color:{color}">
 	<svg width={size} height={size} viewBox="0 0 {size} {size}" aria-hidden="true">
 		<defs>
 			{#if stops}
@@ -69,9 +69,37 @@
 </div>
 
 <style>
-	.ring { position: relative; display: grid; place-items: center; max-width: 100%; box-sizing: border-box; }
-	svg { position: absolute; inset: 0; overflow: visible; max-width: 100%; max-height: 100%; }
-	.content { position: relative; display: grid; place-items: center; text-align: center; max-width: 100%; }
+	.stat-ring {
+		position: relative;
+		display: grid;
+		place-items: center;
+		max-width: 100%;
+		box-sizing: border-box;
+		border-radius: 50%;
+		border: none !important;
+		outline: none !important;
+		box-shadow: none !important;
+	}
+	svg {
+		position: absolute;
+		inset: 0;
+		overflow: visible;
+		max-width: 100%;
+		max-height: 100%;
+		border: none !important;
+		outline: none !important;
+		box-shadow: none !important;
+	}
+	.content {
+		position: relative;
+		display: grid;
+		place-items: center;
+		text-align: center;
+		max-width: 100%;
+		border: none !important;
+		outline: none !important;
+		box-shadow: none !important;
+	}
 	.skin-neon .progress { filter: drop-shadow(0 0 6px var(--ring-color)) drop-shadow(0 0 14px var(--ring-color)); }
 	.skin-gilded .progress { filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.55)); }
 	.skin-blaze .progress { animation: blaze 1.6s ease-in-out infinite; }

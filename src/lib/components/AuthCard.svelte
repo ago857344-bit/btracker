@@ -1,12 +1,17 @@
 <script lang="ts">
 	import NavIcon from '$lib/components/NavIcon.svelte';
+	import { browser } from '$app/environment';
 	import {
 		authConfigured, currentUser, signInWithGoogle,
 		signOut, syncStatus
 	} from '$lib/stores/auth';
 
+	export let onSkip: (() => void) | undefined = undefined;
+
 	let busy: 'google' | null = null;
 	let error = '';
+
+	const callbackUrl = browser ? `${location.origin}/auth/callback` : '/auth/callback';
 
 	const googleSvg = `<svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
 		<path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.6c-.1 1.1-.8 2.7-2.4 3.8l-.1.1 3.7 2.9.3.1c2.4-2.2 3.8-5.4 3.8-9.7" />
@@ -18,108 +23,479 @@
 	async function onGoogle() {
 		busy = 'google';
 		error = '';
-		try { 
-			await signInWithGoogle(); 
-		} catch (err) { 
-			error = err instanceof Error ? err.message : 'Sign-in failed.'; 
-			busy = null; 
+		try {
+			await signInWithGoogle();
+		} catch (err) {
+			error = err instanceof Error ? err.message : 'Sign-in failed. Try again.';
+			busy = null;
 		}
 	}
 </script>
 
-<section class="auth-card" aria-label="Sign in with Google">
-
+<section class="login-card" aria-label="Sign in with Google">
 	{#if $currentUser}
+		<div class="head">
+			<p class="kicker"><span class="dot"></span> Signed in</p>
+			<h2>You're already signed in.</h2>
+			<p class="sub">Your question log and revision queue are synced and up to date.</p>
+		</div>
+
 		<div class="signed">
-			{#if $currentUser.avatar}<img src={$currentUser.avatar} alt="" />{:else}<span class="ini">{$currentUser.name.slice(0, 1)}</span>{/if}
+			{#if $currentUser.avatar}
+				<img src={$currentUser.avatar} alt="" />
+			{:else}
+				<span class="ini">{$currentUser.name.slice(0, 1)}</span>
+			{/if}
 			<div>
 				<strong>{$currentUser.name}</strong>
 				<span>{$currentUser.email}</span>
 			</div>
 		</div>
-		<p class="ok"><NavIcon name="check-circle" size={15} /> You're signed in{#if $syncStatus === 'synced'} and synced{/if}.</p>
-		<button type="button" class="submit" on:click={() => signOut()}>Sign out</button>
-	{:else if !$authConfigured}
-		<h1>Google sign-in isn't set up yet</h1>
-		<p class="sub">Configure Google OAuth before signing in to BTracker:</p>
-		<ol class="setup">
-			<li>Go to <span class="mono">Google Cloud Console</span> and create an OAuth 2.0 client.</li>
-			<li>Add <span class="mono">http://localhost:1420/auth/callback</span> to authorized redirect URIs.</li>
-			<li>Copy <span class="mono">.env.example</span> to <span class="mono">.env</span>, paste your Client ID + Secret, restart the dev server.</li>
-		</ol>
-		<p class="sub">Refresh this page after completing the setup to sign in.</p>
-	{:else}
-		<h1>Sign in to BTracker</h1>
-		<p class="sub">Start tracking your JEE prep — free with Google account</p>
 
-		{#if error}<p class="err">{error}</p>{/if}
+		<p class="ok">
+			<NavIcon name="check-circle" size={15} />
+			You're signed in{#if $syncStatus === 'synced'} and synced{/if}.
+		</p>
+
+		<a class="primary" href="/">Open dashboard <NavIcon name="arrow-right" size={15} /></a>
+		<button type="button" class="signout" on:click={() => signOut()}>Sign out</button>
+	{:else if !$authConfigured}
+		<div class="head">
+			<p class="kicker warn">Setup required</p>
+			<h2>Google sign-in isn't set up yet</h2>
+			<p class="sub">Configure Google OAuth before signing in to BTracker:</p>
+		</div>
+
+		<ol class="setup">
+			<li>Create an OAuth 2.0 client in <b>Google Cloud Console</b>.</li>
+			<li>Add <code>{callbackUrl}</code> to authorized redirect URIs.</li>
+			<li>Add your Client ID + Secret to <code>.env</code>, then restart the dev server.</li>
+		</ol>
+
+		<p class="legal">Refresh this page after completing the setup to sign in.</p>
+	{:else}
+		<div class="head">
+			<span class="badge"><NavIcon name="sparkles" size={12} /> Welcome back</span>
+			<h2>Sign in to BTracker</h2>
+			<p class="sub">Your question log, revision queue and rank analytics are one tap away.</p>
+		</div>
+
+		{#if error}<p class="err" role="alert">{error}</p>{/if}
 
 		<button type="button" class="google" disabled={busy !== null} on:click={onGoogle}>
-			{@html googleSvg}
-			{busy === 'google' ? 'Redirecting…' : 'Continue with Google'}
+			<span class="g-tile">{@html googleSvg}</span>
+			<span>{busy === 'google' ? 'Redirecting…' : 'Continue with Google'}</span>
+			{#if busy === 'google'}
+				<span class="spinner" aria-hidden="true"></span>
+			{:else}
+				<span class="arrow" aria-hidden="true">→</span>
+			{/if}
 		</button>
 
-		<p class="info">By signing in, you agree to our Terms and Privacy Policy.</p>
+		{#if onSkip}
+			<div class="or"><i></i><span>or</span><i></i></div>
+			<button type="button" class="skip" on:click={onSkip}>Continue without account</button>
+		{/if}
+
+		<p class="secure"><NavIcon name="shield" size={13} /> We never post to your account. Your data stays yours.</p>
+		<p class="legal">By continuing, you agree to our Terms and Privacy Policy.</p>
 	{/if}
 </section>
 
 <style>
-	.auth-card {
-		position: relative;
-		width: min(100%, 410px);
-		padding: 2.2rem 2rem 1.8rem;
-		border: 1px solid var(--border-subtle);
-		border-radius: 24px;
-		background: var(--surface-panel);
-		box-shadow: var(--shadow-modal, 0 24px 60px -10px rgba(44, 37, 92, 0.15));
-		color: var(--text-primary);
+	.login-card {
+		width: 100%;
+		max-width: 440px;
+		padding: 34px 32px 26px;
+		border: 1px solid #e6ebf3;
+		border-radius: 28px;
+		background: #fff;
+		color: #0f172a;
+		box-shadow:
+			0 40px 80px -44px rgba(15, 23, 42, 0.28),
+			0 12px 28px -20px rgba(15, 23, 42, 0.1);
 	}
-	h1 { margin: 0; font-size: 1.45rem; line-height: 1.15; letter-spacing: -.035em; font-weight: 850; color: var(--text-primary); }
-	.sub { margin: .45rem 0 1.25rem; color: var(--text-secondary); font-size: .84rem; line-height: 1.55; }
+
+	.head {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 6px 10px;
+		border-radius: 999px;
+		background: #eff6ff;
+		color: #0066ff;
+		font-size: 10px;
+		font-weight: 800;
+		letter-spacing: 0.09em;
+		text-transform: uppercase;
+	}
+
+	.kicker {
+		display: inline-flex;
+		align-items: center;
+		gap: 7px;
+		margin: 0 0 12px;
+		color: #059669;
+		font-size: 10.5px;
+		font-weight: 800;
+		letter-spacing: 0.09em;
+		text-transform: uppercase;
+	}
+
+	.kicker.warn {
+		color: #b45309;
+	}
+
+	.dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: currentColor;
+	}
+
+	h2 {
+		margin: 14px 0 0;
+		font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+		font-size: 30px;
+		line-height: 1.08;
+		letter-spacing: -0.04em;
+		font-weight: 800;
+		color: #0f172a;
+	}
+
+	.badge + h2 {
+		margin-top: 16px;
+	}
+
+	.sub {
+		margin: 9px 0 0;
+		color: #64748b;
+		font-size: 14px;
+		line-height: 1.6;
+	}
 
 	.google {
 		display: flex;
 		align-items: center;
-		justify-content: center;
-		gap: .65rem;
+		gap: 12px;
 		width: 100%;
-		height: 46px;
-		border: 1px solid var(--border-subtle);
-		border-radius: 12px;
-		background: var(--surface-subtle);
-		color: var(--text-primary);
-		font-size: .88rem;
+		height: 54px;
+		margin-top: 26px;
+		padding: 0 16px;
+		border: 0;
+		border-radius: 999px;
+		background: #0f172a;
+		color: #fff;
+		font-family: inherit;
+		font-size: 14.5px;
 		font-weight: 700;
 		cursor: pointer;
-		font-family: inherit;
-		transition: background .14s ease, border-color .14s ease, box-shadow .14s ease, transform .14s ease;
-		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+		box-shadow: 0 16px 30px -16px rgba(15, 23, 42, 0.6);
+		transition: transform 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
 	}
+
 	.google:hover:not(:disabled) {
-		background: color-mix(in srgb, var(--surface-subtle) 60%, var(--surface-panel));
-		border-color: color-mix(in srgb, var(--accent) 50%, var(--border-subtle));
-		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.07);
-		transform: translateY(-1px);
+		background: #16213a;
+		transform: translateY(-2px);
+		box-shadow: 0 22px 36px -18px rgba(15, 23, 42, 0.62);
 	}
-	.google:disabled { opacity: .65; cursor: default; }
 
-	.err { margin: 0 0 .8rem; padding: .55rem .75rem; border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--danger) 10%, transparent); color: var(--danger); font-size: .76rem; font-weight: 600; }
+	.google:active:not(:disabled) {
+		transform: translateY(0);
+	}
 
-	.info { margin: 1.1rem 0 0; color: var(--text-secondary); font-size: .7rem; line-height: 1.5; text-align: center; }
+	.google:focus-visible {
+		outline: 3px solid rgba(0, 102, 255, 0.28);
+		outline-offset: 3px;
+	}
 
-	.setup { margin: 0 0 1.2rem; padding-left: 1.15rem; color: var(--text-secondary); font-size: .8rem; line-height: 1.65; }
-	.setup li { margin-bottom: .35rem; }
-	.mono { padding: .08rem .36rem; border-radius: 6px; background: color-mix(in srgb, var(--text-primary) 8%, transparent); color: var(--text-primary); font-family: ui-monospace, monospace; font-size: .88em; }
+	.google:disabled {
+		opacity: 0.72;
+		cursor: default;
+	}
 
-	.signed { display: flex; align-items: center; gap: .8rem; padding: .85rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-subtle); }
-	.signed img { width: 42px; height: 42px; border-radius: 99px; object-fit: cover; }
-	.ini { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 99px; background: var(--accent); color: var(--accent-contrast, #fff); font-weight: 800; }
-	.signed div { display: grid; gap: .1rem; min-width: 0; }
-	.signed strong { font-size: .9rem; color: var(--text-primary); }
-	.signed span { color: var(--text-secondary); font-size: .74rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.ok { display: flex; align-items: center; gap: .45rem; margin: .9rem 0; color: var(--success); font-size: .8rem; font-weight: 650; }
+	.g-tile {
+		display: grid;
+		place-items: center;
+		flex: none;
+		width: 30px;
+		height: 30px;
+		border-radius: 50%;
+		background: #fff;
+	}
 
-	.submit { width: 100%; height: 44px; border: 0; border-radius: 11px; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent), #e0455a 35%)); color: var(--accent-contrast, #fff); font-size: .86rem; font-weight: 800; letter-spacing: .01em; cursor: pointer; font-family: inherit; box-shadow: 0 10px 24px color-mix(in srgb, var(--accent), transparent 62%); transition: filter .14s ease; }
-	.submit:hover:not(:disabled) { filter: brightness(1.08); }
-	.submit:disabled { opacity: .7; cursor: default; }
+	.g-tile :global(svg) {
+		display: block;
+		width: 17px;
+		height: 17px;
+	}
+
+	.arrow {
+		margin-left: auto;
+		font-size: 17px;
+		line-height: 1;
+		transition: transform 0.16s ease;
+	}
+
+	.google:hover:not(:disabled) .arrow {
+		transform: translateX(3px);
+	}
+
+	.spinner {
+		margin-left: auto;
+		width: 14px;
+		height: 14px;
+		border: 2px solid rgba(255, 255, 255, 0.3);
+		border-top-color: #fff;
+		border-radius: 50%;
+		animation: spin 0.8s linear infinite;
+	}
+
+	.or {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		margin: 20px 0 14px;
+		color: #94a3b8;
+		font-size: 10px;
+		font-weight: 800;
+		letter-spacing: 0.1em;
+		text-transform: uppercase;
+	}
+
+	.or i {
+		flex: 1;
+		height: 1px;
+		background: #e9eef5;
+	}
+
+	.skip {
+		width: 100%;
+		height: 46px;
+		border: 1px solid #e5eaf2;
+		border-radius: 999px;
+		background: #fff;
+		color: #334155;
+		font-family: inherit;
+		font-size: 13.5px;
+		font-weight: 700;
+		cursor: pointer;
+		transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+	}
+
+	.skip:hover {
+		border-color: #cbd5e1;
+		background: #f8fafc;
+		color: #0f172a;
+	}
+
+	.skip:focus-visible,
+	.primary:focus-visible,
+	.signout:focus-visible {
+		outline: 3px solid rgba(0, 102, 255, 0.28);
+		outline-offset: 2px;
+	}
+
+	.secure {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 6px;
+		margin: 18px 0 0;
+		color: #64748b;
+		font-size: 11.5px;
+		font-weight: 600;
+		text-align: center;
+	}
+
+	.secure :global(svg) {
+		flex: none;
+		color: #10b981;
+	}
+
+	.legal {
+		margin: 15px 0 0;
+		padding-top: 14px;
+		border-top: 1px solid #eef2f8;
+		color: #94a3b8;
+		font-size: 10.5px;
+		line-height: 1.55;
+		text-align: center;
+	}
+
+	.err {
+		margin: 18px 0 0;
+		padding: 10px 12px;
+		border: 1px solid #fecaca;
+		border-radius: 12px;
+		background: #fef2f2;
+		color: #b91c1c;
+		font-size: 12px;
+		font-weight: 600;
+		line-height: 1.45;
+	}
+
+	.setup {
+		margin: 20px 0 0;
+		padding-left: 18px;
+		color: #475569;
+		font-size: 13px;
+		line-height: 1.65;
+	}
+
+	.setup li {
+		margin-bottom: 8px;
+		padding-left: 2px;
+	}
+
+	.setup b {
+		color: #0f172a;
+	}
+
+	code {
+		padding: 2px 6px;
+		border-radius: 6px;
+		background: #f1f5f9;
+		color: #0f172a;
+		font-family: ui-monospace, 'SF Mono', monospace;
+		font-size: 0.88em;
+		overflow-wrap: anywhere;
+	}
+
+	.signed {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		margin-top: 22px;
+		padding: 14px;
+		border: 1px solid #e6ebf3;
+		border-radius: 16px;
+		background: #f8fafc;
+	}
+
+	.signed img {
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		object-fit: cover;
+	}
+
+	.ini {
+		display: grid;
+		place-items: center;
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		background: #0f172a;
+		color: #fff;
+		font-weight: 800;
+	}
+
+	.signed div {
+		display: grid;
+		gap: 2px;
+		min-width: 0;
+	}
+
+	.signed strong {
+		font-size: 14px;
+		color: #0f172a;
+	}
+
+	.signed span {
+		color: #64748b;
+		font-size: 11.5px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+
+	.ok {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin: 16px 0;
+		color: #059669;
+		font-size: 12.5px;
+		font-weight: 700;
+	}
+
+	.ok :global(svg) {
+		color: #10b981;
+	}
+
+	.primary {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 8px;
+		width: 100%;
+		height: 50px;
+		border-radius: 999px;
+		background: #0f172a;
+		color: #fff;
+		font-size: 14px;
+		font-weight: 700;
+		text-decoration: none;
+		box-shadow: 0 16px 30px -16px rgba(15, 23, 42, 0.6);
+		transition: transform 0.16s ease, background 0.16s ease;
+	}
+
+	.primary:hover {
+		background: #16213a;
+		transform: translateY(-2px);
+	}
+
+	.signout {
+		display: block;
+		margin: 14px auto 0;
+		padding: 8px 14px;
+		border: 0;
+		background: none;
+		color: #64748b;
+		font-family: inherit;
+		font-size: 12.5px;
+		font-weight: 700;
+		cursor: pointer;
+	}
+
+	.signout:hover {
+		color: #0f172a;
+	}
+
+	@keyframes spin {
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	@media (max-width: 560px) {
+		.login-card {
+			padding: 28px 22px 22px;
+			border-radius: 24px;
+		}
+
+		h2 {
+			font-size: 26px;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.google,
+		.arrow,
+		.skip,
+		.primary {
+			transition: none;
+		}
+
+		.spinner {
+			animation-duration: 1.6s;
+		}
+	}
 </style>

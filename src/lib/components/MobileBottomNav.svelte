@@ -222,7 +222,7 @@
 			max-width: 430px;
 			height: 68px;
 			padding: 5px;
-			background: color-mix(in srgb, var(--surface-panel, #121020) 86%, transparent) !important;
+			background: color-mix(in srgb, var(--surface-popup-solid, #121020) 92%, transparent) !important;
 			backdrop-filter: blur(36px) saturate(210%);
 			-webkit-backdrop-filter: blur(36px) saturate(210%);
 			border-radius: 9999px;
@@ -242,7 +242,7 @@
 		:global(:root[data-theme='duolingo']) .bottom-nav,
 		:global(:root[data-theme='anki']) .bottom-nav,
 		:global(:root[data-theme='master']) .bottom-nav {
-			background: color-mix(in srgb, var(--surface-panel, #ffffff) 88%, transparent) !important;
+			background: color-mix(in srgb, var(--surface-popup-solid, #ffffff) 94%, transparent) !important;
 			border: 1px solid color-mix(in srgb, var(--border-subtle) 85%, rgba(0, 0, 0, 0.08));
 			box-shadow: 0 16px 48px -8px rgba(44, 37, 92, 0.14), inset 0 1px 1px rgba(255, 255, 255, 0.95);
 		}
@@ -330,6 +330,16 @@
 			border-color: color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 55%, transparent) !important;
 			box-shadow: 0 10px 28px -2px color-mix(in srgb, var(--wallpaper-bottom-accent, var(--wallpaper-accent, var(--accent))) 42%, transparent),
 						inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+		}
+
+		/* Eco mode drops backdrop blur, and clear-glass makes --surface-panel transparent.
+		   Both would leave the dock see-through over page content, so keep a dense tint. */
+		:global(:root[data-eco='true']) .bottom-nav {
+			background: color-mix(in srgb, var(--wallpaper-bottom-color, var(--surface-popup-solid, #121020)) 94%, transparent) !important;
+		}
+
+		:global(:root[data-clear-glass='true']) .bottom-nav {
+			background: color-mix(in srgb, var(--surface-popup-solid, #121020) 72%, transparent) !important;
 		}
 
 		/* Active Glass Pill Indicator (Apple Music Style) */
