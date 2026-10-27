@@ -166,7 +166,20 @@
 	$: today = todayKey();
 	$: pendingTasks = ($tracker.h || []).filter((t) => !t.done && !isClassTask(t));
 	$: completedTasks = ($tracker.hd || []).filter((t) => t.done && !isClassTask(t));
-	$: allTasks = [...pendingTasks, ...completedTasks];
+	$: allTasks = (() => {
+		const map = new Map<string, any>();
+		for (const t of completedTasks) map.set(t.id, t);
+		for (const t of pendingTasks) map.set(t.id, t);
+		const list = Array.from(map.values());
+		return list.sort((a, b) => {
+			if (a.done !== b.done) return a.done ? 1 : -1;
+			if (a.pri === 'high' && b.pri !== 'high') return -1;
+			if (b.pri === 'high' && a.pri !== 'high') return 1;
+			const aDue = a.due || '9999-99-99';
+			const bDue = b.due || '9999-99-99';
+			return aDue.localeCompare(bDue);
+		});
+	})();
 
 	// Focus Today
 	$: todayFocusMinutes = focusMinutesOn($tracker.log, today);
@@ -1985,6 +1998,22 @@
 		.segment-pill {
 			font-size: 0.72rem;
 			padding: 0.52rem 0.2rem;
+		}
+		.dots-row {
+			gap: 0.18rem;
+		}
+		.dot-col-btn {
+			padding: 2px 0;
+		}
+		.dot-day {
+			font-size: 0.54rem;
+		}
+	}
+
+	@media (max-width: 360px) {
+		.sub-card-actions {
+			grid-template-columns: 1fr;
+			gap: 0.35rem;
 		}
 	}
 </style>

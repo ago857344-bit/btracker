@@ -1022,7 +1022,7 @@
 		}
 	}
 
-	@media (max-width: 720px) {
+	@media (max-width: 768px) {
 		.gh {
 			padding: 36px 0 34px;
 		}

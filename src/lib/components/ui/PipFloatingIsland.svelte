@@ -376,9 +376,9 @@
 		position: fixed;
 		z-index: 9998;
 		border-radius: 9999px;
-		background: color-mix(in srgb, var(--wallpaper-bottom-color, var(--surface-panel, #121020)) 50%, rgba(10, 8, 22, 0.65)) !important;
-		backdrop-filter: blur(36px) saturate(220%);
-		-webkit-backdrop-filter: blur(36px) saturate(220%);
+		background: color-mix(in srgb, var(--wallpaper-bottom-color, var(--surface-popup-solid, #121020)) 50%, rgba(10, 8, 22, 0.90)) !important;
+		backdrop-filter: blur(36px) saturate(220%) !important;
+		-webkit-backdrop-filter: blur(36px) saturate(220%) !important;
 		border: 1px solid color-mix(in srgb, var(--pip-accent, var(--accent, #6d5dfc)) 40%, rgba(255, 255, 255, 0.22));
 		box-shadow:
 			0 18px 48px -6px rgba(0, 0, 0, 0.7),
@@ -738,5 +738,41 @@
 		padding: 0;
 		background: rgba(255, 255, 255, 0.08);
 		color: rgba(255, 255, 255, 0.8);
+	}
+
+	:global(:root[data-theme='light']) .pip-floating-island,
+	:global(:root[data-theme='notion']) .pip-floating-island,
+	:global(:root[data-theme='duolingo']) .pip-floating-island,
+	:global(:root[data-theme='anki']) .pip-floating-island,
+	:global(:root[data-theme='master']) .pip-floating-island,
+	:global(:root[data-wallpaper-luminance='bright']) .pip-floating-island {
+		background: color-mix(in srgb, var(--surface-popup-solid, #ffffff) 92%, rgba(255, 255, 255, 0.95)) !important;
+		color: var(--text-primary, #24213a) !important;
+		border: 1px solid color-mix(in srgb, var(--pip-accent, var(--accent)) 35%, rgba(0, 0, 0, 0.12)) !important;
+		box-shadow: 0 16px 42px -6px rgba(44, 37, 92, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.95) !important;
+	}
+	:global(:root[data-theme='light']) .pip-floating-island .drag-dots span,
+	:global(:root[data-theme='notion']) .pip-floating-island .drag-dots span,
+	:global(:root[data-theme='duolingo']) .pip-floating-island .drag-dots span,
+	:global(:root[data-theme='anki']) .pip-floating-island .drag-dots span,
+	:global(:root[data-theme='master']) .pip-floating-island .drag-dots span,
+	:global(:root[data-wallpaper-luminance='bright']) .pip-floating-island .drag-dots span {
+		background: var(--text-secondary);
+	}
+	:global(:root[data-theme='light']) .pip-floating-island :is(.pip-clock, .big-time),
+	:global(:root[data-theme='notion']) .pip-floating-island :is(.pip-clock, .big-time),
+	:global(:root[data-theme='duolingo']) .pip-floating-island :is(.pip-clock, .big-time),
+	:global(:root[data-theme='anki']) .pip-floating-island :is(.pip-clock, .big-time),
+	:global(:root[data-theme='master']) .pip-floating-island :is(.pip-clock, .big-time),
+	:global(:root[data-wallpaper-luminance='bright']) .pip-floating-island :is(.pip-clock, .big-time) {
+		color: var(--text-primary) !important;
+	}
+	:global(:root[data-theme='light']) .pip-floating-island .pip-sub-label,
+	:global(:root[data-theme='notion']) .pip-floating-island .pip-sub-label,
+	:global(:root[data-theme='duolingo']) .pip-floating-island .pip-sub-label,
+	:global(:root[data-theme='anki']) .pip-floating-island .pip-sub-label,
+	:global(:root[data-theme='master']) .pip-floating-island .pip-sub-label,
+	:global(:root[data-wallpaper-luminance='bright']) .pip-floating-island .pip-sub-label {
+		color: var(--text-secondary) !important;
 	}
 </style>

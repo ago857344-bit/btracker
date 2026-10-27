@@ -74,8 +74,9 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 				const totalMarks = test.totalMarks || 0;
 				const score = test.score || 0;
 				const accuracy = totalMarks > 0 ? (score / totalMarks) * 100 : 0;
+				const subNameMap = { P: 'Physics', C: 'Chemistry', M: 'Maths' } as const;
 				for (const code of ['P', 'C', 'M']) {
-					const sInfo = test.subjects?.[code];
+					const sInfo = test.subjects?.[code] || test.subjects?.[subNameMap[code as 'P' | 'C' | 'M']];
 					if (sInfo && (sInfo.correct > 0 || sInfo.incorrect > 0)) {
 						const expected = Math.max(20, Math.min(96, (retroElo[code as 'P' | 'C' | 'M']! / 1800) * 100));
 						const diff = accuracy - expected;
@@ -129,7 +130,7 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 				const raw = saved.rev?.items || base.rev.items;
 				const clean: Record<string, any> = {};
 				for (const [k, v] of Object.entries(raw)) {
-					if (v && v.last && isChapterStudied(saved, k)) {
+					if (v && (v.userAdded || v.last || v.remindDate || isChapterStudied(saved, k))) {
 						clean[k] = v;
 					}
 				}
@@ -139,7 +140,7 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 				const raw = saved.rev?.chapters || base.rev.chapters;
 				const clean: Record<string, any> = {};
 				for (const [k, v] of Object.entries(raw)) {
-					if (v && isChapterStudied(saved, k)) {
+					if (v && (v.userAdded || v.decay?.lastRevisionAt || isChapterStudied(saved, k))) {
 						clean[k] = v;
 					}
 				}

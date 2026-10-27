@@ -42,7 +42,7 @@
 			if (!s.flashcards) s.flashcards = [];
 			if (s.flashcards.some(c => c.front === front)) return;
 			const card: Flashcard = {
-				id: crypto.randomUUID(),
+				id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `fc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
 				front,
 				back,
 				subject: q.subject,

@@ -21,7 +21,7 @@
 	function submit() {
 		if (!sub || !ch) return;
 		
-		addChapterToRecall(`${sub}-${ch}`, weightage);
+		addChapterToRecall(`${sub}-${ch}`, weightage, method);
 		celebration.set('Chapter added to active recall!');
 		dispatch('close');
 		ch = '';
@@ -128,5 +128,5 @@
 	.tile b { color: var(--m); font-size: .78rem; }
 	.sm2 { display: grid; gap: .25rem; margin-top: .35rem; }
 	.sm2 span { padding: .4rem .55rem; border-radius: 9px; background: color-mix(in srgb, var(--m), transparent 90%); color: var(--text-secondary); font-size: .68rem; font-weight: 700; }
-	@media (max-width: 720px) { .cols { grid-template-columns: minmax(0, 1fr); } }
+	@media (max-width: 768px) { .cols { grid-template-columns: minmax(0, 1fr); } }
 </style>

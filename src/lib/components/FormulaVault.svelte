@@ -522,10 +522,10 @@
 		right: 0;
 		bottom: 0;
 		width: min(600px, 95vw);
-		background: color-mix(in srgb, var(--surface-panel, #121020) 96%, transparent);
+		background: var(--surface-popup-solid, var(--surface-popup, #121020)) !important;
 		backdrop-filter: blur(36px) saturate(210%);
 		-webkit-backdrop-filter: blur(36px) saturate(210%);
-		border-left: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
+		border-left: 1px solid var(--surface-popup-border, color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16)));
 		box-shadow: -16px 0 60px rgba(0, 0, 0, 0.65), inset 1px 0 0 rgba(255, 255, 255, 0.12);
 		z-index: 9999;
 		display: flex;
@@ -1180,35 +1180,13 @@
 			padding-right: 1rem;
 			gap: 0.7rem;
 		}
-		.header-actions-right {
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-	}
-
-	.btn-print-sheet {
-		display: inline-flex;
-		align-items: center;
-		gap: 0.35rem;
-		padding: 0.4rem 0.75rem;
-		border-radius: 9px;
-		background: color-mix(in srgb, var(--accent) 15%, transparent);
-		color: var(--accent);
-		border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-		font-size: 0.72rem;
-		font-weight: 750;
-		cursor: pointer;
-		transition: all 0.15s ease;
-		white-space: nowrap;
-	}
-
-	.btn-print-sheet:hover {
-		background: color-mix(in srgb, var(--accent) 25%, transparent);
-		border-color: var(--accent);
-		transform: translateY(-1px);
-	}
-
-	.close-btn {
+		.btn-print-sheet {
+			padding: 0.4rem 0.6rem;
+		}
+		.btn-print-sheet span {
+			display: none;
+		}
+		.close-btn {
 			width: 42px;
 			height: 42px;
 			min-width: 42px;
@@ -1227,5 +1205,23 @@
 			height: 36px;
 			border-radius: 9px;
 		}
+	}
+
+	:global(:root[data-theme='light']) .vault-drawer,
+	:global(:root[data-theme='notion']) .vault-drawer,
+	:global(:root[data-theme='duolingo']) .vault-drawer,
+	:global(:root[data-theme='anki']) .vault-drawer,
+	:global(:root[data-theme='master']) .vault-drawer {
+		background: #ffffff !important;
+		border-left: 1px solid var(--border-subtle) !important;
+		box-shadow: -16px 0 60px rgba(44, 37, 92, 0.15), inset 1px 0 0 rgba(255, 255, 255, 0.95) !important;
+	}
+	:global(:root[data-theme='light']) .vault-header,
+	:global(:root[data-theme='notion']) .vault-header,
+	:global(:root[data-theme='duolingo']) .vault-header,
+	:global(:root[data-theme='anki']) .vault-header,
+	:global(:root[data-theme='master']) .vault-header {
+		background: #f7f7fb !important;
+		border-bottom-color: var(--border-subtle) !important;
 	}
 </style>

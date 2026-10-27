@@ -655,7 +655,7 @@
 		padding: 1rem 1.15rem;
 		border-radius: 16px;
 		border: 1px solid var(--border-subtle);
-		background: color-mix(in srgb, var(--surface-panel) 95%, transparent);
+		background: var(--surface-subtle);
 		display: grid;
 		gap: 0.85rem;
 	}
@@ -760,7 +760,7 @@
 		transform: scale(0.95);
 	}
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.hero-svg-wrap {
 			width: 140px;
 			height: 140px;

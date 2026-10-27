@@ -134,7 +134,7 @@
 	}
 
 	let focusChapter = '';
-	import { boostChapterFromPractice } from '$lib/stores/recall-actions'; let logChapter = '';
+	let logChapter = '';
 	$: focusValid = Boolean(subject) && Boolean(focusChapter);
 	let milestoneOpen = false; let milestoneHours = $tracker.meta.weekGoalH;
 
@@ -265,9 +265,6 @@
 	}
 
 	function logSession(minutes: number, activity: string) {
-		if (subject && focusChapter) {
-			boostChapterFromPractice(`${subject}-${focusChapter}`, minutes);
-		}
 		recordFocus({
 			startedEpochMinutes: sessionStartedEpochMin || Math.floor(Date.now() / 60000) - minutes,
 			durationMinutes: minutes, activity, deadlineId: null, subject, chapter: focusChapter || undefined
@@ -408,9 +405,6 @@ function primary() {
 		const savedReport = event.detail;
 		stopwatchReports.update((list) => [savedReport, ...list]);
 		const mins = Math.max(1, Math.round(savedReport.seconds / 60));
-		if (savedReport.sub && swChapter) {
-			boostChapterFromPractice(`${savedReport.sub}-${swChapter}`, mins);
-		}
 		recordFocus({
 			startedEpochMinutes: sessionStartedEpochMin || Math.floor(savedReport.at / 60000),
 			durationMinutes: mins,
@@ -426,9 +420,6 @@ function primary() {
 	function submitLog() {
 		const minutes = Math.max(1, Math.round(Number(logMinutes) || 0));
 		logManualMinutes(minutes, logSubject, logChapter || undefined);
-		if (logSubject && logChapter) {
-			boostChapterFromPractice(`${logSubject}-${logChapter}`, minutes);
-		}
 		celebration.set(`${minutes} min logged!`);
 		logOpen = false;
 	}

@@ -212,7 +212,7 @@
 		transition: width 0.3s ease;
 	}
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.card {
 			padding: 1.15rem 1rem;
 			gap: 16px;

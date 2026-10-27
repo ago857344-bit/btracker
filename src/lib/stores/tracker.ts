@@ -64,6 +64,7 @@ export async function flushSave(): Promise<void> {
  */
 export async function autoBalancePlannerTasks(dayMap: Record<string, string>): Promise<number> {
 	let count = 0;
+	const now = Date.now();
 	updateTracker((s) => {
 		for (const task of s.h || []) {
 			const isClass = Boolean(
@@ -74,6 +75,7 @@ export async function autoBalancePlannerTasks(dayMap: Record<string, string>): P
 			);
 			if (dayMap[task.id] && !isClass) {
 				task.due = dayMap[task.id];
+				task.updated = now;
 				count++;
 			}
 		}
@@ -99,7 +101,7 @@ if (typeof window !== 'undefined') {
 export const activeHomework = derived(tracker, ($tracker) => $tracker.h.filter((item) => !item.done));
 export const dueRevision = derived(tracker, ($tracker) => {
 	const today = todayKey();
-	return Object.entries($tracker.rev.items).filter(([, item]) => item.last && item.remindDate && item.remindDate <= today && !item.remindDone);
+	return Object.entries($tracker.rev.items).filter(([, item]) => item.remindDate && item.remindDate <= today && !item.remindDone);
 });
 export const dashboardWidgets = derived(tracker, ($tracker) => $tracker.ui.widgets.filter((widget) => widget.enabled).sort((a, b) => a.order - b.order));
 export function updateWidget(id: WidgetLayout['id'], patch: Partial<WidgetLayout>) {
@@ -350,16 +352,46 @@ export interface PlannerDraft {
 
 export function addPlannerTask(day: string, draft: PlannerDraft) {
 	updateTracker((s) => {
-		s.h.push({
-			id: uid(), kind: 'task', title: draft.title, due: day, done: false, subs: [],
-			s: draft.s || undefined, col: draft.col, st: draft.st, en: draft.en, rec: draft.rec,
-			hrs: draft.hrs, test: draft.test || undefined
-		});
+		const now = Date.now();
+		const days: string[] = [day];
+		if (draft.rec === 'daily') {
+			for (let i = 1; i < 7; i++) {
+				days.push(addDaysKey(day, i));
+			}
+		} else if (draft.rec === 'weekly') {
+			for (let i = 1; i <= 4; i++) {
+				days.push(addDaysKey(day, i * 7));
+			}
+		}
+
+		for (const d of days) {
+			s.h.push({
+				id: uid(),
+				kind: 'task',
+				title: draft.title,
+				due: d,
+				done: false,
+				subs: [],
+				s: draft.s || undefined,
+				col: draft.col,
+				st: draft.st,
+				en: draft.en,
+				rec: draft.rec,
+				hrs: draft.hrs,
+				test: draft.test || undefined,
+				updated: now
+			});
+		}
 	});
 }
 
 export function patchTask(id: string, patch: Partial<HomeworkItem>) {
-	updateTracker((s) => { const task = s.h.find((item) => item.id === id) ?? s.hd.find((item) => item.id === id); if (task) Object.assign(task, patch); });
+	updateTracker((s) => {
+		const task = s.h.find((item) => item.id === id) ?? s.hd.find((item) => item.id === id);
+		if (task) {
+			Object.assign(task, patch, { updated: Date.now() });
+		}
+	});
 }
 
 export function deleteTask(id: string) {
@@ -384,9 +416,17 @@ export function toggleTask(id: string): boolean {
 		}
 		task.done = !task.done;
 		task.fin = task.done ? Date.now() : undefined;
+		task.updated = Date.now();
 		done = Boolean(task.done);
-		if (task.done) { s.h = s.h.filter((i) => i.id !== id); s.hd.push(task); }
-		else { s.hd = s.hd.filter((i) => i.id !== id); s.h.push(task); }
+		if (task.done) {
+			s.h = s.h.filter((i) => i.id !== id);
+			s.hd = s.hd.filter((i) => i.id !== id);
+			s.hd.push(task);
+		} else {
+			s.hd = s.hd.filter((i) => i.id !== id);
+			s.h = s.h.filter((i) => i.id !== id);
+			s.h.push(task);
+		}
 	});
 	return done;
 }
@@ -400,6 +440,7 @@ export function reorderDayTasks(dragId: string, overId: string) {
 		const to = s.h.findIndex((item) => item.id === overId);
 		if (from < 0 || to < 0) return;
 		const [moved] = s.h.splice(from, 1);
+		moved.updated = Date.now();
 		s.h.splice(to, 0, moved);
 	});
 }
@@ -411,6 +452,16 @@ export function addSubtask(id: string, text: string) {
 		const subs = Array.isArray(task.subs) ? task.subs : [];
 		subs.push(text);
 		task.subs = subs;
+		task.updated = Date.now();
+	});
+}
+
+export function removeSubtask(id: string, index: number) {
+	updateTracker((s) => {
+		const task = s.h.find((item) => item.id === id) ?? s.hd.find((item) => item.id === id);
+		if (!task || !Array.isArray(task.subs)) return;
+		task.subs.splice(index, 1);
+		task.updated = Date.now();
 	});
 }
 
@@ -600,7 +651,8 @@ export function transferTodosToPlanner(targetDayKey?: string): number {
 					s: todo.sub as any,
 					ch: todo.ch,
 					hrs: 1,
-					subs: (todo.subtasks || []).map((st) => st.title)
+					subs: (todo.subtasks || []).map((st) => st.title),
+					updated: Date.now()
 				});
 				existingTitles.add(todo.title.trim().toLowerCase());
 				transferred++;
@@ -669,7 +721,8 @@ export function removeChecklistColumn(sub: string, colIdx: number) {
 
 export function saveRoutine(name: string, day: string) {
 	updateTracker((s) => {
-		const tasks = s.h.filter((item) => item.due === day).map((item) => ({ t: item.title ?? '', col: item.col ?? 0, s: item.s ?? '', hrs: item.hrs ?? 0 }));
+		const all = [...(s.h || []), ...(s.hd || [])];
+		const tasks = all.filter((item) => item.due === day).map((item) => ({ t: item.title ?? '', col: item.col ?? 0, s: item.s ?? '', hrs: item.hrs ?? 0 }));
 		if (!tasks.length) return;
 		s.lib.push({ id: uid(), n: name, tasks });
 	});
@@ -679,8 +732,9 @@ export function applyRoutine(id: string, day: string) {
 	updateTracker((s) => {
 		const routine = s.lib.find((entry) => entry.id === id);
 		if (!routine) return;
+		const now = Date.now();
 		for (const task of routine.tasks) {
-			s.h.push({ id: uid(), kind: 'task', title: task.t, due: day, done: false, subs: [], col: task.col, s: task.s || undefined, hrs: task.hrs });
+			s.h.push({ id: uid(), kind: 'task', title: task.t, due: day, done: false, subs: [], col: task.col, s: task.s || undefined, hrs: task.hrs, updated: now });
 		}
 	});
 }
@@ -796,7 +850,7 @@ export function addRevisionPlan(input: { sub: string; ch: string; method: 'stead
 		const key = `${input.sub}:${input.ch}`;
 		s.rev.items[key] = {
 			weight: 1, last: null, method: input.method, step: 1, sub: input.sub, ch: input.ch,
-			ef: 2.5, remindDate: todayKey(), remindDone: false
+			ef: 2.5, remindDate: todayKey(), remindDone: false, userAdded: true
 		};
 	});
 }
@@ -1617,6 +1671,10 @@ export function clearCoachingTimetable() {
 
 export function addPeriodToPlanner(period: TimetablePeriod, targetDayKey: string) {
 	updateTracker((s) => {
+		const existing = [...(s.h || []), ...(s.hd || [])].some(
+			(t) => t.due === targetDayKey && t.st === period.startTime && (t.title?.includes(period.topic) || t.title?.includes(period.subject))
+		);
+		if (existing) return;
 		s.h.push({
 			id: uid(),
 			kind: 'class',
@@ -1628,7 +1686,8 @@ export function addPeriodToPlanner(period: TimetablePeriod, targetDayKey: string
 			s: (['P', 'C', 'M'].includes(period.subject) ? period.subject : undefined) as any,
 			st: period.startTime,
 			en: period.endTime,
-			subs: []
+			subs: [],
+			updated: Date.now()
 		});
 	});
 }

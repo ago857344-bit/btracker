@@ -469,5 +469,18 @@
 		.tab.active .label {
 			font-weight: 800;
 		}
+
+		@media (max-width: 360px) {
+			.bottom-nav {
+				width: 96%;
+				height: 64px;
+			}
+			.label {
+				font-size: 0.62rem;
+			}
+			.active-pill {
+				height: 52px;
+			}
+		}
 	}
 </style>

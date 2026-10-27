@@ -150,7 +150,7 @@
 	.seg.flat { background: var(--accent); }
 	.bl { color: var(--text-secondary); font-size: .62rem; font-weight: 800; letter-spacing: .04em; }
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.analysis { padding: 1.15rem 1rem; }
 		header { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
 		.tools { width: 100%; justify-content: space-between; }

@@ -3,6 +3,7 @@
 	import { fade } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
+	import { goto } from '$app/navigation';
 	import BrandLogo from '$lib/components/BrandLogo.svelte';
 	import DownloadModal from '$lib/components/DownloadModal.svelte';
 	import GetStartedModal from '$lib/components/GetStartedModal.svelte';
@@ -315,8 +316,8 @@
 
 	function handleNavClick(href: string) {
 		mobileOpen = false;
-		if (href.startsWith('/welcome#')) {
-			const hash = href.slice(8);
+		if (href.startsWith('/welcome#') || href.startsWith('#')) {
+			const hash = href.includes('#') ? '#' + href.split('#')[1] : href;
 			if (mode === 'mock') {
 				setMode('tracker');
 				setTimeout(() => {
@@ -327,15 +328,8 @@
 				const el = document.querySelector(hash);
 				el?.scrollIntoView({ behavior: 'smooth' });
 			}
-		} else if (href.startsWith('/#')) {
-			const hash = href.slice(1);
-			if (mode === 'mock') {
-				setMode('tracker');
-				setTimeout(() => {
-					const el = document.querySelector(hash);
-					el?.scrollIntoView({ behavior: 'smooth' });
-				}, 120);
-			}
+		} else {
+			void goto(href);
 		}
 	}
 
@@ -1687,6 +1681,7 @@
 						<a href="/faq">FAQ</a>
 						<a href="/guides">Guides</a>
 						<a href="/goals">Goals</a>
+						<a href="/landing">Dark Mode</a>
 						<a href="/login">Log in</a>
 					</nav>
 					<p class="wx-footer-note">100% free · No card · No trial clock</p>
@@ -2626,7 +2621,7 @@
 		transform-origin: top left;
 		pointer-events: none;
 	}
-	@media (min-width: 761px) {
+	@media (min-width: 769px) {
 		.wx-real.phone {
 			inset: auto;
 			top: 50%;
@@ -2678,7 +2673,7 @@
 		border-radius: 50%;
 		animation: wx-spin 0.8s linear infinite;
 	}
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.wx-preview-stage.live {
 			aspect-ratio: auto;
 			height: 430px;
@@ -2905,7 +2900,7 @@
 			justify-content: center;
 		}
 	}
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.wx-nav-pill {
 			width: 100%;
 			justify-content: space-between;
@@ -3738,7 +3733,7 @@
 			display: none;
 		}
 	}
-	@media (max-width: 700px) {
+	@media (max-width: 768px) {
 		.wx-scoop {
 			border-radius: 32px 32px 0 0;
 			padding-top: 64px;
@@ -4297,8 +4292,9 @@
 		color: var(--muted);
 	}
 	.wx-wordmark {
-		width: 100vw;
-		margin: 8px 0 0 calc(50% - 50vw);
+		width: 100%;
+		max-width: 100%;
+		margin: 8px auto 0;
 		overflow: hidden;
 		line-height: 0.72;
 	}
@@ -4424,7 +4420,7 @@
 			margin-inline: 0;
 		}
 	}
-	@media (max-width: 720px) {
+	@media (max-width: 768px) {
 		.wx-sec-head h2 {
 			font-size: 2.05rem;
 		}
@@ -4543,7 +4539,7 @@
 		margin-top: 14px;
 	}
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.wx-mock-focus {
 			padding-top: clamp(80px, 16vw, 105px);
 			padding-bottom: 45px;

@@ -7,7 +7,7 @@
 	import type { ChapterRecallData } from '$lib/types/tracker';
 	import { calculateCurrentScore, calculateHealthStatus, daysUntilThreshold } from '$lib/state/decay';
 	import { subjectColor, subjectName } from '$lib/state/subjects';
-	import { shortDateKey, dayKeyOf } from '$lib/state/dates';
+	import { shortDateKey, dayKeyOf, todayKey } from '$lib/state/dates';
 	import { openFeynmanDuck, tracker } from '$lib/stores/tracker';
 	import { getMicroChallenge } from '$lib/services/aiTriage';
 	import { buildAcademicConstraintPrompt } from '$lib/services/aiContext';
@@ -64,13 +64,23 @@
 	$: subColor = subjectColor(subjectCode);
 	$: subName = subjectName(subjectCode);
 
-	$: dueLabel = daysUntilCritical <= 0
-		? 'Overdue'
-		: daysUntilCritical <= 1
-			? 'Due today'
-			: daysUntilCritical <= 7
-				? `Due in ${Math.round(daysUntilCritical)} days`
-				: 'Not urgent';
+	$: dueLabel = (() => {
+		const today = todayKey();
+		if (chapter.nextRevisionDate) {
+			if (chapter.nextRevisionDate < today) return 'Overdue';
+			if (chapter.nextRevisionDate === today) return 'Due today';
+			return `Due ${shortDateKey(chapter.nextRevisionDate)}`;
+		}
+		if (chapter.decay?.lastRevisionAt) {
+			const elapsedDays = (Date.now() - chapter.decay.lastRevisionAt) / (1000 * 60 * 60 * 24);
+			const remaining = daysUntilCritical - elapsedDays;
+			if (remaining <= 0) return 'Overdue';
+			if (remaining <= 1) return 'Due today';
+			if (remaining <= 7) return `Due in ${Math.round(remaining)} days`;
+			return 'Not urgent';
+		}
+		return 'Due today';
+	})();
 
 	$: weightageLabel = chapter.weightage === 3 ? 'High' : chapter.weightage === 2 ? 'Medium' : 'Low';
 	$: weightageColor = chapter.weightage === 3 ? '#ef4444' : chapter.weightage === 2 ? '#f59e0b' : '#10b981';

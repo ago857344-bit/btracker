@@ -194,11 +194,6 @@
 		grid-template-columns: repeat(2, 1fr);
 		gap: 12px;
 	}
-	@media (max-width: 520px) {
-		.grid {
-			grid-template-columns: 1fr;
-		}
-	}
 	.metric {
 		background: var(--surface-subtle);
 		border: 1px solid var(--border-subtle);
@@ -261,7 +256,7 @@
 		line-height: 1.4;
 	}
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.card {
 			padding: 1.15rem 1rem;
 			gap: 16px;

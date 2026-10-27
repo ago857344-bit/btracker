@@ -66,12 +66,14 @@
 
 	function handleClose() {
 		clearInterval(timerInterval);
+		timerInterval = undefined;
 		open = false;
 		dispatch('close');
 	}
 
 	function finishTimer() {
 		clearInterval(timerInterval);
+		timerInterval = undefined;
 		timeSpentMinutes = Math.max(1, timerMinutes - Math.floor(secondsLeft / 60));
 		mode = 'evaluate';
 	}
@@ -82,6 +84,14 @@
 		recordChapterRevision(key, confidence, selectedModalities, timeSpentMinutes);
 		celebration.set(`Revision logged! ${chapterTitle} memory restored.`);
 		handleClose();
+	}
+
+	$: if (!open) {
+		if (timerInterval) {
+			clearInterval(timerInterval);
+			timerInterval = undefined;
+		}
+		mode = 'timer';
 	}
 
 	$: if (open && mode === 'timer' && !timerInterval) {

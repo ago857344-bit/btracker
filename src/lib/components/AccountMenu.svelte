@@ -107,7 +107,29 @@
 		background: color-mix(in srgb, var(--accent) 34%, var(--surface-panel));
 		box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 45%, transparent);
 	}
-	.menu { position: absolute; z-index: 70; top: calc(100% + .5rem); right: 0; width: 230px; padding: .5rem; border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16)); border-radius: 16px; background: color-mix(in srgb, var(--surface-panel, #121020) 96%, transparent); backdrop-filter: blur(36px) saturate(210%); -webkit-backdrop-filter: blur(36px) saturate(210%); box-shadow: 0 18px 48px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15); }
+	.menu {
+		position: absolute;
+		z-index: 70;
+		top: calc(100% + .5rem);
+		right: 0;
+		width: 230px;
+		padding: .5rem;
+		border: 1px solid var(--surface-popup-border, color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16)));
+		border-radius: 16px;
+		background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
+		backdrop-filter: blur(36px) saturate(210%);
+		-webkit-backdrop-filter: blur(36px) saturate(210%);
+		box-shadow: 0 18px 48px -6px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+	}
+	:global(:root[data-theme='light']) .menu,
+	:global(:root[data-theme='notion']) .menu,
+	:global(:root[data-theme='duolingo']) .menu,
+	:global(:root[data-theme='anki']) .menu,
+	:global(:root[data-theme='master']) .menu {
+		background: var(--surface-popup, rgba(255, 255, 255, 0.98)) !important;
+		border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08)) !important;
+		box-shadow: 0 16px 48px -8px rgba(44, 37, 92, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.95) !important;
+	}
 	.who { display: grid; gap: .12rem; padding: .5rem .6rem .6rem; border-bottom: 1px solid var(--border-subtle); }
 	.who strong { color: var(--text-primary); font-size: .86rem; }
 	.who span { color: var(--text-secondary); font-size: .72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -217,21 +217,18 @@
 
 	function resolveEffectiveWallpaper(themeId: string, userWp: string | null | undefined, unauth: boolean): string | null {
 		if (unauth) return null;
-		const preset = THEME_PRESETS.find(t => t.id === themeId);
-		if (!userWp) {
-			return preset?.wallpaper ? ('builtin:' + themeId) : null;
-		}
-		if (isBuiltinWallpaper(userWp)) {
-			const builtinId = userWp.startsWith('builtin:') ? userWp.slice(8) : null;
-			if (builtinId && EXTRA_WALLPAPERS.some(w => w.id === builtinId)) {
+		if (userWp) {
+			if (userWp.startsWith('builtin:')) {
+				const builtinId = userWp.slice(8);
+				const hasPresetWp = THEME_PRESETS.some(t => t.id === builtinId && Boolean(t.wallpaper));
+				const hasExtraWp = EXTRA_WALLPAPERS.some(w => w.id === builtinId);
+				if (hasPresetWp || hasExtraWp) return userWp;
+			} else {
 				return userWp;
 			}
-			if (preset?.wallpaper) {
-				return 'builtin:' + themeId;
-			}
-			return null;
 		}
-		return userWp;
+		const preset = THEME_PRESETS.find(t => t.id === themeId);
+		return preset?.wallpaper ? ('builtin:' + themeId) : null;
 	}
 
 	function applyTheme(state: { theme: string; ui: { accent: string, wallpaper?: string | null } }) {
@@ -240,15 +237,36 @@
 		root.style.setProperty('--accent', state.ui.accent);
 		root.style.setProperty('--accent-strong', `color-mix(in srgb, ${state.ui.accent}, black 14%)`);
 		root.style.setProperty('--accent-soft', `color-mix(in srgb, ${state.ui.accent}, transparent ${isDarkTheme(state.theme) ? '82%' : '88%'})`);
-		const isBrightAccent = state.theme === 'god-mode' || state.theme === 'catalyst' || state.theme === 'initiate' || state.theme === 'aurora' || state.theme === 'celestial';
-		root.style.setProperty('--accent-contrast', isBrightAccent ? '#070602' : '#ffffff');
+		function getAccentContrast(accent: string, theme: string): string {
+			const isBrightTheme = theme === 'god-mode' || theme === 'catalyst' || theme === 'initiate' || theme === 'aurora' || theme === 'celestial';
+			if (isBrightTheme) return '#070602';
+			if (accent && accent.startsWith('#') && (accent.length === 7 || accent.length === 4)) {
+				let r = 0, g = 0, b = 0;
+				if (accent.length === 7) {
+					r = parseInt(accent.slice(1, 3), 16);
+					g = parseInt(accent.slice(3, 5), 16);
+					b = parseInt(accent.slice(5, 7), 16);
+				} else {
+					r = parseInt(accent[1] + accent[1], 16);
+					g = parseInt(accent[2] + accent[2], 16);
+					b = parseInt(accent[3] + accent[3], 16);
+				}
+				const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+				if (lum > 0.45) return '#070602';
+			}
+			return '#ffffff';
+		}
+
+		root.style.setProperty('--accent-contrast', getAccentContrast(state.ui.accent, state.theme));
 		
 		if (isDarkTheme(state.theme)) {
 			root.style.setProperty('--surface-popup', state.theme === 'catalyst' || state.theme === 'green' ? 'rgba(21, 33, 26, 0.96)' : 'rgba(18, 16, 32, 0.96)');
 			root.style.setProperty('--surface-popup-solid', state.theme === 'catalyst' || state.theme === 'green' ? '#15211a' : '#121020');
+			root.style.setProperty('--surface-popup-border', 'color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16))');
 		} else {
 			root.style.setProperty('--surface-popup', 'rgba(255, 255, 255, 0.96)');
 			root.style.setProperty('--surface-popup-solid', '#ffffff');
+			root.style.setProperty('--surface-popup-border', 'color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08))');
 		}
 		
 		const themeDef = THEME_PRESETS.find(t => t.id === state.theme);		if (themeDef && themeDef.confetti) {
@@ -402,11 +420,21 @@
 		};
 	});
 	$: currentThemePreset = THEME_PRESETS.find(t => t.id === effectiveTheme);
-	$: themeHasVideo = Boolean(currentThemePreset?.wallpaper?.endsWith('.mp4'));
+	$: currentWallpaperStr = resolveEffectiveWallpaper(effectiveTheme, $tracker.ui.wallpaper, isFirstTimeOrUnauth);
+	$: activeWpPreset = currentWallpaperStr?.startsWith('builtin:')
+		? THEME_PRESETS.find(t => t.id === currentWallpaperStr.slice(8))
+		: null;
+	$: currentWpHasVideo = Boolean(
+		activeWpPreset?.wallpaper?.endsWith('.mp4') ||
+		(currentWallpaperStr && (currentWallpaperStr.endsWith('.mp4') || currentWallpaperStr.endsWith('.webm') || currentWallpaperStr.startsWith('data:video')))
+	);
 	$: isExplicitLiveWp = !isFirstTimeOrUnauth && $tracker.ui.liveWallpaper === true;
 	$: isEcoActive = $tracker.ui.ecoMode === true || ($tracker.ui.ecoMode === undefined && !isExplicitLiveWp && isMobile);
-	$: currentWallpaperStr = resolveEffectiveWallpaper(effectiveTheme, $tracker.ui.wallpaper, isFirstTimeOrUnauth);
-	$: liveWallpaperEnabled = !isFirstTimeOrUnauth && (isExplicitLiveWp || (themeHasVideo && $tracker.ui.liveWallpaper !== false) || (!isEcoActive && resolveLiveWallpaper($tracker.ui.liveWallpaper)));
+	$: liveWallpaperEnabled = !isFirstTimeOrUnauth && (
+		isExplicitLiveWp ||
+		(currentWpHasVideo && $tracker.ui.liveWallpaper !== false) ||
+		(!isEcoActive && resolveLiveWallpaper($tracker.ui.liveWallpaper))
+	);
 	$: activeVideoUrl = (() => {
 		if (isFirstTimeOrUnauth || !liveWallpaperEnabled || !currentWallpaperStr) return null;
 		if (currentWallpaperStr.startsWith('data:video')) return currentWallpaperStr;
@@ -535,14 +563,25 @@
 			playsinline
 			preload="auto"
 			class="live-wallpaper-bg"
-			on:loadedmetadata={(e) => { e.currentTarget.muted = true; e.currentTarget.play().catch(() => {}); }}
+			on:loadedmetadata={(e) => {
+				e.currentTarget.muted = true;
+				e.currentTarget.defaultMuted = true;
+				e.currentTarget.play().catch(() => {});
+			}}
 			on:loadeddata={(e) => {
 				e.currentTarget.muted = true;
+				e.currentTarget.defaultMuted = true;
 				e.currentTarget.play().catch(() => {});
 				sampleVideoFrame(e.currentTarget);
 			}}
-			on:canplay={(e) => { e.currentTarget.muted = true; e.currentTarget.play().catch(() => {}); }}
-			on:ended={(e) => { e.currentTarget.currentTime = 0; e.currentTarget.play().catch(() => {}); }}
+			on:canplay={(e) => {
+				e.currentTarget.muted = true;
+				e.currentTarget.play().catch(() => {});
+			}}
+			on:ended={(e) => {
+				e.currentTarget.currentTime = 0;
+				e.currentTarget.play().catch(() => {});
+			}}
 		></video>
 	{/if}
 	{#if activeVideoUrl || currentWallpaperStr}
@@ -795,10 +834,13 @@
 		.breadcrumb { display: none; }
 		.page-heading { gap: 0.6rem; min-width: 0; flex: 1; }
 		.page-heading > div { min-width: 0; }
-		.page-heading h2 { font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 140px; }
-		@media (max-width: 360px) {
+		.page-heading h2 { font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: clamp(80px, 22vw, 150px); }
+		@media (max-width: 380px) {
+			.page-heading h2 { max-width: 85px; }
+			.topbar { padding: max(env(safe-area-inset-top), 14px) 0.65rem 0.8rem; }
+		}
+		@media (max-width: 340px) {
 			.page-heading h2 { display: none; }
-			.topbar { padding: max(env(safe-area-inset-top), 14px) 0.6rem 0.8rem; }
 		}
 		.topbar-actions { gap: 0.35rem; flex-shrink: 0; }
 		.mobile-menu {

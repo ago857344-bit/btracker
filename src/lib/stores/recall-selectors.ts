@@ -105,8 +105,9 @@ export const allRevisionReminders = derived(tracker, ($tracker) => {
 		} else if (currentScore < 60) {
 			dueDate = today;
 		} else {
-			const daysLeft = daysUntilThreshold(ch.decay, 60);
-			dueDate = addDaysKey(today, Math.max(1, Math.round(daysLeft)));
+			const elapsedDays = ch.decay.lastRevisionAt ? (Date.now() - ch.decay.lastRevisionAt) / (1000 * 60 * 60 * 24) : 0;
+			const daysLeft = Math.max(0, daysUntilThreshold(ch.decay, 60) - elapsedDays);
+			dueDate = daysLeft <= 0 ? today : addDaysKey(today, Math.max(1, Math.round(daysLeft)));
 		}
 
 		let group: 'overdue' | 'today' | 'week' | null = null;
@@ -137,7 +138,8 @@ export const allRevisionReminders = derived(tracker, ($tracker) => {
 
 	// 2. Process spaced revision items ($tracker.rev.items)
 	for (const [key, item] of Object.entries($tracker.rev.items)) {
-		if (!item.last || item.last <= 0 || item.remindDone) continue;
+		if (item.remindDone) continue;
+		if (!item.last && !item.userAdded && !item.remindDate) continue;
 
 		const s = item.sub || key.split(/[-:]/)[0];
 		const chName = item.ch || key.split(/[-:]/).slice(1).join('-');

@@ -587,7 +587,7 @@
 					<input type="number" min="1" max="24" value={$tracker.meta.streakGoalH} on:change={(e) => setStreakGoalHours(Number(e.currentTarget.value))} />
 				</label>
 			</div>
-			<div style="margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: gap;">
+			<div style="margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
 				<div>
 					<b style="display: block; font-size: 0.88rem; color: var(--text-primary);">JEE Target Setup Wizard</b>
 					<small style="color: var(--text-secondary); font-size: 0.74rem;">Re-run the full targets questionnaire (or type dev key: <code>targets</code>)</small>
@@ -1321,7 +1321,7 @@
 	.coach-preset { padding: .35rem .7rem; border-radius: 99px; border: 1px solid var(--border-subtle); background: var(--surface-subtle); color: var(--text-secondary); font-size: .74rem; font-weight: 650; cursor: pointer; font-family: inherit; transition: all 0.15s ease; }
 	.coach-preset:hover { border-color: var(--accent); color: var(--text-primary); }
 	.coach-preset.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
-	@media (max-width: 560px) { .coach-choice-grid { grid-template-columns: 1fr; } }
+	@media (max-width: 640px) { .coach-choice-grid { grid-template-columns: 1fr; } }
 
 	.swatches { display: flex; gap: .5rem; flex-wrap: wrap; margin-bottom: 1.1rem; }
 	.swatch { width: 40px; height: 40px; border: 2px solid transparent; border-radius: 99px; box-shadow: 0 2px 8px rgb(10 8 26 / 20%); transition: transform 0.2s var(--ease-ios-spring); }
@@ -1759,7 +1759,7 @@
 		background: color-mix(in srgb, var(--accent) 12%, transparent);
 	}
 	.only-mobile { display: none; }
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.edit-size-btn { display: none; }
 		.only-desktop { display: none; }
 		.only-mobile { display: block; }
@@ -2070,6 +2070,9 @@
 	}
 
 	@media (max-width: 480px) {
+		.row {
+			grid-template-columns: 1fr;
+		}
 		.snap-row {
 			flex-direction: column;
 			align-items: flex-start;

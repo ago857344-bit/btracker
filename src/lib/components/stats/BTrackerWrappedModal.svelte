@@ -760,7 +760,7 @@
 	}
 
 	.giant-stat-number {
-		font-size: 5rem;
+		font-size: clamp(3.2rem, 14vw, 5rem);
 		font-weight: 900;
 		line-height: 1;
 		margin: 0.4rem 0 0 0;
@@ -1048,5 +1048,29 @@
 		font-weight: 750;
 		font-size: 0.8rem;
 		cursor: pointer;
+	}
+
+	@media (max-width: 400px) {
+		.wrapped-modal {
+			width: 98vw;
+			border-radius: 20px;
+		}
+		.story-content-viewport {
+			padding: 1rem 0.85rem;
+		}
+		.giant-stat-number {
+			font-size: clamp(2.8rem, 13vw, 4.2rem);
+		}
+		.recap-card {
+			padding: 1rem;
+		}
+		.final-actions {
+			flex-direction: column;
+			max-width: 100%;
+		}
+		.btn-share-story, .btn-restart {
+			width: 100%;
+			justify-content: center;
+		}
 	}
 </style>

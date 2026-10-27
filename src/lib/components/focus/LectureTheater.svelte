@@ -7,7 +7,6 @@
 	import { SUBJECTS } from '$lib/state/subjects';
 	import type { SubjectCode } from '$lib/types/tracker';
 	import { uiClick, uiSuccess } from '$lib/utils/feedback';
-	import { boostChapterFromTheory } from '$lib/stores/recall-actions';
 	import { calculateCurrentScore } from '$lib/state/decay';
 
 	export let open = false;
@@ -285,9 +284,6 @@
 			subject: selectedSubject,
 			chapter
 		});
-
-		boostChapterFromTheory(`${selectedSubject}-${chapter}`, mins);
-
 		celebration.set(`Saved ${mins}m of Theory Focus to study logs! 📚`);
 		theorySeconds = 0;
 	}
@@ -653,7 +649,7 @@
 		position: fixed;
 		inset: 1.2rem;
 		z-index: 10001;
-		background: var(--surface-canvas, #0a0a14);
+		background: #0a0a14 !important;
 		border: 1px solid var(--border-subtle);
 		border-radius: 20px;
 		display: flex;

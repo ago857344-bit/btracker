@@ -88,7 +88,7 @@ async function runAiTriage() {
 			uiPop();
 		} else {
 			uiSuccess();
-			if (parentCompleted) celebration.set(Date.now().toString());
+			if (parentCompleted) celebration.set('All subtasks complete! Task finished! 🎯');
 		}
 	}
 
@@ -1430,6 +1430,8 @@ async function runAiTriage() {
 		.btn-triage { width: 100%; justify-content: center; }
 		.row { padding: 0.75rem 0.75rem; gap: 0.5rem; }
 		.subtasks-container { padding: 8px 10px 8px 24px; touch-action: pan-y; }
+		.sub-row .del { opacity: 0.75 !important; }
+		.todo-progress-card { padding: 0.75rem 0.9rem !important; }
 		.pbars {
 			grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
 			gap: .4rem !important;
@@ -1480,6 +1482,15 @@ async function runAiTriage() {
 			touch-action: pan-x pan-y;
 		}
 		.chcol { min-width: 180px; }
+		@media (max-width: 380px) {
+			.pbars {
+				grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+				gap: .25rem !important;
+			}
+			.pbar {
+				padding: .4rem .3rem !important;
+			}
+		}
 	}
 
 	.sub-progress { display: flex; align-items: center; gap: 8px; margin-top: 4px; }

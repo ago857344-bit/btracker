@@ -5,7 +5,7 @@ import { supabaseConfigured } from '$lib/services/supabase';
 import { authReady, initAuth, syncStatus, teardownAuth } from '$lib/stores/auth';
 import { replaceTracker, setCloudSink, tracker } from '$lib/stores/tracker';
 import { saveTrackerState } from '$lib/services/persistence';
-import type { TrackerState, TodoItem, HomeworkItem } from '$lib/types/tracker';
+import type { TrackerState, TodoItem, HomeworkItem, ReflectionEntry, TaskRoutine, TrackerGoal, ChapterRecallData, RevisionItem, StudyBlock, FocusSession, Flashcard, DumpFileMeta, StudyDumpState } from '$lib/types/tracker';
 
 let activeUserId: string | null = null;
 let pushTimer: ReturnType<typeof setTimeout> | undefined;
@@ -196,35 +196,59 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 	for (const [id, item] of allRemoteHd.entries()) mergedHdMap.set(id, { ...item, done: true });
 	for (const [id, item] of allLocalHd.entries()) {
 		const existing = mergedHdMap.get(id);
-		if (!existing) mergedHdMap.set(id, { ...item, done: true });
-		else if (item.fin && (!existing.fin || item.fin > existing.fin)) existing.fin = item.fin;
+		if (!existing) {
+			mergedHdMap.set(id, { ...item, done: true });
+		} else {
+			const existingTime = existing.updated || existing.fin || 0;
+			const localTime = item.updated || item.fin || 0;
+			if (localTime > existingTime) {
+				mergedHdMap.set(id, { ...existing, ...item, done: true });
+			} else {
+				mergedHdMap.set(id, { ...item, ...existing, done: true });
+			}
+		}
 	}
 
 	const primH = cloudIsNewer ? (remote.h || []) : (base.h || []);
 	const secH = cloudIsNewer ? (base.h || []) : (remote.h || []);
-
-	// If the authoritative newer state explicitly has an item pending in primH,
-	// it was unchecked on the newer device -> ensure it stays in active h
-	for (const item of primH) {
-		mergedHdMap.delete(item.id);
-	}
 
 	const mergedH: HomeworkItem[] = [];
 	const seenHIds = new Set<string>();
 	const secHMap = new Map(secH.map((i) => [i.id, i]));
 
 	for (const item of primH) {
+		const existingHd = mergedHdMap.get(item.id);
+		if (existingHd) {
+			const itemTime = item.updated || 0;
+			const hdTime = existingHd.fin || existingHd.updated || 0;
+			if (itemTime < hdTime) {
+				// The task was completed more recently -> keep in hd, do not put in pending h
+				continue;
+			} else {
+				// The task was reopened/updated after completion -> keep in active h
+				mergedHdMap.delete(item.id);
+			}
+		}
+
 		seenHIds.add(item.id);
 		const sec = secHMap.get(item.id);
-		mergedH.push(sec ? { ...sec, ...item } : { ...item });
+		if (sec) {
+			const itemTime = item.updated || item.fin || 0;
+			const secTime = sec.updated || sec.fin || 0;
+			if (secTime > itemTime) {
+				mergedH.push({ ...item, ...sec });
+			} else {
+				mergedH.push({ ...sec, ...item });
+			}
+		} else {
+			mergedH.push({ ...item });
+		}
 	}
 
 	for (const item of secH) {
 		if (seenHIds.has(item.id) || mergedHdMap.has(item.id)) continue;
-		if (!cloudIsNewer) {
-			mergedH.push({ ...item });
-			seenHIds.add(item.id);
-		}
+		mergedH.push({ ...item });
+		seenHIds.add(item.id);
 	}
 
 	// 6. Mocks: Union by id
@@ -291,6 +315,170 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		mergedGrids[sub] = { cols, data, started };
 	}
 
+	// 9. Planner reflections: Union by day key, preferring newer savedAt timestamp
+	const mergedRefl: Record<string, ReflectionEntry> = { ...(base.refl || {}) };
+	for (const [day, remEntry] of Object.entries(remote.refl || {})) {
+		const locEntry = mergedRefl[day];
+		if (!locEntry) {
+			mergedRefl[day] = remEntry;
+		} else {
+			const locTime = locEntry.savedAt ? new Date(locEntry.savedAt).getTime() : 0;
+			const remTime = remEntry.savedAt ? new Date(remEntry.savedAt).getTime() : 0;
+			if (remTime > locTime) {
+				mergedRefl[day] = remEntry;
+			}
+		}
+	}
+
+	// 10. Planner routines library: Union by id
+	const mergedLib = [...(base.lib || [])];
+	const libIds = new Set(mergedLib.map((r) => r.id));
+	for (const r of remote.lib || []) {
+		if (!libIds.has(r.id)) {
+			mergedLib.push(r);
+			libIds.add(r.id);
+		}
+	}
+
+	// 11. Goals tracker: Union by id
+	const mergedGt = [...(base.gt || [])];
+	const gtIds = new Set(mergedGt.map((g) => g.id));
+	for (const g of remote.gt || []) {
+		if (!gtIds.has(g.id)) {
+			mergedGt.push(g);
+			gtIds.add(g.id);
+		}
+	}
+
+	// 12. Coaching Timetable: Prefer populated timetable
+	const mergedTimetable = (remote.timetable?.periods?.length || 0) > (base.timetable?.periods?.length || 0)
+		? (remote.timetable || base.timetable)
+		: (base.timetable || remote.timetable);
+
+	// 13. Spaced revision & Active Recall (rev):
+	// 13a. Chapters: union by chapterKey, preferring the newer lastRevisionAt or nextRevisionDate
+	const mergedChapters: Record<string, ChapterRecallData> = { ...(base.rev?.chapters || {}) };
+	for (const [key, remCh] of Object.entries(remote.rev?.chapters || {})) {
+		const locCh = mergedChapters[key];
+		if (!locCh) {
+			mergedChapters[key] = structuredClone(remCh);
+		} else {
+			const locTime = locCh.decay?.lastRevisionAt || 0;
+			const remTime = remCh.decay?.lastRevisionAt || 0;
+			if (remTime > locTime) {
+				mergedChapters[key] = {
+					...locCh,
+					...remCh,
+					decay: { ...remCh.decay },
+					nextRevisionDate: remCh.nextRevisionDate || locCh.nextRevisionDate,
+					userAdded: Boolean(locCh.userAdded || remCh.userAdded)
+				};
+			} else {
+				mergedChapters[key] = {
+					...remCh,
+					...locCh,
+					decay: { ...locCh.decay },
+					nextRevisionDate: locCh.nextRevisionDate || remCh.nextRevisionDate,
+					userAdded: Boolean(locCh.userAdded || remCh.userAdded)
+				};
+			}
+		}
+	}
+
+	// 13b. Items: union by item key, preferring newer last revision timestamp
+	const mergedRevItems: Record<string, RevisionItem> = { ...(base.rev?.items || {}) };
+	for (const [key, remItem] of Object.entries(remote.rev?.items || {})) {
+		const locItem = mergedRevItems[key];
+		if (!locItem) {
+			mergedRevItems[key] = structuredClone(remItem);
+		} else {
+			const locTime = locItem.last || 0;
+			const remTime = remItem.last || 0;
+			if (remTime > locTime) {
+				mergedRevItems[key] = {
+					...locItem,
+					...remItem,
+					remindDate: remItem.remindDate || locItem.remindDate,
+					userAdded: Boolean(locItem.userAdded || remItem.userAdded)
+				};
+			} else {
+				mergedRevItems[key] = {
+					...remItem,
+					...locItem,
+					remindDate: locItem.remindDate || remItem.remindDate,
+					userAdded: Boolean(locItem.userAdded || remItem.userAdded)
+				};
+			}
+		}
+	}
+
+	// 13c. Daily Heatmap: union by date, taking max values
+	const allHeatmapDays = new Set([
+		...Object.keys(base.rev?.dailyHeatmap || {}),
+		...Object.keys(remote.rev?.dailyHeatmap || {})
+	]);
+	const mergedHeatmap: Record<string, { revisedCount: number; totalTimeMinutes: number }> = {};
+	for (const day of allHeatmapDays) {
+		const bDay = base.rev?.dailyHeatmap?.[day];
+		const rDay = remote.rev?.dailyHeatmap?.[day];
+		mergedHeatmap[day] = {
+			revisedCount: Math.max(bDay?.revisedCount || 0, rDay?.revisedCount || 0),
+			totalTimeMinutes: Math.max(bDay?.totalTimeMinutes || 0, rDay?.totalTimeMinutes || 0)
+		};
+	}
+
+	// 13d. Study blocks: union by id
+	const mergedBlocks = [...(base.rev?.studyBlocks || [])];
+	const blockIds = new Set(mergedBlocks.map((b) => b.id));
+	for (const b of remote.rev?.studyBlocks || []) {
+		if (!blockIds.has(b.id)) {
+			mergedBlocks.push(b);
+			blockIds.add(b.id);
+		}
+	}
+
+	// 13e. Focus sessions: union by id
+	const mergedFocusSessions = [...(base.rev?.focusSessions || [])];
+	const sessionIds = new Set(mergedFocusSessions.map((s) => s.id));
+	for (const s of remote.rev?.focusSessions || []) {
+		if (!sessionIds.has(s.id)) {
+			mergedFocusSessions.push(s);
+			sessionIds.add(s.id);
+		}
+	}
+
+	// 14. Flashcards: union by id, preferring card with greater repetition/newer nextReviewAt
+	const mergedFlashcards: Flashcard[] = [...(base.flashcards || [])];
+	const fcMap = new Map(mergedFlashcards.map((f) => [f.id, f]));
+	for (const card of remote.flashcards || []) {
+		const existing = fcMap.get(card.id);
+		if (!existing) {
+			mergedFlashcards.push(card);
+			fcMap.set(card.id, card);
+		} else {
+			const existingRev = existing.nextReviewAt || 0;
+			const remoteRev = card.nextReviewAt || 0;
+			if (remoteRev > existingRev || (card.repetition || 0) > (existing.repetition || 0)) {
+				Object.assign(existing, card);
+			}
+		}
+	}
+
+	// 15. Study Dump: union files by id, taking newer lastSyncAt
+	const mergedDumpFiles: DumpFileMeta[] = [...(base.studyDump?.files || [])];
+	const dumpFileIds = new Set(mergedDumpFiles.map((f) => f.id));
+	for (const f of remote.studyDump?.files || []) {
+		if (!dumpFileIds.has(f.id)) {
+			mergedDumpFiles.push(f);
+			dumpFileIds.add(f.id);
+		}
+	}
+	const mergedStudyDump: StudyDumpState = {
+		files: mergedDumpFiles,
+		lastSyncAt: Math.max(base.studyDump?.lastSyncAt || 0, remote.studyDump?.lastSyncAt || 0),
+		sectionZipSizes: { ...(remote.studyDump?.sectionZipSizes || {}), ...(base.studyDump?.sectionZipSizes || {}) }
+	};
+
 	const merged: TrackerState = {
 		...prefSource,
 		d: mergedD,
@@ -308,6 +496,20 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		onboarded: Boolean(base.onboarded || remote.onboarded),
 		h: mergedH,
 		hd: Array.from(mergedHdMap.values()),
+		refl: mergedRefl,
+		lib: mergedLib,
+		gt: mergedGt,
+		timetable: mergedTimetable,
+		studyDump: mergedStudyDump,
+		rev: {
+			decayDays: prefSource.rev?.decayDays ?? 30,
+			items: mergedRevItems,
+			chapters: mergedChapters,
+			dailyHeatmap: mergedHeatmap,
+			studyBlocks: mergedBlocks,
+			focusSessions: mergedFocusSessions
+		},
+		flashcards: mergedFlashcards,
 		mocks: mergedMocks,
 		gamification: mergedGamification,
 		streakFreezes: {
@@ -380,6 +582,30 @@ function onSignOut() {
 	syncStatus.set('idle');
 }
 
+/** Immediately flushes any pending cloud push without waiting for the debounce timer. */
+export async function flushPush(): Promise<void> {
+	if (!activeUserId) return;
+	clearTimeout(pushTimer);
+	pushTimer = undefined;
+	const state = get(tracker);
+	try {
+		await pushState(activeUserId, state);
+		syncStatus.set('synced');
+	} catch (e) {
+		console.error("Flush push to cloud failed:", e);
+	}
+}
+
+function handleOnline() {
+	void pullAndSync();
+}
+
+function handleBeforeUnload() {
+	if (pushTimer) {
+		void flushPush();
+	}
+}
+
 /** Wire auth + cloud mirroring. Safe to call once from the root layout. */
 export function startSync() {
 	if (started) return;
@@ -395,6 +621,8 @@ export function startSync() {
 	if (typeof window !== 'undefined') {
 		window.addEventListener('visibilitychange', handleVisibilityOrFocus);
 		window.addEventListener('focus', handleVisibilityOrFocus);
+		window.addEventListener('online', handleOnline);
+		window.addEventListener('beforeunload', handleBeforeUnload);
 	}
 }
 
@@ -407,6 +635,8 @@ export function stopSync() {
 	if (typeof window !== 'undefined') {
 		window.removeEventListener('visibilitychange', handleVisibilityOrFocus);
 		window.removeEventListener('focus', handleVisibilityOrFocus);
+		window.removeEventListener('online', handleOnline);
+		window.removeEventListener('beforeunload', handleBeforeUnload);
 	}
 	teardownAuth();
 }

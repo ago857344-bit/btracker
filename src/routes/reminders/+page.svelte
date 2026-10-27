@@ -177,8 +177,10 @@
 	}
 
 	/* ---------------- actions ---------------- */
-	function markRevisionComplete(key: string) {
+	function markRevisionComplete(key: string, cardId?: string) {
 		boostChapterFromPractice(key);
+		if (cardId) dismissedIds = new Set([...dismissedIds, cardId]);
+		dismissedIds = new Set([...dismissedIds, `rev-${key}`, key]);
 		celebration.set('Revision marked complete! Memory restored to 100%');
 	}
 
@@ -414,7 +416,7 @@
 									{/if}
 								</div>
 								{#if card.source === 'revision'}
-									<button type="button" class="link snooze-btn" style="color: var(--success); font-weight: 700;" on:click={() => markRevisionComplete(card.linkId || card.id.slice(4))}>
+									<button type="button" class="link snooze-btn" style="color: var(--success); font-weight: 700;" on:click={() => markRevisionComplete(card.linkId || card.id.slice(4), card.id)}>
 										<NavIcon name="check" size={13} /> Mark revised
 									</button>
 									<a href="/revise" class="link snooze-btn" style="color: var(--accent); font-weight: 700; text-decoration: none;">
@@ -578,7 +580,7 @@
 	.solid { border: 0; background: var(--accent); color: var(--accent-contrast, #fff); box-shadow: 0 8px 18px color-mix(in srgb, var(--accent), transparent 65%); }
 	.solid:disabled { opacity: .45; cursor: default; box-shadow: none; }
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.page-head { flex-direction: column; align-items: stretch; gap: 0.85rem; }
 		.head-actions { width: 100%; display: flex; }
 		.count-chip { flex: 1; justify-content: center; height: 42px; }

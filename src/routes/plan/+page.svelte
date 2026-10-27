@@ -93,7 +93,12 @@
 	const WEEKDAYS = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
 	$: today = todayKey();
-	$: allTasks = [...$tracker.h, ...$tracker.hd];
+	$: allTasks = (() => {
+		const map = new Map<string, HomeworkItem>();
+		for (const t of $tracker.hd || []) map.set(t.id, t);
+		for (const t of $tracker.h || []) map.set(t.id, t);
+		return Array.from(map.values());
+	})();
 	$: tasksOn = (day: string) => allTasks.filter((t) => t.due === day);
 	$: weekDays = Array.from({ length: 7 }, (_, i) => dayKeyOf(addDays(startOfWeek(cursor), i)));
 	$: monthDays = (() => {
@@ -129,7 +134,7 @@
 	}
 
 	function onToggle(id: string) {
-		const targetTask = ($tracker.h || []).find((t) => t.id === id);
+		const targetTask = ($tracker.h || []).find((t) => t.id === id) || ($tracker.hd || []).find((t) => t.id === id);
 		if (targetTask && isClassItem(targetTask)) return; // Classes are scheduled fixtures, not tickable to-dos!
 		if (toggleTask(id)) celebration.set('Task Completed!');
 	}
@@ -218,8 +223,11 @@
 						class:selected={day === selectedDay}
 						aria-label="{day}, {count} tasks"
 						on:click={() => selectDay(day)}
-						on:dragover|preventDefault={() => {}}
-						on:drop|preventDefault={() => { if (dragId) { applyMove(dragId, day); dragId = null; } }}
+						on:dragover|preventDefault={(e) => { if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; }}
+						on:drop|preventDefault={(e) => {
+							const droppedId = dragId || e.dataTransfer?.getData('text/plain');
+							if (droppedId) { applyMove(droppedId, day); dragId = null; }
+						}}
 					>
 						<small>{WEEKDAYS[i]}</small>
 						<span class="num">{parseKey(day).getDate()}</span>
@@ -241,8 +249,11 @@
 						class:today={day === today}
 						class:selected={day === selectedDay}
 						on:click={() => selectDay(day)}
-						on:dragover|preventDefault={() => {}}
-						on:drop|preventDefault={() => { if (dragId) { applyMove(dragId, day); dragId = null; } }}
+						on:dragover|preventDefault={(e) => { if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; }}
+						on:drop|preventDefault={(e) => {
+							const droppedId = dragId || e.dataTransfer?.getData('text/plain');
+							if (droppedId) { applyMove(droppedId, day); dragId = null; }
+						}}
 					>
 						<span class="num">{d.getDate()}</span>
 						{#if tasksOn(day).length}<span class="dots">{#each tasksOn(day).slice(0, 4) as t}<i style="background: {TASK_COLORS[(t.col ?? 0) % TASK_COLORS.length]}"></i>{/each}</span>{/if}
@@ -288,15 +299,23 @@
 								class:missed={isMissed(task)}
 								draggable={isDesktop && !task.done}
 								on:dragstart={(e) => {
-									if (!isDesktop || (e.target as HTMLElement)?.closest('button, input, [role="button"]')) {
+									if (!isDesktop || isClassItem(task) || (e.target as HTMLElement)?.closest('.circle-check, input, select, textarea')) {
 										e.preventDefault();
 										return;
 									}
 									dragId = task.id;
+									if (e.dataTransfer) {
+										e.dataTransfer.setData('text/plain', task.id);
+										e.dataTransfer.effectAllowed = 'move';
+									}
 								}}
 								on:dragend={() => dragId = null}
-								on:dragover|preventDefault={() => {}}
-								on:drop|preventDefault={() => { if (dragId && dragId !== task.id) { reorder(dragId, task.id); } dragId = null; }}
+								on:dragover|preventDefault={(e) => { if (e.dataTransfer) e.dataTransfer.dropEffect = 'move'; }}
+								on:drop|preventDefault={(e) => {
+									const droppedId = dragId || e.dataTransfer?.getData('text/plain');
+									if (droppedId && droppedId !== task.id) { reorder(droppedId, task.id); }
+									dragId = null;
+								}}
 							>
 								<span class="grip" aria-hidden="true"><NavIcon name="drag" size={14} /></span>
 								{#if isClassItem(task)}
@@ -317,7 +336,13 @@
 									</button>
 								{/if}
 								<span class="color-bar" style="background: {TASK_COLORS[(task.col ?? 0) % TASK_COLORS.length]}"></span>
-								<button type="button" class="task-copy" on:click={() => openDetail(task)}>
+								<div
+									role="button"
+									tabindex="0"
+									class="task-copy"
+									on:click={() => openDetail(task)}
+									on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(task); } }}
+								>
 									<b>{task.title}</b>
 									<small>
 										{#if task.st}{fmtTime(task.st)}{#if task.en} – {fmtTime(task.en)}{/if} · {/if}
@@ -332,7 +357,7 @@
 										{#if task.test}<span class="test-tag">Test</span>{/if}
 										{#if isMissed(task)}<span class="missed-tag">Missed</span>{/if}
 									</small>
-								</button>
+								</div>
 							</li>
 						{/each}
 					</ul>

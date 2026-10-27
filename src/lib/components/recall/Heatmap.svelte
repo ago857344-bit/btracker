@@ -234,7 +234,7 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	@media (max-width: 640px) {
+	@media (max-width: 768px) {
 		.cell,
 		.legend-cell {
 			width: 10px;

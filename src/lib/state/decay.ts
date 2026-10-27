@@ -263,17 +263,14 @@ export function isChapterStudied(state: any, chapterKey: string): boolean {
 	const chap = state.rev?.chapters?.[chapterKey];
 	if (chap) {
 		if (chap.userAdded) return true;
-		if (chap.decay?.lastRevisionAt && chap.decay.lastRevisionAt > 0) {
-			if (Array.isArray(chap.decay.history) && chap.decay.history.length > 1) {
-				return true;
-			}
-		}
+		if (chap.decay?.lastRevisionAt && chap.decay.lastRevisionAt > 0) return true;
+		if (chap.nextRevisionDate) return true;
 	}
 
 	// 4. Check spaced revision items
 	const colonKey = `${sub}:${chRaw}`;
 	const item = state.rev?.items?.[colonKey] || state.rev?.items?.[chapterKey];
-	if (item?.userAdded || (item?.last && item.last > 0)) {
+	if (item?.userAdded || (item?.last && item.last > 0) || item?.remindDate) {
 		return true;
 	}
 

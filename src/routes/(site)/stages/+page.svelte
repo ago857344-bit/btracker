@@ -786,7 +786,7 @@
 			top: 72px;
 		}
 	}
-	@media (max-width: 720px) {
+	@media (max-width: 768px) {
 		.stage-tabs {
 			display: flex;
 			overflow-x: auto;

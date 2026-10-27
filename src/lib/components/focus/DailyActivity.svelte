@@ -91,7 +91,7 @@
 	.empty p { margin: 0; font-size: .85rem; font-weight: 700; }
 	.empty span { color: var(--text-secondary); font-size: .74rem; }
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.daily { padding: 1.15rem 1rem; }
 		header { gap: 0.6rem; }
 	}

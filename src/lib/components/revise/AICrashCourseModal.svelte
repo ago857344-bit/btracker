@@ -18,8 +18,13 @@
 	let error = '';
 	let html = '';
 
-	$: if (chapterKey) {
+	let lastLoadedKey = '';
+	$: if (chapterKey && chapterKey !== lastLoadedKey) {
+		lastLoadedKey = chapterKey;
 		loadCourse(chapterKey);
+	}
+	$: if (!chapterKey) {
+		lastLoadedKey = '';
 	}
 
 	async function loadCourse(key: string) {

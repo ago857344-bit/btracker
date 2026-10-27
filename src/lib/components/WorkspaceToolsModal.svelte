@@ -600,7 +600,7 @@
 		opacity: 0.92;
 	}
 
-	@media (max-width: 600px) {
+	@media (max-width: 768px) {
 		.tools-modal {
 			gap: 0.75rem;
 		}

@@ -634,7 +634,7 @@
 		font-variant-numeric: tabular-nums;
 	}
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.ghost-pacer {
 			padding: 1.15rem 1rem;
 		}

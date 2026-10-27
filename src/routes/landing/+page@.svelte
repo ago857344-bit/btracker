@@ -1,4 +1,5 @@
 <script lang="ts">
+	import '../(site)/site.css';
 	import LandingPage from '$lib/components/landing/LandingPage.svelte';
 </script>
 

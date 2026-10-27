@@ -767,7 +767,7 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 		display: none;
 	}
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.chat-backdrop {
 			display: block;
 			position: fixed;
@@ -828,7 +828,42 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 		overflow: hidden;
 		transform-origin: bottom right;
 	}
-	:root[data-clear-glass="true"] .chat-panel { background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important; border: 1px solid var(--border-subtle) !important; }
+	:root[data-clear-glass="true"] .chat-panel { background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important; border: 1px solid var(--surface-popup-border, var(--border-subtle)) !important; }
+
+	:global(:root[data-theme='light']) .chat-panel,
+	:global(:root[data-theme='notion']) .chat-panel,
+	:global(:root[data-theme='duolingo']) .chat-panel,
+	:global(:root[data-theme='anki']) .chat-panel,
+	:global(:root[data-theme='master']) .chat-panel {
+		background: var(--surface-popup, rgba(255, 255, 255, 0.98)) !important;
+		border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08)) !important;
+		box-shadow: 0 24px 64px -8px rgba(44, 37, 92, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.95) !important;
+	}
+
+	:global(:root[data-theme='light']) .chat-header,
+	:global(:root[data-theme='notion']) .chat-header,
+	:global(:root[data-theme='duolingo']) .chat-header,
+	:global(:root[data-theme='anki']) .chat-header,
+	:global(:root[data-theme='master']) .chat-header,
+	:global(:root[data-theme='light']) .chat-input-area,
+	:global(:root[data-theme='notion']) .chat-input-area,
+	:global(:root[data-theme='duolingo']) .chat-input-area,
+	:global(:root[data-theme='anki']) .chat-input-area,
+	:global(:root[data-theme='master']) .chat-input-area {
+		background: #ffffff !important;
+		border-color: color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08)) !important;
+	}
+
+	:global(:root[data-theme='light']) .mentor-bubble,
+	:global(:root[data-theme='notion']) .mentor-bubble,
+	:global(:root[data-theme='duolingo']) .mentor-bubble,
+	:global(:root[data-theme='anki']) .mentor-bubble,
+	:global(:root[data-theme='master']) .mentor-bubble {
+		background: var(--surface-popup, rgba(255, 255, 255, 0.98)) !important;
+		border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08)) !important;
+		box-shadow: 0 8px 24px rgba(44, 37, 92, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+		color: var(--text-primary) !important;
+	}
 
 	.chat-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); background: var(--surface-popup-solid, var(--surface-subtle, rgba(18, 16, 32, 0.98))); }
 	.header-title { display: flex; align-items: center; gap: 10px; }
@@ -910,7 +945,7 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 
 	.chat-body { flex: 1; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; scroll-behavior: smooth; }
 	.chat-bubble { padding: 10px 14px; border-radius: 14px; font-size: 0.85rem; line-height: 1.5; max-width: 85%; word-wrap: break-word; }
-	.chat-bubble.ai { background: var(--surface-subtle); color: var(--text-primary); border-bottom-left-radius: 4px; align-self: flex-start; }
+	.chat-bubble.ai { background: color-mix(in srgb, var(--text-primary) 8%, var(--surface-popup-solid, #121020)) !important; color: var(--text-primary); border-bottom-left-radius: 4px; align-self: flex-start; }
 	.chat-bubble.user { background: var(--accent); color: var(--accent-contrast, #fff); border-bottom-right-radius: 4px; align-self: flex-end; }
 	.chat-bubble :global(.katex-display) { overflow-x: auto; overflow-y: hidden; margin: 0.5rem 0; padding: 0.2rem 0; max-width: 100%; }
 	.chat-bubble :global(.katex) { font-size: 1.05em; }

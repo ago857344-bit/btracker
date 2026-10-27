@@ -1,7 +1,11 @@
 import { tracker, scheduleSave, setSessionBoostHandler } from "./tracker";
 
 function _updateAndSave(updater: (state: TrackerState) => TrackerState) {
-    tracker.update(updater);
+    tracker.update((current) => {
+        const next = updater(structuredClone(current));
+        next.savedAt = new Date().toISOString();
+        return next;
+    });
     scheduleSave();
 }
 import type { TrackerState, 
@@ -27,7 +31,11 @@ import { intervalFor } from '$lib/state/subjects';
  * @param chapterKey - Chapter identifier (e.g., "P-1")
  * @param weightage - High-yield weightage (1-3)
  */
-export function addChapterToRecall(chapterKey: string, weightage: 1 | 2 | 3 = 2) {
+export function addChapterToRecall(
+	chapterKey: string,
+	weightage: 1 | 2 | 3 = 2,
+	method: 'steady' | 'fast' | 'smart' = 'steady'
+) {
 	_updateAndSave(($tracker) => {
 		if ($tracker.rev.chapters[chapterKey]) {
 			return $tracker; // Already exists
@@ -55,7 +63,7 @@ export function addChapterToRecall(chapterKey: string, weightage: 1 | 2 | 3 = 2)
 					[colonKey]: {
 						weight: weightage,
 						last: null,
-						method: 'steady',
+						method,
 						step: 1,
 						sub,
 						ch: chName,
@@ -512,11 +520,22 @@ export function removeChapterFromRecall(chapterKey: string) {
 	_updateAndSave(($tracker) => {
 		const { [chapterKey]: removed, ...remainingChapters } = $tracker.rev.chapters;
 
+		const [sub, ...rest] = chapterKey.split(/[-:]/);
+		const chName = rest.join('-').trim();
+		const colonKey = `${sub}:${chName}`;
+		const hyphenKey = `${sub}-${chName}`;
+
+		const remainingItems = { ...$tracker.rev.items };
+		delete remainingItems[colonKey];
+		delete remainingItems[hyphenKey];
+		delete remainingItems[chapterKey];
+
 		return {
 			...$tracker,
 			rev: {
 				...$tracker.rev,
-				chapters: remainingChapters
+				chapters: remainingChapters,
+				items: remainingItems
 			}
 		};
 	});

@@ -494,4 +494,11 @@
 		.elo-item { padding: 0.75rem 0.8rem; }
 		.elo-rank { margin-right: 0.4rem; font-size: 0.6rem; }
 	}
+
+	@media (max-width: 480px) {
+		.prow { flex-wrap: wrap; gap: 0.35rem 0.5rem; }
+		.pbar { flex-basis: 100%; order: 3; }
+		.psolved { margin-left: auto; }
+		.grid4 { grid-template-columns: 1fr 1fr; gap: 0.4rem; }
+	}
 </style>

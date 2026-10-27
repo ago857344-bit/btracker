@@ -2318,9 +2318,9 @@ PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here</pre>
 	}
 
 	.reader-shell.fullscreen {
-		width: 100vw;
-		max-width: 100vw;
-		height: 100vh;
+		width: 100%;
+		max-width: 100%;
+		height: 100dvh;
 		border-radius: 0;
 		border: none;
 	}
@@ -2746,7 +2746,7 @@ PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here</pre>
 		}
 	}
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.dump-page {
 			padding: 1rem 0.75rem calc(max(env(safe-area-inset-bottom), 16px) + 84px);
 		}
@@ -2790,8 +2790,8 @@ PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here</pre>
 		}
 
 		.reader-shell {
-			width: 100vw !important;
-			max-width: 100vw !important;
+			width: 100% !important;
+			max-width: 100% !important;
 			height: 100dvh !important;
 			border-radius: 0 !important;
 			border: none !important;

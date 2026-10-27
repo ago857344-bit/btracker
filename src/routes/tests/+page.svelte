@@ -33,9 +33,13 @@
 	let c = { score: 0, correct: 0, incorrect: 0 };
 	let m = { score: 0, correct: 0, incorrect: 0 };
 
+	function makeTestId(prefix: string) {
+		return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+	}
+
 	function saveTest() {
 		const newTest: MockTest = {
-			id: crypto.randomUUID(),
+			id: makeTestId('test'),
 			name,
 			date: new Date(dateStr).getTime(),
 			category: tab,
@@ -47,7 +51,10 @@
 			subjects: {
 				Physics: { ...p },
 				Chemistry: { ...c },
-				Maths: { ...m }
+				Maths: { ...m },
+				P: { ...p },
+				C: { ...c },
+				M: { ...m }
 			}
 		};
 		
@@ -113,7 +120,7 @@
 
 	function saveMistake() {
 		const newMistake: MistakeLog = {
-			id: crypto.randomUUID(),
+			id: makeTestId('mistake'),
 			date: Date.now(),
 			subject: mistakeSubject,
 			errorType: mistakeType,
@@ -164,7 +171,7 @@
 			if (!s.flashcards) s.flashcards = [];
 			if (s.flashcards.some(c => c.front === front)) return s;
 			const card: Flashcard = {
-				id: crypto.randomUUID(),
+				id: makeTestId('fc'),
 				front,
 				back,
 				subject: m.subject.charAt(0).toUpperCase(),
@@ -274,7 +281,7 @@
 							</div>
 							{/if}
 							<div class="subject-breakdown">
-								{#each Object.entries(test.subjects) as [sub, data]}
+								{#each Object.entries(test.subjects).filter(([sub]) => ['Physics', 'Chemistry', 'Maths'].includes(sub)) as [sub, data]}
 									<div style="display: flex; justify-content: space-between;">
 										<span>{sub}</span>
 										<span>{data.score} marks{#if data.correct || data.incorrect} ({data.correct}C, {data.incorrect}I){/if}</span>
@@ -645,5 +652,11 @@
 		.sub-row input { padding: 0.5rem 0.25rem; font-size: 0.85rem; height: 38px; }
 		.filters { flex-direction: column; gap: 0.75rem; padding: 1rem; }
 		.filter-group select { width: 100%; height: 42px; }
+	}
+
+	@media (max-width: 480px) {
+		.header-actions { grid-template-columns: 1fr; }
+		.analytics-grid { grid-template-columns: 1fr; }
+		.negative-analysis { grid-column: span 1; }
 	}
 </style>

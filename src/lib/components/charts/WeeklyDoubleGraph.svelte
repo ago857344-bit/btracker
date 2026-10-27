@@ -537,7 +537,7 @@
 		color: var(--text-secondary);
 	}
 
-	@media (max-width: 600px) {
+	@media (max-width: 768px) {
 		.graph-header {
 			flex-direction: column;
 			align-items: flex-start;

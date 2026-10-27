@@ -1059,7 +1059,7 @@
 		}
 	}
 
-	@media (max-width: 780px) {
+	@media (max-width: 768px) {
 		.progress {
 			top: 73px;
 		}

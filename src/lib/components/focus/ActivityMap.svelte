@@ -175,7 +175,7 @@
 	.insight-icon { display: grid; place-items: center; flex-shrink: 0; width: 22px; height: 22px; border-radius: 7px; background: color-mix(in srgb, var(--accent), transparent 86%); color: var(--accent); margin-top: .05rem; }
 	.insight b { color: var(--text-primary); }
 
-	@media (max-width: 760px) {
+	@media (max-width: 768px) {
 		.map { padding: 1.15rem 1rem; }
 		header { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
 		.grans { width: 100%; justify-content: space-between; }

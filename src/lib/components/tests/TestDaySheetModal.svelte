@@ -686,7 +686,7 @@
 		z-index: 10001;
 		display: flex;
 		flex-direction: column;
-		background: var(--surface-canvas, #0e1117);
+		background: var(--surface-popup-solid, #0e1117);
 		border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
 		border-radius: 20px;
 		box-shadow: 0 24px 60px -12px rgba(0, 0, 0, 0.7);
@@ -700,7 +700,7 @@
 		justify-content: space-between;
 		gap: 1rem;
 		padding: 0.9rem 1.4rem;
-		background: color-mix(in srgb, var(--surface-panel) 92%, transparent);
+		background: color-mix(in srgb, var(--surface-popup-solid, #131127) 96%, transparent);
 		border-bottom: 1px solid var(--border-subtle);
 		flex-shrink: 0;
 		flex-wrap: wrap;
@@ -845,7 +845,7 @@
 		align-items: center;
 		gap: 1.5rem;
 		padding: 0.55rem 1.4rem;
-		background: color-mix(in srgb, var(--surface-subtle) 80%, transparent);
+		background: color-mix(in srgb, var(--surface-popup-solid, #131127) 90%, transparent);
 		border-bottom: 1px solid var(--border-subtle);
 		flex-shrink: 0;
 		flex-wrap: wrap;
@@ -1533,5 +1533,33 @@
 		.layout-3-col .formulas-columns {
 			grid-template-columns: 1fr;
 		}
+	}
+
+	:global(:root[data-theme='light']) .sheet-modal-wrapper,
+	:global(:root[data-theme='notion']) .sheet-modal-wrapper,
+	:global(:root[data-theme='duolingo']) .sheet-modal-wrapper,
+	:global(:root[data-theme='anki']) .sheet-modal-wrapper,
+	:global(:root[data-theme='master']) .sheet-modal-wrapper {
+		background: #f4f4f7 !important;
+		border-color: rgba(0, 0, 0, 0.1) !important;
+		box-shadow: 0 24px 60px -12px rgba(20, 16, 40, 0.2) !important;
+	}
+
+	:global(:root[data-theme='light']) .sheet-modal-toolbar,
+	:global(:root[data-theme='notion']) .sheet-modal-toolbar,
+	:global(:root[data-theme='duolingo']) .sheet-modal-toolbar,
+	:global(:root[data-theme='anki']) .sheet-modal-toolbar,
+	:global(:root[data-theme='master']) .sheet-modal-toolbar {
+		background: #ffffff !important;
+		border-color: rgba(0, 0, 0, 0.08) !important;
+	}
+
+	:global(:root[data-theme='light']) .sheet-config-bar,
+	:global(:root[data-theme='notion']) .sheet-config-bar,
+	:global(:root[data-theme='duolingo']) .sheet-config-bar,
+	:global(:root[data-theme='anki']) .sheet-config-bar,
+	:global(:root[data-theme='master']) .sheet-config-bar {
+		background: #f8f8fb !important;
+		border-color: rgba(0, 0, 0, 0.08) !important;
 	}
 </style>

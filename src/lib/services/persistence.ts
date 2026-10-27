@@ -44,20 +44,46 @@ let lastAutoSnapshot = 0;
 export async function loadTrackerState(): Promise<TrackerState | null> {
 	if (!browser) return null;
 	if (tauriAvailable()) {
-		const { invoke } = await import('@tauri-apps/api/core');
-		return invoke<TrackerState | null>('load_state');
+		try {
+			const { invoke } = await import('@tauri-apps/api/core');
+			return await invoke<TrackerState | null>('load_state');
+		} catch (e) {
+			console.warn('Tauri load_state failed, falling back:', e);
+		}
 	}
-	return browserLoad();
+	try {
+		const res = await browserLoad();
+		if (res) return res;
+	} catch (e) {
+		console.warn('IndexedDB browserLoad failed:', e);
+	}
+	// Fallback to localStorage in case IndexedDB was unavailable or threw an error
+	try {
+		const raw = localStorage.getItem('btracker_fallback_state');
+		if (raw) return JSON.parse(raw);
+	} catch {}
+	return null;
 }
 
 export async function saveTrackerState(state: TrackerState): Promise<void> {
 	if (!browser) return;
 	if (tauriAvailable()) {
-		const { invoke } = await import('@tauri-apps/api/core');
-		await invoke('save_state', { state });
-		return;
+		try {
+			const { invoke } = await import('@tauri-apps/api/core');
+			await invoke('save_state', { state });
+			return;
+		} catch (e) {
+			console.warn('Tauri save_state failed, falling back to browser storage:', e);
+		}
 	}
-	await browserSave(state);
+	try {
+		await browserSave(state);
+	} catch (e) {
+		console.error('IndexedDB browserSave failed, saving emergency localStorage copy:', e);
+		try {
+			localStorage.setItem('btracker_fallback_state', JSON.stringify(state));
+		} catch {}
+	}
 
 	// Automatically create a rolling local snapshot every 30 minutes
 	const now = Date.now();

@@ -13,7 +13,8 @@
 				{ label: 'The system', href: '/system' },
 				{ label: 'Stages', href: '/stages' },
 				{ label: 'Study playbooks', href: '/playbooks' },
-				{ label: 'FAQ', href: '/faq' }
+				{ label: 'FAQ', href: '/faq' },
+				{ label: 'Dark Mode SaaS', href: '/landing' }
 			]
 		},
 		{
@@ -161,8 +162,9 @@
 	}
 
 	.wordmark {
-		width: 100vw;
-		margin-left: calc(50% - 50vw);
+		width: 100%;
+		max-width: 100%;
+		margin-left: 0;
 		overflow: hidden;
 		line-height: 0;
 	}

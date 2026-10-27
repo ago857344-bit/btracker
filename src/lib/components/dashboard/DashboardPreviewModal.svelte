@@ -194,7 +194,7 @@
 		height: 92vh;
 		max-height: 920px;
 		border-radius: 24px;
-		background: color-mix(in srgb, var(--surface-panel) 92%, var(--surface-canvas));
+		background: var(--surface-popup-solid, var(--surface-panel)) !important;
 		border: 1px solid var(--border-subtle);
 		box-shadow: 0 32px 90px -16px rgba(0, 0, 0, 0.7);
 		overflow: hidden;
@@ -208,7 +208,7 @@
 		gap: 1rem;
 		padding: 1rem 1.4rem;
 		border-bottom: 1px solid color-mix(in srgb, var(--border-subtle), transparent 30%);
-		background: color-mix(in srgb, var(--surface-panel) 98%, transparent);
+		background: var(--surface-popup-solid, var(--surface-panel)) !important;
 		flex-shrink: 0;
 	}
 

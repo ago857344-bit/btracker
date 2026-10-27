@@ -759,7 +759,7 @@ Explain what happens from **first principles**—avoid reciting formulas without
 		max-height: 820px;
 		display: flex;
 		flex-direction: column;
-		background: var(--surface-panel);
+		background: var(--surface-popup-solid, var(--surface-panel)) !important;
 		border: 1px solid var(--border-subtle);
 		border-radius: 24px;
 		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -774,7 +774,7 @@ Explain what happens from **first principles**—avoid reciting formulas without
 		justify-content: space-between;
 		padding: 1.15rem 1.4rem;
 		border-bottom: 1px solid var(--border-subtle);
-		background: color-mix(in srgb, var(--surface-panel) 90%, transparent);
+		background: var(--surface-popup-solid, var(--surface-panel)) !important;
 	}
 
 	.header-left {
@@ -1660,7 +1660,7 @@ Explain what happens from **first principles**—avoid reciting formulas without
 		to { transform: rotate(360deg); }
 	}
 
-	@media (max-width: 640px) {
+	@media (max-width: 768px) {
 		.duck-modal {
 			height: 96vh;
 			border-radius: 18px;

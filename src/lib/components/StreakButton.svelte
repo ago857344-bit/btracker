@@ -336,4 +336,25 @@
 	.alert-icon { font-size: 1.35rem; line-height: 1; flex-shrink: 0; }
 	.streak-alert b { display: block; font-size: 0.82rem; font-weight: 750; }
 	.streak-alert small { display: block; font-size: 0.72rem; color: var(--text-secondary); line-height: 1.35; }
+
+	@media (max-width: 480px) {
+		.hero {
+			grid-template-columns: 1fr;
+			gap: 0.5rem;
+		}
+		.stat.main {
+			justify-content: center;
+		}
+		.badges {
+			grid-template-columns: repeat(2, 1fr);
+		}
+		.freeze-card {
+			flex-direction: column;
+			align-items: stretch;
+			gap: 0.6rem;
+		}
+		.freeze-actions {
+			justify-content: flex-end;
+		}
+	}
 </style>

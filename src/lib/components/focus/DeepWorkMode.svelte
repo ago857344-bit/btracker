@@ -545,7 +545,7 @@
 		animation: shatter-anim 0.8s forwards ease-in;
 	}
 
-	@media (max-width: 600px) {
+	@media (max-width: 768px) {
 		.header {
 			padding: max(env(safe-area-inset-top, 0px), 1.25rem) 1.25rem 0.5rem;
 		}

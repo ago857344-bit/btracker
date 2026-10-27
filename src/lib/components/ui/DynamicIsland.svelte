@@ -1487,5 +1487,14 @@
 		.dynamic-island.expanded:not(.idle) {
 			height: 290px;
 		}
+
+		@media (max-width: 360px) {
+			.dynamic-island:not(.expanded) {
+				width: calc(100vw - 20px);
+			}
+			.dynamic-island.expanded {
+				width: calc(100vw - 16px);
+			}
+		}
 	}
 </style>

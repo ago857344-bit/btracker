@@ -573,4 +573,17 @@
 		font-weight: 750;
 		text-decoration: none;
 	}
+
+	@media (max-width: 1080px) {
+		.sgo {
+			display: none;
+		}
+	}
+
+	@media (max-height: 720px) {
+		.mega {
+			overflow-y: auto;
+			max-height: calc(100vh - 100px);
+		}
+	}
 </style>

@@ -12,20 +12,49 @@
 	let textarea: HTMLTextAreaElement;
 	let saveTimer: ReturnType<typeof setTimeout>;
 
+	let currentLoadedDay = '';
+	let currentLoadedTab: 'post' | 'mistakes' = 'post';
+
+	function flushPendingSave() {
+		clearTimeout(saveTimer);
+		if (currentLoadedDay && text !== undefined) {
+			setReflection(currentLoadedDay, currentLoadedTab, text);
+		}
+	}
+
 	$: entry = $tracker.refl[day];
+
 	$: {
-		// reload when day or tab changes (skip while user is typing the same field)
-		if (document.activeElement !== textarea) text = (tab === 'post' ? entry?.post : entry?.mistakes) ?? '';
+		// When day or tab changes: flush pending save for the previous day/tab first!
+		if (day !== currentLoadedDay || tab !== currentLoadedTab) {
+			flushPendingSave();
+			currentLoadedDay = day;
+			currentLoadedTab = tab;
+			text = (tab === 'post' ? entry?.post : entry?.mistakes) ?? '';
+		} else if (document.activeElement !== textarea) {
+			// External store update
+			text = (tab === 'post' ? entry?.post : entry?.mistakes) ?? '';
+		}
 	}
 
 	function onInput() {
 		clearTimeout(saveTimer);
-		saveTimer = setTimeout(() => setReflection(day, tab, text), 600);
+		const targetDay = day;
+		const targetTab = tab;
+		const targetText = text;
+		saveTimer = setTimeout(() => {
+			setReflection(targetDay, targetTab, targetText);
+		}, 600);
+	}
+
+	function switchTab(newTab: 'post' | 'mistakes') {
+		if (tab === newTab) return;
+		flushPendingSave();
+		tab = newTab;
 	}
 
 	onDestroy(() => {
-		clearTimeout(saveTimer);
-		setReflection(day, tab, text);
+		flushPendingSave();
 	});
 
 	function wrap(before: string, after = before) {
@@ -73,8 +102,8 @@
 	{#if open}
 		<div class="body">
 			<div class="tabs" role="tablist">
-				<button type="button" role="tab" aria-selected={tab === 'post'} class:selected={tab === 'post'} on:click={() => { text = entry?.post ?? ''; tab = 'post'; }}>Post</button>
-				<button type="button" role="tab" aria-selected={tab === 'mistakes'} class:selected={tab === 'mistakes'} on:click={() => { text = entry?.mistakes ?? ''; tab = 'mistakes'; }}>Mistakes</button>
+				<button type="button" role="tab" aria-selected={tab === 'post'} class:selected={tab === 'post'} on:click={() => switchTab('post')}>Post</button>
+				<button type="button" role="tab" aria-selected={tab === 'mistakes'} class:selected={tab === 'mistakes'} on:click={() => switchTab('mistakes')}>Mistakes</button>
 				<span class="badge">Visual mode</span>
 			</div>
 

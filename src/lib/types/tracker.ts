@@ -42,6 +42,8 @@ export interface HomeworkItem {
 	done?: boolean;
 	keep?: boolean;
 	fin?: number;
+	/** Timestamp in ms when task was last created or modified */
+	updated?: number;
 	/** Planner-only extras (BTracker day tasks). */
 	col?: number;
 	st?: string;

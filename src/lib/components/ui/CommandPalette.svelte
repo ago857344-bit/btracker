@@ -339,8 +339,8 @@
 		position: relative;
 		width: 100%;
 		max-width: 660px;
-		background: color-mix(in srgb, var(--surface-panel, #121020) 96%, transparent);
-		border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
+		background: var(--surface-popup-solid, var(--surface-popup, #121020)) !important;
+		border: 1px solid var(--surface-popup-border, color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16)));
 		border-radius: 20px;
 		box-shadow:
 			0 24px 64px -8px rgba(0, 0, 0, 0.65),
@@ -493,7 +493,7 @@
 	}
 	.tip { margin-left: auto; display: inline-flex; align-items: center; gap: 0.3rem; }
 
-	@media (max-width: 680px) {
+	@media (max-width: 768px) {
 		.overlay {
 			padding: max(env(safe-area-inset-top, 0px), 1rem) 0.75rem calc(max(env(safe-area-inset-bottom, 0px), 1rem) + 0.5rem);
 			align-items: flex-start;
@@ -520,5 +520,32 @@
 			padding: 0.75rem 0.85rem;
 			min-height: 48px;
 		}
+	}
+
+	:global(:root[data-theme='light']) .modal,
+	:global(:root[data-theme='notion']) .modal,
+	:global(:root[data-theme='duolingo']) .modal,
+	:global(:root[data-theme='anki']) .modal,
+	:global(:root[data-theme='master']) .modal {
+		background: #ffffff !important;
+		border: 1px solid var(--border-subtle) !important;
+		box-shadow: 0 24px 64px -8px rgba(44, 37, 92, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.95) !important;
+	}
+	:global(:root[data-theme='light']) .palette-footer,
+	:global(:root[data-theme='notion']) .palette-footer,
+	:global(:root[data-theme='duolingo']) .palette-footer,
+	:global(:root[data-theme='anki']) .palette-footer,
+	:global(:root[data-theme='master']) .palette-footer {
+		background: #f7f7fb !important;
+		border-top-color: var(--border-subtle) !important;
+	}
+	:global(:root[data-theme='light']) kbd,
+	:global(:root[data-theme='notion']) kbd,
+	:global(:root[data-theme='duolingo']) kbd,
+	:global(:root[data-theme='anki']) kbd,
+	:global(:root[data-theme='master']) kbd {
+		background: #ffffff !important;
+		border-color: var(--border-subtle) !important;
+		color: var(--text-primary) !important;
 	}
 </style>

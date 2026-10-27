@@ -47,8 +47,8 @@
 			.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
 	})();
 
-	// Check if a period has already been added to that day's planner tasks
-	$: dayTasks = ($tracker.h || []).filter((t) => t.due === dayKey);
+	// Check if a period has already been added to that day's planner tasks (pending or completed)
+	$: dayTasks = [...($tracker.h || []), ...($tracker.hd || [])].filter((t) => t.due === dayKey);
 	function isPeriodPlanned(p: TimetablePeriod): boolean {
 		return dayTasks.some(
 			(t) => t.st === p.startTime && (t.title?.includes(p.topic) || t.title?.includes(p.subject))

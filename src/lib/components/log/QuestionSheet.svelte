@@ -117,7 +117,7 @@
 					const reasonText = reasons.length ? reasons.join(', ') : (r === 3 ? 'Stuck question' : 'Incorrect attempt');
 					const back = `${reasonText} in ${chName} (${exName}).\n${note ? `Note: ${note}\n` : ''}Key focus: Re-derive core formulas, note boundary conditions, and fix mistake trap.`;
 					t.flashcards.push({
-						id: crypto.randomUUID(),
+						id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `fc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
 						front,
 						back,
 						subject: subName,
@@ -132,7 +132,7 @@
 
 				if (!t.mistakes.some((m) => m.testName === testName && m.description.startsWith(`Q${i + 1}:`))) {
 					t.mistakes.push({
-						id: crypto.randomUUID(),
+						id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `m_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
 						date: Date.now(),
 						subject: subName,
 						errorType: determineErrorType(reasons),

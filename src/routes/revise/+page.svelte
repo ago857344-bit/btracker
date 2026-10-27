@@ -353,5 +353,8 @@
 		.search { min-width: 0; width: 100%; height: 42px; }
 		.subsel { width: 100%; height: 42px; }
 		.mchip { min-height: 36px; display: inline-flex; align-items: center; }
+		@media (max-width: 360px) {
+			.kpis { grid-template-columns: 1fr; }
+		}
 	}
 </style>

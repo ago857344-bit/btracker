@@ -159,7 +159,19 @@ Keep your responses concise and format math cleanly with KaTeX. DO NOT answer th
 
 <style>
 	.gm-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.60); backdrop-filter: blur(28px) saturate(190%); -webkit-backdrop-filter: blur(28px) saturate(190%); z-index: 9999; display: grid; place-items: center; padding: 1rem; }
-	.gm-card { width: 100%; max-width: 500px; background: color-mix(in srgb, var(--surface-panel, #121020) 96%, transparent); backdrop-filter: blur(36px) saturate(210%); -webkit-backdrop-filter: blur(36px) saturate(210%); border: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16)); border-radius: 22px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 24px 64px -8px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255, 255, 255, 0.14); }
+	.gm-card {
+		width: 100%;
+		max-width: 500px;
+		background: var(--surface-popup-solid, var(--surface-popup, #121020)) !important;
+		backdrop-filter: blur(36px) saturate(210%);
+		-webkit-backdrop-filter: blur(36px) saturate(210%);
+		border: 1px solid var(--surface-popup-border, color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16)));
+		border-radius: 22px;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		box-shadow: 0 24px 64px -8px rgba(0,0,0,0.65), inset 0 1px 0 rgba(255, 255, 255, 0.14);
+	}
 	
 	.gm-head { display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 1.5rem; background: color-mix(in srgb, var(--surface-subtle) 96%, transparent); backdrop-filter: blur(28px); border-bottom: 1px solid var(--border-subtle); }
 	.title-wrap { display: flex; align-items: center; gap: .6rem; }
@@ -196,4 +208,61 @@ Keep your responses concise and format math cleanly with KaTeX. DO NOT answer th
 
 	.dot-pulse { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #4285f4; box-shadow: 12px 0 0 0 #ea4335, 24px 0 0 0 #fbbc05; animation: gemini-typing 1.5s infinite; }
 	@keyframes gemini-typing { 0% { opacity: 0.3; transform: translateY(0); } 33% { opacity: 1; transform: translateY(-3px); } 66% { opacity: 0.3; transform: translateY(0); } 100% { opacity: 0.3; transform: translateY(0); } }
+
+	@media (max-width: 768px) {
+		.gm-backdrop {
+			padding: 0;
+			align-items: flex-end;
+		}
+		.gm-card {
+			max-width: 100%;
+			border-radius: 24px 24px 0 0;
+			border-bottom: none;
+			max-height: calc(100dvh - 36px);
+			padding-bottom: max(env(safe-area-inset-bottom), 16px);
+		}
+		.gm-head {
+			padding: 1rem 1.15rem;
+		}
+		.gm-context {
+			padding: 0.65rem 1.15rem;
+		}
+		.gm-chat {
+			padding: 1rem 1.15rem;
+			max-height: calc(100dvh - 220px);
+		}
+		.gm-input {
+			padding: 0.75rem 1.15rem;
+		}
+	}
+
+	:global(:root[data-theme='light']) .gm-card,
+	:global(:root[data-theme='notion']) .gm-card,
+	:global(:root[data-theme='duolingo']) .gm-card,
+	:global(:root[data-theme='anki']) .gm-card,
+	:global(:root[data-theme='master']) .gm-card {
+		background: #ffffff !important;
+		border: 1px solid var(--border-subtle) !important;
+		box-shadow: 0 24px 64px -8px rgba(44, 37, 92, 0.18), inset 0 1px 1px rgba(255, 255, 255, 0.95) !important;
+	}
+	:global(:root[data-theme='light']) .gm-head,
+	:global(:root[data-theme='notion']) .gm-head,
+	:global(:root[data-theme='duolingo']) .gm-head,
+	:global(:root[data-theme='anki']) .gm-head,
+	:global(:root[data-theme='master']) .gm-head,
+	:global(:root[data-theme='light']) .gm-input,
+	:global(:root[data-theme='notion']) .gm-input,
+	:global(:root[data-theme='duolingo']) .gm-input,
+	:global(:root[data-theme='anki']) .gm-input,
+	:global(:root[data-theme='master']) .gm-input {
+		background: #f7f7fb !important;
+	}
+	:global(:root[data-theme='light']) .msg.model .bubble,
+	:global(:root[data-theme='notion']) .msg.model .bubble,
+	:global(:root[data-theme='duolingo']) .msg.model .bubble,
+	:global(:root[data-theme='anki']) .msg.model .bubble,
+	:global(:root[data-theme='master']) .msg.model .bubble {
+		background: #f0eff9 !important;
+		color: #24213a !important;
+	}
 </style>

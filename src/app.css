@@ -165,12 +165,14 @@
   --surface-subtle: #2e1f27;
   --surface-popup: rgba(33, 22, 28, 0.96);
   --surface-popup-solid: #21161c;
+  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
   --text-primary: #fff2f5;
   --text-secondary: #d3aab5;
   --border-subtle: #3d2831;
   --accent: #e0455a;
   --accent-strong: #c22f43;
   --accent-soft: #3d212c;
+  --accent-contrast: #ffffff;
   --shadow-card: 0 14px 40px rgb(0 0 0 / 28%);
 }
 
@@ -180,12 +182,14 @@
   --surface-subtle: #1e2e24;
   --surface-popup: rgba(21, 33, 26, 0.96);
   --surface-popup-solid: #15211a;
+  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
   --text-primary: #eefbf2;
   --text-secondary: #a4c4ae;
   --border-subtle: #26392d;
   --accent: #2f9e6e;
   --accent-strong: #237e57;
   --accent-soft: #1c3327;
+  --accent-contrast: #ffffff;
   --shadow-card: 0 14px 40px rgb(0 0 0 / 28%);
 }
 
@@ -206,6 +210,7 @@
   --accent: #2383e2;
   --accent-strong: #1a6ec4;
   --accent-soft: #e7f1fb;
+  --accent-contrast: #ffffff;
   --shadow-card: 0 10px 30px rgb(60 55 45 / 7%);
 }
 
@@ -222,6 +227,7 @@
   --accent: #46a302;
   --accent-strong: #3a8a02;
   --accent-soft: #e6f5d8;
+  --accent-contrast: #ffffff;
   --shadow-card: 0 10px 30px rgb(70 90 40 / 9%);
 }
 
@@ -238,6 +244,7 @@
   --accent: #0072c6;
   --accent-strong: #005da3;
   --accent-soft: #e2eefb;
+  --accent-contrast: #ffffff;
   --shadow-card: 0 12px 32px rgb(20 60 100 / 9%);
 }
 
@@ -247,12 +254,14 @@
   --surface-subtle: #2b2b40;
   --surface-popup: rgba(35, 35, 52, 0.96);
   --surface-popup-solid: #232334;
+  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
   --text-primary: #dcdce6;
   --text-secondary: #a2a2bb;
   --border-subtle: #34344c;
   --accent: #8b7bff;
   --accent-strong: #7461f5;
   --accent-soft: #2f2a52;
+  --accent-contrast: #ffffff;
   --shadow-card: 0 14px 40px rgb(0 0 0 / 30%);
 }
 
@@ -262,12 +271,14 @@
   --surface-subtle: #22355c;
   --surface-popup: rgba(27, 44, 77, 0.96);
   --surface-popup-solid: #1b2c4d;
+  --surface-popup-border: color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
   --text-primary: #eef3fc;
   --text-secondary: #a6b6d4;
   --border-subtle: #2c406a;
   --accent: #6b8afd;
   --accent-strong: #5474f0;
   --accent-soft: #25375e;
+  --accent-contrast: #ffffff;
   --shadow-card: 0 14px 40px rgb(0 0 0 / 32%);
 }
 
@@ -276,6 +287,17 @@ html, body { min-height: 100%; margin: 0; overflow-x: hidden; width: 100%; posit
 body { min-width: 320px; }
 button, input, select, textarea { font: inherit; }
 button { cursor: pointer; }
+
+/* Responsive pre/code and KaTeX math containers */
+pre, code { max-width: 100%; }
+pre { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.katex-display {
+	overflow-x: auto !important;
+	overflow-y: hidden !important;
+	-webkit-overflow-scrolling: touch !important;
+	max-width: 100% !important;
+	padding: 0.35rem 0 !important;
+}
 
 body[data-deep-work="true"] aside { display: none !important; }
 body[data-deep-work="true"] .layout-shell { grid-template-columns: 1fr !important; }
@@ -977,36 +999,11 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 	-webkit-backdrop-filter: blur(28px) saturate(190%) !important;
 }
 
-:root[data-theme='light'] .modal-backdrop,
-:root[data-theme='light'] .vault-backdrop,
-:root[data-theme='light'] .gm-backdrop,
-:root[data-theme='light'] .island-scrim,
-:root[data-theme='light'] .overlay .backdrop,
-:root[data-theme='light'] .scrim,
-:root[data-theme='notion'] .modal-backdrop,
-:root[data-theme='notion'] .vault-backdrop,
-:root[data-theme='notion'] .gm-backdrop,
-:root[data-theme='notion'] .island-scrim,
-:root[data-theme='notion'] .overlay .backdrop,
-:root[data-theme='notion'] .scrim,
-:root[data-theme='duolingo'] .modal-backdrop,
-:root[data-theme='duolingo'] .vault-backdrop,
-:root[data-theme='duolingo'] .gm-backdrop,
-:root[data-theme='duolingo'] .island-scrim,
-:root[data-theme='duolingo'] .overlay .backdrop,
-:root[data-theme='duolingo'] .scrim,
-:root[data-theme='anki'] .modal-backdrop,
-:root[data-theme='anki'] .vault-backdrop,
-:root[data-theme='anki'] .gm-backdrop,
-:root[data-theme='anki'] .island-scrim,
-:root[data-theme='anki'] .overlay .backdrop,
-:root[data-theme='anki'] .scrim,
-:root[data-theme='master'] .modal-backdrop,
-:root[data-theme='master'] .vault-backdrop,
-:root[data-theme='master'] .gm-backdrop,
-:root[data-theme='master'] .island-scrim,
-:root[data-theme='master'] .overlay .backdrop,
-:root[data-theme='master'] .scrim {
+:root[data-theme='light'] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .tour-backdrop, .reader-overlay),
+:root[data-theme='notion'] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .tour-backdrop, .reader-overlay),
+:root[data-theme='duolingo'] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .tour-backdrop, .reader-overlay),
+:root[data-theme='anki'] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .tour-backdrop, .reader-overlay),
+:root[data-theme='master'] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .tour-backdrop, .reader-overlay) {
 	background: rgba(20, 16, 40, 0.42) !important;
 }
 
@@ -1029,6 +1026,18 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 .ai-report,
 .chat-panel,
 .mentor-bubble,
+.duck-modal,
+.preview-modal-card,
+.wrapped-modal,
+.reader-shell,
+.sheet-modal-wrapper,
+.theater-modal,
+.btracker-dl-dialog,
+.mig-dialog,
+.wx-dialog-card,
+.pip-floating-island,
+.mega,
+.m-sheet,
 aside.mobile-open {
 	/* Dense 96% opacity prevents underlying text bleed-through while keeping glass depth */
 	background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
@@ -1043,11 +1052,11 @@ aside.mobile-open {
 }
 
 /* Light Mode Acrylic Tokens */
-:root[data-theme='light'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
-:root[data-theme='notion'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
-:root[data-theme='duolingo'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
-:root[data-theme='anki'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
-:root[data-theme='master'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open) {
+:root[data-theme='light'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open),
+:root[data-theme='notion'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open),
+:root[data-theme='duolingo'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open),
+:root[data-theme='anki'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open),
+:root[data-theme='master'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"]:not(.modal-backdrop), .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open) {
 	background: var(--surface-popup, rgba(255, 255, 255, 0.96)) !important;
 	border: 1px solid color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08)) !important;
 	box-shadow:
@@ -1061,21 +1070,24 @@ aside.mobile-open {
 .modal-card header,
 .vault-header,
 .gm-head,
-.overlay .modal .input-wrap {
+.overlay .modal .input-wrap,
+.duck-modal .modal-header,
+.preview-modal-header,
+.wrapped-header,
+.chat-header,
+.sheet-modal-toolbar {
 	background: var(--surface-popup, rgba(18, 16, 32, 0.97)) !important;
 	backdrop-filter: blur(28px) saturate(190%) !important;
 	-webkit-backdrop-filter: blur(28px) saturate(190%) !important;
 	border-bottom: 1px solid color-mix(in srgb, var(--border-subtle), transparent 30%) !important;
 }
-:root[data-theme='light'] .modal-card header,
-:root[data-theme='light'] .vault-header,
-:root[data-theme='light'] .gm-head,
-:root[data-theme='light'] .overlay .modal .input-wrap,
-:root[data-theme='notion'] .modal-card header,
-:root[data-theme='duolingo'] .modal-card header,
-:root[data-theme='anki'] .modal-card header,
-:root[data-theme='master'] .modal-card header {
+:root[data-theme='light'] :is(.modal-card header, .vault-header, .gm-head, .overlay .modal .input-wrap, .duck-modal .modal-header, .preview-modal-header, .wrapped-header, .chat-header, .sheet-modal-toolbar),
+:root[data-theme='notion'] :is(.modal-card header, .vault-header, .gm-head, .overlay .modal .input-wrap, .duck-modal .modal-header, .preview-modal-header, .wrapped-header, .chat-header, .sheet-modal-toolbar),
+:root[data-theme='duolingo'] :is(.modal-card header, .vault-header, .gm-head, .overlay .modal .input-wrap, .duck-modal .modal-header, .preview-modal-header, .wrapped-header, .chat-header, .sheet-modal-toolbar),
+:root[data-theme='anki'] :is(.modal-card header, .vault-header, .gm-head, .overlay .modal .input-wrap, .duck-modal .modal-header, .preview-modal-header, .wrapped-header, .chat-header, .sheet-modal-toolbar),
+:root[data-theme='master'] :is(.modal-card header, .vault-header, .gm-head, .overlay .modal .input-wrap, .duck-modal .modal-header, .preview-modal-header, .wrapped-header, .chat-header, .sheet-modal-toolbar) {
 	background: var(--surface-popup, rgba(255, 255, 255, 0.97)) !important;
+	border-bottom-color: var(--border-subtle) !important;
 }
 
 
@@ -1340,19 +1352,19 @@ aside.mobile-open {
 }
 
 /* Universal high-contrast text rules for bright accent themes */
-:root[data-theme='god-mode'] :is(.quick-add, .brand-mark, .btn.accent, .btn.primary, .primary, .primary-btn, .solid, .btn.solid, .add, .kind-row button.selected, .tabs button.active, .pct, .badge.accent, .cta.accent, .sample-btn.primary, .preset.on, .kind.on, .state-pill, .theme.on, .btn-snap-create, .btn-done, .apply, .day-cell.today .num, .month-cell.today .num, .plan-day, .due-badge),
-:root[data-theme='catalyst'] :is(.quick-add, .brand-mark, .btn.accent, .btn.primary, .primary, .primary-btn, .solid, .btn.solid, .add, .kind-row button.selected, .tabs button.active, .pct, .badge.accent, .cta.accent, .sample-btn.primary, .preset.on, .kind.on, .state-pill, .theme.on, .btn-snap-create, .btn-done, .apply, .day-cell.today .num, .month-cell.today .num, .plan-day, .due-badge),
-:root[data-theme='initiate'] :is(.quick-add, .brand-mark, .btn.accent, .btn.primary, .primary, .primary-btn, .solid, .btn.solid, .add, .kind-row button.selected, .tabs button.active, .pct, .badge.accent, .cta.accent, .sample-btn.primary, .preset.on, .kind.on, .state-pill, .theme.on, .btn-snap-create, .btn-done, .apply, .day-cell.today .num, .month-cell.today .num, .plan-day, .due-badge),
-:root[data-theme='aurora'] :is(.quick-add, .brand-mark, .btn.accent, .btn.primary, .primary, .primary-btn, .solid, .btn.solid, .add, .kind-row button.selected, .tabs button.active, .pct, .badge.accent, .cta.accent, .sample-btn.primary, .preset.on, .kind.on, .state-pill, .theme.on, .btn-snap-create, .btn-done, .apply, .day-cell.today .num, .month-cell.today .num, .plan-day, .due-badge),
-:root[data-theme='celestial'] :is(.quick-add, .brand-mark, .btn.accent, .btn.primary, .primary, .primary-btn, .solid, .btn.solid, .add, .kind-row button.selected, .tabs button.active, .pct, .badge.accent, .cta.accent, .sample-btn.primary, .preset.on, .kind.on, .state-pill, .theme.on, .btn-snap-create, .btn-done, .apply, .day-cell.today .num, .month-cell.today .num, .plan-day, .due-badge) {
+:root[data-theme='god-mode'] :is(.quick-add, .brand-mark, .btn.accent, .btn.primary, .primary, .primary-btn, .solid, .btn.solid, .add, .kind-row button.selected, .tabs button.active, .pct, .badge.accent, .cta.accent, .sample-btn.primary, .preset.on, .kind.on, .state-pill, .theme.on, .btn-snap-create, .btn-done, .apply, .day-cell.today .num, .month-cell.today .num, .plan-day, .due-badge, .filter-pill.active, .btn-save, .btn-log, .add-btn, .add-goal, .guide-cta, .chat-bubble.user, .send-btn, .cat-chip.active, .btn-action-tool.active, .deck-action-btn.primary, .btn-mark-all-done, .tag.active, .pill.active, .pill-btn.active, .btn-tool.print-btn),
+:root[data-theme='catalyst'] :is(.quick-add, .brand-mark, .btn.accent, .btn.primary, .primary, .primary-btn, .solid, .btn.solid, .add, .kind-row button.selected, .tabs button.active, .pct, .badge.accent, .cta.accent, .sample-btn.primary, .preset.on, .kind.on, .state-pill, .theme.on, .btn-snap-create, .btn-done, .apply, .day-cell.today .num, .month-cell.today .num, .plan-day, .due-badge, .filter-pill.active, .btn-save, .btn-log, .add-btn, .add-goal, .guide-cta, .chat-bubble.user, .send-btn, .cat-chip.active, .btn-action-tool.active, .deck-action-btn.primary, .btn-mark-all-done, .tag.active, .pill.active, .pill-btn.active, .btn-tool.print-btn),
+:root[data-theme='initiate'] :is(.quick-add, .brand-mark, .btn.accent, .btn.primary, .primary, .primary-btn, .solid, .btn.solid, .add, .kind-row button.selected, .tabs button.active, .pct, .badge.accent, .cta.accent, .sample-btn.primary, .preset.on, .kind.on, .state-pill, .theme.on, .btn-snap-create, .btn-done, .apply, .day-cell.today .num, .month-cell.today .num, .plan-day, .due-badge, .filter-pill.active, .btn-save, .btn-log, .add-btn, .add-goal, .guide-cta, .chat-bubble.user, .send-btn, .cat-chip.active, .btn-action-tool.active, .deck-action-btn.primary, .btn-mark-all-done, .tag.active, .pill.active, .pill-btn.active, .btn-tool.print-btn),
+:root[data-theme='aurora'] :is(.quick-add, .brand-mark, .btn.accent, .btn.primary, .primary, .primary-btn, .solid, .btn.solid, .add, .kind-row button.selected, .tabs button.active, .pct, .badge.accent, .cta.accent, .sample-btn.primary, .preset.on, .kind.on, .state-pill, .theme.on, .btn-snap-create, .btn-done, .apply, .day-cell.today .num, .month-cell.today .num, .plan-day, .due-badge, .filter-pill.active, .btn-save, .btn-log, .add-btn, .add-goal, .guide-cta, .chat-bubble.user, .send-btn, .cat-chip.active, .btn-action-tool.active, .deck-action-btn.primary, .btn-mark-all-done, .tag.active, .pill.active, .pill-btn.active, .btn-tool.print-btn),
+:root[data-theme='celestial'] :is(.quick-add, .brand-mark, .btn.accent, .btn.primary, .primary, .primary-btn, .solid, .btn.solid, .add, .kind-row button.selected, .tabs button.active, .pct, .badge.accent, .cta.accent, .sample-btn.primary, .preset.on, .kind.on, .state-pill, .theme.on, .btn-snap-create, .btn-done, .apply, .day-cell.today .num, .month-cell.today .num, .plan-day, .due-badge, .filter-pill.active, .btn-save, .btn-log, .add-btn, .add-goal, .guide-cta, .chat-bubble.user, .send-btn, .cat-chip.active, .btn-action-tool.active, .deck-action-btn.primary, .btn-mark-all-done, .tag.active, .pill.active, .pill-btn.active, .btn-tool.print-btn) {
 	color: var(--accent-contrast, #070602) !important;
 }
 
-:root[data-theme='god-mode'] :is(.quick-add:hover, .btn.accent:hover, .btn.primary:hover, .primary:hover, .primary-btn:hover, .solid:hover, .add:hover, .sample-btn.primary:hover, .btn-triage:hover:not(:disabled)),
-:root[data-theme='catalyst'] :is(.quick-add:hover, .btn.accent:hover, .btn.primary:hover, .primary:hover, .primary-btn:hover, .solid:hover, .add:hover, .sample-btn.primary:hover, .btn-triage:hover:not(:disabled)),
-:root[data-theme='initiate'] :is(.quick-add:hover, .btn.accent:hover, .btn.primary:hover, .primary:hover, .primary-btn:hover, .solid:hover, .add:hover, .sample-btn.primary:hover, .btn-triage:hover:not(:disabled)),
-:root[data-theme='aurora'] :is(.quick-add:hover, .btn.accent:hover, .btn.primary:hover, .primary:hover, .primary-btn:hover, .solid:hover, .add:hover, .sample-btn.primary:hover, .btn-triage:hover:not(:disabled)),
-:root[data-theme='celestial'] :is(.quick-add:hover, .btn.accent:hover, .btn.primary:hover, .primary:hover, .primary-btn:hover, .solid:hover, .add:hover, .sample-btn.primary:hover, .btn-triage:hover:not(:disabled)) {
+:root[data-theme='god-mode'] :is(.quick-add:hover, .btn.accent:hover, .btn.primary:hover, .primary:hover, .primary-btn:hover, .solid:hover, .add:hover, .sample-btn.primary:hover, .btn-triage:hover:not(:disabled), .btn-tool.print-btn:hover),
+:root[data-theme='catalyst'] :is(.quick-add:hover, .btn.accent:hover, .btn.primary:hover, .primary:hover, .primary-btn:hover, .solid:hover, .add:hover, .sample-btn.primary:hover, .btn-triage:hover:not(:disabled), .btn-tool.print-btn:hover),
+:root[data-theme='initiate'] :is(.quick-add:hover, .btn.accent:hover, .btn.primary:hover, .primary:hover, .primary-btn:hover, .solid:hover, .add:hover, .sample-btn.primary:hover, .btn-triage:hover:not(:disabled), .btn-tool.print-btn:hover),
+:root[data-theme='aurora'] :is(.quick-add:hover, .btn.accent:hover, .btn.primary:hover, .primary:hover, .primary-btn:hover, .solid:hover, .add:hover, .sample-btn.primary:hover, .btn-triage:hover:not(:disabled), .btn-tool.print-btn:hover),
+:root[data-theme='celestial'] :is(.quick-add:hover, .btn.accent:hover, .btn.primary:hover, .primary:hover, .primary-btn:hover, .solid:hover, .add:hover, .sample-btn.primary:hover, .btn-triage:hover:not(:disabled), .btn-tool.print-btn:hover) {
 	color: var(--accent-contrast, #070602) !important;
 }
 
@@ -1505,24 +1517,69 @@ aside.mobile-open {
 }
 
 /* ========================================================================= */
+/* ========================================================================= */
 /* UNIVERSAL POPUP, MENU, SIDEBAR & BOTTOM-NAV IMMUNITY                      */
 /* Popups and floating overlays strictly maintain 96% dense smoked acrylic  */
 /* ========================================================================= */
-:root[data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, aside.mobile-open),
-:root[data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, aside.mobile-open) {
+:root[data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .theater-modal, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open) {
 	background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
 	backdrop-filter: blur(36px) saturate(210%) !important;
 	-webkit-backdrop-filter: blur(36px) saturate(210%) !important;
 	border: 1px solid var(--surface-popup-border, color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16))) !important;
 }
 
-:root[data-theme='light'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
-:root[data-theme='light'][data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
-:root[data-theme='notion'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
-:root[data-theme='duolingo'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
-:root[data-theme='anki'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open),
-:root[data-theme='master'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .sheet, .selbar, .chat-panel, .mentor-bubble, aside.mobile-open) {
+:root[data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .theater-modal, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open) {
+	background: var(--surface-popup-solid, #121020) !important;
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+	border: 1px solid var(--surface-popup-border, color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16))) !important;
+}
+
+:root[data-theme='light'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open),
+:root[data-theme='notion'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open),
+:root[data-theme='duolingo'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open),
+:root[data-theme='anki'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open),
+:root[data-theme='master'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open) {
 	background: var(--surface-popup, rgba(255, 255, 255, 0.96)) !important;
+}
+
+:root[data-theme='light'][data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open),
+:root[data-theme='notion'][data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open),
+:root[data-theme='duolingo'][data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open),
+:root[data-theme='anki'][data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open),
+:root[data-theme='master'][data-eco="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .pip-floating-island, .mega, .m-sheet, aside.mobile-open) {
+	background: var(--surface-popup-solid, #ffffff) !important;
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
+}
+
+/* Modal Inner Element Glass Shielding: Prevent clear-glass from making inner cards/inputs transparent */
+:is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .theater-modal, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .mega, .m-sheet) {
+	--surface-panel: var(--surface-popup-solid, #121020);
+	--surface-subtle: color-mix(in srgb, var(--text-primary) 8%, var(--surface-popup-solid, #121020));
+}
+
+:root[data-theme='light'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .mega, .m-sheet),
+:root[data-theme='notion'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .mega, .m-sheet),
+:root[data-theme='duolingo'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .mega, .m-sheet),
+:root[data-theme='anki'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .mega, .m-sheet),
+:root[data-theme='master'] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .mega, .m-sheet) {
+	--surface-panel: #ffffff;
+	--surface-subtle: #f8f8fa;
+	--text-primary: #121020;
+	--text-secondary: #585570;
+}
+
+:root[data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .theater-modal, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .mega, .m-sheet) :is(.card, .panel, .glass-element) {
+	background: color-mix(in srgb, var(--text-primary) 8%, var(--surface-popup-solid, #121020)) !important;
+}
+
+:root[data-theme='light'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .mega, .m-sheet) :is(.card, .panel, .glass-element),
+:root[data-theme='notion'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .mega, .m-sheet) :is(.card, .panel, .glass-element),
+:root[data-theme='duolingo'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .mega, .m-sheet) :is(.card, .panel, .glass-element),
+:root[data-theme='anki'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .mega, .m-sheet) :is(.card, .panel, .glass-element),
+:root[data-theme='master'][data-clear-glass="true"] :is(.modal-card, .menu, [role="menu"], .popover, [role="dialog"], .vault-drawer, .gm-card, .overlay .modal, .command-palette-modal, .celebration, .tour-tooltip, .tip-bubble, .sheet, .selbar, .rangebar, .ai-report, .chat-panel, .mentor-bubble, .duck-modal, .preview-modal-card, .wrapped-modal, .reader-shell, .sheet-modal-wrapper, .btracker-dl-dialog, .mig-dialog, .wx-dialog-card, .mega, .m-sheet) :is(.card, .panel, .glass-element) {
+	background: #f4f4f7 !important;
 }
 
 /* The docked profile card is sidebar chrome, not a popup: it follows the
@@ -1554,23 +1611,23 @@ aside.glass:not(.mobile-open) {
 	box-shadow: none !important;
 }
 
-:root[data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
-:root[data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim) {
+:root[data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .reader-overlay),
+:root[data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .reader-overlay) {
 	background: rgba(0, 0, 0, 0.60) !important;
 	backdrop-filter: blur(28px) saturate(190%) !important;
 	-webkit-backdrop-filter: blur(28px) saturate(190%) !important;
 }
 
-:root[data-theme='light'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
-:root[data-theme='light'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
-:root[data-theme='notion'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
-:root[data-theme='notion'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
-:root[data-theme='duolingo'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
-:root[data-theme='duolingo'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
-:root[data-theme='anki'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
-:root[data-theme='anki'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
-:root[data-theme='master'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim),
-:root[data-theme='master'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim) {
+:root[data-theme='light'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .reader-overlay),
+:root[data-theme='light'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .reader-overlay),
+:root[data-theme='notion'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .reader-overlay),
+:root[data-theme='notion'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .reader-overlay),
+:root[data-theme='duolingo'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .reader-overlay),
+:root[data-theme='duolingo'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .reader-overlay),
+:root[data-theme='anki'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .reader-overlay),
+:root[data-theme='anki'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .reader-overlay),
+:root[data-theme='master'][data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .reader-overlay),
+:root[data-theme='master'][data-eco="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .reader-overlay) {
 	background: rgba(20, 16, 40, 0.42) !important;
 }
 
