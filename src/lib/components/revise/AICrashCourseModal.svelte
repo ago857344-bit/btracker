@@ -54,7 +54,7 @@
 		{#if loading}
 			<div class="gemini-loader-container">
 				<div class="gemini-orb"></div>
-				<p class="gemini-shimmer-text">Gemini is preparing your 2-minute crash course...</p>
+				<p class="gemini-shimmer-text">AI is preparing your 2-minute crash course...</p>
 			</div>
 		{:else if error}
 			<div class="ai-error">{error}</div>

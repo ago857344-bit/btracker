@@ -116,7 +116,7 @@ Keep your responses concise and format math cleanly with KaTeX. DO NOT answer th
 			{#if loading && history.length === 0}
 				<div class="gemini-loader-container" style="margin: auto; opacity: 0.8; transform: scale(0.9);">
 					<div class="gemini-orb"></div>
-					<p class="gemini-shimmer-text" style="font-size: 0.75rem;">Gemini is analyzing your mistake...</p>
+					<p class="gemini-shimmer-text" style="font-size: 0.75rem;">AI is analyzing your mistake...</p>
 				</div>
 			{/if}
 

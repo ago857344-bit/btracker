@@ -109,7 +109,7 @@
 					{:else if !aiReportHtml && aiLoading}
 						<div class="gemini-loader-container">
 							<div class="gemini-orb"></div>
-							<p class="gemini-shimmer-text">Gemini is analyzing your stats...</p>
+							<p class="gemini-shimmer-text">AI is analyzing your stats...</p>
 						</div>
 					{:else}
 						<div class="ai-report markdown-body">

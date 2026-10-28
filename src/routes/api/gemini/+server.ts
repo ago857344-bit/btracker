@@ -31,17 +31,45 @@ setInterval(() => {
 	}
 }, 300_000);
 
-// Convert Gemini-style history to OpenAI-style messages
-function toOpenAIMessages(history: any[], systemInstruction?: string) {
-	const messages: { role: string; content: string }[] = [];
+// Convert Gemini-style history to OpenAI-style messages (supporting text, images, and Groq JSON requirement)
+function toOpenAIMessages(history: any[], systemInstruction?: string, jsonMode?: boolean) {
+	const messages: any[] = [];
 	if (systemInstruction) {
 		messages.push({ role: 'system', content: systemInstruction });
 	}
 	for (const turn of history || []) {
-		messages.push({
-			role: turn.role === 'model' ? 'assistant' : 'user',
-			content: turn.parts?.[0]?.text ?? ''
+		const role = turn.role === 'model' ? 'assistant' : 'user';
+		const hasImages = (turn.parts || []).some((p: any) => p.inlineData);
+		if (hasImages) {
+			const content: any[] = [];
+			for (const part of turn.parts || []) {
+				if (part.inlineData) {
+					content.push({
+						type: 'image_url',
+						image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
+					});
+				} else if (part.text) {
+					content.push({ type: 'text', text: part.text });
+				}
+			}
+			messages.push({ role, content });
+		} else {
+			const text = (turn.parts || []).map((p: any) => p.text || '').join('');
+			messages.push({ role, content: text });
+		}
+	}
+	// Groq strictly requires the word "json" in prompt/system message when jsonMode is true
+	if (jsonMode) {
+		const hasJsonWord = messages.some((m: any) => {
+			if (typeof m.content === 'string') return m.content.toLowerCase().includes('json');
+			if (Array.isArray(m.content)) {
+				return m.content.some((c: any) => c.text && c.text.toLowerCase().includes('json'));
+			}
+			return false;
 		});
+		if (!hasJsonWord) {
+			messages.unshift({ role: 'system', content: 'You must respond with valid JSON output.' });
+		}
 	}
 	return messages;
 }
@@ -169,7 +197,7 @@ export async function POST({ request, getClientAddress }) {
 		const openrouterKey = env.OPENROUTER_API_KEY;
 
 		if (!groqKey && !geminiKey && !openaiKey && !openrouterKey) {
-			return json({ error: 'No AI API key configured on the server. Set GROQ_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY in your environment variables.' }, { status: 500 });
+			return json({ error: 'GROQ_API_KEY is not configured on the server. Please set GROQ_API_KEY in your environment variables.' }, { status: 500 });
 		}
 
 		const hasVision = history?.some((turn: any) =>
@@ -177,147 +205,47 @@ export async function POST({ request, getClientAddress }) {
 		);
 
 		const isStreaming = Boolean(stream && !jsonMode);
+		let groqErr = '';
 
-		// ── 1. Try OpenAI for vision requests ───────────────────────────────────
-		if (openaiKey && hasVision) {
-			try {
-				const openaiMessages = history.map((turn: any) => {
-					const content: any[] = [];
-					for (const part of turn.parts || []) {
-						if (part.inlineData) {
-							content.push({
-								type: 'image_url',
-								image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
-							});
-						} else if (part.text) {
-							content.push({ type: 'text', text: part.text });
-						}
-					}
-					return { role: turn.role === 'model' ? 'assistant' : 'user', content };
-				});
+		// ── 1. PRIMARY: Groq (ultra-fast, primary provider) ──────────────────
+		if (groqKey) {
+			let groqCandidateModels = hasVision
+				? ['llama-3.2-11b-vision-preview', 'llama-3.2-90b-vision-preview']
+				: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
 
-				const controller = new AbortController();
-				const timeout = setTimeout(() => controller.abort(), 35_000);
-
-				const res = await fetch('https://api.openai.com/v1/chat/completions', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						Authorization: `Bearer ${openaiKey}`
-					},
-					body: JSON.stringify({
-						model: 'gpt-4o',
-						messages: openaiMessages,
-						max_tokens: 4096,
-						stream: isStreaming
-					}),
-					signal: controller.signal
-				});
-				clearTimeout(timeout);
-
-				if (res.ok) {
-					if (isStreaming) {
-						return streamOpenAICompatible(res);
-					}
-					const data = await res.json();
-					const text = data.choices?.[0]?.message?.content ?? '';
-					return json({ text });
-				}
-			} catch (e) {
-				console.warn('OpenAI vision failed, falling back to OpenRouter/Gemini:', e);
-			}
-		}
-
-		// ── 1b. Try OpenRouter for vision requests ─────────────────────────────
-		if (openrouterKey && hasVision) {
-			const openrouterMessages = history.map((turn: any) => {
-				const content: any[] = [];
-				for (const part of turn.parts || []) {
-					if (part.inlineData) {
-						content.push({
-							type: 'image_url',
-							image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
-						});
-					} else if (part.text) {
-						content.push({ type: 'text', text: part.text });
-					}
-				}
-				return { role: turn.role === 'model' ? 'assistant' : 'user', content };
-			});
-
-			try {
-				const controller = new AbortController();
-				const timeout = setTimeout(() => controller.abort(), 45_000);
-
-				const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json',
-						Authorization: `Bearer ${openrouterKey}`,
-						'HTTP-Referer': 'https://btracker.app',
-						'X-Title': 'BTracker'
-					},
-					body: JSON.stringify({
-						models: ['google/gemma-3-4b-it:free', 'meta-llama/llama-3.2-11b-vision-instruct:free'],
-						messages: openrouterMessages,
-						max_tokens: 4096,
-						stream: isStreaming
-					}),
-					signal: controller.signal
-				});
-				clearTimeout(timeout);
-
-				if (res.ok) {
-					if (isStreaming) {
-						return streamOpenAICompatible(res);
-					}
-					const data = await res.json();
-					const text = data.choices?.[0]?.message?.content ?? '';
-					if (text && text.trim().length >= 10) {
-						return json({ text });
-					}
-				}
-			} catch (e: any) {
-				console.warn('OpenRouter vision request failed:', e?.message ?? e);
-			}
-		}
-
-		// ── 2. Try Groq (fast, free) for text/code prompts ──────────────────────
-		if (groqKey && !hasVision) {
-			let groqModels: string[] = [];
 			try {
 				const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
 					headers: { Authorization: `Bearer ${groqKey}` }
 				});
 				if (modelsRes.ok) {
 					const modelsData = await modelsRes.json();
-					const all: string[] = (modelsData.data ?? [])
-						.map((m: any) => m.id as string)
-						.filter((id: string) =>
-							!id.includes('whisper') &&
-							!id.includes('tts') &&
-							!id.includes('embed') &&
-							!id.includes('guard')
+					const available: string[] = (modelsData.data ?? []).map((m: any) => m.id as string);
+					if (hasVision) {
+						const visionModels = available.filter(id => id.includes('vision'));
+						if (visionModels.length) groqCandidateModels = visionModels;
+					} else {
+						const textModels = available.filter(id =>
+							!id.includes('whisper') && !id.includes('tts') && !id.includes('embed') && !id.includes('guard') && !id.includes('vision')
 						);
-					groqModels = [
-						...all.filter(id => id.includes('70b') || id.includes('72b') || id.includes('90b') || id.includes('120b')),
-						...all.filter(id => !id.includes('70b') && !id.includes('72b') && !id.includes('90b') && !id.includes('120b'))
-					];
+						if (textModels.length) {
+							groqCandidateModels = [
+								...textModels.filter(id => id.includes('70b') || id.includes('llama-3.3')),
+								...textModels.filter(id => !id.includes('70b') && !id.includes('llama-3.3'))
+							];
+						}
+					}
 				}
-			} catch { /* ignore, fall through */ }
+			} catch { /* ignore dynamic fetch failure, use defaults */ }
 
-			if (!groqModels.length) {
-				groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
-			}
+			const messages = toOpenAIMessages(history, systemInstruction, jsonMode);
 
-			let groqErr = '';
-			for (const model of groqModels.slice(0, 3)) {
+			for (const model of groqCandidateModels.slice(0, 3)) {
 				try {
 					const controller = new AbortController();
-					const timeout = setTimeout(() => controller.abort(), 25_000);
+					const timeout = setTimeout(() => controller.abort(), 35_000);
 					const body: any = {
 						model,
-						messages: toOpenAIMessages(history, systemInstruction),
+						messages,
 						temperature: 0.7,
 						stream: isStreaming
 					};
@@ -345,71 +273,144 @@ export async function POST({ request, getClientAddress }) {
 
 					const errData = await groqRes.json().catch(() => ({}));
 					groqErr = errData?.error?.message ?? `Groq returned status ${groqRes.status}`;
-					if (groqRes.status !== 429) break;
+					if (groqRes.status !== 429 && groqRes.status !== 503) {
+						// Don't break immediately, allow fallback model attempt
+					}
 				} catch (e: any) {
-					groqErr = e?.message ?? 'Groq request timed out or failed.';
+					groqErr = e?.message ?? 'Groq request failed.';
 				}
 			}
 
-			if (!geminiKey) {
+			// If no fallback keys exist, return Groq's error directly
+			if (!geminiKey && !openaiKey && !openrouterKey) {
 				return json({ error: `Groq error: ${groqErr || 'No usable models found.'}` }, { status: 500 });
 			}
 		}
 
-		// ── 3. Fallback: Google Generative AI (Gemini) ─────────────────────────
-		if (!geminiKey) {
-			return json({ error: 'No AI provider succeeded. Ensure GEMINI_API_KEY or GROQ_API_KEY is configured.' }, { status: 500 });
-		}
-
-		const geminiBody: any = { contents: history };
-		if (systemInstruction) geminiBody.systemInstruction = { parts: [{ text: systemInstruction }] };
-		if (jsonMode) geminiBody.generationConfig = { responseMimeType: 'application/json' };
-
-		// Valid Google Generative AI model IDs (eliminating invalid IDs)
-		const GEMINI_MODELS = [
-			'gemini-2.5-flash',
-			'gemini-2.5-pro',
-			'gemini-2.0-flash',
-			'gemini-1.5-flash'
-		];
-
-		let geminiRes: Response | null = null;
-		for (const model of GEMINI_MODELS) {
+		// ── 2. Fallback: OpenAI ───────────────────────────────────────────────
+		if (openaiKey) {
 			try {
+				const openaiMessages = toOpenAIMessages(history, systemInstruction, jsonMode);
 				const controller = new AbortController();
 				const timeout = setTimeout(() => controller.abort(), 35_000);
-				const endpoint = isStreaming
-					? `https://generativelanguage.googleapis.com/v1/models/${model}:streamGenerateContent?alt=sse&key=${geminiKey}`
-					: `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${geminiKey}`;
 
-				geminiRes = await fetch(endpoint, {
+				const res = await fetch('https://api.openai.com/v1/chat/completions', {
 					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify(geminiBody),
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${openaiKey}`
+					},
+					body: JSON.stringify({
+						model: hasVision ? 'gpt-4o' : 'gpt-4o-mini',
+						messages: openaiMessages,
+						max_tokens: 4096,
+						stream: isStreaming
+					}),
 					signal: controller.signal
 				});
 				clearTimeout(timeout);
-			} catch {
-				geminiRes = null;
+
+				if (res.ok) {
+					if (isStreaming) {
+						return streamOpenAICompatible(res);
+					}
+					const data = await res.json();
+					const text = data.choices?.[0]?.message?.content ?? '';
+					return json({ text });
+				}
+			} catch (e) {
+				console.warn('OpenAI fallback failed:', e);
 			}
-			if (geminiRes && (geminiRes.ok || (geminiRes.status !== 503 && geminiRes.status !== 429 && geminiRes.status !== 404))) {
-				break;
+		}
+
+		// ── 3. Fallback: OpenRouter ───────────────────────────────────────────
+		if (openrouterKey) {
+			try {
+				const openrouterMessages = toOpenAIMessages(history, systemInstruction, jsonMode);
+				const controller = new AbortController();
+				const timeout = setTimeout(() => controller.abort(), 45_000);
+
+				const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						Authorization: `Bearer ${openrouterKey}`,
+						'HTTP-Referer': 'https://btracker.app',
+						'X-Title': 'BTracker'
+					},
+					body: JSON.stringify({
+						models: hasVision ? ['meta-llama/llama-3.2-11b-vision-instruct:free'] : ['meta-llama/llama-3.3-70b-instruct:free'],
+						messages: openrouterMessages,
+						max_tokens: 4096,
+						stream: isStreaming
+					}),
+					signal: controller.signal
+				});
+				clearTimeout(timeout);
+
+				if (res.ok) {
+					if (isStreaming) {
+						return streamOpenAICompatible(res);
+					}
+					const data = await res.json();
+					const text = data.choices?.[0]?.message?.content ?? '';
+					if (text && text.trim().length >= 10) {
+						return json({ text });
+					}
+				}
+			} catch (e: any) {
+				console.warn('OpenRouter fallback failed:', e?.message ?? e);
 			}
 		}
 
-		if (!geminiRes || !geminiRes.ok) {
-			const err = geminiRes ? await geminiRes.json().catch(() => ({})) : {};
-			const msg = err.error?.message ?? 'Failed to get a response from Gemini.';
-			return json({ error: msg }, { status: geminiRes?.status ?? 500 });
+		// ── 4. Fallback: Gemini ────────────────────────────────────────────────
+		if (geminiKey) {
+			const geminiBody: any = { contents: history };
+			if (systemInstruction) geminiBody.systemInstruction = { parts: [{ text: systemInstruction }] };
+			if (jsonMode) geminiBody.generationConfig = { responseMimeType: 'application/json' };
+
+			const GEMINI_MODELS = [
+				'gemini-2.5-flash',
+				'gemini-2.5-pro',
+				'gemini-2.0-flash',
+				'gemini-1.5-flash'
+			];
+
+			let geminiRes: Response | null = null;
+			for (const model of GEMINI_MODELS) {
+				try {
+					const controller = new AbortController();
+					const timeout = setTimeout(() => controller.abort(), 35_000);
+					const endpoint = isStreaming
+						? `https://generativelanguage.googleapis.com/v1/models/${model}:streamGenerateContent?alt=sse&key=${geminiKey}`
+						: `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${geminiKey}`;
+
+					geminiRes = await fetch(endpoint, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(geminiBody),
+						signal: controller.signal
+					});
+					clearTimeout(timeout);
+				} catch {
+					geminiRes = null;
+				}
+				if (geminiRes && (geminiRes.ok || (geminiRes.status !== 503 && geminiRes.status !== 429 && geminiRes.status !== 404))) {
+					break;
+				}
+			}
+
+			if (geminiRes && geminiRes.ok) {
+				if (isStreaming) {
+					return streamGeminiCompatible(geminiRes);
+				}
+				const data = await geminiRes.json();
+				const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+				return json({ text });
+			}
 		}
 
-		if (isStreaming) {
-			return streamGeminiCompatible(geminiRes);
-		}
-
-		const data = await geminiRes.json();
-		const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
-		return json({ text });
+		return json({ error: `AI request failed. ${groqErr || 'Please check your GROQ_API_KEY.'}` }, { status: 500 });
 
 	} catch (e: any) {
 		return json({ error: e.message ?? 'Unknown error occurred.' }, { status: 500 });

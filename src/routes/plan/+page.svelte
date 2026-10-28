@@ -421,11 +421,11 @@
 		{#if aiBalancing}
 			<div class="gemini-loader-container">
 				<div class="gemini-orb"></div>
-				<p class="gemini-shimmer-text">Gemini is balancing your schedule...</p>
+				<p class="gemini-shimmer-text">AI is balancing your schedule...</p>
 			</div>
 		{:else}
 			<p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0; line-height: 1.5;">
-				Gemini will gather your overdue and pending tasks and intelligently distribute them across the upcoming days, prioritizing subjects where your Elo is weakest.
+				AI will gather your overdue and pending tasks and intelligently distribute them across the upcoming days, prioritizing subjects where your Elo is weakest.
 			</p>
 			{#if aiError}
 				<div style="color: #e0455a; background: color-mix(in srgb, #e0455a 15%, transparent); padding: 0.6rem; border-radius: 8px; font-size: 0.85rem; font-weight: 700;">
