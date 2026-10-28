@@ -93,11 +93,16 @@
 		color: var(--accent);
 		background: color-mix(in srgb, var(--accent) 15%, transparent);
 		border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
-		box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 18%, transparent);
+		box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 18%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+		transition: transform 0.2s var(--ease-ios-spring), box-shadow 0.2s ease;
+	}
+	.widget:hover .widget-icon {
+		transform: scale(1.05);
+		box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 	}
 	.widget-titles { min-width: 0; flex: 1; }
-	.eyebrow { margin: 0; color: var(--text-secondary); font-size: .66rem; font-weight: 750; letter-spacing: .09em; text-transform: uppercase; }
-	h3 { margin: .1rem 0 0; font-size: .98rem; font-weight: 750; letter-spacing: -.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	.eyebrow { margin: 0; color: var(--text-secondary); font-size: .64rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; opacity: 0.85; }
+	h3 { margin: .12rem 0 0; font-size: .98rem; font-weight: 750; letter-spacing: -.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.widget-tools { display: flex; align-items: center; gap: .3rem; margin-left: auto; flex-shrink: 0; }
 	.tool {
 		display: grid;

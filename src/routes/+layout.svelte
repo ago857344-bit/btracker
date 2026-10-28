@@ -168,6 +168,16 @@
 		mobileOpen = false;
 	}
 
+	let isPageScrolled = false;
+	function handleWindowScroll() {
+		if (typeof window !== 'undefined') {
+			const scrolled = window.scrollY > 14;
+			if (isPageScrolled !== scrolled) {
+				isPageScrolled = scrolled;
+			}
+		}
+	}
+
 	beforeNavigate(() => {
 		if (mobileOpen) {
 			mobileOpen = false;
@@ -510,6 +520,7 @@
 </svelte:head>
 
 <svelte:window
+	on:scroll={handleWindowScroll}
 	on:pointerdown={handleGlobalPointerDown}
 	on:touchstart={handleGlobalPointerDown}
 	on:pointermove={handleGlobalPointerMove}
@@ -599,7 +610,7 @@
 		{#if mobileOpen}<div class="scrim" role="button" tabindex="-1" on:click={() => (mobileOpen = false)} on:keydown={(e) => e.key === 'Escape' && (mobileOpen = false)} aria-label="Close navigation"></div>{/if}
 		<AppSidebar {collapsed} bind:mobileOpen />
 		<div class="app-main">
-			<header class="topbar">
+			<header class="topbar" class:scrolled={isPageScrolled}>
 				<div class="page-heading">
 					<button class="mobile-menu" type="button" aria-label="Open navigation" on:click={() => mobileOpen = true}><NavIcon name="menu" size={21} /></button>
 					<div><p class="breadcrumb">BTracker <span>/</span> {currentTitle}</p><h2>{currentTitle}</h2></div>
@@ -689,16 +700,17 @@
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		min-height: 80px;
-		padding: 1.25rem clamp(1.5rem, 4vw, 4rem);
-		border-bottom: 1px solid transparent !important;
-		background: transparent !important;
-		backdrop-filter: none !important;
-		-webkit-backdrop-filter: none !important;
-		box-shadow: none !important;
+		min-height: 76px;
+		padding: 1.15rem clamp(1.5rem, 4vw, 4rem);
 		position: sticky;
 		top: 0;
 		z-index: 30;
+		transition: min-height 0.26s var(--ease-ios-spring), padding 0.26s var(--ease-ios-spring);
+	}
+	.topbar.scrolled {
+		min-height: 62px;
+		padding-top: 0.75rem;
+		padding-bottom: 0.75rem;
 	}
 	.page-heading, .topbar-actions { display: flex; align-items: center; }
 	.page-heading { gap: .85rem; }
@@ -1024,7 +1036,7 @@
 	height: 100vh;
 	z-index: 0;
 	pointer-events: none;
-	background: var(--wallpaper-adaptive-scrim, rgba(0, 0, 0, 0.22));
+	background: radial-gradient(circle at 50% 28%, transparent 40%, rgba(0, 0, 0, 0.45) 100%), var(--wallpaper-adaptive-scrim, rgba(0, 0, 0, 0.22));
 	transition: background 0.4s ease;
 }
 </style>

@@ -537,6 +537,12 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 .rail-card,
 .subject-card,
 .kpi-hero-card,
+/* Global Smooth Selection */
+::selection {
+	background: color-mix(in srgb, var(--accent) 35%, transparent);
+	color: inherit;
+}
+
 .sub-pocket-card,
 .pocket-exam-card,
 .cadence-card,
@@ -552,6 +558,37 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 		transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
 		box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
 		border-color 0.28s ease;
+}
+
+/* Signature Apple VisionOS / macOS Specular Rim Highlight */
+.specular-card::before,
+.bento-card::before,
+.widget::before,
+.panel::before,
+.r-card::before,
+.chapter-card::before,
+.hero-timer-card::before,
+.sub-pocket-card::before,
+.pocket-exam-card::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.16) 20%, rgba(255, 255, 255, 0.32) 50%, rgba(255, 255, 255, 0.16) 80%, transparent);
+	pointer-events: none;
+	z-index: 2;
+	opacity: 0.9;
+}
+
+:root[data-theme='light'] :is(.specular-card, .bento-card, .widget, .panel, .r-card, .chapter-card, .hero-timer-card, .sub-pocket-card, .pocket-exam-card)::before,
+:root[data-theme='notion'] :is(.specular-card, .bento-card, .widget, .panel, .r-card, .chapter-card, .hero-timer-card, .sub-pocket-card, .pocket-exam-card)::before,
+:root[data-theme='duolingo'] :is(.specular-card, .bento-card, .widget, .panel, .r-card, .chapter-card, .hero-timer-card, .sub-pocket-card, .pocket-exam-card)::before,
+:root[data-theme='anki'] :is(.specular-card, .bento-card, .widget, .panel, .r-card, .chapter-card, .hero-timer-card, .sub-pocket-card, .pocket-exam-card)::before,
+:root[data-theme='master'] :is(.specular-card, .bento-card, .widget, .panel, .r-card, .chapter-card, .hero-timer-card, .sub-pocket-card, .pocket-exam-card)::before {
+	background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.85) 25%, #ffffff 50%, rgba(255, 255, 255, 0.85) 75%, transparent);
+	opacity: 0.95;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -1602,13 +1639,31 @@ aside.glass:not(.mobile-open) {
 	-webkit-backdrop-filter: none !important;
 }
 
-/* Topbar: Entirely transparent floating header over any wallpaper/canvas */
-.topbar {
+/* Topbar: Floats transparent at rest, smoothly morphs into smoked acrylic glass on scroll */
+.topbar:not(.scrolled) {
 	background: transparent !important;
 	backdrop-filter: none !important;
 	-webkit-backdrop-filter: none !important;
 	border-bottom: 1px solid transparent !important;
 	box-shadow: none !important;
+}
+
+.topbar.scrolled {
+	background: color-mix(in srgb, var(--surface-panel) 84%, transparent) !important;
+	backdrop-filter: blur(28px) saturate(200%) !important;
+	-webkit-backdrop-filter: blur(28px) saturate(200%) !important;
+	border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 80%, rgba(255, 255, 255, 0.12)) !important;
+	box-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08) !important;
+}
+
+:root[data-theme='light'] .topbar.scrolled,
+:root[data-theme='notion'] .topbar.scrolled,
+:root[data-theme='duolingo'] .topbar.scrolled,
+:root[data-theme='anki'] .topbar.scrolled,
+:root[data-theme='master'] .topbar.scrolled {
+	background: rgba(255, 255, 255, 0.90) !important;
+	border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08)) !important;
+	box-shadow: 0 12px 32px -4px rgba(44, 37, 92, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
 }
 
 :root[data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .reader-overlay),

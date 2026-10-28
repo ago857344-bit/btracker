@@ -417,6 +417,7 @@
 	nav { display: grid; gap: clamp(0.15rem, 0.4vh, 0.3rem); margin-top: clamp(0.5rem, 1.5vh, 1.15rem); }
 	.nav-label { margin: clamp(0.4rem, 1vh, 0.8rem) .65rem clamp(0.2rem, 0.5vh, 0.45rem); color: var(--text-secondary); font-size: .67rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
 	nav a, .settings-link {
+		position: relative;
 		display: flex;
 		align-items: center;
 		gap: clamp(0.6rem, 1vw, 1rem);
@@ -462,13 +463,29 @@
 		justify-content: center;
 		padding: 0;
 	}
-	nav a:hover, .settings-link:hover { color: var(--text-primary); background: var(--surface-subtle); }
+	nav a:hover, .settings-link:hover { color: var(--text-primary); background: color-mix(in srgb, var(--surface-subtle) 85%, transparent); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04); }
 	nav a:active, .settings-link:active { transform: scale(0.975); }
 	nav a.active {
 		color: var(--accent);
-		background: var(--accent-soft);
-		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-		font-weight: 700;
+		background: color-mix(in srgb, var(--accent) 15%, var(--surface-panel));
+		border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+		box-shadow: 0 4px 14px -3px color-mix(in srgb, var(--accent) 25%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+		font-weight: 750;
+	}
+	nav a.active::before {
+		content: '';
+		position: absolute;
+		left: 0;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 3.5px;
+		height: 18px;
+		border-radius: 0 4px 4px 0;
+		background: var(--accent);
+		box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 70%, transparent);
+	}
+	aside.collapsed nav a.active::before {
+		left: 2px;
 	}
 	nav a[draggable='true'] { cursor: grab; }
 	nav a.dragging { opacity: .35; cursor: grabbing; }
@@ -505,6 +522,11 @@
 			inset 0 1px 0 rgba(255, 255, 255, 0.14),
 			inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 		transition: all 0.2s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1));
+	}
+	.profile-container:hover {
+		border-color: color-mix(in srgb, var(--accent) 40%, var(--border-subtle));
+		box-shadow: 0 14px 38px -4px rgba(0, 0, 0, 0.5), 0 0 20px -4px color-mix(in srgb, var(--accent) 25%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+		transform: translateY(-1px);
 	}
 	:global(:root[data-theme='light']) .profile-container,
 	:global(:root[data-theme='notion']) .profile-container,

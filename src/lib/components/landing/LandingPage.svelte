@@ -295,9 +295,12 @@
 				
 				<!-- Hero Copy -->
 				<div class="text-center max-w-3xl mx-auto mb-14">
-					<div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/90 border border-zinc-800 text-xs font-medium text-zinc-300 mb-6 shadow-sm">
-						<span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-						<span>Engineered for JEE aspirants · 100% Free Forever</span>
+					<div class="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-zinc-900/90 border border-white/10 text-xs font-semibold text-zinc-200 mb-6 shadow-[0_4px_20px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.15)] backdrop-blur-xl">
+						<span class="relative flex h-2 w-2">
+							<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+							<span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+						</span>
+						<span class="tracking-tight">Engineered for JEE Aspirants · 100% Free Forever</span>
 					</div>
 
 					<h1 class="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.08] mb-6">
@@ -312,11 +315,11 @@
 					</p>
 
 					<div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-8">
-						<a href="/login" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-sm font-bold bg-zinc-100 hover:bg-white text-zinc-950 px-6 py-3 rounded-xl shadow-[0_0_30px_rgba(255,255,255,0.18)] transition-all transform hover:-translate-y-0.5">
+						<a href="/login" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-sm font-bold bg-zinc-100 hover:bg-white text-zinc-950 px-6 py-3 rounded-xl shadow-[0_0_35px_rgba(255,255,255,0.22),inset_0_1px_0_rgba(255,255,255,0.9)] hover:shadow-[0_0_45px_rgba(255,255,255,0.32)] transition-all transform hover:-translate-y-0.5 active:scale-[0.98]">
 							<span>Start Tracking Now</span>
 							<NavIcon name="arrow-right" size={15} />
 						</a>
-						<a href="#logger" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-sm font-medium text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800/80 border border-zinc-800 px-6 py-3 rounded-xl transition-all">
+						<a href="#logger" class="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-sm font-medium text-zinc-300 hover:text-white bg-zinc-900/80 hover:bg-zinc-800/80 border border-zinc-800 px-6 py-3 rounded-xl shadow-[0_4px_20px_rgba(0,0,0,0.4),inset_0_1px_0_rgba(255,255,255,0.08)] hover:border-zinc-700 transition-all active:scale-[0.98]">
 							<NavIcon name="grid" size={15} />
 							<span>Try Live Logger Demo</span>
 						</a>
