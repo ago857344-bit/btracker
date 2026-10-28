@@ -54,30 +54,59 @@ export const isMobileDevice = (): boolean => {
 
 /**
  * Resolves whether live video wallpapers should be enabled.
- * Default: true for laptop/desktop, false for mobile. User preference overrides default.
+ * Default: true across all devices. User preference in Settings overrides default.
  */
 export const resolveLiveWallpaper = (pref: boolean | undefined): boolean => {
 	if (pref !== undefined) return pref;
-	return !isMobileDevice();
+	return true;
 };
 
 /**
  * Resolves whether Eco / Battery Saver Mode is enabled.
- * Default: true on mobile (to save battery & maximize frame rates), false on desktop.
- * User preference overrides default.
+ * Default: false. User preference overrides default.
  */
 export const resolveEcoMode = (pref: boolean | undefined): boolean => {
 	if (pref !== undefined) return pref;
-	return isMobileDevice();
+	return false;
+};
+
+/**
+ * Checks if a wallpaper string represents a video file or video stream.
+ */
+export const isVideoWallpaper = (url: string | null | undefined): boolean => {
+	if (!url) return false;
+	return url.endsWith('.mp4') || url.endsWith('.webm') || url.startsWith('data:video');
+};
+
+/**
+ * Single, bulletproof source of truth: resolves the active wallpaper URL/path.
+ * 1. Custom user wallpaper (URL or upload, not 'builtin:' and not 'none') wins.
+ * 2. Explicitly equipped cosmetic or builtin wallpaper wins.
+ * 3. Falls back directly to the active theme preset's wallpaper.
+ */
+export const getActiveWallpaper = (themeId: string, userWp?: string | null): string | null => {
+	if (userWp && userWp !== 'none' && userWp !== '') {
+		if (userWp.startsWith(BUILTIN)) {
+			const id = userWp.slice(BUILTIN.length);
+			const preset = THEME_PRESETS.find((t) => t.id === id);
+			if (preset?.wallpaper) return preset.wallpaper;
+			const extra = EXTRA_WALLPAPERS.find((w) => w.id === id);
+			if (extra) return extra.css;
+		} else {
+			return userWp;
+		}
+	}
+	const preset = THEME_PRESETS.find((t) => t.id === themeId);
+	return preset?.wallpaper ?? null;
 };
 
 /** Resolve a stored wallpaper value to a CSS background-image value (builtin ids → preset gradient, URLs wrapped). */
 export const wallpaperCss = (wp: string) => {
-	if (wp.startsWith("data:video")) return "none";
+	if (isVideoWallpaper(wp)) return "none";
 	if (!wp.startsWith(BUILTIN)) return `url(${wp})`;
 	const id = wp.slice(BUILTIN.length);
 	const themeWp = THEME_PRESETS.find((t) => t.id === id)?.wallpaper ?? EXTRA_WALLPAPERS.find((w) => w.id === id)?.css ?? '';
-	if (themeWp && themeWp.endsWith('.mp4')) {
+	if (themeWp && isVideoWallpaper(themeWp)) {
 		return STATIC_THEME_GRADIENTS[id] ?? 'none';
 	}
 	return themeWp;
@@ -88,23 +117,17 @@ export const wallpaperCss = (wp: string) => {
  * wallpapers always win; an equipped loadout wallpaper beats the theme's own.
  */
 export const syncThemeWallpaper = (s: { theme: string; ui: { wallpaper?: string | null; liveWallpaper?: boolean; cosmetics?: { wallpaper?: string } } }) => {
-	if (s.ui.wallpaper && !isBuiltinWallpaper(s.ui.wallpaper)) return;
+	if (s.ui.wallpaper && !isBuiltinWallpaper(s.ui.wallpaper) && s.ui.wallpaper !== 'none') return;
 	const equipped = s.ui.cosmetics?.wallpaper;
 	if (equipped && equipped !== 'none') {
 		s.ui.wallpaper = BUILTIN + equipped;
 		const eqPreset = THEME_PRESETS.find((t) => t.id === equipped);
-		if (eqPreset?.wallpaper?.endsWith('.mp4')) {
-			s.ui.liveWallpaper = true;
-		}
+		s.ui.liveWallpaper = Boolean(eqPreset?.wallpaper?.endsWith('.mp4'));
 		return;
 	}
 	const preset = THEME_PRESETS.find((t) => t.id === s.theme);
 	s.ui.wallpaper = preset?.wallpaper ? BUILTIN + s.theme : null;
-	if (preset?.wallpaper?.endsWith('.mp4')) {
-		s.ui.liveWallpaper = true;
-	} else {
-		s.ui.liveWallpaper = false;
-	}
+	s.ui.liveWallpaper = Boolean(preset?.wallpaper?.endsWith('.mp4'));
 };
 
 export const isBuiltinWallpaper = (wp: string | null | undefined): boolean => {

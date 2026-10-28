@@ -32,7 +32,7 @@
 	import FeynmanDuckModal from '$lib/components/feynman/FeynmanDuckModal.svelte';
 	import { hydrateTracker } from '$lib/services/hydrate';
 	import { startSync } from '$lib/services/sync';
-	import { THEME_PRESETS, isDarkTheme, wallpaperCss, resolveLiveWallpaper, resolveEcoMode, isMobileDevice, isBuiltinWallpaper, EXTRA_WALLPAPERS } from '$lib/state/themes';
+	import { THEME_PRESETS, isDarkTheme, wallpaperCss, resolveLiveWallpaper, resolveEcoMode, isMobileDevice, isBuiltinWallpaper, EXTRA_WALLPAPERS, getActiveWallpaper, isVideoWallpaper } from '$lib/state/themes';
 	import { authReady, authConfigured, currentUser, hasSkippedLogin, sessionResolved, syncStatus } from '$lib/stores/auth';
 	import { saveStatus, tracker, formulaVaultOpen, testDaySheetOpen, targetsModalOpen, autoCheckStreakFreeze, feynmanDuckOpen, wrappedStoryOpen } from '$lib/stores/tracker';
 	import BTrackerWrappedModal from '$lib/components/stats/BTrackerWrappedModal.svelte';
@@ -225,25 +225,10 @@
 		}
 	}
 
-	function resolveEffectiveWallpaper(themeId: string, userWp: string | null | undefined, unauth: boolean): string | null {
-		if (unauth) return null;
-		if (userWp) {
-			if (userWp.startsWith('builtin:')) {
-				const builtinId = userWp.slice(8);
-				const hasPresetWp = THEME_PRESETS.some(t => t.id === builtinId && Boolean(t.wallpaper));
-				const hasExtraWp = EXTRA_WALLPAPERS.some(w => w.id === builtinId);
-				if (hasPresetWp || hasExtraWp) return userWp;
-			} else {
-				return userWp;
-			}
-		}
-		const preset = THEME_PRESETS.find(t => t.id === themeId);
-		return preset?.wallpaper ? ('builtin:' + themeId) : null;
-	}
-
 	function applyTheme(state: { theme: string; ui: { accent: string, wallpaper?: string | null } }) {
 		const root = document.documentElement;
 		root.setAttribute('data-theme', state.theme);
+		try { localStorage.setItem('btracker_theme', state.theme); } catch {}
 		root.style.setProperty('--accent', state.ui.accent);
 		root.style.setProperty('--accent-strong', `color-mix(in srgb, ${state.ui.accent}, black 14%)`);
 		root.style.setProperty('--accent-soft', `color-mix(in srgb, ${state.ui.accent}, transparent ${isDarkTheme(state.theme) ? '82%' : '88%'})`);
@@ -289,10 +274,13 @@
 			root.style.setProperty('--aurora-3', '#b197fc');
 		}
 
-		const effectiveWallpaper = resolveEffectiveWallpaper(state.theme, state.ui.wallpaper, isFirstTimeOrUnauth);
+		const effectiveWallpaper = isFirstTimeOrUnauth ? null : getActiveWallpaper(state.theme, state.ui.wallpaper);
 		
 		if (effectiveWallpaper) {
 			root.setAttribute('data-wallpaper', 'true');
+			if (isVideoWallpaper(effectiveWallpaper)) {
+				root.setAttribute('data-live-wallpaper', 'true');
+			}
 			root.style.setProperty('--user-wallpaper', wallpaperCss(effectiveWallpaper));
 		} else {
 			root.removeAttribute('data-wallpaper');
@@ -320,7 +308,7 @@
 				const DARK_THEME_BASES: Record<string, string> = {
 					aurora: '#040e1d', initiate: '#040a10', 'god-mode': '#0e0c04', catalyst: '#050e06',
 					celestial: '#0a0618', challenger: '#100502', quantum: '#04051a', axiom: '#100408',
-					obsidian: '#120e24', quizlet: '#0c1128', green: '#061210', red: '#120408'
+					obsidian: '#141320', quizlet: '#0c1128', green: '#061210', red: '#120408'
 				};
 				const base = DARK_THEME_BASES[state.theme] ?? '#0a0a10';
 				root.style.setProperty('--surface-panel', `color-mix(in srgb, ${base}, transparent ${t}%)`);
@@ -430,42 +418,20 @@
 		};
 	});
 	$: currentThemePreset = THEME_PRESETS.find(t => t.id === effectiveTheme);
-	$: currentWallpaperStr = resolveEffectiveWallpaper(effectiveTheme, $tracker.ui.wallpaper, isFirstTimeOrUnauth);
-	$: activeWpPreset = currentWallpaperStr?.startsWith('builtin:')
-		? THEME_PRESETS.find(t => t.id === currentWallpaperStr.slice(8))
-		: null;
-	$: currentWpHasVideo = Boolean(
-		activeWpPreset?.wallpaper?.endsWith('.mp4') ||
-		(currentWallpaperStr && (currentWallpaperStr.endsWith('.mp4') || currentWallpaperStr.endsWith('.webm') || currentWallpaperStr.startsWith('data:video')))
-	);
-	$: isExplicitLiveWp = !isFirstTimeOrUnauth && $tracker.ui.liveWallpaper === true;
-	$: isEcoActive = $tracker.ui.ecoMode === true || ($tracker.ui.ecoMode === undefined && !isExplicitLiveWp && isMobile);
-	$: liveWallpaperEnabled = !isFirstTimeOrUnauth && (
-		isExplicitLiveWp ||
-		(currentWpHasVideo && $tracker.ui.liveWallpaper !== false && $tracker.ui.ecoMode !== true) ||
-		(!isEcoActive && resolveLiveWallpaper($tracker.ui.liveWallpaper))
-	);
-	$: activeVideoUrl = (() => {
-		if (isFirstTimeOrUnauth || !liveWallpaperEnabled || !currentWallpaperStr) return null;
-		if (currentWallpaperStr.startsWith('data:video')) return currentWallpaperStr;
-		if (currentWallpaperStr.startsWith('builtin:')) {
-			const id = currentWallpaperStr.slice(8);
-			const preset = THEME_PRESETS.find(t => t.id === id);
-			if (preset && preset.wallpaper && preset.wallpaper.endsWith('.mp4')) {
-				return encodeURI(preset.wallpaper);
-			}
-		}
-		if (currentWallpaperStr.endsWith('.mp4') || currentWallpaperStr.endsWith('.webm')) {
-			return encodeURI(currentWallpaperStr);
-		}
-		return null;
-	})();
+	$: currentWallpaperStr = isFirstTimeOrUnauth ? null : getActiveWallpaper(effectiveTheme, $tracker.ui.wallpaper);
+	$: isVideoWp = Boolean(currentWallpaperStr && isVideoWallpaper(currentWallpaperStr));
+	$: activeVideoUrl = (isVideoWp && $tracker.ui.ecoMode !== true) ? encodeURI(currentWallpaperStr!) : null;
 
 	$: if (typeof document !== 'undefined') {
-		if (activeVideoUrl && !isFirstTimeOrUnauth) {
+		if (activeVideoUrl) {
 			document.documentElement.setAttribute('data-live-wallpaper', 'true');
+			document.documentElement.setAttribute('data-wallpaper', 'true');
+		} else if (currentWallpaperStr) {
+			document.documentElement.removeAttribute('data-live-wallpaper');
+			document.documentElement.setAttribute('data-wallpaper', 'true');
 		} else {
 			document.documentElement.removeAttribute('data-live-wallpaper');
+			document.documentElement.removeAttribute('data-wallpaper');
 		}
 	}
 
@@ -565,40 +531,42 @@
 	<slot />
 {:else}
 	{#if activeVideoUrl}
-		<video
-			bind:this={bgVideo}
-			src={activeVideoUrl}
-			autoplay
-			loop
-			muted
-			playsinline
-			preload="auto"
-			class="live-wallpaper-bg"
-			on:loadedmetadata={(e) => {
-				e.currentTarget.muted = true;
-				e.currentTarget.defaultMuted = true;
-				e.currentTarget.play().catch(() => {});
-			}}
-			on:loadeddata={(e) => {
-				e.currentTarget.muted = true;
-				e.currentTarget.defaultMuted = true;
-				e.currentTarget.play().catch(() => {});
-				sampleVideoFrame(e.currentTarget);
-			}}
-			on:canplay={(e) => {
-				e.currentTarget.muted = true;
-				e.currentTarget.play().catch(() => {});
-			}}
-			on:ended={(e) => {
-				e.currentTarget.currentTime = 0;
-				e.currentTarget.play().catch(() => {});
-			}}
-			on:error={(e) => {
-				console.warn('[LiveWallpaper] Video decode/load error:', e);
-			}}
-		>
-			<source src={activeVideoUrl} type="video/mp4" />
-		</video>
+		{#key activeVideoUrl}
+			<video
+				bind:this={bgVideo}
+				src={activeVideoUrl}
+				autoplay
+				loop
+				muted
+				playsinline
+				preload="auto"
+				class="live-wallpaper-bg"
+				on:loadedmetadata={(e) => {
+					e.currentTarget.muted = true;
+					e.currentTarget.defaultMuted = true;
+					e.currentTarget.play().catch(() => {});
+				}}
+				on:loadeddata={(e) => {
+					e.currentTarget.muted = true;
+					e.currentTarget.defaultMuted = true;
+					e.currentTarget.play().catch(() => {});
+					sampleVideoFrame(e.currentTarget);
+				}}
+				on:canplay={(e) => {
+					e.currentTarget.muted = true;
+					e.currentTarget.play().catch(() => {});
+				}}
+				on:ended={(e) => {
+					e.currentTarget.currentTime = 0;
+					e.currentTarget.play().catch(() => {});
+				}}
+				on:error={(e) => {
+					console.warn('[LiveWallpaper] Video decode/load error:', e);
+				}}
+			>
+				<source src={activeVideoUrl} type="video/mp4" />
+			</video>
+		{/key}
 	{/if}
 	{#if activeVideoUrl || currentWallpaperStr}
 		<div class="wallpaper-adaptive-scrim" aria-hidden="true"></div>

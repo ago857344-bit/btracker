@@ -1,7 +1,7 @@
 /// <reference types="@sveltejs/kit" />
 import { build, files, version } from '$service-worker';
 
-const CACHE = `btracker-cache-${version}`;
+const CACHE = `btracker-cache-v3-${version}`;
 
 const ASSETS = [
   ...build,

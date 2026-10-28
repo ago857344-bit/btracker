@@ -99,12 +99,16 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 		}
 	}
 
-	// Reconcile and sanitize any stray god-mode or celestial cosmetics / prestige so defaults stay clean
-	const cleanTheme = (saved.theme === 'god-mode' || saved.theme === 'celestial') ? 'light' : (saved.theme || base.theme);
+	// Clean theme and sanitize any corrupted wallpaper data from previous versions
+	const cleanTheme = saved.theme || base.theme || 'dark';
 	const cleanCosmetics = { ...(saved.ui?.cosmetics || {}) };
-	if (cleanCosmetics.fx === 'celestial' || cleanCosmetics.fx === 'gilded') delete cleanCosmetics.fx;
-	if (cleanCosmetics.frame === 'celestial') delete cleanCosmetics.frame;
-	if (cleanCosmetics.title === 'ascended' || cleanCosmetics.title === 'eternal') delete cleanCosmetics.title;
+	if (cleanCosmetics.wallpaper === 'none' || cleanCosmetics.wallpaper === '') {
+		delete cleanCosmetics.wallpaper;
+	}
+	let cleanWallpaper = saved.ui?.wallpaper;
+	if (cleanWallpaper === 'none' || cleanWallpaper === '' || cleanWallpaper === 'builtin:none') {
+		cleanWallpaper = null;
+	}
 
 	const merged: TrackerState = {
 		...base,
@@ -153,6 +157,7 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 		ui: {
 			...base.ui,
 			...saved.ui,
+			wallpaper: cleanWallpaper,
 			devMode: false,
 			cosmetics: cleanCosmetics,
 			widgets: Array.isArray(saved.ui?.widgets) ? [...saved.ui.widgets] : [...base.ui.widgets]

@@ -368,29 +368,29 @@
 			if (s.ui.cosmetics?.wallpaper) {
 				delete s.ui.cosmetics.wallpaper;
 			}
-			if (preset.wallpaper?.endsWith('.mp4')) {
-				s.ui.liveWallpaper = true;
-				s.ui.ecoMode = false;
-				s.ui.wallpaper = 'builtin:' + id;
-			} else {
-				s.ui.liveWallpaper = false;
-				s.ui.wallpaper = preset.wallpaper ? 'builtin:' + id : null;
-			}
+			s.ui.wallpaper = preset.wallpaper ? ('builtin:' + id) : null;
+			s.ui.liveWallpaper = Boolean(preset.wallpaper?.endsWith('.mp4'));
+			s.ui.ecoMode = false;
 			syncThemeWallpaper(s);
 		});
 	}
 	function setAccent(color: string) { updateTracker((s) => { s.ui.accent = color; }); }
 	function setWallpaper(url: string | null) {
 		updateTracker(s => {
-			s.ui.wallpaper = url;
-			if (url && (url.endsWith('.mp4') || url.endsWith('.webm') || url.startsWith('data:video'))) {
-				s.ui.liveWallpaper = true;
+			if (!url || url === 'none') {
+				s.ui.wallpaper = null;
+				s.ui.liveWallpaper = false;
+				if (s.ui.cosmetics?.wallpaper) delete s.ui.cosmetics.wallpaper;
+			} else {
+				s.ui.wallpaper = url;
+				s.ui.liveWallpaper = Boolean(url.endsWith('.mp4') || url.endsWith('.webm') || url.startsWith('data:video'));
 				s.ui.ecoMode = false;
-			}
-			if (url && !url.startsWith('data:')) {
-				if (!s.ui.wallpaperHistory) s.ui.wallpaperHistory = [];
-				if (!s.ui.wallpaperHistory.includes(url)) {
+				if (s.ui.cosmetics?.wallpaper) delete s.ui.cosmetics.wallpaper;
+				if (!url.startsWith('data:')) {
+					if (!s.ui.wallpaperHistory) s.ui.wallpaperHistory = [];
+					if (!s.ui.wallpaperHistory.includes(url)) {
 						s.ui.wallpaperHistory = [url, ...s.ui.wallpaperHistory].slice(0, 10);
+					}
 				}
 			}
 		});
@@ -805,7 +805,7 @@
 					<input type="file" accept="image/*, video/mp4, video/webm" style="display: none;" on:change={handleWallpaperUpload} />
 				</label>
 				{#if $tracker.ui.wallpaper}
-					<button type="button" class="btn ghost danger" style="padding: 0 .6rem;" aria-label="Remove wallpaper" on:click={() => updateTracker(s => { s.ui.wallpaper = null; })}>
+					<button type="button" class="btn ghost danger" style="padding: 0 .6rem;" aria-label="Remove wallpaper" on:click={() => setWallpaper(null)}>
 						<NavIcon name="trash" size={15} />
 					</button>
 				{/if}

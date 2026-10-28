@@ -255,20 +255,25 @@
 }
 
 :root[data-theme='obsidian'] {
-  --surface-canvas: #1c1c28;
-  --surface-panel: #232334;
-  --surface-subtle: #2b2b40;
-  --surface-popup: rgba(35, 35, 52, 0.96);
-  --surface-popup-solid: #232334;
+  --surface-canvas: #141320;
+  --surface-panel: #1e1b2e;
+  --surface-subtle: #27233c;
+  --surface-popup: rgba(30, 27, 46, 0.96);
+  --surface-popup-solid: #1e1b2e;
   --surface-popup-border: color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
-  --text-primary: #dcdce6;
-  --text-secondary: #a2a2bb;
-  --border-subtle: #34344c;
+  --text-primary: #f0edf9;
+  --text-secondary: #aba5c7;
+  --text-tertiary: #7d779c;
+  --border-subtle: rgba(255, 255, 255, 0.08);
   --accent: #8b7bff;
   --accent-strong: #7461f5;
   --accent-soft: #2f2a52;
   --accent-contrast: #ffffff;
   --shadow-card: 0 14px 40px rgb(0 0 0 / 30%);
+  --vision-glass-bg: color-mix(in srgb, #1e1b2e 88%, transparent);
+  --vision-glass-blur: blur(24px) saturate(185%);
+  --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+  --vision-bevel-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(255, 255, 255, 0.12));
 }
 
 :root[data-theme='quizlet'] {
