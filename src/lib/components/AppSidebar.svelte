@@ -588,16 +588,18 @@
 			padding-bottom: calc(max(env(safe-area-inset-bottom), 16px) + 1.25rem);
 			border-radius: 0 26px 26px 0;
 			border-right: 1px solid color-mix(in srgb, var(--border-subtle) 70%, rgba(255, 255, 255, 0.16));
-			background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
-			backdrop-filter: blur(36px) saturate(210%);
-			-webkit-backdrop-filter: blur(36px) saturate(210%);
+			background: var(--surface-panel) !important;
+			backdrop-filter: var(--glass-filter, blur(36px) saturate(210%)) !important;
+			-webkit-backdrop-filter: var(--glass-filter, blur(36px) saturate(210%)) !important;
 			box-shadow: 20px 0 64px -8px rgba(0, 0, 0, 0.65), inset -1px 0 0 rgba(255, 255, 255, 0.12);
 			transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
 		}
 		aside.mobile-open {
 			transform: translateX(0);
 			z-index: 120;
-			background: var(--surface-popup, rgba(18, 16, 32, 0.96)) !important;
+			background: var(--surface-panel) !important;
+			backdrop-filter: var(--glass-filter, blur(36px) saturate(210%)) !important;
+			-webkit-backdrop-filter: var(--glass-filter, blur(36px) saturate(210%)) !important;
 		}
 		aside.collapsed {
 			width: min(290px, calc(100vw - 44px));
