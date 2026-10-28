@@ -44,8 +44,17 @@ self.addEventListener('fetch', (event: any) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
 
-  // Skip Chrome extensions and api calls
-  if (url.protocol.startsWith('chrome-extension') || url.pathname.startsWith('/api/')) return;
+  // Skip Chrome extensions, api calls, range requests, and media streams (mp4/webm require native range requests)
+  if (
+    event.request.headers.get('range') ||
+    url.protocol.startsWith('chrome-extension') ||
+    url.pathname.startsWith('/api/') ||
+    url.pathname.endsWith('.mp4') ||
+    url.pathname.endsWith('.webm') ||
+    url.pathname.startsWith('/videos/')
+  ) {
+    return;
+  }
 
   async function respond() {
     const cache = await caches.open(CACHE);

@@ -90,8 +90,8 @@ export const wallpaperCss = (wp: string) => {
 export const syncThemeWallpaper = (s: { theme: string; ui: { wallpaper?: string | null; liveWallpaper?: boolean; cosmetics?: { wallpaper?: string } } }) => {
 	if (s.ui.wallpaper && !isBuiltinWallpaper(s.ui.wallpaper)) return;
 	const equipped = s.ui.cosmetics?.wallpaper;
-	if (equipped) {
-		s.ui.wallpaper = equipped === 'none' ? null : BUILTIN + equipped;
+	if (equipped && equipped !== 'none') {
+		s.ui.wallpaper = BUILTIN + equipped;
 		const eqPreset = THEME_PRESETS.find((t) => t.id === equipped);
 		if (eqPreset?.wallpaper?.endsWith('.mp4')) {
 			s.ui.liveWallpaper = true;
@@ -102,6 +102,8 @@ export const syncThemeWallpaper = (s: { theme: string; ui: { wallpaper?: string 
 	s.ui.wallpaper = preset?.wallpaper ? BUILTIN + s.theme : null;
 	if (preset?.wallpaper?.endsWith('.mp4')) {
 		s.ui.liveWallpaper = true;
+	} else {
+		s.ui.liveWallpaper = false;
 	}
 };
 

@@ -365,9 +365,16 @@
 		updateTracker((s) => {
 			s.theme = id;
 			s.ui.accent = preset.accent;
+			if (s.ui.cosmetics?.wallpaper) {
+				delete s.ui.cosmetics.wallpaper;
+			}
 			if (preset.wallpaper?.endsWith('.mp4')) {
 				s.ui.liveWallpaper = true;
 				s.ui.ecoMode = false;
+				s.ui.wallpaper = 'builtin:' + id;
+			} else {
+				s.ui.liveWallpaper = false;
+				s.ui.wallpaper = preset.wallpaper ? 'builtin:' + id : null;
 			}
 			syncThemeWallpaper(s);
 		});
