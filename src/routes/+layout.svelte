@@ -353,8 +353,8 @@
 		root.removeAttribute('data-ambient-shader');
 	}
 
-	$: isFirstTimeOrUnauth = isAuthRoute || isMarketingLanding || isPreview || (!$currentUser && !$hasSkippedLogin);
-	$: effectiveTheme = isPreview ? 'light' : (isFirstTimeOrUnauth ? 'light' : ($tracker.theme || 'light'));
+	$: isFirstTimeOrUnauth = isAuthRoute || isMarketingLanding || isPreview;
+	$: effectiveTheme = isPreview ? 'light' : (isFirstTimeOrUnauth ? 'light' : ($tracker.theme || 'dark'));
 	$: if (browser) {
 		applyTheme({
 			theme: effectiveTheme,
@@ -442,7 +442,7 @@
 	$: isEcoActive = $tracker.ui.ecoMode === true || ($tracker.ui.ecoMode === undefined && !isExplicitLiveWp && isMobile);
 	$: liveWallpaperEnabled = !isFirstTimeOrUnauth && (
 		isExplicitLiveWp ||
-		(currentWpHasVideo && $tracker.ui.liveWallpaper !== false) ||
+		(currentWpHasVideo && $tracker.ui.liveWallpaper !== false && $tracker.ui.ecoMode !== true) ||
 		(!isEcoActive && resolveLiveWallpaper($tracker.ui.liveWallpaper))
 	);
 	$: activeVideoUrl = (() => {
@@ -563,7 +563,7 @@
 
 {#if isAuthRoute || isPublicLanding || isMarketingLanding}
 	<slot />
-{:else if $authReady && $sessionResolved}
+{:else}
 	{#if activeVideoUrl}
 		<video
 			bind:this={bgVideo}
@@ -672,8 +672,6 @@
 	{#if $wrappedStoryOpen}
 		<BTrackerWrappedModal bind:open={$wrappedStoryOpen} />
 	{/if}
-{:else}
-	<div class="auth-loading" aria-live="polite">Checking your session…</div>
 {/if}
 
 <style>
@@ -825,7 +823,6 @@
 		box-shadow: 0 4px 18px -2px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 14px -2px color-mix(in srgb, var(--accent) 30%, transparent);
 	}
 	.scrim { display: none; }
-	.auth-loading { display: grid; min-height: 100vh; place-items: center; background: var(--surface-canvas); color: var(--text-secondary); font-size: .9rem; font-weight: 650; }
 	
 	@media (max-width: 768px) {
 		.app-shell { --sidebar-w: 0px !important; padding-left: 0; }

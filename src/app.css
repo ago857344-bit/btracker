@@ -130,6 +130,12 @@
 :root[data-theme='quantum'],
 :root[data-theme='axiom'] {
   color-scheme: dark;
+
+  /* Apple VisionOS / Smoked Acrylic Design Tokens for All Dark Themes */
+  --vision-glass-bg: color-mix(in srgb, var(--surface-panel) 88%, transparent);
+  --vision-glass-blur: blur(24px) saturate(185%);
+  --vision-bevel-inner: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 0 0 1px rgba(255, 255, 255, 0.035);
+  --vision-bevel-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(255, 255, 255, 0.12));
 }
 
 :root[data-theme='dark'] {
