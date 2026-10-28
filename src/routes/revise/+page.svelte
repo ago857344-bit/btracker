@@ -4,6 +4,7 @@
 	import { fade, fly } from 'svelte/transition';
 	import { page } from '$app/stores';
 	import NavIcon from '$lib/components/NavIcon.svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
 	import AddChapterModal from '$lib/components/revise/AddChapterModal.svelte';
 	import ReviseModal from '$lib/components/revise/ReviseModal.svelte';
 	import ReviseManualModal from '$lib/components/revise/ReviseManualModal.svelte';
@@ -124,9 +125,19 @@
 		console.log('reviseOpen set to', reviseOpen);
 	}
 
-	function handleDeleteChapter(chapterKey: string) {
-		if (confirm('Remove this chapter from recall tracking?')) {
-			removeChapterFromRecall(chapterKey);
+	let deleteModalOpen = false;
+	let chapterKeyToDelete = '';
+
+	function promptDeleteChapter(chapterKey: string) {
+		chapterKeyToDelete = chapterKey;
+		deleteModalOpen = true;
+	}
+
+	function confirmDeleteChapter() {
+		if (chapterKeyToDelete) {
+			removeChapterFromRecall(chapterKeyToDelete);
+			deleteModalOpen = false;
+			chapterKeyToDelete = '';
 		}
 	}
 
@@ -195,7 +206,7 @@
 				<ChapterCard
 					{chapter}
 					on:revise={(e: any) => handleRevise(e.detail)}
-					on:delete={(e: any) => handleDeleteChapter(e.detail)}
+					on:delete={(e: any) => promptDeleteChapter(e.detail)}
 					on:crashcourse={(e: any) => { crashCourseKey = e.detail; }}
 				/>
 			{/each}
@@ -242,6 +253,25 @@
 		chapterKey={crashCourseKey || null}
 		on:close={() => (crashCourseKey = '')}
 	/>
+
+<Modal bind:open={deleteModalOpen} title="Remove from Recall Tracking" width="400px" on:close={() => deleteModalOpen = false}>
+	<div style="padding: 0.5rem 0;">
+		<p style="margin: 0; font-size: 0.88rem; color: var(--text-secondary); line-height: 1.45;">
+			Are you sure you want to remove <b>{chapterKeyToDelete}</b> from active recall memory decay tracking? Historical review sessions will remain in your study log.
+		</p>
+	</div>
+	<svelte:fragment slot="footer">
+		<button type="button" class="btn ghost" on:click={() => deleteModalOpen = false}>Cancel</button>
+		<button
+			type="button"
+			class="btn solid"
+			on:click={confirmDeleteChapter}
+			style="background: var(--danger, #ef4444); color: white; border-color: var(--danger, #ef4444);"
+		>
+			Remove Chapter
+		</button>
+	</svelte:fragment>
+</Modal>
 
 <style>
 	.revise { display: grid; gap: 1.2rem; }

@@ -191,6 +191,42 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 		coaching_type: saved.coaching_type === 'GENERIC' ? 'GENERIC' : 'BT',
 		coaching_name: saved.coaching_name?.trim()
 			|| (saved.coaching_type === 'GENERIC' ? 'Other' : 'Baktiwal Tutorials'),
+		starredFormulas: (() => {
+			let list = saved.starredFormulas;
+			if ((!list || !list.length) && typeof window !== 'undefined') {
+				try {
+					const legacy = localStorage.getItem('btracker_starred_formulas');
+					if (legacy) {
+						const parsed = JSON.parse(legacy);
+						if (Array.isArray(parsed) && parsed.length) list = parsed;
+					}
+				} catch {}
+			}
+			return Array.isArray(list) ? list : [];
+		})(),
+		examNotes: (() => {
+			let notes = saved.examNotes;
+			if (notes === undefined && typeof window !== 'undefined') {
+				try {
+					const legacy = localStorage.getItem('btracker_test_day_notes') || localStorage.getItem('btracker_exam_morning_notes');
+					if (legacy) notes = legacy;
+				} catch {}
+			}
+			return typeof notes === 'string' ? notes : '';
+		})(),
+		customReminders: (() => {
+			let list = saved.customReminders;
+			if ((!list || !list.length) && typeof window !== 'undefined') {
+				try {
+					const legacy = localStorage.getItem('btracker_custom_reminders');
+					if (legacy) {
+						const parsed = JSON.parse(legacy);
+						if (Array.isArray(parsed) && parsed.length) list = parsed;
+					}
+				} catch {}
+			}
+			return Array.isArray(list) ? list : [];
+		})(),
 		onboarded: saved.onboarded ?? (Boolean(
 			saved.savedAt ||
 			(saved.meta?.name && saved.meta.name.trim().length > 0) ||

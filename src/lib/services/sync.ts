@@ -5,7 +5,7 @@ import { supabaseConfigured } from '$lib/services/supabase';
 import { authReady, initAuth, syncStatus, teardownAuth } from '$lib/stores/auth';
 import { replaceTracker, setCloudSink, tracker } from '$lib/stores/tracker';
 import { saveTrackerState } from '$lib/services/persistence';
-import type { TrackerState, TodoItem, HomeworkItem, ReflectionEntry, TaskRoutine, TrackerGoal, ChapterRecallData, RevisionItem, StudyBlock, FocusSession, Flashcard, DumpFileMeta, StudyDumpState } from '$lib/types/tracker';
+import type { TrackerState, TodoItem, HomeworkItem, ReflectionEntry, TaskRoutine, TrackerGoal, ChapterRecallData, RevisionItem, StudyBlock, FocusSession, Flashcard, DumpFileMeta, StudyDumpState, CustomReminder } from '$lib/types/tracker';
 
 let activeUserId: string | null = null;
 let pushTimer: ReturnType<typeof setTimeout> | undefined;
@@ -516,6 +516,31 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 			available: Math.max(base.streakFreezes?.available ?? 2, remote.streakFreezes?.available ?? 2),
 			usedDates: Array.from(new Set([...(base.streakFreezes?.usedDates ?? []), ...(remote.streakFreezes?.usedDates ?? [])]))
 		},
+		starredFormulas: Array.from(new Set([...(base.starredFormulas || []), ...(remote.starredFormulas || [])])),
+		examNotes: (() => {
+			if (base.examNotes && remote.examNotes) {
+				return cloudIsNewer ? remote.examNotes : base.examNotes;
+			}
+			return base.examNotes || remote.examNotes || '';
+		})(),
+		customReminders: (() => {
+			const locMap = new Map((base.customReminders || []).map((r) => [r.id, r]));
+			const remMap = new Map((remote.customReminders || []).map((r) => [r.id, r]));
+			const allIds = new Set([...locMap.keys(), ...remMap.keys()]);
+			const res: CustomReminder[] = [];
+			for (const id of allIds) {
+				const loc = locMap.get(id);
+				const rem = remMap.get(id);
+				if (loc && rem) {
+					res.push((rem.updatedAt || 0) >= (loc.updatedAt || 0) ? rem : loc);
+				} else if (loc) {
+					res.push(loc);
+				} else if (rem) {
+					res.push(rem);
+				}
+			}
+			return res;
+		})(),
 		ui: {
 			...prefSource.ui,
 			wallpaper: base.ui?.wallpaper || remote.ui?.wallpaper || null,

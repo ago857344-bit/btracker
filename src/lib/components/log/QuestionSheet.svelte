@@ -6,7 +6,7 @@
 	import ReasonsModal from '$lib/components/log/ReasonsModal.svelte';
 	import {
 		applyQuestionAction, bulkExercise, setQuestionCount, setQuestionNote, setQuestionReasons, setQuestionResult,
-		setQuestionStars, toggleQuestionDone, toggleQuestionFlag, tracker, updateTracker, celebration,
+		setQuestionStars, toggleQuestionDone, toggleQuestionFlag, tracker, updateTracker, celebration, triggerToast,
 		type QuestionAction, type QuestionLoc
 	} from '$lib/stores/tracker';
 	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
@@ -269,7 +269,23 @@
 	}
 
 	function runBulk(kind: 'done' | 'correct' | 'clear') {
-		bulkExercise(loc, kind);
+		if (kind === 'clear') {
+			const ck = cellKey(loc.sc, loc.ch, loc.ex);
+			const backup = [...($tracker.d?.[ck] ?? [])];
+			bulkExercise(loc, kind);
+			triggerToast({
+				text: `Cleared ${exName}`,
+				actionLabel: 'Undo',
+				onAction: () => {
+					updateTracker((s) => {
+						if (!s.d) s.d = {};
+						s.d[ck] = [...backup];
+					});
+				}
+			});
+		} else {
+			bulkExercise(loc, kind);
+		}
 		confirm = null;
 		clearSel();
 	}

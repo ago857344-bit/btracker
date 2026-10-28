@@ -29,6 +29,18 @@ export interface CustomizationState {
 	refAdded: Record<string, string | number>;
 }
 
+export interface CustomReminder {
+	id: string;
+	kind: 'exam' | 'test' | 'revision' | 'custom' | string;
+	title: string;
+	blurb: string;
+	when: string;
+	sub?: string;
+	dismissed?: boolean;
+	createdAt: number;
+	updatedAt: number;
+}
+
 export interface HomeworkItem {
 	id: string;
 	kind?: 'range' | 'back' | 'task' | string;
@@ -416,6 +428,9 @@ export interface TrackerState {
 	/** Missing means BT, so legacy accounts keep the native BT experience. */
 	coaching_type?: CoachingType;
 	coaching_name?: string;
+	starredFormulas?: string[];
+	examNotes?: string;
+	customReminders?: CustomReminder[];
 }
 
 export interface StateSnapshot {

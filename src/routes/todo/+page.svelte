@@ -5,15 +5,17 @@
 	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
 	import { fade, slide } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
+	import Modal from '$lib/components/ui/Modal.svelte';
 	import { subjectColor, CHAPTERS } from '$lib/state/subjects';
 	import { allChapters, allChaptersWithCustom, SYLLABUS } from '$lib/state/syllabus';
 	import { extractPdfText, extractImageText, matchChapters, matchChaptersAI, type ChapterMatch } from '$lib/services/btest';
 import { triageTodos } from '$lib/services/aiTriage';
 import { buildAcademicConstraintPrompt } from '$lib/services/aiContext';
 	import {
-		addChecklistColumn, addTodo, addTodos, celebration, CHECKLIST_DEFAULT_COLS, clearDoneTodos, deleteTodo,
+		addChecklistColumn, addTodo, addTodos, celebration, triggerToast, CHECKLIST_DEFAULT_COLS, clearDoneTodos, deleteTodo,
 		removeChecklistColumn, reorderTodo, toggleChecklistCell, toggleChapterStarted, toggleTodo, tracker, updateTracker, addTodoSubtask, toggleTodoSubtask, deleteTodoSubtask, addTodoSubsteps, transferTodosToPlanner
 	} from '$lib/stores/tracker';
+	import type { TodoItem } from '$lib/types/tracker';
 
 	let isDesktop = false;
 	let clViewMode: 'cards' | 'table' = 'cards';
@@ -166,13 +168,73 @@ async function runAiTriage() {
 		return Math.round((done / total) * 100);
 	};
 
+	let addColModalOpen = false;
+	let newColName = '';
+	let removeColModalOpen = false;
+	let colIndexToRemove = -1;
+
 	function addColumn() {
-		const name = prompt('Column name', '');
-		if (name) addChecklistColumn(clSub, name);
+		newColName = '';
+		addColModalOpen = true;
+	}
+
+	function confirmAddColumn() {
+		if (newColName.trim()) {
+			addChecklistColumn(clSub, newColName.trim());
+			addColModalOpen = false;
+		}
 	}
 
 	function removeColumn(i: number) {
-		if (clGrid && confirm(`Remove column "${clGrid.cols[i]}"? Its checkmarks will be deleted.`)) removeChecklistColumn(clSub, i);
+		colIndexToRemove = i;
+		removeColModalOpen = true;
+	}
+
+	function confirmRemoveColumn() {
+		if (colIndexToRemove >= 0) {
+			removeChecklistColumn(clSub, colIndexToRemove);
+			removeColModalOpen = false;
+			colIndexToRemove = -1;
+		}
+	}
+
+	function handleDeleteTodo(item: TodoItem) {
+		const backup = { ...item };
+		deleteTodo(item.id);
+		triggerToast({
+			text: `Deleted "${item.title}"`,
+			actionLabel: 'Undo',
+			onAction: () => {
+				updateTracker((s) => {
+					if (!s.todos) s.todos = [];
+					if (!s.todos.some((t) => t.id === backup.id)) {
+						s.todos.push(backup);
+					}
+					if (s.deletedTodos) delete s.deletedTodos[backup.id];
+				});
+			}
+		});
+	}
+
+	function handleClearDone() {
+		const backupList = ($tracker.todos || []).filter((t) => t.done);
+		if (!backupList.length) return;
+		clearDoneTodos();
+		triggerToast({
+			text: `Cleared ${backupList.length} completed tasks`,
+			actionLabel: 'Undo',
+			onAction: () => {
+				updateTracker((s) => {
+					if (!s.todos) s.todos = [];
+					for (const item of backupList) {
+						if (!s.todos.some((t) => t.id === item.id)) {
+							s.todos.push(item);
+						}
+						if (s.deletedTodos) delete s.deletedTodos[item.id];
+					}
+				});
+			}
+		});
 	}
 
 	/* btest ---------------------------------------------------------- */
@@ -387,7 +449,7 @@ async function runAiTriage() {
 						<button type="button" class="expand-btn" on:click={() => expandedTodo = expandedTodo === item.id ? null : item.id}>
 							<NavIcon name={expandedTodo === item.id ? 'chevron-down' : 'chevron'} size={14} />
 						</button>
-						<button type="button" class="del" aria-label="Delete task" on:click={() => deleteTodo(item.id)}><NavIcon name="trash" size={14} /></button>
+						<button type="button" class="del" aria-label="Delete task" on:click={() => handleDeleteTodo(item)}><NavIcon name="trash" size={14} /></button>
 					</li>
 					{#if expandedTodo === item.id}
 						<div class="subtasks-container" transition:slide={{ duration: 200 }}>
@@ -425,7 +487,7 @@ async function runAiTriage() {
 				</div>
 			{/if}
 			{#if done.length}
-				<button type="button" class="clear" on:click={clearDoneTodos}><NavIcon name="trash" size={13} /> Clear {done.length} completed</button>
+				<button type="button" class="clear" on:click={handleClearDone}><NavIcon name="trash" size={13} /> Clear {done.length} completed</button>
 			{/if}
 		{:else}
 			<div class="empty">
@@ -719,6 +781,52 @@ async function runAiTriage() {
 		</div>
 	{/if}
 </section>
+
+<Modal bind:open={addColModalOpen} title="Add Checklist Column" width="380px">
+	<div style="display: flex; flex-direction: column; gap: 0.6rem; padding: 0.5rem 0;">
+		<label style="display: flex; flex-direction: column; gap: 0.4rem; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary);">
+			Column Name
+			<input
+				type="text"
+				placeholder="e.g. PYQs, Short Notes, NCERT"
+				bind:value={newColName}
+				on:keydown={(e) => { if (e.key === 'Enter') confirmAddColumn(); }}
+				style="padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-subtle); background: var(--surface-subtle); color: var(--text-primary);"
+			/>
+		</label>
+	</div>
+	<svelte:fragment slot="footer">
+		<button type="button" class="btn-action-tool" on:click={() => addColModalOpen = false}>Cancel</button>
+		<button
+			type="button"
+			class="btn-action-tool"
+			disabled={!newColName.trim()}
+			on:click={confirmAddColumn}
+			style="background: var(--accent); color: var(--accent-contrast, white); border-color: var(--accent);"
+		>
+			Add Column
+		</button>
+	</svelte:fragment>
+</Modal>
+
+<Modal bind:open={removeColModalOpen} title="Remove Checklist Column" width="380px">
+	<div style="padding: 0.5rem 0;">
+		<p style="margin: 0; font-size: 0.88rem; color: var(--text-secondary); line-height: 1.45;">
+			Are you sure you want to remove column <b>"{clGrid?.cols[colIndexToRemove] ?? ''}"</b>? Its checkmarks across all chapters in this subject will be deleted.
+		</p>
+	</div>
+	<svelte:fragment slot="footer">
+		<button type="button" class="btn-action-tool" on:click={() => removeColModalOpen = false}>Cancel</button>
+		<button
+			type="button"
+			class="btn-action-tool"
+			on:click={confirmRemoveColumn}
+			style="background: var(--danger, #ef4444); color: white; border-color: var(--danger, #ef4444);"
+		>
+			Remove Column
+		</button>
+	</svelte:fragment>
+</Modal>
 
 <style>
 	.todo {

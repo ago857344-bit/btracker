@@ -10,7 +10,7 @@
 	import { dayKeyOf, focusMinutesOn, formatMinutes, shortDateKey, startOfWeek } from '$lib/state/dates';
 	import { getLevelData, getEloRank } from '$lib/state/gamification';
 	import { SUBJECTS } from '$lib/state/subjects';
-	import { getWeaknessAnalysis } from '$lib/services/ai';
+	import { getWeaknessAnalysis, streamWeaknessAnalysis } from '$lib/services/ai';
 	import { renderMarkdown } from '$lib/services/markdown';
 
 	const RANK_COLORS: Record<string, string> = { ELITE: '#d99a2b', ADVANCED: '#8b7bff', INTERMEDIATE: '#2b8ba6', NOVICE: '#8b87a0' };
@@ -25,9 +25,12 @@
 	async function handleGenerateAIReport() {
 		aiLoading = true;
 		aiError = '';
+		let accumulated = '';
 		try {
-			const md = await getWeaknessAnalysis($tracker);
-			aiReportHtml = await renderMarkdown(md);
+			await streamWeaknessAnalysis($tracker, async (chunk) => {
+				accumulated += chunk;
+				aiReportHtml = await renderMarkdown(accumulated);
+			});
 		} catch (e: any) {
 			aiError = e.message || 'Failed to generate report.';
 		} finally {
@@ -103,7 +106,7 @@
 								<NavIcon name="bolt" size={14} /> Generate Insights
 							</button>
 						</div>
-					{:else if aiLoading}
+					{:else if !aiReportHtml && aiLoading}
 						<div class="gemini-loader-container">
 							<div class="gemini-orb"></div>
 							<p class="gemini-shimmer-text">Gemini is analyzing your stats...</p>
@@ -111,9 +114,13 @@
 					{:else}
 						<div class="ai-report markdown-body">
 							{@html aiReportHtml}
-							<button type="button" class="btn ghost ai-refresh" on:click={handleGenerateAIReport}>
-								<NavIcon name="history" size={13} /> Regenerate Report
-							</button>
+							{#if aiLoading}
+								<span style="display: inline-block; width: 6px; height: 14px; background: var(--accent); margin-left: 4px; vertical-align: middle;"></span>
+							{:else}
+								<button type="button" class="btn ghost ai-refresh" on:click={handleGenerateAIReport}>
+									<NavIcon name="history" size={13} /> Regenerate Report
+								</button>
+							{/if}
 						</div>
 					{/if}
 				</div>

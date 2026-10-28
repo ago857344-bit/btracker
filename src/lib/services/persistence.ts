@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import type { TrackerState, StateSnapshot } from '$lib/types/tracker';
+import { calculateStreakDays } from '$lib/stores/tracker';
 
 const DB_NAME = 'btracker-next';
 const STORE = 'documents';
@@ -121,7 +122,7 @@ export async function takeSnapshot(
 		reason,
 		questionCount: qCount,
 		testCount: state.mocks?.length || 0,
-		streak: state.meta?.streakGoalH || 0,
+		streak: calculateStreakDays(state),
 		state: structuredClone(state)
 	};
 

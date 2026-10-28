@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
+	import { goto } from '$app/navigation';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { uiClick } from '$lib/utils/feedback';
 	import QuestionSheet from '$lib/components/log/QuestionSheet.svelte';
@@ -20,17 +21,28 @@
 	interface View { s: string | null; m: number | null; c: number | null; e: string | null }
 	let view: View = { s: null, m: null, c: null, e: null };
 
-	onMount(() => {
+	$: {
 		const s = $page.url.searchParams.get('s');
+		const mStr = $page.url.searchParams.get('m');
 		const cStr = $page.url.searchParams.get('c');
-		if (s && cStr) {
-			const c = parseInt(cStr, 10);
+		const e = $page.url.searchParams.get('e');
+
+		let m = mStr ? parseInt(mStr, 10) : null;
+		let c = cStr ? parseInt(cStr, 10) : null;
+
+		if (s && c !== null && m === null) {
 			const ch = syllabusChapter(s, c);
-			if (ch) {
-				open({ s, m: ch.moduleId, c });
-			}
+			if (ch) m = ch.moduleId;
 		}
-	});
+
+		view = {
+			s: s || null,
+			m: m !== null && !isNaN(m) ? m : null,
+			c: c !== null && !isNaN(c) ? c : null,
+			e: e || null
+		};
+	}
+
 	let showAddExercise = false;
 	let newCount = '';
 	let countMsg = '';
@@ -43,7 +55,20 @@
 	$: total = logTotals($tracker);
 
 	function open(next: Partial<View>) {
-		view = { s: null, m: null, c: null, e: null, ...next };
+		const targetView = { s: null, m: null, c: null, e: null, ...next };
+		const params = new URLSearchParams();
+		if (targetView.s) params.set('s', targetView.s);
+		if (targetView.m !== null && targetView.m !== undefined) params.set('m', String(targetView.m));
+		if (targetView.c !== null && targetView.c !== undefined) params.set('c', String(targetView.c));
+		if (targetView.e) params.set('e', targetView.e);
+
+		const queryString = params.toString();
+		const targetUrl = queryString ? `/log?${queryString}` : '/log';
+		const currentUrl = `${$page.url.pathname}${$page.url.search}`;
+
+		if (targetUrl !== currentUrl) {
+			goto(targetUrl, { replaceState: false, keepFocus: true, noScroll: true });
+		}
 		newCount = ''; countMsg = '';
 	}
 	function createTable() {

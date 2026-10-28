@@ -10,7 +10,8 @@ import { updateDecayAfterRevision } from '$lib/state/decay';
 import { DEFAULT_BT_NAME } from '$lib/state/coaching';
 import type {
 	GoalTarget, HomeworkItem, StudySession, TimerState, TrackerGoal, TrackerState, WidgetLayout,
-	ConfidenceRating, CoachingTimetable, TimetablePeriod, StudyFlowMode, CoachingType, UniversalSource
+	ConfidenceRating, CoachingTimetable, TimetablePeriod, StudyFlowMode, CoachingType, UniversalSource,
+	Flashcard
 } from '$lib/types/tracker';
 
 export const tracker = writable<TrackerState>(createInitialTrackerState());
@@ -32,7 +33,34 @@ export function replaceTracker(next: TrackerState, persist = true) {
 	if (persist) scheduleSave();
 }
 export function updateTracker(mutator: (draft: TrackerState) => void) {
-	tracker.update((current) => { const draft = structuredClone(current); mutator(draft); draft.savedAt = new Date().toISOString(); return draft; });
+	tracker.update((current) => {
+		const draft: TrackerState = {
+			...current,
+			d: current.d ? { ...current.d } : {},
+			stat: current.stat ? { ...current.stat } : {},
+			ui: current.ui ? { ...current.ui } : ({} as any),
+			meta: current.meta ? { ...current.meta } : ({} as any),
+			goals: current.goals ? {
+				...current.goals,
+				day: { ...current.goals.day },
+				week: { ...current.goals.week },
+				month: { ...current.goals.month }
+			} : ({} as any),
+			rev: current.rev ? {
+				...current.rev,
+				items: current.rev.items ? { ...current.rev.items } : {},
+				chapters: current.rev.chapters ? { ...current.rev.chapters } : {}
+			} : ({} as any),
+			x: current.x ? {
+				...current.x,
+				exs: current.x.exs ? { ...current.x.exs } : {},
+				cnt: current.x.cnt ? { ...current.x.cnt } : {}
+			} : ({} as any)
+		};
+		mutator(draft);
+		draft.savedAt = new Date().toISOString();
+		return draft;
+	});
 	scheduleSave();
 }
 export function scheduleSave() {
@@ -268,7 +296,18 @@ export const sessionsToday = derived(tracker, ($tracker) => $tracker.log.filter(
 const uid = () => Math.random().toString(36).slice(2, 10);
 
 /** Transient UI signals (not persisted). */
-export const celebration = writable<string | null>(null);
+export type ToastPayload = string | {
+	text: string;
+	actionLabel?: string;
+	onAction?: () => void;
+};
+export const celebration = writable<ToastPayload | null>(null);
+
+export function triggerToast(payload: ToastPayload) {
+	celebration.set(payload);
+}
+
+export const commandPaletteOpen = writable(false);
 export const plannerPrompt = writable<string | null>(null);
 export const customizingHome = writable(false);
 export const formulaVaultOpen = writable(false);
@@ -329,6 +368,23 @@ export function addFlashcard(card: { front: string; back: string; subject: strin
 			efactor: 2.5,
 			nextReviewAt: Date.now() + 24 * 60 * 60 * 1000
 		});
+	});
+}
+
+export function updateFlashcard(id: string, patch: Partial<Flashcard>) {
+	updateTracker((s) => {
+		if (!s.flashcards) return;
+		const idx = s.flashcards.findIndex((c) => c.id === id);
+		if (idx !== -1) {
+			s.flashcards[idx] = { ...s.flashcards[idx], ...patch };
+		}
+	});
+}
+
+export function deleteFlashcard(id: string) {
+	updateTracker((s) => {
+		if (!s.flashcards) return;
+		s.flashcards = s.flashcards.filter((c) => c.id !== id);
 	});
 }
 
@@ -998,9 +1054,9 @@ export const subjectSolvedTotals = derived(tracker, ($t) => {
 
 export const weeklyFocusMinutes = derived(tracker, ($t) => lastNDays(7).reduce((sum, key) => sum + focusMinutesOn($t.log, key), 0));
 
-export const streakDays = derived(tracker, ($t) => {
-	const need = ($t.meta?.streakGoalH || 1) * 60;
-	const studied = (key: string) => focusMinutesOn($t.log, key) >= need;
+export function calculateStreakDays(state: TrackerState): number {
+	const need = (state.meta?.streakGoalH || 1) * 60;
+	const studied = (key: string) => focusMinutesOn(state.log, key) >= need;
 
 	const today = todayKey();
 	const yesterday = addDaysKey(today, -1);
@@ -1054,7 +1110,9 @@ export const streakDays = derived(tracker, ($t) => {
 	}
 
 	return count;
-});
+}
+
+export const streakDays = derived(tracker, ($t) => calculateStreakDays($t));
 
 export function autoCheckStreakFreeze() {
 	updateTracker((state) => {

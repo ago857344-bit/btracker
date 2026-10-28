@@ -1,6 +1,6 @@
 <script lang="ts">
 	export let name:
-		| 'home' | 'plan' | 'focus' | 'revise' | 'tests' | 'mastery' | 'friends' | 'stats' | 'reminders'
+		| 'home' | 'plan' | 'focus' | 'revise' | 'tests' | 'mastery' | 'friends' | 'stats' | 'reminders' | 'bell'
 		| 'menu' | 'plus' | 'minus' | 'sun' | 'moon' | 'settings' | 'chevron' | 'chevron-down' | 'chevron-left' | 'chevron-right' | 'x' | 'check'
 		| 'check-circle' | 'circle' | 'share' | 'headphones' | 'expand' | 'lock' | 'sliders' | 'play' | 'pause'
 		| 'stop' | 'coffee' | 'sofa' | 'book' | 'flame' | 'layers' | 'target' | 'pulse' | 'bulb' | 'trash'
@@ -29,7 +29,7 @@
 		<circle cx="9" cy="8" r="3" /><path d="M3.5 20a5.5 5.5 0 0 1 11 0M17 11a2.5 2.5 0 1 0-1.6-4.4M17 14.5a4 4 0 0 1 3.5 4" />
 	{:else if name === 'stats'}
 		<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
-	{:else if name === 'reminders'}
+	{:else if name === 'reminders' || name === 'bell'}
 		<path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 22h4" />
 	{:else if name === 'menu'}
 		<path d="M4 7h16M4 12h16M4 17h16" />

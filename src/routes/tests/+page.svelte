@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
-	import { tracker, updateTracker, celebration, openFeynmanDuck, openTestDaySheet } from '$lib/stores/tracker';
+	import { tracker, updateTracker, celebration, triggerToast, openFeynmanDuck, openTestDaySheet } from '$lib/stores/tracker';
 	import type { MockTest, MistakeLog, Flashcard } from '$lib/types/tracker';
 	import { applyEloResult } from '$lib/state/gamification';
 	import Modal from '$lib/components/ui/Modal.svelte';
@@ -25,6 +25,7 @@
 	$: totalTests = filteredTests.length;
 	
 	let showModal = false;
+	let editingTestId: string | null = null;
 	let name = '';
 	let dateStr = new Date().toISOString().split('T')[0];
 	let totalMarks = 300;
@@ -37,7 +38,68 @@
 		return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
 	}
 
+	function openNewTestModal() {
+		editingTestId = null;
+		name = '';
+		dateStr = new Date().toISOString().split('T')[0];
+		totalMarks = 300;
+		p = { score: 0, correct: 0, incorrect: 0 };
+		c = { score: 0, correct: 0, incorrect: 0 };
+		m = { score: 0, correct: 0, incorrect: 0 };
+		showModal = true;
+	}
+
+	function startEditTest(test: MockTest) {
+		editingTestId = test.id;
+		name = test.name;
+		dateStr = new Date(test.date).toISOString().split('T')[0];
+		totalMarks = test.totalMarks || 300;
+		
+		const phys = test.subjects?.Physics || test.subjects?.P || { score: 0, correct: 0, incorrect: 0 };
+		const chem = test.subjects?.Chemistry || test.subjects?.C || { score: 0, correct: 0, incorrect: 0 };
+		const math = test.subjects?.Maths || test.subjects?.M || { score: 0, correct: 0, incorrect: 0 };
+		
+		p = { score: phys.score || 0, correct: phys.correct || 0, incorrect: phys.incorrect || 0 };
+		c = { score: chem.score || 0, correct: chem.correct || 0, incorrect: chem.incorrect || 0 };
+		m = { score: math.score || 0, correct: math.correct || 0, incorrect: math.incorrect || 0 };
+		
+		showModal = true;
+	}
+
 	function saveTest() {
+		if (editingTestId) {
+			updateTracker(t => {
+				if (!t.mocks) t.mocks = [];
+				const idx = t.mocks.findIndex(m => m.id === editingTestId);
+				if (idx !== -1) {
+					t.mocks[idx] = {
+						...t.mocks[idx],
+						name,
+						date: new Date(dateStr).getTime(),
+						category: tab,
+						score: p.score + c.score + m.score,
+						totalMarks,
+						correct: p.correct + c.correct + m.correct,
+						incorrect: p.incorrect + c.incorrect + m.incorrect,
+						subjects: {
+							Physics: { ...p },
+							Chemistry: { ...c },
+							Maths: { ...m },
+							P: { ...p },
+							C: { ...c },
+							M: { ...m }
+						}
+					};
+				}
+				return t;
+			});
+			triggerToast('Test updated successfully');
+			showModal = false;
+			editingTestId = null;
+			name = '';
+			return;
+		}
+
 		const newTest: MockTest = {
 			id: makeTestId('test'),
 			name,
@@ -80,14 +142,28 @@
 			return t;
 		});
 		
+		triggerToast(`Logged test "${newTest.name}" (+200 XP)`);
 		showModal = false;
 		name = '';
 	}
 
 	function deleteTest(id: string) {
+		const target = ($tracker.mocks || []).find(m => m.id === id);
+		if (!target) return;
 		updateTracker(t => {
 			t.mocks = t.mocks.filter(m => m.id !== id);
 			return t;
+		});
+		triggerToast({
+			text: `Deleted test "${target.name}"`,
+			actionLabel: 'Undo',
+			onAction: () => {
+				updateTracker(t => {
+					if (!t.mocks) t.mocks = [];
+					t.mocks.push(target);
+					return t;
+				});
+			}
 		});
 	}
 
@@ -108,6 +184,60 @@
 
 	// Negative marking (assuming -1 per incorrect)
 	$: marksLostToIncorrect = totalIncorrect;
+
+	/* -------- PROGRESSION CHART LOGIC -------- */
+	let showTotal = true;
+	let showPhysics = true;
+	let showChemistry = true;
+	let showMaths = true;
+	let hoveredIndex: number | null = null;
+
+	$: chronologicalTests = [...filteredTests].sort((a, b) => a.date - b.date);
+
+	const svgW = 680;
+	const svgH = 220;
+	const padL = 40;
+	const padR = 25;
+	const padT = 20;
+	const padB = 30;
+	const plotW = svgW - padL - padR;
+	const plotH = svgH - padT - padB;
+
+	function getChartX(index: number, total: number) {
+		if (total <= 1) return padL + plotW / 2;
+		return padL + (index / (total - 1)) * plotW;
+	}
+
+	function getChartY(percent: number) {
+		const clamped = Math.max(0, Math.min(100, percent));
+		return padT + (1 - clamped / 100) * plotH;
+	}
+
+	function testSubjectPct(t: MockTest, sub: 'P' | 'C' | 'M') {
+		const fullName = sub === 'P' ? 'Physics' : sub === 'C' ? 'Chemistry' : 'Maths';
+		const s = (t.subjects as any)?.[fullName] || (t.subjects as any)?.[sub];
+		const score = s?.score ?? 0;
+		const maxMarks = (t.totalMarks || 300) / 3;
+		return Math.round((score / (maxMarks || 100)) * 100);
+	}
+
+	function testTotalPct(t: MockTest) {
+		return Math.round((t.score / (t.totalMarks || 300)) * 100);
+	}
+
+	function buildSvgLine(tests: MockTest[], getPct: (t: MockTest) => number) {
+		if (!tests.length) return '';
+		return tests.map((t, i) => `${i === 0 ? 'M' : 'L'} ${getChartX(i, tests.length).toFixed(1)} ${getChartY(getPct(t)).toFixed(1)}`).join(' ');
+	}
+
+	function buildSvgArea(tests: MockTest[], getPct: (t: MockTest) => number) {
+		if (tests.length < 2) return '';
+		const line = buildSvgLine(tests, getPct);
+		const lastX = getChartX(tests.length - 1, tests.length).toFixed(1);
+		const firstX = getChartX(0, tests.length).toFixed(1);
+		const bottomY = (padT + plotH).toFixed(1);
+		return `${line} L ${lastX} ${bottomY} L ${firstX} ${bottomY} Z`;
+	}
 
 	// ======== MISTAKES LOGIC ========
 	$: mistakes = $tracker.mistakes || [];
@@ -134,15 +264,29 @@
 			return t;
 		});
 
+		triggerToast('Logged mistake to Mistake Book');
 		showMistakeModal = false;
 		description = '';
 		mistakeTestName = '';
 	}
 
 	function deleteMistake(id: string) {
+		const target = ($tracker.mistakes || []).find(m => m.id === id);
+		if (!target) return;
 		updateTracker(t => {
 			t.mistakes = t.mistakes.filter(m => m.id !== id);
 			return t;
+		});
+		triggerToast({
+			text: 'Mistake deleted',
+			actionLabel: 'Undo',
+			onAction: () => {
+				updateTracker(t => {
+					if (!t.mistakes) t.mistakes = [];
+					t.mistakes.push(target);
+					return t;
+				});
+			}
 		});
 	}
 
@@ -184,7 +328,7 @@
 			s.flashcards.push(card);
 			return s;
 		});
-		celebration.set('Converted to Active Recall Flashcard! 🧠');
+		triggerToast('Converted to Active Recall Flashcard! 🧠');
 	}
 </script>
 
@@ -205,7 +349,7 @@
 					<span>Test Day Sheet</span>
 				</button>
 				{#if viewMode === 'mocks'}
-					<button class="primary-btn" on:click={() => showModal = true}>
+					<button class="primary-btn" on:click={openNewTestModal}>
 						<NavIcon name="plus" size={16} /> Log Test
 					</button>
 				{:else}
@@ -258,6 +402,117 @@
 			{/if}
 		</div>
 
+		{#if filteredTests.length >= 2}
+			<div class="trend-chart-card glass">
+				<div class="chart-header">
+					<div class="chart-title-wrap">
+						<NavIcon name="trend" size={16} />
+						<h3>Score Progression & Subject Breakdown</h3>
+					</div>
+					<div class="chart-toggles">
+						<button type="button" class="chip-toggle total" class:active={showTotal} on:click={() => showTotal = !showTotal}>
+							<span class="chip-dot"></span> Total ({chronologicalTests[chronologicalTests.length - 1].score}/{chronologicalTests[chronologicalTests.length - 1].totalMarks})
+						</button>
+						<button type="button" class="chip-toggle phys" class:active={showPhysics} on:click={() => showPhysics = !showPhysics}>
+							<span class="chip-dot"></span> Physics
+						</button>
+						<button type="button" class="chip-toggle chem" class:active={showChemistry} on:click={() => showChemistry = !showChemistry}>
+							<span class="chip-dot"></span> Chemistry
+						</button>
+						<button type="button" class="chip-toggle math" class:active={showMaths} on:click={() => showMaths = !showMaths}>
+							<span class="chip-dot"></span> Maths
+						</button>
+					</div>
+				</div>
+
+				<div class="svg-container">
+					<svg viewBox="0 0 {svgW} {svgH}" class="progression-svg" preserveAspectRatio="none">
+						<defs>
+							<linearGradient id="totalAreaGrad" x1="0" y1="0" x2="0" y2="1">
+								<stop offset="0%" stop-color="var(--accent)" stop-opacity="0.28" />
+								<stop offset="100%" stop-color="var(--accent)" stop-opacity="0.0" />
+							</linearGradient>
+						</defs>
+
+						<!-- Grid lines -->
+						{#each [0, 25, 50, 75, 100] as gridPct}
+							{@const y = getChartY(gridPct)}
+							<line x1={padL} y1={y} x2={svgW - padR} y2={y} class="grid-line" />
+							<text x={padL - 8} y={y + 3.5} class="axis-label" text-anchor="end">{gridPct}%</text>
+						{/each}
+
+						<!-- Area under Total -->
+						{#if showTotal}
+							<path d={buildSvgArea(chronologicalTests, testTotalPct)} fill="url(#totalAreaGrad)" />
+						{/if}
+
+						<!-- Subject Lines -->
+						{#if showPhysics}
+							<path d={buildSvgLine(chronologicalTests, (t) => testSubjectPct(t, 'P'))} class="chart-path phys-path" />
+						{/if}
+						{#if showChemistry}
+							<path d={buildSvgLine(chronologicalTests, (t) => testSubjectPct(t, 'C'))} class="chart-path chem-path" />
+						{/if}
+						{#if showMaths}
+							<path d={buildSvgLine(chronologicalTests, (t) => testSubjectPct(t, 'M'))} class="chart-path math-path" />
+						{/if}
+						{#if showTotal}
+							<path d={buildSvgLine(chronologicalTests, testTotalPct)} class="chart-path total-path" />
+						{/if}
+
+						<!-- Dots and Hover Columns -->
+						{#each chronologicalTests as test, i}
+							{@const cx = getChartX(i, chronologicalTests.length)}
+							{@const totalY = getChartY(testTotalPct(test))}
+							{@const isHovered = hoveredIndex === i}
+
+							{#if isHovered}
+								<line x1={cx} y1={padT} x2={cx} y2={padT + plotH} class="hover-guide-line" />
+							{/if}
+
+							<!-- Total dot -->
+							{#if showTotal}
+								<circle cx={cx} cy={totalY} r={isHovered ? 6 : 4} class="chart-dot total-dot" />
+							{/if}
+
+							<!-- Interactive hover hit column -->
+							<rect
+								role="presentation"
+								x={cx - (plotW / (chronologicalTests.length - 1 || 1)) / 2}
+								y={padT}
+								width={plotW / (chronologicalTests.length - 1 || 1)}
+								height={plotH + padB}
+								fill="transparent"
+								class="hit-rect"
+								on:mouseenter={() => (hoveredIndex = i)}
+								on:mouseleave={() => (hoveredIndex = null)}
+							/>
+						{/each}
+					</svg>
+
+					{#if hoveredIndex !== null && chronologicalTests[hoveredIndex]}
+						{@const ht = chronologicalTests[hoveredIndex]}
+						{@const hx = getChartX(hoveredIndex, chronologicalTests.length)}
+						<div class="chart-tooltip glass" style="left: calc({(hx / svgW) * 100}%);">
+							<div class="tip-head">
+								<b>{ht.name}</b>
+								<small>{formatDate(ht.date)}</small>
+							</div>
+							<div class="tip-row total">
+								<span>Total:</span>
+								<b>{ht.score} / {ht.totalMarks} ({testTotalPct(ht)}%)</b>
+							</div>
+							<div class="tip-subjects">
+								<span class="sub-pill p">P: {ht.subjects?.Physics?.score ?? ht.subjects?.P?.score ?? 0}</span>
+								<span class="sub-pill c">C: {ht.subjects?.Chemistry?.score ?? ht.subjects?.C?.score ?? 0}</span>
+								<span class="sub-pill m">M: {ht.subjects?.Maths?.score ?? ht.subjects?.M?.score ?? 0}</span>
+							</div>
+						</div>
+					{/if}
+				</div>
+			</div>
+		{/if}
+
 		<div class="tests-list">
 			<h2>Past {tab === 'CET' ? 'CET ' : tab} Tests</h2>
 			{#if filteredTests.length > 0}
@@ -266,9 +521,14 @@
 						<div class="test-card glass">
 							<div class="test-header">
 								<h3>{test.name}</h3>
-								<button class="icon-btn danger" on:click={() => deleteTest(test.id)} aria-label="Delete test">
-									<NavIcon name="trash" size={16} />
-								</button>
+								<div class="test-actions">
+									<button class="icon-btn edit" on:click={() => startEditTest(test)} aria-label="Edit test" title="Edit test">
+										<NavIcon name="edit" size={15} />
+									</button>
+									<button class="icon-btn danger" on:click={() => deleteTest(test.id)} aria-label="Delete test" title="Delete test">
+										<NavIcon name="trash" size={15} />
+									</button>
+								</div>
 							</div>
 							<div class="test-meta">
 								<span>{formatDate(test.date)}</span>
@@ -383,7 +643,7 @@
 	{/if}
 </div>
 
-<Modal bind:open={showModal} title="Log New {tab} Test" width="500px">
+<Modal bind:open={showModal} title="{editingTestId ? 'Edit' : 'Log New'} {tab} Test" width="500px">
 	<div class="modal-body-content">
 		<div class="form-group">
 			<label for="name">Test Name</label>
@@ -429,7 +689,7 @@
 	</div>
 	<svelte:fragment slot="footer">
 		<button class="text-btn" on:click={() => showModal = false}>Cancel</button>
-		<button class="primary-btn" on:click={saveTest} disabled={!name}>Save Test</button>
+		<button class="primary-btn" on:click={saveTest} disabled={!name}>{editingTestId ? 'Update Test' : 'Save Test'}</button>
 	</svelte:fragment>
 </Modal>
 
@@ -571,6 +831,168 @@
 	.n-stat small { color: var(--text-secondary); margin-bottom: 0.25rem; }
 	.n-stat span { font-size: 1.5rem; font-weight: 700; }
 	.danger { color: #ff4d4f; }
+
+	/* Progression Trend Chart */
+	.trend-chart-card {
+		padding: 1.25rem 1.4rem;
+		border-radius: 16px;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+		position: relative;
+	}
+	.chart-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 1rem;
+		flex-wrap: wrap;
+	}
+	.chart-title-wrap {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		color: var(--text-primary);
+	}
+	.chart-title-wrap h3 {
+		margin: 0;
+		font-size: 0.96rem;
+		font-weight: 750;
+		letter-spacing: -0.01em;
+	}
+	.chart-toggles {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		flex-wrap: wrap;
+	}
+	.chip-toggle {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.25rem 0.65rem;
+		border-radius: 999px;
+		border: 1px solid var(--border-subtle);
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		font-size: 0.72rem;
+		font-weight: 700;
+		cursor: pointer;
+		transition: all 0.16s ease;
+	}
+	.chip-toggle .chip-dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 999px;
+	}
+	.chip-toggle.total .chip-dot { background: var(--accent); }
+	.chip-toggle.phys .chip-dot { background: #3b82f6; }
+	.chip-toggle.chem .chip-dot { background: #10b981; }
+	.chip-toggle.math .chip-dot { background: #f59e0b; }
+	.chip-toggle.active {
+		background: color-mix(in srgb, var(--surface-panel), transparent 20%);
+		color: var(--text-primary);
+		border-color: currentColor;
+	}
+	.chip-toggle:hover {
+		color: var(--text-primary);
+		border-color: var(--accent);
+	}
+
+	.svg-container {
+		position: relative;
+		width: 100%;
+		height: 220px;
+		overflow: visible;
+	}
+	.progression-svg {
+		width: 100%;
+		height: 100%;
+		overflow: visible;
+	}
+	.grid-line {
+		stroke: var(--border-subtle);
+		stroke-dasharray: 3 4;
+		stroke-width: 0.9;
+		opacity: 0.65;
+	}
+	.axis-label {
+		fill: var(--text-secondary);
+		font-size: 10px;
+		font-weight: 600;
+		font-family: inherit;
+	}
+	.chart-path {
+		fill: none;
+		stroke-width: 2.2;
+		stroke-linecap: round;
+		stroke-linejoin: round;
+	}
+	.chart-path.total-path { stroke: var(--accent); stroke-width: 2.8; filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--accent), transparent 60%)); }
+	.chart-path.phys-path { stroke: #3b82f6; opacity: 0.85; }
+	.chart-path.chem-path { stroke: #10b981; opacity: 0.85; }
+	.chart-path.math-path { stroke: #f59e0b; opacity: 0.85; }
+
+	.chart-dot {
+		fill: var(--surface-panel);
+		stroke-width: 2.5;
+		transition: r 0.15s ease;
+	}
+	.chart-dot.total-dot { stroke: var(--accent); }
+
+	.hover-guide-line {
+		stroke: var(--accent);
+		stroke-width: 1.2;
+		stroke-dasharray: 2 3;
+		opacity: 0.6;
+	}
+	.hit-rect { cursor: crosshair; }
+
+	.chart-tooltip {
+		position: absolute;
+		top: 15px;
+		transform: translateX(-50%);
+		padding: 0.6rem 0.85rem;
+		border-radius: 12px;
+		pointer-events: none;
+		display: flex;
+		flex-direction: column;
+		gap: 0.25rem;
+		z-index: 10;
+		min-width: 160px;
+		border: 1px solid var(--border-subtle);
+		background: color-mix(in srgb, var(--surface-panel), rgba(15, 18, 28, 0.9) 70%);
+		box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+	}
+	.tip-head {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 0.5rem;
+		border-bottom: 1px solid var(--border-subtle);
+		padding-bottom: 0.25rem;
+	}
+	.tip-head b { font-size: 0.82rem; color: var(--text-primary); }
+	.tip-head small { font-size: 0.7rem; color: var(--text-secondary); }
+	.tip-row {
+		display: flex;
+		justify-content: space-between;
+		font-size: 0.78rem;
+		color: var(--text-secondary);
+	}
+	.tip-row.total b { color: var(--accent); font-weight: 750; }
+	.tip-subjects {
+		display: flex;
+		gap: 0.4rem;
+		font-size: 0.7rem;
+		font-weight: 700;
+		padding-top: 0.2rem;
+	}
+	.sub-pill.p { color: #60a5fa; }
+	.sub-pill.c { color: #34d399; }
+	.sub-pill.m { color: #fbbf24; }
+
+	.test-actions { display: inline-flex; align-items: center; gap: 0.2rem; }
 	
 	.tests-list h2 { margin-bottom: 1rem; color: var(--text-primary); }
 	.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }

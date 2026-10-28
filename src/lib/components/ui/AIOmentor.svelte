@@ -393,14 +393,42 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 			const res = await fetch('/api/gemini', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ history, systemInstruction })
+				body: JSON.stringify({ history, systemInstruction, stream: true })
 			});
-			const data = await res.json();
 			
-			if (data.error) {
-				chatHistory = [...chatHistory, { role: 'ai', text: `Error: ${data.error}` }];
-			} else if (data.text) {
-				let text = data.text;
+			if (!res.ok) {
+				const err = await res.json().catch(() => ({ error: 'AI request failed' }));
+				chatHistory = [...chatHistory, { role: 'ai', text: `Error: ${err.error || res.statusText}` }];
+				isTyping = false;
+				scrollToBottom();
+				return;
+			}
+
+			// Add initial streaming AI bubble
+			chatHistory = [...chatHistory, { role: 'ai', text: '' }];
+			const aiIndex = chatHistory.length - 1;
+			let text = '';
+
+			if (res.body) {
+				const reader = res.body.getReader();
+				const decoder = new TextDecoder();
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					const chunk = decoder.decode(value, { stream: true });
+					if (chunk) {
+						text += chunk;
+						// Clean command tag fragments while streaming so raw commands don't flash
+						chatHistory[aiIndex].text = text.replace(/<cmd>.*?<\/cmd>/g, '').replace(/<cmd>.*$/g, '');
+						scrollToBottom();
+					}
+				}
+			} else {
+				const data = await res.json();
+				text = data.text || '';
+			}
+
+			if (text) {
 				
 				// Parse and execute commands
 				const cmdRegex = /<cmd>(.*?)<\/cmd>/g;
@@ -480,11 +508,9 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 				}
 				
 				// Remove commands from visible text
-				text = text.replace(/<cmd>.*?<\/cmd>/g, '').trim();
-				
-				chatHistory = [...chatHistory, { role: 'ai', text }];
+				chatHistory[aiIndex].text = text.replace(/<cmd>.*?<\/cmd>/g, '').trim();
 			} else {
-				chatHistory = [...chatHistory, { role: 'ai', text: "I'm sorry, I couldn't process that right now." }];
+				chatHistory[aiIndex].text = "I'm sorry, I couldn't process that right now.";
 			}
 		} catch (err) {
 			chatHistory = [...chatHistory, { role: 'ai', text: "Network error. Please try again." }];

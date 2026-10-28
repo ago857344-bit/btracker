@@ -1,5 +1,6 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
+import { updateTracker } from '$lib/stores/tracker';
 
 export type SheetSubject = 'ALL' | 'Physics' | 'Chemistry' | 'Maths';
 export type SheetFormulaSource = 'starred' | 'highyield' | 'both';
@@ -60,9 +61,13 @@ export function closeTestDaySheet() {
 
 export function saveExamNotes(notes: string) {
 	testDaySheetOptions.update((opt) => ({ ...opt, examNotes: notes }));
+	updateTracker((st) => {
+		st.examNotes = notes;
+	});
 	if (browser) {
 		try {
 			localStorage.setItem('btracker_test_day_notes', notes);
+			localStorage.setItem('btracker_exam_morning_notes', notes);
 		} catch {}
 	}
 }

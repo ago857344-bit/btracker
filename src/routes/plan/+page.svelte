@@ -141,11 +141,14 @@
 	function applyMove(id: string, day: string) { moveTaskToDay(id, day); }
 	function reorder(dragId: string, overId: string) { reorderDayTasks(dragId, overId); }
 
+	let saveRoutineModalOpen = false;
+	let routineNameInput = '';
+
 	function openDetail(task: HomeworkItem) { detailTask = task; detailOpen = true; }
 
 	function onSaveRoutine() {
-		const name = window.prompt('Enter library routine name:');
-		if (name && name.trim()) saveRoutine(name.trim(), selectedDay);
+		routineNameInput = '';
+		saveRoutineModalOpen = true;
 	}
 
 	function handleImportTodos() {
@@ -438,6 +441,38 @@
 	<svelte:fragment slot="footer">
 		<button type="button" class="text-btn" disabled={aiBalancing} on:click={() => balancerOpen = false} style="padding: 0.6rem 1rem; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-weight: 600;">Cancel</button>
 		<button type="button" class="primary-btn" disabled={aiBalancing} on:click={runAutoBalance} style="padding: 0.6rem 1.25rem; background: var(--accent); color: var(--accent-contrast, white); border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.4rem;"><NavIcon name="sparkles" size={14} /> Balance Now</button>
+	</svelte:fragment>
+</Modal>
+
+<Modal bind:open={saveRoutineModalOpen} title="Save Routine to Library" width="400px">
+	<div style="display: flex; flex-direction: column; gap: 0.6rem; padding: 0.5rem 0;">
+		<label style="display: flex; flex-direction: column; gap: 0.4rem; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary);">
+			Routine Name
+			<input
+				type="text"
+				placeholder="e.g. Sunday Mock + Revision Drill"
+				bind:value={routineNameInput}
+				on:keydown={(e) => { if (e.key === 'Enter' && routineNameInput.trim()) { saveRoutine(routineNameInput.trim(), selectedDay); saveRoutineModalOpen = false; } }}
+				style="padding: 0.6rem; border-radius: 8px; border: 1px solid var(--border-subtle); background: var(--surface-subtle); color: var(--text-primary);"
+			/>
+		</label>
+	</div>
+	<svelte:fragment slot="footer">
+		<button type="button" class="text-btn" on:click={() => saveRoutineModalOpen = false} style="padding: 0.6rem 1rem; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-weight: 600;">Cancel</button>
+		<button
+			type="button"
+			class="primary-btn"
+			disabled={!routineNameInput.trim()}
+			on:click={() => {
+				if (routineNameInput.trim()) {
+					saveRoutine(routineNameInput.trim(), selectedDay);
+					saveRoutineModalOpen = false;
+				}
+			}}
+			style="padding: 0.6rem 1.25rem; background: var(--accent); color: var(--accent-contrast, white); border: none; border-radius: 8px; font-weight: 600; cursor: pointer;"
+		>
+			Save Routine
+		</button>
 	</svelte:fragment>
 </Modal>
 

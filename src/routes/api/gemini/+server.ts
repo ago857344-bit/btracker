@@ -3,13 +3,41 @@ import { env } from '$env/dynamic/private';
 
 export const config = { maxDuration: 60 };
 
+// ── Rate Limiter & Security Limits ───────────────────────────────────────────
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX = 30; // 30 requests per minute
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024; // 5MB
+
+function checkRateLimit(ip: string): boolean {
+	const now = Date.now();
+	const entry = rateLimitMap.get(ip);
+	if (!entry || now > entry.resetAt) {
+		rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+		return true;
+	}
+	if (entry.count >= RATE_LIMIT_MAX) {
+		return false;
+	}
+	entry.count++;
+	return true;
+}
+
+// Clean up stale IPs periodically
+setInterval(() => {
+	const now = Date.now();
+	for (const [ip, entry] of rateLimitMap.entries()) {
+		if (now > entry.resetAt) rateLimitMap.delete(ip);
+	}
+}, 300_000);
+
 // Convert Gemini-style history to OpenAI-style messages
 function toOpenAIMessages(history: any[], systemInstruction?: string) {
 	const messages: { role: string; content: string }[] = [];
 	if (systemInstruction) {
 		messages.push({ role: 'system', content: systemInstruction });
 	}
-	for (const turn of history) {
+	for (const turn of history || []) {
 		messages.push({
 			role: turn.role === 'model' ? 'assistant' : 'user',
 			content: turn.parts?.[0]?.text ?? ''
@@ -18,9 +46,122 @@ function toOpenAIMessages(history: any[], systemInstruction?: string) {
 	return messages;
 }
 
-export async function POST({ request }) {
+function streamOpenAICompatible(response: Response): Response {
+	const textStream = new ReadableStream({
+		async start(controller) {
+			const reader = response.body?.getReader();
+			if (!reader) {
+				controller.close();
+				return;
+			}
+			const decoder = new TextDecoder();
+			let buffer = '';
+			try {
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					buffer += decoder.decode(value, { stream: true });
+					const lines = buffer.split('\n');
+					buffer = lines.pop() || '';
+					for (const line of lines) {
+						const trimmed = line.trim();
+						if (!trimmed.startsWith('data:')) continue;
+						const jsonStr = trimmed.slice(5).trim();
+						if (jsonStr === '[DONE]') continue;
+						try {
+							const parsed = JSON.parse(jsonStr);
+							const delta = parsed.choices?.[0]?.delta?.content;
+							if (delta) {
+								controller.enqueue(new TextEncoder().encode(delta));
+							}
+						} catch {}
+					}
+				}
+			} catch (err) {
+				controller.error(err);
+			} finally {
+				controller.close();
+			}
+		}
+	});
+
+	return new Response(textStream, {
+		headers: {
+			'Content-Type': 'text/plain; charset=utf-8',
+			'Transfer-Encoding': 'chunked',
+			'Cache-Control': 'no-cache, no-transform'
+		}
+	});
+}
+
+function streamGeminiCompatible(response: Response): Response {
+	const textStream = new ReadableStream({
+		async start(controller) {
+			const reader = response.body?.getReader();
+			if (!reader) {
+				controller.close();
+				return;
+			}
+			const decoder = new TextDecoder();
+			let buffer = '';
+			try {
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) break;
+					buffer += decoder.decode(value, { stream: true });
+					const lines = buffer.split('\n');
+					buffer = lines.pop() || '';
+					for (const line of lines) {
+						const trimmed = line.trim();
+						if (!trimmed.startsWith('data:')) continue;
+						const jsonStr = trimmed.slice(5).trim();
+						try {
+							const parsed = JSON.parse(jsonStr);
+							const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+							if (text) {
+								controller.enqueue(new TextEncoder().encode(text));
+							}
+						} catch {}
+					}
+				}
+			} catch (err) {
+				controller.error(err);
+			} finally {
+				controller.close();
+			}
+		}
+	});
+
+	return new Response(textStream, {
+		headers: {
+			'Content-Type': 'text/plain; charset=utf-8',
+			'Transfer-Encoding': 'chunked',
+			'Cache-Control': 'no-cache, no-transform'
+		}
+	});
+}
+
+export async function POST({ request, getClientAddress }) {
 	try {
-		const { history, systemInstruction, jsonMode } = await request.json();
+		// 1. IP Rate Limiting Guard
+		let clientIp = 'unknown';
+		try {
+			clientIp = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || getClientAddress();
+		} catch {
+			clientIp = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || 'unknown';
+		}
+
+		if (!checkRateLimit(clientIp)) {
+			return json({ error: 'Rate limit exceeded (30 requests/minute). Please slow down.' }, { status: 429 });
+		}
+
+		// 2. Payload size guard
+		const contentLength = request.headers.get('content-length');
+		if (contentLength && parseInt(contentLength, 10) > MAX_PAYLOAD_BYTES) {
+			return json({ error: 'Payload too large (max 5MB limit exceeded).' }, { status: 413 });
+		}
+
+		const { history, systemInstruction, jsonMode, stream } = await request.json();
 
 		const groqKey = env.GROQ_API_KEY;
 		const geminiKey = env.GEMINI_API_KEY;
@@ -31,15 +172,15 @@ export async function POST({ request }) {
 			return json({ error: 'No AI API key configured on the server. Set GROQ_API_KEY, GEMINI_API_KEY, OPENAI_API_KEY, or OPENROUTER_API_KEY in your environment variables.' }, { status: 500 });
 		}
 
-		// Check if this is a vision request (contains inline image data)
 		const hasVision = history?.some((turn: any) =>
 			turn.parts?.some((part: any) => part.inlineData)
 		);
 
+		const isStreaming = Boolean(stream && !jsonMode);
+
 		// ── 1. Try OpenAI for vision requests ───────────────────────────────────
 		if (openaiKey && hasVision) {
 			try {
-				// Convert Gemini-style parts to OpenAI vision format
 				const openaiMessages = history.map((turn: any) => {
 					const content: any[] = [];
 					for (const part of turn.parts || []) {
@@ -56,7 +197,7 @@ export async function POST({ request }) {
 				});
 
 				const controller = new AbortController();
-				const timeout = setTimeout(() => controller.abort(), 30_000);
+				const timeout = setTimeout(() => controller.abort(), 35_000);
 
 				const res = await fetch('https://api.openai.com/v1/chat/completions', {
 					method: 'POST',
@@ -67,13 +208,17 @@ export async function POST({ request }) {
 					body: JSON.stringify({
 						model: 'gpt-4o',
 						messages: openaiMessages,
-						max_tokens: 4096
+						max_tokens: 4096,
+						stream: isStreaming
 					}),
 					signal: controller.signal
 				});
 				clearTimeout(timeout);
 
 				if (res.ok) {
+					if (isStreaming) {
+						return streamOpenAICompatible(res);
+					}
 					const data = await res.json();
 					const text = data.choices?.[0]?.message?.content ?? '';
 					return json({ text });
@@ -83,7 +228,7 @@ export async function POST({ request }) {
 			}
 		}
 
-		// ── 1b. Try OpenRouter for vision requests (has free vision models) ────
+		// ── 1b. Try OpenRouter for vision requests ─────────────────────────────
 		if (openrouterKey && hasVision) {
 			const openrouterMessages = history.map((turn: any) => {
 				const content: any[] = [];
@@ -100,35 +245,6 @@ export async function POST({ request }) {
 				return { role: turn.role === 'model' ? 'assistant' : 'user', content };
 			});
 
-			// Discover free vision models dynamically so deprecations never break us
-			let visionModels: string[] = [];
-			try {
-				const controller = new AbortController();
-				const timeout = setTimeout(() => controller.abort(), 5_000);
-				const modelsRes = await fetch('https://openrouter.ai/api/v1/models', {
-					headers: { Authorization: `Bearer ${openrouterKey}` },
-					signal: controller.signal
-				});
-				clearTimeout(timeout);
-				if (modelsRes.ok) {
-					const modelsData = await modelsRes.json();
-					visionModels = (modelsData.data ?? [])
-						.filter((m: any) =>
-							typeof m.id === 'string' &&
-							m.id.endsWith(':free') &&
-							m.architecture?.input_modalities?.includes('image')
-						)
-						.map((m: any) => m.id);
-				}
-			} catch { /* fall through to static list */ }
-
-			// Static fallback if discovery failed or returned nothing
-			if (!visionModels.length) {
-				visionModels = ['google/gemma-3-4b-it:free'];
-			}
-
-			// Single request with server-side model fallback — much faster than
-			// sequential attempts when free models have long queue times
 			try {
 				const controller = new AbortController();
 				const timeout = setTimeout(() => controller.abort(), 45_000);
@@ -142,25 +258,23 @@ export async function POST({ request }) {
 						'X-Title': 'BTracker'
 					},
 					body: JSON.stringify({
-						models: visionModels.slice(0, 3),
+						models: ['google/gemma-3-4b-it:free', 'meta-llama/llama-3.2-11b-vision-instruct:free'],
 						messages: openrouterMessages,
-						max_tokens: 4096
+						max_tokens: 4096,
+						stream: isStreaming
 					}),
 					signal: controller.signal
 				});
 				clearTimeout(timeout);
 
 				if (res.ok) {
+					if (isStreaming) {
+						return streamOpenAICompatible(res);
+					}
 					const data = await res.json();
 					const text = data.choices?.[0]?.message?.content ?? '';
 					if (text && text.trim().length >= 10) {
 						return json({ text });
-					}
-				} else {
-					const errData = await res.json().catch(() => ({}));
-					const msg = errData?.error?.message ?? `OpenRouter returned status ${res.status}`;
-					if (!geminiKey && !openaiKey) {
-						return json({ error: `OpenRouter error: ${msg}` }, { status: res.status });
 					}
 				}
 			} catch (e: any) {
@@ -168,9 +282,8 @@ export async function POST({ request }) {
 			}
 		}
 
-		// ─ 2. Try Groq first (fast, free) — but NOT for vision requests ────────
+		// ── 2. Try Groq (fast, free) for text/code prompts ──────────────────────
 		if (groqKey && !hasVision) {
-			// Dynamically fetch available models so we never use a stale/decommissioned ID
 			let groqModels: string[] = [];
 			try {
 				const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
@@ -178,7 +291,6 @@ export async function POST({ request }) {
 				});
 				if (modelsRes.ok) {
 					const modelsData = await modelsRes.json();
-					// Prefer larger/capable models; filter to chat-compatible ones only
 					const all: string[] = (modelsData.data ?? [])
 						.map((m: any) => m.id as string)
 						.filter((id: string) =>
@@ -187,23 +299,27 @@ export async function POST({ request }) {
 							!id.includes('embed') &&
 							!id.includes('guard')
 						);
-					// Rank: prefer 70b/large models first, then smaller ones
 					groqModels = [
 						...all.filter(id => id.includes('70b') || id.includes('72b') || id.includes('90b') || id.includes('120b')),
 						...all.filter(id => !id.includes('70b') && !id.includes('72b') && !id.includes('90b') && !id.includes('120b'))
 					];
 				}
-			} catch { /* ignore, will fall through to Gemini */ }
+			} catch { /* ignore, fall through */ }
+
+			if (!groqModels.length) {
+				groqModels = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
+			}
 
 			let groqErr = '';
-			for (const model of groqModels.slice(0, 4)) { // try at most 4 models
+			for (const model of groqModels.slice(0, 3)) {
 				try {
 					const controller = new AbortController();
 					const timeout = setTimeout(() => controller.abort(), 25_000);
 					const body: any = {
 						model,
 						messages: toOpenAIMessages(history, systemInstruction),
-						temperature: 0.7
+						temperature: 0.7,
+						stream: isStreaming
 					};
 					if (jsonMode) body.response_format = { type: 'json_object' };
 
@@ -219,6 +335,9 @@ export async function POST({ request }) {
 					clearTimeout(timeout);
 
 					if (groqRes.ok) {
+						if (isStreaming) {
+							return streamOpenAICompatible(groqRes);
+						}
 						const data = await groqRes.json();
 						const text = data.choices?.[0]?.message?.content ?? '';
 						return json({ text });
@@ -237,38 +356,38 @@ export async function POST({ request }) {
 			}
 		}
 
-		// ── 2. Fallback: Gemini ──────────────────────────────────────────────
+		// ── 3. Fallback: Google Generative AI (Gemini) ─────────────────────────
 		if (!geminiKey) {
-			return json({ error: 'No vision-capable provider succeeded. For image uploads, set OPENROUTER_API_KEY, OPENAI_API_KEY, or GEMINI_API_KEY in your environment variables.' }, { status: 500 });
+			return json({ error: 'No AI provider succeeded. Ensure GEMINI_API_KEY or GROQ_API_KEY is configured.' }, { status: 500 });
 		}
 
 		const geminiBody: any = { contents: history };
 		if (systemInstruction) geminiBody.systemInstruction = { parts: [{ text: systemInstruction }] };
 		if (jsonMode) geminiBody.generationConfig = { responseMimeType: 'application/json' };
 
+		// Valid Google Generative AI model IDs (eliminating invalid IDs)
 		const GEMINI_MODELS = [
-			'gemini-3.8-flash',
-			'gemini-3.7-flash',
-			'gemini-3.6-flash',
-			'gemini-3.5-flash',
-			'gemini-3.5-flash-lite',
-			'gemini-3.1-flash-lite'
+			'gemini-2.5-flash',
+			'gemini-2.5-pro',
+			'gemini-2.0-flash',
+			'gemini-1.5-flash'
 		];
 
 		let geminiRes: Response | null = null;
 		for (const model of GEMINI_MODELS) {
 			try {
 				const controller = new AbortController();
-				const timeout = setTimeout(() => controller.abort(), 30_000);
-				geminiRes = await fetch(
-					`https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${geminiKey}`,
-					{
-						method: 'POST',
-						headers: { 'Content-Type': 'application/json' },
-						body: JSON.stringify(geminiBody),
-						signal: controller.signal
-					}
-				);
+				const timeout = setTimeout(() => controller.abort(), 35_000);
+				const endpoint = isStreaming
+					? `https://generativelanguage.googleapis.com/v1/models/${model}:streamGenerateContent?alt=sse&key=${geminiKey}`
+					: `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${geminiKey}`;
+
+				geminiRes = await fetch(endpoint, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify(geminiBody),
+					signal: controller.signal
+				});
 				clearTimeout(timeout);
 			} catch {
 				geminiRes = null;
@@ -282,6 +401,10 @@ export async function POST({ request }) {
 			const err = geminiRes ? await geminiRes.json().catch(() => ({})) : {};
 			const msg = err.error?.message ?? 'Failed to get a response from Gemini.';
 			return json({ error: msg }, { status: geminiRes?.status ?? 500 });
+		}
+
+		if (isStreaming) {
+			return streamGeminiCompatible(geminiRes);
 		}
 
 		const data = await geminiRes.json();

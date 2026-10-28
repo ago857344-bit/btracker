@@ -280,11 +280,19 @@
 		}
 	}
 
-	async function handleDeleteFile(file: DumpFileMeta) {
-		if (!confirm(`Are you sure you want to remove "${file.name}" from the ${SECTION_CONFIG[file.section].name} ZIP?`)) {
-			return;
-		}
+	let deleteFileModalOpen = false;
+	let fileToDelete: DumpFileMeta | null = null;
+	let isDeletingFile = false;
 
+	function promptDeleteFile(file: DumpFileMeta) {
+		fileToDelete = file;
+		deleteFileModalOpen = true;
+	}
+
+	async function confirmDeleteFile() {
+		if (!fileToDelete) return;
+		const file = fileToDelete;
+		isDeletingFile = true;
 		try {
 			const res = await deleteFileFromSection(userId, file.section, file.name, allFiles);
 			updateTracker((t) => {
@@ -298,8 +306,12 @@
 				type: 'success',
 				text: `Deleted "${file.name}". Updated ZIP archive (${formatBytes(res.zipSize)}).`
 			};
+			deleteFileModalOpen = false;
+			fileToDelete = null;
 		} catch (e: any) {
 			bannerNotice = { type: 'error', text: `Delete error: ${e?.message || String(e)}` };
+		} finally {
+			isDeletingFile = false;
 		}
 	}
 
@@ -814,7 +826,7 @@
 						<button
 							type="button"
 							class="action-btn delete"
-							on:click={() => handleDeleteFile(file)}
+							on:click={() => promptDeleteFile(file)}
 							title="Remove from ZIP"
 						>
 							<NavIcon name="trash" size={14} />
@@ -1276,6 +1288,29 @@ PUBLIC_SUPABASE_ANON_KEY=your-anon-key-here</pre>
 				Got it
 			</button>
 		</div>
+	</div>
+</Modal>
+
+<!-- Delete File Confirmation Modal -->
+<Modal open={deleteFileModalOpen} title="Remove File from Vault" width="440px" on:close={() => (deleteFileModalOpen = false)}>
+	<div style="padding: 0.5rem 0;">
+		<p style="margin: 0; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5;">
+			Are you sure you want to remove <b>"{fileToDelete?.name}"</b> from the <b>{fileToDelete ? SECTION_CONFIG[fileToDelete.section].name : ''}</b> ZIP archive?
+		</p>
+	</div>
+	<div class="modal-footer-btns" style="margin-top: 1rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+		<button type="button" class="btn-cancel" disabled={isDeletingFile} on:click={() => (deleteFileModalOpen = false)}>
+			Cancel
+		</button>
+		<button
+			type="button"
+			class="btn-confirm-upload"
+			style="background: var(--danger, #ef4444); border-color: var(--danger, #ef4444);"
+			disabled={isDeletingFile}
+			on:click={confirmDeleteFile}
+		>
+			{isDeletingFile ? 'Removing...' : 'Remove File'}
+		</button>
 	</div>
 </Modal>
 

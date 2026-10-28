@@ -19,7 +19,6 @@
 	import GlobalOverlays from '$lib/components/GlobalOverlays.svelte';
 	import AIOmentor from '$lib/components/ui/AIOmentor.svelte';
 	import CommandPalette from '$lib/components/ui/CommandPalette.svelte';
-	import FocusScreen from '$lib/components/focus/FocusScreen.svelte';
 	import AccountMenu from '$lib/components/AccountMenu.svelte';
 	import StreakButton from '$lib/components/StreakButton.svelte';
 	import TriRingsButton from '$lib/components/ui/TriRingsButton.svelte';
@@ -34,7 +33,7 @@
 	import { startSync } from '$lib/services/sync';
 	import { THEME_PRESETS, isDarkTheme, wallpaperCss, resolveLiveWallpaper, resolveEcoMode, isMobileDevice, isBuiltinWallpaper, EXTRA_WALLPAPERS, getActiveWallpaper, isVideoWallpaper } from '$lib/state/themes';
 	import { authReady, authConfigured, currentUser, hasSkippedLogin, sessionResolved, syncStatus } from '$lib/stores/auth';
-	import { saveStatus, tracker, formulaVaultOpen, testDaySheetOpen, targetsModalOpen, autoCheckStreakFreeze, feynmanDuckOpen, wrappedStoryOpen } from '$lib/stores/tracker';
+	import { saveStatus, tracker, formulaVaultOpen, testDaySheetOpen, targetsModalOpen, autoCheckStreakFreeze, feynmanDuckOpen, wrappedStoryOpen, commandPaletteOpen } from '$lib/stores/tracker';
 	import BTrackerWrappedModal from '$lib/components/stats/BTrackerWrappedModal.svelte';
 	import { loadout } from '$lib/stores/cosmetics';
 	import { sidebarDragWidth } from '$lib/stores/sidebar';
@@ -588,7 +587,18 @@
 					<button class="mobile-menu" type="button" aria-label="Open navigation" on:click={() => mobileOpen = true}><NavIcon name="menu" size={21} /></button>
 					<div><p class="breadcrumb">BTracker <span>/</span> {currentTitle}</p><h2>{currentTitle}</h2></div>
 				</div>
-				<div class="topbar-center" aria-hidden="true"></div>
+				<div class="topbar-center">
+					<button
+						type="button"
+						class="topbar-search-pill"
+						on:click={() => commandPaletteOpen.set(true)}
+						aria-label="Open command palette"
+					>
+						<NavIcon name="search" size={14} />
+						<span class="search-hint">Search or jump to...</span>
+						<kbd>⌘K</kbd>
+					</button>
+				</div>
 				<div class="topbar-actions">
 					<span class:error={$saveStatus === 'error'} class="save-state"><i></i>{saveLabel}</span>
 					<StreakButton />
@@ -598,16 +608,11 @@
 				</div>
 			</header>
 			<main on:touchstart={handleTouchStart} on:touchend={handleTouchEnd}>
-				<div style="display: {$page.url.pathname === '/focus' ? 'block' : 'none'}; height: 100%;">
-					<FocusScreen />
-				</div>
-				<div style="display: {$page.url.pathname === '/focus' ? 'none' : 'block'}; height: 100%;">
-					{#key $page.url.pathname}
-						<div in:fly={{ y: 8, duration: 200, delay: 0, opacity: 1 }} style="height: 100%;">
-							<slot />
-						</div>
-					{/key}
-				</div>
+				{#key $page.url.pathname}
+					<div in:fly={{ y: 8, duration: 200, delay: 0, opacity: 1 }} style="height: 100%;">
+						<slot />
+					</div>
+				{/key}
 			</main>
 		</div>
 
@@ -685,9 +690,20 @@
 	}
 	.page-heading, .topbar-actions { display: flex; align-items: center; }
 	.page-heading { gap: .85rem; }
-	.breadcrumb { margin: 0 0 .2rem; color: rgba(255, 255, 255, 0.78); font-size: .72rem; font-weight: 650; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
-	.breadcrumb span { margin: 0 .26rem; color: rgba(255, 255, 255, 0.35); }
-	h2 { margin: 0; font-size: 1.15rem; line-height: 1.1; letter-spacing: -.035em; font-weight: 800; color: #ffffff; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
+	.breadcrumb { margin: 0 0 .2rem; color: var(--text-secondary); font-size: .72rem; font-weight: 650; }
+	.breadcrumb span { margin: 0 .26rem; color: color-mix(in srgb, var(--text-secondary), transparent 45%); }
+	h2 { margin: 0; font-size: 1.15rem; line-height: 1.1; letter-spacing: -.035em; font-weight: 800; color: var(--text-primary); }
+	:global(:root[data-wallpaper='true']:not([data-wallpaper-luminance='bright'])) .breadcrumb {
+		color: rgba(255, 255, 255, 0.85) !important;
+		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45) !important;
+	}
+	:global(:root[data-wallpaper='true']:not([data-wallpaper-luminance='bright'])) .breadcrumb span {
+		color: rgba(255, 255, 255, 0.45) !important;
+	}
+	:global(:root[data-wallpaper='true']:not([data-wallpaper-luminance='bright'])) h2 {
+		color: #ffffff !important;
+		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45) !important;
+	}
 	.topbar-center {
 		display: flex;
 		align-items: center;
@@ -696,6 +712,53 @@
 		min-width: 0;
 		padding: 0 1rem;
 		position: relative;
+	}
+	.topbar-search-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.55rem;
+		height: 36px;
+		padding: 0 0.9rem;
+		border-radius: 999px;
+		background: var(--surface-panel);
+		backdrop-filter: var(--glass-filter);
+		-webkit-backdrop-filter: var(--glass-filter);
+		border: 1px solid var(--border-subtle);
+		color: var(--text-secondary);
+		font-size: 0.78rem;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s var(--ease-ios-spring);
+		width: clamp(160px, 24vw, 280px);
+		box-sizing: border-box;
+	}
+	.topbar-search-pill:hover {
+		border-color: var(--accent);
+		color: var(--text-primary);
+		transform: translateY(-1px);
+		box-shadow: 0 6px 18px color-mix(in srgb, var(--accent), transparent 85%);
+	}
+	.topbar-search-pill .search-hint {
+		flex: 1;
+		text-align: left;
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.topbar-search-pill kbd {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.12rem 0.4rem;
+		border-radius: 6px;
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
+		font-size: 0.68rem;
+		font-family: inherit;
+		color: var(--text-secondary);
+		line-height: 1;
+	}
+	@media (max-width: 768px) {
+		.topbar-center { display: none !important; }
 	}
 	.topbar-actions { display: flex; align-items: center; gap: .65rem; }
 	.save-state {

@@ -1,4 +1,9 @@
+<script lang="ts">
+	import FocusScreen from '$lib/components/focus/FocusScreen.svelte';
+</script>
+
 <svelte:head>
 	<title>Focus | BTracker</title>
 </svelte:head>
-<!-- The actual focus screen is rendered globally in +layout.svelte to preserve timer state across navigation! -->
+
+<FocusScreen />

@@ -296,7 +296,7 @@
 		
 		if (file.type.startsWith('video/')) {
 			if (file.size > 25 * 1024 * 1024) {
-				alert('Live wallpaper video must be under 25MB.');
+				celebration.set('⚠️ Live wallpaper video must be under 25MB.');
 				return;
 			}
 			const reader = new FileReader();

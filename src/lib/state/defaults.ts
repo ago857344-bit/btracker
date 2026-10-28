@@ -232,5 +232,8 @@ export const createInitialTrackerState = (): TrackerState => ({
 	onboarded: false,
 	coaching_type: 'BT',
 	coaching_name: 'Baktiwal Tutorials',
+	starredFormulas: [],
+	examNotes: '',
+	customReminders: [],
 	theme: 'light', pom: { ...DEFAULT_POMODORO }, ui: createUiPreferences(), savedAt: null
 });

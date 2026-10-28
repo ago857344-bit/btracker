@@ -3,12 +3,24 @@
 	import { fade, scale } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import { isDarkTheme, presetOf, syncThemeWallpaper } from '$lib/state/themes';
-	import { tracker, updateTracker, addTodo, openFormulaVault, formulaVaultOpen, customizingHome, openFeynmanDuck, openTestDaySheet, openWrappedStory } from '$lib/stores/tracker';
+	import { tracker, updateTracker, addTodo, openFormulaVault, formulaVaultOpen, customizingHome, openFeynmanDuck, openTestDaySheet, openWrappedStory, commandPaletteOpen } from '$lib/stores/tracker';
 	import { JEE_FORMULAS } from '$lib/data/formulas';
 	import { subjectColor, subjectName } from '$lib/state/subjects';
+	import { allChaptersWithCustom } from '$lib/state/syllabus';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 
 	let open = false;
+	const close = () => {
+		open = false;
+		commandPaletteOpen.set(false);
+	};
+	$: if ($commandPaletteOpen) {
+		open = true;
+		query = '';
+		setTimeout(() => inputRef?.focus(), 50);
+	} else {
+		open = false;
+	}
 	let query = '';
 	let inputRef: HTMLInputElement;
 
@@ -166,6 +178,86 @@
 					count++;
 				}
 			}
+
+			// Match Syllabus Chapters (Question Log)
+			for (const sub of ['P', 'C', 'M'] as const) {
+				const sName = subjectName(sub) || sub;
+				const chs = allChaptersWithCustom($tracker, sub);
+				for (const ch of chs) {
+					if (ch.name.toLowerCase().includes(kw)) {
+						items.push({
+							id: `syl-${sub}-${ch.no}`,
+							label: `${ch.name}`,
+							icon: 'grid',
+							category: 'navigation',
+							subtitle: `${sName} · Chapter ${ch.no} · Jump to Question Log`,
+							badge: `${sName} Ch.${ch.no}`,
+							badgeColor: subjectColor(sub),
+							action: () => {
+								goto(`/log?s=${sub}&c=${ch.no}`);
+								commandPaletteOpen.set(false);
+							}
+						});
+					}
+				}
+			}
+
+			// Match Open To-Do Items
+			for (const todo of ($tracker.todos || []).filter((t) => !t.done)) {
+				if (todo.title.toLowerCase().includes(kw)) {
+					items.push({
+						id: `todo-${todo.id}`,
+						label: todo.title,
+						icon: 'list',
+						category: 'navigation',
+						subtitle: 'Open task in To-Do Checklist',
+						badge: todo.roiTag || 'To-Do',
+						badgeColor: '#3b82f6',
+						action: () => {
+							goto('/todo');
+							commandPaletteOpen.set(false);
+						}
+					});
+				}
+			}
+
+			// Match Study Dump Files
+			for (const file of ($tracker.studyDump?.files || [])) {
+				if (file.name.toLowerCase().includes(kw)) {
+					items.push({
+						id: `dump-${file.id}`,
+						label: file.name,
+						icon: 'download',
+						category: 'navigation',
+						subtitle: `Study Dump · ${file.section.toUpperCase()} (${(file.size / 1024).toFixed(0)} KB)`,
+						badge: 'Dump',
+						badgeColor: '#10b981',
+						action: () => {
+							goto(`/dump?q=${encodeURIComponent(file.name)}`);
+							commandPaletteOpen.set(false);
+						}
+					});
+				}
+			}
+
+			// Match Logged Mistakes
+			for (const mistake of ($tracker.mistakes || [])) {
+				if (mistake.description.toLowerCase().includes(kw) || (mistake.testName && mistake.testName.toLowerCase().includes(kw))) {
+					items.push({
+						id: `mistake-${mistake.id}`,
+						label: mistake.description,
+						icon: 'tests',
+						category: 'navigation',
+						subtitle: `${mistake.subject} · ${mistake.errorType}${mistake.testName ? ` in ${mistake.testName}` : ''}`,
+						badge: mistake.errorType,
+						badgeColor: '#ef4444',
+						action: () => {
+							goto('/tests?view=mistakes');
+							commandPaletteOpen.set(false);
+						}
+					});
+				}
+			}
 		} else if (isExplicitFormulaSearch && searchKeyword === '') {
 			for (const ch of CHAPTERS_LIST.slice(0, 6)) {
 				const sName = subjectName(ch.subject) || ch.subject;
@@ -201,18 +293,14 @@
 	function handleKeydown(e: KeyboardEvent) {
 		if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
 			e.preventDefault();
-			open = !open;
-			if (open) {
-				query = '';
-				setTimeout(() => inputRef?.focus(), 50);
-			}
+			commandPaletteOpen.update((v) => !v);
 			return;
 		}
 
 		if (!open) return;
 
 		if (e.key === 'Escape') {
-			open = false;
+			close();
 			return;
 		}
 
@@ -245,7 +333,7 @@
 	<div class="overlay" transition:fade={{ duration: 150 }}>
 		<!-- svelte-ignore a11y-click-events-have-key-events -->
 		<!-- svelte-ignore a11y-no-static-element-interactions -->
-		<div class="backdrop" on:click={() => open = false}></div>
+		<div class="backdrop" on:click={close}></div>
 		<div class="modal" transition:scale={{ start: 0.96, duration: 200 }}>
 			<div class="input-wrap">
 				<NavIcon name="search" size={20} />
@@ -269,7 +357,7 @@
 						const text = query.trim();
 						if (text) {
 							addTodo({ title: text, source: 'brain-dump' });
-							open = false;
+							close();
 						}
 					}}>
 						<div class="item-icon-wrap" style="color: var(--accent);">

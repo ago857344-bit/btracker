@@ -1,7 +1,23 @@
 <svelte:head><title>Focus · BTracker</title></svelte:head>
 
 <script lang="ts">
-	import { globalTimer } from '$lib/stores/timerState';
+	import {
+		timerSession,
+		primaryTimerAction,
+		addFiveMinutes,
+		stopSessionAction,
+		resetTimerAction,
+		aiStart,
+		switchTimerTab,
+		setTimerSubject,
+		setFocusChapter,
+		setSwChapter,
+		setSwKind,
+		setFocusKind,
+		setPomodoroMinutes,
+		skipBreakAction,
+		closeReportModal
+	} from '$lib/stores/timerState';
 
 	import { onDestroy, onMount } from 'svelte';
 	import { parseVoiceLog } from '$lib/services/voiceParsing';
@@ -41,29 +57,35 @@
 		{ id: 'short', label: 'SHORT' }, { id: 'long', label: 'LONG' }
 	];
 
-	let tab: Tab = 'focus';
-	let subject: string | null = null;
-	let focusLen = $tracker?.pom?.focus || 25; let shortLen = 5; let longLen = 15;
-	let customOpen = false; let customValue = focusLen;
+	let customOpen = false;
 	let deepWorkMode = false;
 	let lectureTheaterOpen = false;
 	let moreMenuOpen = false;
-
-	let running = false;
-	let phase: 'focus' | 'break' = 'focus';
-	let remaining = focusLen * 60;
-	let elapsed = 0;
-	let countdownEndsAt: number | null = null;
-	let countUpStartedAt: number | null = null;
-	let sessionStartedEpochMin = 0;
-	let interval: ReturnType<typeof setInterval> | undefined;
-
-	let swKind: 'questions' | 'theory' | 'revision' = 'questions';
-	let focusKind: 'questions' | 'theory' | 'revision' = 'questions';
-	let swChapter = '';
-	let report: StopwatchReport | null = null;
-	let reportOpen = false;
 	let reportsOpen = false;
+	let distractionModalOpen = false;
+	let distractionReason = '';
+
+	$: tab = $timerSession.tab;
+	$: running = $timerSession.running;
+	$: phase = $timerSession.phase;
+	$: remaining = $timerSession.remaining;
+	$: elapsed = $timerSession.elapsed;
+	$: subject = $timerSession.subject;
+	$: focusChapter = $timerSession.focusChapter;
+	$: swChapter = $timerSession.swChapter;
+	$: swKind = $timerSession.swKind;
+	$: focusKind = $timerSession.focusKind;
+	$: focusLen = $timerSession.focusLen;
+	$: shortLen = $timerSession.shortLen;
+	$: longLen = $timerSession.longLen;
+	$: activeLen = $timerSession.activeLen;
+	$: ringProgress = $timerSession.ringProgress;
+	$: dialTime = $timerSession.dialTime;
+	$: report = $timerSession.latestReport;
+	$: reportOpen = $timerSession.reportOpen;
+	$: sessionStartedEpochMin = $timerSession.sessionStartedEpochMin;
+	$: currentActiveSeconds = tab === 'stopwatch' ? elapsed : Math.max(0, (activeLen * 60) - remaining);
+	$: customValue = focusLen;
 
 	let logOpen = false; let logMinutes = 30; let logSubject: string | null = null;
 
@@ -133,7 +155,6 @@
 		});
 	}
 
-	let focusChapter = '';
 	let logChapter = '';
 	$: focusValid = Boolean(subject) && Boolean(focusChapter);
 	let milestoneOpen = false; let milestoneHours = $tracker.meta.weekGoalH;
@@ -170,18 +191,14 @@
 	let showSettings = false; let ambientOn = false;
 	let ambient: { ctx: AudioContext; src: AudioBufferSourceNode } | null = null;
 	let clock = new Date();
-	const clockTimer = setInterval(() => (clock = new Date()), 1000);
+	let clockTimer: ReturnType<typeof setInterval> | undefined;
 
 	$: pom = $tracker.pom;
 	$: presets = tab === 'focus' ? [25, 45, 60] : tab === 'short' ? [5, 10, 15] : tab === 'long' ? [15, 20, 30] : [];
-	$: activeLen = tab === 'focus' ? focusLen : tab === 'short' ? shortLen : longLen;
-	$: ringProgress = tab === 'stopwatch' ? (elapsed % 3600) / 3600 : activeLen * 60 > 0 ? 1 - remaining / (activeLen * 60) : 0;
-	$: dialTime = tab === 'stopwatch' ? formatClock(elapsed) : formatClock(remaining);
-	$: currentActiveSeconds = running && phase === 'focus' ? (tab === 'stopwatch' ? elapsed : Math.max(0, activeLen * 60 - remaining)) : 0;
 	$: accent = tab === 'short' ? '#2f9e6e' : tab === 'long' ? '#2b8ba6' : 'var(--accent)';
 	$: chapters = chaptersOf(subject);
 	$: logChapters = chaptersOf(logSubject);
-	$: if (focusChapter && !chapters.includes(focusChapter)) focusChapter = '';
+	$: if (focusChapter && !chapters.includes(focusChapter)) setFocusChapter('');
 	$: if (logChapter && !logChapters.includes(logChapter)) logChapter = '';
 	$: swValid = Boolean(subject) && Boolean(swChapter);
 	$: weekKeys = new Set(lastNDays(7));
@@ -197,104 +214,28 @@
 	$: clockTime = clock.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
 	$: clockDate = clock.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
-	function addFiveMinutes() {
-		if (tab === 'focus') {
-			remaining += 300;
-			if (countdownEndsAt) countdownEndsAt += 300000;
-		}
+	function primary() {
+		if (locked) return;
+		primaryTimerAction();
 	}
 
-	function setPomodoroMinutes(minutes: number) {
-		if (running || locked) return;
-		const mins = Math.max(1, Math.min(240, Math.round(minutes)));
-		focusLen = mins;
-		if (phase === 'focus') {
-			remaining = mins * 60;
-			countdownEndsAt = null;
-		}
-		updateTracker(s => {
-			if (!s.pom) s.pom = { ...DEFAULT_POMODORO };
-			s.pom.focus = mins;
-		});
+	function stopSession() {
+		stopSessionAction();
 	}
 
-	$: globalTimer.set({
-		running,
-		remaining,
-		elapsed,
-		tab,
-		phase,
-		subject,
-		chapter: tab === 'stopwatch' ? swChapter : focusChapter,
-		activeLen,
-		ringProgress,
-		dialTime,
-		sessionStarted: running || elapsed > 0 || (tab !== 'stopwatch' && remaining < activeLen * 60),
-		toggle: primary,
-		addFive: addFiveMinutes,
-		stop: stopSession,
-		start: aiStart,
-		setTime: setPomodoroMinutes
-	});
-
-	function shouldChime(kind: 'focus' | 'break') {
-		if (pom.chime === 'both') return true;
-		if (pom.chime === 'none') return false;
-		return pom.chime === kind;
+	function reset(skipLog: boolean | Event = false) {
+		resetTimerAction(skipLog === true);
 	}
 
-	function startTicking() { clearInterval(interval); interval = setInterval(tick, 250); }
-
-	function tick() {
-		const nowMs = Date.now();
-		if (tab === 'stopwatch') {
-			if (countUpStartedAt != null) elapsed = Math.round((nowMs - countUpStartedAt) / 1000);
-			return;
-		}
-		if (countdownEndsAt != null) {
-			remaining = Math.max(0, Math.round((countdownEndsAt - nowMs) / 1000));
-			if (remaining === 0) onCountdownComplete();
-		}
-	}
-
-	function beginCountdown(seconds: number) {
-		remaining = seconds;
-		countdownEndsAt = Date.now() + seconds * 1000;
-		running = true;
-		startTicking();
-	}
-
-	function logSession(minutes: number, activity: string) {
-		recordFocus({
-			startedEpochMinutes: sessionStartedEpochMin || Math.floor(Date.now() / 60000) - minutes,
-			durationMinutes: minutes, activity, deadlineId: null, subject, chapter: focusChapter || undefined
-		});
-		celebration.set(`${minutes} min focus logged!`);
-	}
-
-	function onCountdownComplete() {
-		clearInterval(interval); running = false; countdownEndsAt = null;
-		if (tab === 'focus' && phase === 'focus') {
-			logSession(focusLen, focusKind === 'questions' ? 'Focus · Questions' : focusKind === 'revision' ? 'Focus · Revision' : 'Focus · Theory');
-			if (shouldChime('focus')) playChime('up');
-			phase = 'break'; remaining = shortLen * 60;
-			if (pom.autoBrk) beginCountdown(shortLen * 60);
-		} else if (tab === 'focus' && phase === 'break') {
-			if (shouldChime('break')) playChime('down');
-			phase = 'focus'; remaining = focusLen * 60;
-			if (pom.autoFocus) beginCountdown(focusLen * 60);
-		} else {
-			if (shouldChime('break')) playChime('down');
-			celebration.set(tab === 'short' ? 'Short break done!' : 'Long break done!');
-			remaining = activeLen * 60;
-		}
+	function switchTab(next: Tab) {
+		switchTimerTab(next);
 	}
 
 	function handleTabSwitchPenalty(e?: CustomEvent<{ reason?: string } | void>) {
 		if (running) {
 			primary(); // pause timer
-			const triggerReason = (e?.detail && typeof e.detail === 'object' && e.detail.reason) ? `\nReason: ${e.detail.reason}` : '';
-			alert(`🚨 DISTRACTION DETECTED! 🚨${triggerReason}\n\nDeep Work interrupted. Your timer has been paused. Stay locked into your study session!`);
+			distractionReason = (e?.detail && typeof e.detail === 'object' && e.detail.reason) ? String(e.detail.reason) : '';
+			distractionModalOpen = true;
 			
 			// Play an alarm sound
 			try {
@@ -314,79 +255,9 @@
 		}
 	}
 
-function aiStart(s: string, seconds: number, ch: string, mode: 'timer' | 'stopwatch' = 'timer') {
-	if (running) { running = false; clearInterval(interval); countdownEndsAt = null; countUpStartedAt = null; }
-	subject = s;
-	focusChapter = ch;
-	sessionStartedEpochMin = Math.floor(Date.now() / 60000);
-	
-	if (mode === 'stopwatch') {
-		tab = 'stopwatch';
-		elapsed = 0;
-		countUpStartedAt = Date.now();
-		running = true;
-		startTicking();
-	} else {
-		tab = 'focus';
-		phase = 'focus';
-		focusLen = Math.floor(seconds / 60);
-		remaining = seconds;
-		beginCountdown(remaining);
-	}
-}
-
-function primary() {
-		if (locked) return;
-		if (tab === 'stopwatch') {
-			if (running) { running = false; clearInterval(interval); countUpStartedAt = null; }
-			else {
-				sessionStartedEpochMin = sessionStartedEpochMin || Math.floor(Date.now() / 60000);
-				countUpStartedAt = Date.now() - elapsed * 1000;
-				running = true; startTicking();
-			}
-			return;
-		}
-		if (running) { running = false; clearInterval(interval); countdownEndsAt = null; return; }
-		sessionStartedEpochMin = Math.floor(Date.now() / 60000);
-		if (remaining <= 0) remaining = activeLen * 60;
-		beginCountdown(remaining);
-	}
-
-	function stopSession() {
-		clearInterval(interval); running = false; countdownEndsAt = null; countUpStartedAt = null;
-		if (tab === 'stopwatch') {
-			if (elapsed >= 1) {
-				report = { sub: subject ?? 'X', kind: swKind, at: Date.now(), seconds: elapsed, done: 0, correct: 0, mistakes: 0 };
-				reportOpen = true;
-			}
-			elapsed = 0; sessionStartedEpochMin = 0;
-			return;
-		}
-		reset();
-	}
-
-	function reset(skipLog: boolean | Event = false) {
-		clearInterval(interval); running = false; countdownEndsAt = null; countUpStartedAt = null;
-		if (skipLog !== true && tab === 'focus' && phase === 'focus') {
-			const doneMinutes = Math.round(((activeLen * 60) - remaining) / 60);
-			if (doneMinutes >= 1) {
-				logSession(doneMinutes, focusKind === 'questions' ? 'Focus · Questions' : focusKind === 'revision' ? 'Focus · Revision' : 'Focus · Theory');
-			}
-		}
-		sessionStartedEpochMin = 0; phase = 'focus'; remaining = activeLen * 60; elapsed = 0;
-	}
-
-	function switchTab(next: Tab) {
-		if (next === tab) return;
-		reset();
-		tab = next;
-		remaining = (next === 'focus' ? focusLen : next === 'short' ? shortLen : longLen) * 60;
-	}
-
 	function pickPreset(minutes: number) {
 		if (running || locked) return;
-		if (tab === 'focus') focusLen = minutes; else if (tab === 'short') shortLen = minutes; else longLen = minutes;
-		remaining = minutes * 60;
+		setPomodoroMinutes(minutes);
 		customOpen = false;
 	}
 
@@ -397,8 +268,7 @@ function primary() {
 	}
 
 	function skipBreak() {
-		clearInterval(interval); running = false; countdownEndsAt = null;
-		phase = 'focus'; remaining = focusLen * 60;
+		skipBreakAction();
 	}
 
 	function onSaveReport(event: CustomEvent<StopwatchReport>) {
@@ -414,7 +284,7 @@ function primary() {
 		if (savedReport.kind === 'questions' && savedReport.done > 0 && savedReport.sub !== 'X') {
 			addSubjectSession({ sub: savedReport.sub, ch: swChapter || 'General', att: savedReport.done, cor: Math.min(savedReport.correct, savedReport.done) });
 		}
-		sessionStartedEpochMin = 0; swChapter = '';
+		setSwChapter('');
 	}
 
 	function submitLog() {
@@ -588,18 +458,13 @@ function primary() {
 	}
 
 	onMount(() => {
-		const handleVisibilityChange = () => {
-			if (!document.hidden && running) {
-				tick();
-			}
-		};
-		document.addEventListener('visibilitychange', handleVisibilityChange);
-		return () => {
-			document.removeEventListener('visibilitychange', handleVisibilityChange);
-		};
+		clockTimer = setInterval(() => (clock = new Date()), 1000);
 	});
 
-	onDestroy(() => { clearInterval(interval); clearInterval(clockTimer); try { ambient?.src.stop(); } catch { /* noop */ } });
+	onDestroy(() => {
+		if (clockTimer) clearInterval(clockTimer);
+		try { ambient?.src.stop(); } catch { /* noop */ }
+	});
 </script>
 
 <svelte:window on:keydown={(e) => e.key === 'Escape' && (moreMenuOpen = false)} />
@@ -725,7 +590,7 @@ function primary() {
 					{/if}
 					<div class="policy">
 						<NavIcon name="shield" size={15} />
-						<span><b>Strict Policy:</b> Stopwatch sessions will NOT persist if the tab is closed or refreshed. Use Focus mode for persistence.</span>
+						<span><b>Persistent Session:</b> Both Focus and Stopwatch sessions survive page refreshes and tab switches seamlessly.</span>
 					</div>
 				</div>
 			{:else if !running && phase === 'focus' && !locked}
@@ -978,6 +843,22 @@ function primary() {
 		on:exit={() => (deepWorkMode = false)}
 	/>
 {/if}
+
+<Modal bind:open={distractionModalOpen} title="🚨 Distraction Warning" width="440px" on:close={() => distractionModalOpen = false}>
+	<div class="distraction-box" style="text-align: center; padding: 1rem 0;">
+		<div style="font-size: 2.8rem; margin-bottom: 0.5rem;">⚠️</div>
+		<h3 style="font-size: 1.25rem; font-weight: 800; margin: 0 0 0.5rem; color: var(--text-primary);">Deep Work Interrupted</h3>
+		{#if distractionReason}
+			<p style="margin: 0 0 0.75rem; font-size: 0.85rem; color: var(--warning);">Reason: <b>{distractionReason}</b></p>
+		{/if}
+		<p style="margin: 0; font-size: 0.88rem; color: var(--text-secondary); line-height: 1.45;">Your study session has been paused because a tab switch or distraction was detected. Protect your focus and lock back in!</p>
+	</div>
+	<svelte:fragment slot="footer">
+		<button type="button" class="btn solid" style="width: 100%;" on:click={() => { distractionModalOpen = false; primary(); }}>
+			Resume Focus 🔥
+		</button>
+	</svelte:fragment>
+</Modal>
 
 <LectureTheater bind:open={lectureTheaterOpen} />
 

@@ -4,7 +4,7 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { JEE_FORMULAS, type FormulaItem } from '$lib/data/formulas';
 	import { uiClick } from '$lib/utils/feedback';
-	import { formulaVaultFilter, openTestDaySheet } from '$lib/stores/tracker';
+	import { formulaVaultFilter, openTestDaySheet, tracker, updateTracker } from '$lib/stores/tracker';
 
 	export let open = false;
 
@@ -14,7 +14,7 @@
 	let selectedSubject: 'ALL' | 'P' | 'C' | 'M' = 'ALL';
 	let selectedChapter = 'ALL';
 	let starredOnly = false;
-	let starredIds: string[] = [];
+	$: starredIds = $tracker.starredFormulas || [];
 	let copiedId: string | null = null;
 	let copyTimeout: ReturnType<typeof setTimeout> | undefined;
 	let collapsedGroups: Record<string, boolean> = {};
@@ -43,21 +43,31 @@
 	}
 
 	onMount(() => {
-		try {
-			const saved = localStorage.getItem('btracker_starred_formulas');
-			if (saved) starredIds = JSON.parse(saved);
-		} catch {}
+		if ((!$tracker.starredFormulas || !$tracker.starredFormulas.length)) {
+			try {
+				const saved = localStorage.getItem('btracker_starred_formulas');
+				if (saved) {
+					const list = JSON.parse(saved);
+					if (Array.isArray(list) && list.length) {
+						updateTracker((st) => { st.starredFormulas = list; });
+					}
+				}
+			} catch {}
+		}
 	});
 
 	function toggleStar(id: string) {
 		uiClick();
-		if (starredIds.includes(id)) {
-			starredIds = starredIds.filter((x) => x !== id);
-		} else {
-			starredIds = [...starredIds, id];
-		}
+		updateTracker((st) => {
+			const list = Array.isArray(st.starredFormulas) ? [...st.starredFormulas] : [];
+			if (list.includes(id)) {
+				st.starredFormulas = list.filter((x) => x !== id);
+			} else {
+				st.starredFormulas = [...list, id];
+			}
+		});
 		try {
-			localStorage.setItem('btracker_starred_formulas', JSON.stringify(starredIds));
+			localStorage.setItem('btracker_starred_formulas', JSON.stringify($tracker.starredFormulas || []));
 		} catch {}
 	}
 

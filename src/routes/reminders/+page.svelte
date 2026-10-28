@@ -7,11 +7,13 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import { subjectColor, subjectName, SUBJECTS } from '$lib/state/subjects';
 	import { addDaysKey, dayKeyOf, parseKey, todayKey } from '$lib/state/dates';
-	import { tracker, updateTracker, celebration } from '$lib/stores/tracker';
+	import { tracker, updateTracker, triggerToast } from '$lib/stores/tracker';
+	import type { CustomReminder } from '$lib/types/tracker';
+	import { hasNotificationPermission, requestNotificationPermission, checkDueReminders } from '$lib/utils/notifications';
 	import { allRevisionReminders } from '$lib/stores/recall-selectors';
 	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
 
-	type IconKind = 'reminders' | 'clock' | 'calendar-check' | 'brain' | 'target' | 'flame';
+	type IconKind = 'reminders' | 'clock' | 'calendar-check' | 'brain' | 'target' | 'flame' | 'bell';
 
 	interface ReminderCard {
 		id: string;
@@ -36,29 +38,16 @@
 	let draftWhen = '';
 	let draftTime = '09:00';
 	let draftBlurb = '';
-	let customReminders: ReminderCard[] = [];
+	let notifGranted = false;
 
 	onMount(() => {
-		try {
-			const saved = localStorage.getItem('btracker_custom_reminders');
-			if (saved) {
-				const parsed = JSON.parse(saved);
-				if (Array.isArray(parsed)) {
-					customReminders = parsed;
-				}
-			}
-		} catch (e) {
-			console.error('Failed to load custom reminders from localStorage:', e);
-		}
+		notifGranted = hasNotificationPermission();
+		checkDueReminders($tracker.customReminders);
+		const interval = setInterval(() => {
+			checkDueReminders($tracker.customReminders);
+		}, 30000);
+		return () => clearInterval(interval);
 	});
-
-	function saveCustomReminders() {
-		try {
-			localStorage.setItem('btracker_custom_reminders', JSON.stringify(customReminders));
-		} catch (e) {
-			console.error('Failed to save custom reminders to localStorage:', e);
-		}
-	}
 
 	const snoozeOptions = ['10 min', '1 hour', 'Tomorrow'] as const;
 	let snoozeMenu: string | null = null;
@@ -151,16 +140,24 @@
 			})
 			.filter((c) => c !== null) as ReminderCard[];
 
-		const refreshedCustom = customReminders
+		const refreshedCustom = ($tracker.customReminders || [])
 			.filter((c) => !c.dismissed)
 			.map((c) => {
 				const datePart = c.when.slice(0, 10);
 				const isOverdue = datePart < today;
 				const isToday = datePart === today;
 				return {
-					...c,
+					id: c.id,
 					group: (isOverdue ? 'overdue' : isToday ? 'today' : 'week') as 'overdue' | 'today' | 'week',
-					tone: (isOverdue ? 'danger' : isToday ? 'accent' : 'warning') as 'danger' | 'accent' | 'warning'
+					tone: (isOverdue ? 'danger' : isToday ? 'accent' : 'warning') as 'danger' | 'accent' | 'warning',
+					icon: (c.kind === 'spaced' ? 'brain' : c.kind === 'deadline' ? 'target' : 'flame') as IconKind,
+					title: c.title,
+					blurb: c.blurb,
+					when: c.when,
+					sub: c.sub,
+					source: 'custom' as const,
+					dismissed: c.dismissed,
+					createdAt: c.createdAt
 				};
 			});
 
@@ -181,7 +178,7 @@
 		boostChapterFromPractice(key);
 		if (cardId) dismissedIds = new Set([...dismissedIds, cardId]);
 		dismissedIds = new Set([...dismissedIds, `rev-${key}`, key]);
-		celebration.set('Revision marked complete! Memory restored to 100%');
+		triggerToast('Revision marked complete! Memory restored to 100%');
 	}
 
 	function dismiss(id: string) {
@@ -202,16 +199,41 @@
 				}
 			});
 			dismissedIds = new Set([...dismissedIds, id]);
+			triggerToast({
+				text: 'Revision reminder dismissed',
+				actionLabel: 'Undo',
+				onAction: () => {
+					updateTracker((s) => {
+						if (s.rev.items[colonKey]) s.rev.items[colonKey].remindDone = false;
+						if (s.rev.items[hyphenKey]) s.rev.items[hyphenKey].remindDone = false;
+					});
+					const next = new Set(dismissedIds);
+					next.delete(id);
+					dismissedIds = next;
+				}
+			});
 			return;
 		}
 		if (id.startsWith('hw-')) {
 			const hwId = id.slice(3);
+			let wasKeep = false;
 			updateTracker((s) => {
 				const found = s.h.find((h) => h.id === hwId) || s.hd.find((h) => h.id === hwId);
-				if (found) found.keep = true;
+				if (found) {
+					wasKeep = !!found.keep;
+					found.keep = true;
+				}
 			});
-			customReminders = customReminders.map((c) => c.id === id ? { ...c, dismissed: true } : c);
-			saveCustomReminders();
+			triggerToast({
+				text: 'Task reminder dismissed',
+				actionLabel: 'Undo',
+				onAction: () => {
+					updateTracker((s) => {
+						const found = s.h.find((h) => h.id === hwId) || s.hd.find((h) => h.id === hwId);
+						if (found) found.keep = wasKeep;
+					});
+				}
+			});
 			return;
 		}
 		if (id.startsWith('dl-')) {
@@ -220,16 +242,56 @@
 				const found = s.dl.find((d) => d.id === dlId);
 				if (found) found.hidden = true;
 			});
+			triggerToast({
+				text: 'Deadline reminder dismissed',
+				actionLabel: 'Undo',
+				onAction: () => {
+					updateTracker((s) => {
+						const found = s.dl.find((d) => d.id === dlId);
+						if (found) found.hidden = false;
+					});
+				}
+			});
 			return;
 		}
-		customReminders = customReminders.map((c) => c.id === id ? { ...c, dismissed: true } : c);
-		saveCustomReminders();
-		snoozeMenu = null;
+
+		const target = ($tracker.customReminders || []).find((c) => c.id === id);
+		if (target) {
+			updateTracker((s) => {
+				s.customReminders = (s.customReminders || []).map((c) =>
+					c.id === id ? { ...c, dismissed: true, updatedAt: Date.now() } : c
+				);
+			});
+			snoozeMenu = null;
+			triggerToast({
+				text: `Dismissed reminder "${target.title}"`,
+				actionLabel: 'Undo',
+				onAction: () => {
+					updateTracker((s) => {
+						s.customReminders = (s.customReminders || []).map((c) =>
+							c.id === id ? { ...c, dismissed: false, updatedAt: Date.now() } : c
+						);
+					});
+				}
+			});
+		}
 	}
 
 	function deleteCustom(id: string) {
-		customReminders = customReminders.filter((c) => c.id !== id);
-		saveCustomReminders();
+		const target = ($tracker.customReminders || []).find((c) => c.id === id);
+		if (!target) return;
+		updateTracker((s) => {
+			s.customReminders = (s.customReminders || []).filter((c) => c.id !== id);
+		});
+		triggerToast({
+			text: `Deleted reminder "${target.title}"`,
+			actionLabel: 'Undo',
+			onAction: () => {
+				updateTracker((s) => {
+					s.customReminders = [...(s.customReminders || []), target];
+				});
+			}
+		});
 	}
 
 	function snooze(id: string, option: typeof snoozeOptions[number]) {
@@ -241,7 +303,7 @@
 			const colonKey = `${sub}:${ch}`;
 			const hyphenKey = `${sub}-${ch}`;
 
-			const daysToAdd = option === 'Tomorrow' ? 1 : 1;
+			const daysToAdd = 1;
 			const nextDate = addDaysKey(todayKey(), daysToAdd);
 
 			updateTracker((s) => {
@@ -254,14 +316,16 @@
 			});
 			snoozeMenu = null;
 			dismissedIds = new Set([...dismissedIds, id]);
-			celebration.set(`Revision snoozed until ${nextDate}`);
+			triggerToast({
+				text: `Revision snoozed until ${nextDate}`
+			});
 			return;
 		}
 
-		const targetCard = customReminders.find((c) => c.id === id);
-		if (targetCard) {
+		const target = ($tracker.customReminders || []).find((c) => c.id === id);
+		if (target) {
 			const dateObj = new Date();
-			let newWhen = targetCard.when;
+			let newWhen = target.when;
 			if (option === '10 min') {
 				dateObj.setMinutes(dateObj.getMinutes() + 10);
 				newWhen = `${dayKeyOf(dateObj)}T${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
@@ -272,11 +336,15 @@
 				dateObj.setDate(dateObj.getDate() + 1);
 				newWhen = `${dayKeyOf(dateObj)}T09:00`;
 			}
-			customReminders = customReminders.map((c) =>
-				c.id === id ? { ...c, when: newWhen, dismissed: false } : c
-			);
-			saveCustomReminders();
+			updateTracker((s) => {
+				s.customReminders = (s.customReminders || []).map((c) =>
+					c.id === id ? { ...c, when: newWhen, dismissed: false, updatedAt: Date.now() } : c
+				);
+			});
 			snoozeMenu = null;
+			triggerToast({
+				text: `Snoozed until ${newWhen.replace('T', ' ')}`
+			});
 			return;
 		}
 		dismiss(id);
@@ -317,24 +385,23 @@
 		const title = draftTitle.trim();
 		if (!title) return;
 		const when = draftWhen || today;
-		const overdue = when < today;
-		const sameDay = when === today;
-		const card: ReminderCard = {
+		const newReminder: CustomReminder = {
 			id: `cus-${Date.now()}`,
-			group: overdue ? 'overdue' : sameDay ? 'today' : when <= weekEnd ? 'week' : 'week',
-			icon: draftKind === 'spaced' ? 'brain' : draftKind === 'deadline' ? 'target' : 'flame',
-			tone: overdue ? 'danger' : sameDay ? 'accent' : 'warning',
+			kind: draftKind,
 			title,
 			blurb: draftBlurb.trim() || (draftKind === 'spaced' ? 'Spaced repetition reminder' : draftKind === 'deadline' ? 'Scheduled deadline' : 'Quick nudge for later'),
 			when: `${when}T${draftTime}`,
 			sub: draftSub || undefined,
-			source: 'custom',
-			createdAt: Date.now()
+			dismissed: false,
+			createdAt: Date.now(),
+			updatedAt: Date.now()
 		};
-		customReminders = [...customReminders, card];
-		saveCustomReminders();
+		updateTracker((s) => {
+			s.customReminders = [...(s.customReminders || []), newReminder];
+		});
 		newOpen = false;
 		draftTitle = ''; draftBlurb = ''; draftWhen = ''; draftSub = ''; draftTime = '09:00'; draftKind = 'nudge';
+		triggerToast('Reminder scheduled!');
 	}
 </script>
 
@@ -345,6 +412,16 @@
 			<p class="sub">Time-sensitive alerts and scheduled nudges — revision triggers, deadlines, and nudges you set for yourself.</p>
 		</div>
 		<div class="head-actions">
+			{#if !notifGranted}
+				<button type="button" class="notif-pill" on:click={async () => {
+					const res = await requestNotificationPermission();
+					notifGranted = res === 'granted';
+					if (notifGranted) triggerToast('Desktop notifications enabled!');
+				}} title="Enable browser alerts for due reminders">
+					<NavIcon name="bell" size={13} />
+					<span>Enable Alerts</span>
+				</button>
+			{/if}
 			<div class="count-chip" title="Active alerts">
 				<span class="pulse"></span>
 				<b>{allCards.length}</b>
@@ -511,6 +588,8 @@
 	h1 { margin: 0; font-size: clamp(1.7rem, 3.4vw, 2.2rem); font-weight: 850; letter-spacing: -.055em; }
 	.sub { margin: .5rem 0 0; color: var(--text-secondary); font-size: .92rem; line-height: 1.6; }
 	.head-actions { display: flex; align-items: center; gap: .7rem; }
+	.notif-pill { display: inline-flex; align-items: center; gap: .45rem; height: 38px; padding: 0 .9rem; border: 1px solid var(--border-subtle); border-radius: 999px; background: color-mix(in srgb, var(--accent), transparent 90%); color: var(--accent); font-size: .78rem; font-weight: 750; cursor: pointer; transition: all .16s ease; font-family: inherit; }
+	.notif-pill:hover { background: var(--accent-soft); border-color: var(--accent); }
 	.count-chip { display: inline-flex; align-items: center; gap: .45rem; height: 38px; padding: 0 .9rem; border: 1px solid var(--border-subtle); border-radius: 999px; background: var(--surface-panel); font-size: .74rem; color: var(--text-secondary); }
 	.count-chip b { color: var(--text-primary); font-size: .94rem; font-weight: 800; letter-spacing: -.02em; }
 	.count-chip .pulse { display: block; width: 8px; height: 8px; border-radius: 999px; background: var(--accent); box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent), transparent 50%); animation: pulse 2.2s infinite; }

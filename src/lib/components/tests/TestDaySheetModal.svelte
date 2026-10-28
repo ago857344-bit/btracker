@@ -2,7 +2,7 @@
 	import { onMount, tick } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
-	import { tracker, celebration } from '$lib/stores/tracker';
+	import { tracker, updateTracker, celebration } from '$lib/stores/tracker';
 	import {
 		testDaySheetOpen,
 		testDaySheetOptions,
@@ -24,7 +24,7 @@
 	let copiedMarkdown = false;
 	let copyTimeout: ReturnType<typeof setTimeout> | undefined;
 
-	let starredIds: string[] = [];
+	$: starredIds = $tracker.starredFormulas || [];
 
 	async function ensureKatex() {
 		if (!katexModule) {
@@ -38,16 +38,11 @@
 		}
 	}
 
-	function loadStarredIds() {
-		try {
-			const saved = localStorage.getItem('btracker_starred_formulas');
-			if (saved) starredIds = JSON.parse(saved);
-		} catch {}
-	}
-
 	$: if (open) {
 		ensureKatex();
-		loadStarredIds();
+		if ($tracker.examNotes && !$testDaySheetOptions.examNotes) {
+			testDaySheetOptions.update((opt) => ({ ...opt, examNotes: $tracker.examNotes || '' }));
+		}
 	}
 
 	function renderMath(tex: string, _tick = 0): string {
@@ -66,13 +61,16 @@
 
 	function toggleStar(id: string) {
 		uiClick();
-		if (starredIds.includes(id)) {
-			starredIds = starredIds.filter((x) => x !== id);
-		} else {
-			starredIds = [...starredIds, id];
-		}
+		updateTracker((st) => {
+			const list = Array.isArray(st.starredFormulas) ? [...st.starredFormulas] : [];
+			if (list.includes(id)) {
+				st.starredFormulas = list.filter((x) => x !== id);
+			} else {
+				st.starredFormulas = [...list, id];
+			}
+		});
 		try {
-			localStorage.setItem('btracker_starred_formulas', JSON.stringify(starredIds));
+			localStorage.setItem('btracker_starred_formulas', JSON.stringify($tracker.starredFormulas || []));
 		} catch {}
 	}
 

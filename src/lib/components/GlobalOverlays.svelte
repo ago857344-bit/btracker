@@ -16,7 +16,8 @@
 	let timer: ReturnType<typeof setTimeout>;
 	$: if ($celebration) {
 		clearTimeout(timer);
-		timer = setTimeout(() => celebration.set(null), 2400);
+		const isActionable = typeof $celebration === 'object' && Boolean($celebration?.onAction);
+		timer = setTimeout(() => celebration.set(null), isActionable ? 5500 : 2400);
 	}
 
 	let promptOpen = false;
@@ -145,9 +146,22 @@
 </script>
 
 {#if $celebration}
+	{@const toast = typeof $celebration === 'string' ? { text: $celebration, actionLabel: undefined, onAction: undefined } : $celebration}
 	<div class="celebration" transition:fly={{ y: -18, duration: 220 }} role="status">
 		<span class="check"><NavIcon name="check-circle" size={22} /></span>
-		<div><b>{$celebration}</b><small>Great work — streak secured.</small></div>
+		<div><b>{toast.text}</b><small>{toast.onAction ? 'Action completed' : 'Great work — streak secured.'}</small></div>
+		{#if toast.onAction}
+			<button
+				type="button"
+				class="undo-toast-btn"
+				on:click={() => {
+					toast.onAction?.();
+					celebration.set(null);
+				}}
+			>
+				{toast.actionLabel || 'Undo'}
+			</button>
+		{/if}
 	</div>
 {/if}
 
@@ -227,6 +241,26 @@
 	.celebration .check { display: grid; place-items: center; color: #4ade80; flex-shrink: 0; }
 	.celebration b { display: block; font-size: .88rem; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.celebration small { color: #8fd6a8; font-size: .68rem; }
+	.undo-toast-btn {
+		margin-left: 0.6rem;
+		padding: 0.28rem 0.65rem;
+		font-size: 0.72rem;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		border-radius: 8px;
+		background: rgba(74, 222, 128, 0.22);
+		color: #4ade80;
+		border: 1px solid rgba(74, 222, 128, 0.45);
+		cursor: pointer;
+		transition: all 0.15s ease;
+		flex-shrink: 0;
+	}
+	.undo-toast-btn:hover {
+		background: rgba(74, 222, 128, 0.35);
+		color: #ffffff;
+		transform: scale(1.04);
+	}
 
 	.prompt-copy { margin: 0; color: var(--text-secondary); font-size: .85rem; }
 	.prompt-copy b { color: var(--text-primary); }
