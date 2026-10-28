@@ -1,3 +1,5 @@
+import { allChapters } from '$lib/state/syllabus';
+
 export interface SubjectMeta {
 	code: string;
 	name: string;
@@ -18,28 +20,9 @@ export const subjectName = (code: string | null | undefined) => subjectMeta(code
 export const subjectColor = (code: string | null | undefined) => subjectMeta(code)?.color ?? '#8b87a0';
 
 export const CHAPTERS: Record<string, string[]> = {
-	P: [
-		'Physical World', 'Units and Measurements', 'Motion in a Straight Line', 'Motion in a Plane', 'Laws of Motion',
-		'Work, Energy and Power', 'System of Particles and Rotational Motion', 'Gravitation', 'Mechanical Properties of Solids',
-		'Mechanical Properties of Fluids', 'Thermal Properties of Matter', 'Thermodynamics', 'Kinetic Theory', 'Oscillations', 'Waves',
-		'Electric Charges and Fields', 'Electrostatic Potential and Capacitance', 'Current Electricity', 'Moving Charges and Magnetism',
-		'Magnetism and Matter', 'Electromagnetic Induction', 'Alternating Current', 'Electromagnetic Waves', 'Ray Optics', 'Wave Optics',
-		'Dual Nature of Radiation and Matter', 'Atoms', 'Nuclei', 'Semiconductor Electronics'
-	],
-	C: [
-		'Some Basic Concepts of Chemistry', 'Structure of Atom', 'Classification of Elements and Periodicity', 'Chemical Bonding and Molecular Structure',
-		'States of Matter', 'Thermodynamics', 'Equilibrium', 'Redox Reactions', 'Hydrogen', 'The s-Block Elements', 'The p-Block Elements',
-		'Organic Chemistry: Basic Principles', 'Hydrocarbons', 'Environmental Chemistry', 'Solutions', 'Electrochemistry', 'Chemical Kinetics',
-		'The d- and f-Block Elements', 'Coordination Compounds', 'Haloalkanes and Haloarenes', 'Alcohols, Phenols and Ethers',
-		'Aldehydes, Ketones and Carboxylic Acids', 'Amines', 'Biomolecules'
-	],
-	M: [
-		'Sets', 'Relations and Functions', 'Trigonometric Functions', 'Principle of Mathematical Induction', 'Complex Numbers and Quadratic Equations',
-		'Linear Inequalities', 'Permutations and Combinations', 'Binomial Theorem', 'Sequences and Series', 'Straight Lines', 'Conic Sections',
-		'Introduction to Three-dimensional Geometry', 'Limits and Derivatives', 'Mathematical Reasoning', 'Statistics', 'Probability',
-		'Inverse Trigonometric Functions', 'Matrices', 'Determinants', 'Continuity and Differentiability', 'Application of Derivatives', 'Integrals',
-		'Differential Equations', 'Vector Algebra', 'Three-dimensional Geometry', 'Linear Programming'
-	]
+	P: allChapters('P').map((c) => c.name),
+	C: allChapters('C').map((c) => c.name),
+	M: allChapters('M').map((c) => c.name)
 };
 
 export const chaptersOf = (code: string | null | undefined) => CHAPTERS[code ?? ''] ?? [];

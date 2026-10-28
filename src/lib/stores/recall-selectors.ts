@@ -105,8 +105,7 @@ export const allRevisionReminders = derived(tracker, ($tracker) => {
 		} else if (currentScore < 60) {
 			dueDate = today;
 		} else {
-			const elapsedDays = ch.decay.lastRevisionAt ? (Date.now() - ch.decay.lastRevisionAt) / (1000 * 60 * 60 * 24) : 0;
-			const daysLeft = Math.max(0, daysUntilThreshold(ch.decay, 60) - elapsedDays);
+			const daysLeft = daysUntilThreshold(ch.decay, 60);
 			dueDate = daysLeft <= 0 ? today : addDaysKey(today, Math.max(1, Math.round(daysLeft)));
 		}
 

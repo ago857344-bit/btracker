@@ -427,6 +427,14 @@ export function switchTimerTab(next: TimerTab) {
 			s.countdownEndsAt = null;
 			s.countUpStartedAt = null;
 		}
+
+		if (s.tab === 'focus' && s.phase === 'focus') {
+			const doneMinutes = Math.round(((s.activeLen * 60) - s.remaining) / 60);
+			if (doneMinutes >= 1) {
+				logSession(doneMinutes, s.focusKind === 'questions' ? 'Focus · Questions' : s.focusKind === 'revision' ? 'Focus · Revision' : 'Focus · Theory', s);
+			}
+		}
+
 		s.tab = next;
 		s.phase = 'focus';
 		s.remaining = (next === 'focus' ? s.focusLen : next === 'short' ? s.shortLen : s.longLen) * 60;

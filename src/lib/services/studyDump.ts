@@ -93,9 +93,23 @@ export async function fetchSectionZip(
 	const localKey = `${userId || 'guest'}_${section.toLowerCase()}`;
 	const sb = getSupabase();
 
+	// Helper to migrate legacy/guest default_vault if localKey has no archive
+	const getMigratedLocalBlob = async (): Promise<Blob | null> => {
+		let localBlob = await getLocalZip(localKey);
+		if (!localBlob && userId && userId !== 'default_vault' && userId !== 'guest') {
+			const guestKey = `default_vault_${section.toLowerCase()}`;
+			const guestBlob = await getLocalZip(guestKey);
+			if (guestBlob) {
+				await setLocalZip(localKey, guestBlob);
+				localBlob = guestBlob;
+			}
+		}
+		return localBlob;
+	};
+
 	if (preferLocal) {
 		// Prefer local cache — it has the most complete version from the last upload
-		const localBlob = await getLocalZip(localKey);
+		const localBlob = await getMigratedLocalBlob();
 		if (localBlob) return localBlob;
 	}
 
@@ -114,7 +128,7 @@ export async function fetchSectionZip(
 
 	if (!preferLocal) {
 		// Fallback to local if cloud failed and we prefer cloud
-		return getLocalZip(localKey);
+		return getMigratedLocalBlob();
 	}
 
 	return null;
@@ -211,6 +225,34 @@ export async function uploadFilesToSection(
 			}
 		} catch (e) {
 			console.warn('Could not parse existing section zip, creating new one', e);
+		}
+	}
+
+	// Merge any files present in the cloud ZIP that are missing locally to prevent cross-device overwrites
+	const sb = getSupabase();
+	if (sb) {
+		try {
+			const path = getSectionStoragePath(userId, section);
+			const { data: cloudData, error: cloudErr } = await sb.storage.from(DUMP_BUCKET).download(path);
+			if (!cloudErr && cloudData) {
+				const cloudZip = await JSZip.loadAsync(cloudData);
+				const cloudManifest = await readManifestFromZip(cloudData);
+				if (cloudManifest?.files?.length) {
+					for (const cFile of cloudManifest.files) {
+						const existsLocally = currentManifest.files.some((f) => f.name.toLowerCase() === cFile.name.toLowerCase());
+						if (!existsLocally) {
+							const zipFile = cloudZip.file(cFile.name);
+							if (zipFile) {
+								const bytes = await zipFile.async('uint8array');
+								zip.file(cFile.name, bytes);
+								currentManifest.files.push(cFile);
+							}
+						}
+					}
+				}
+			}
+		} catch (mergeErr) {
+			console.warn('Failed merging cloud zip before upload:', mergeErr);
 		}
 	}
 

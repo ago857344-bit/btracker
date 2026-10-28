@@ -5,6 +5,7 @@ import { supabaseConfigured } from '$lib/services/supabase';
 import { authReady, initAuth, syncStatus, teardownAuth } from '$lib/stores/auth';
 import { replaceTracker, setCloudSink, tracker } from '$lib/stores/tracker';
 import { saveTrackerState } from '$lib/services/persistence';
+import { currentWeekStartKey } from '$lib/state/weekly';
 import type { TrackerState, TodoItem, HomeworkItem, ReflectionEntry, TaskRoutine, TrackerGoal, ChapterRecallData, RevisionItem, StudyBlock, FocusSession, Flashcard, DumpFileMeta, StudyDumpState, CustomReminder } from '$lib/types/tracker';
 
 let activeUserId: string | null = null;
@@ -261,16 +262,76 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		}
 	}
 
-	// 7. Gamification: Max values
+	// 7. Gamification: Max values, deep merge prestige, peak, week
+	const baseG = base.gamification;
+	const remG = remote.gamification;
+
+	// Prestige merge: taking higher count, merging history by `at`, taking newer seasonElo
+	let mergedPrestige = undefined;
+	if (baseG?.prestige || remG?.prestige) {
+		const bp = baseG?.prestige;
+		const rp = remG?.prestige;
+		const higherCount = Math.max(bp?.count || 0, rp?.count || 0);
+
+		const seasonElo = (rp?.count || 0) > (bp?.count || 0)
+			? { ...(rp?.seasonElo || {}) }
+			: (bp?.count || 0) > (rp?.count || 0)
+			? { ...(bp?.seasonElo || {}) }
+			: cloudIsNewer
+			? { ...(rp?.seasonElo || bp?.seasonElo || {}) }
+			: { ...(bp?.seasonElo || rp?.seasonElo || {}) };
+
+		const historyMap = new Map<number, { at: number; avgElo: number }>();
+		for (const h of bp?.history || []) historyMap.set(h.at, h);
+		for (const h of rp?.history || []) historyMap.set(h.at, h);
+		const mergedHistory = Array.from(historyMap.values()).sort((a, b) => a.at - b.at);
+
+		mergedPrestige = {
+			count: higherCount,
+			seasonElo,
+			history: mergedHistory
+		};
+	}
+
+	// Peak merge: taking Math.max of tierElo and per-subject peaks
+	let mergedPeak = undefined;
+	if (baseG?.peak || remG?.peak) {
+		const bPeak = baseG?.peak;
+		const rPeak = remG?.peak;
+		const tierElo = Math.max(bPeak?.tierElo || 0, rPeak?.tierElo || 0);
+		const subject: Record<string, number> = {};
+		const allSubs = new Set([...Object.keys(bPeak?.subject || {}), ...Object.keys(rPeak?.subject || {})]);
+		for (const sub of allSubs) {
+			subject[sub] = Math.max(bPeak?.subject?.[sub] || 0, rPeak?.subject?.[sub] || 0);
+		}
+		mergedPeak = { tierElo, subject };
+	}
+
+	// Week merge: preferring snapshot matching currentWeekStartKey()
+	const curWeekKey = currentWeekStartKey();
+	let mergedWeek = prefSource.gamification?.week;
+	if (remG?.week?.start === curWeekKey && baseG?.week?.start !== curWeekKey) {
+		mergedWeek = remG.week;
+	} else if (baseG?.week?.start === curWeekKey && remG?.week?.start !== curWeekKey) {
+		mergedWeek = baseG.week;
+	} else if (remG?.week && baseG?.week) {
+		mergedWeek = cloudIsNewer ? remG.week : baseG.week;
+	} else {
+		mergedWeek = remG?.week || baseG?.week || null;
+	}
+
 	const mergedGamification = {
-		xp: Math.max(base.gamification?.xp || 0, remote.gamification?.xp || 0),
-		level: Math.max(base.gamification?.level || 1, remote.gamification?.level || 1),
+		xp: Math.max(baseG?.xp || 0, remG?.xp || 0),
+		level: Math.max(baseG?.level || 1, remG?.level || 1),
 		elo: {
-			P: Math.max(base.gamification?.elo?.P || 300, remote.gamification?.elo?.P || 300),
-			C: Math.max(base.gamification?.elo?.C || 300, remote.gamification?.elo?.C || 300),
-			M: Math.max(base.gamification?.elo?.M || 300, remote.gamification?.elo?.M || 300)
+			P: Math.max(baseG?.elo?.P || 300, remG?.elo?.P || 300),
+			C: Math.max(baseG?.elo?.C || 300, remG?.elo?.C || 300),
+			M: Math.max(baseG?.elo?.M || 300, remG?.elo?.M || 300)
 		},
-		v3_elo: true
+		v3_elo: true,
+		prestige: mergedPrestige,
+		peak: mergedPeak,
+		week: mergedWeek
 	};
 
 	// 8. Chapter checklist grids: Union columns, data marks, and started flags

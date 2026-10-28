@@ -108,12 +108,19 @@
 		for (let i = 0; i < 42; i++) days.push(dayKeyOf(addDays(start, i)));
 		return days;
 	})();
-	$: dayTasks = tasksOn(selectedDay).filter((t) => {
-		const q = query.trim().toLowerCase();
-		if (q && !(t.title ?? '').toLowerCase().includes(q)) return false;
-		if (subjectFilter && t.s !== subjectFilter) return false;
-		return true;
-	});
+	$: dayTasks = tasksOn(selectedDay)
+		.filter((t) => {
+			const q = query.trim().toLowerCase();
+			if (q && !(t.title ?? '').toLowerCase().includes(q)) return false;
+			if (subjectFilter && t.s !== subjectFilter) return false;
+			return true;
+		})
+		.sort((a, b) => {
+			if (a.st && b.st) return a.st.localeCompare(b.st);
+			if (a.st && !b.st) return -1;
+			if (!a.st && b.st) return 1;
+			return 0;
+		});
 	$: tickableTasks = dayTasks.filter((t) => !isClassItem(t));
 	$: dayDone = tickableTasks.filter((t) => t.done).length;
 	$: sel = parseKey(selectedDay);

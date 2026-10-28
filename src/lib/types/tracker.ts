@@ -41,6 +41,12 @@ export interface CustomReminder {
 	updatedAt: number;
 }
 
+export interface PlannerSubtask {
+	id: string;
+	title: string;
+	done: boolean;
+}
+
 export interface HomeworkItem {
 	id: string;
 	kind?: 'range' | 'back' | 'task' | string;
@@ -56,6 +62,8 @@ export interface HomeworkItem {
 	fin?: number;
 	/** Timestamp in ms when task was last created or modified */
 	updated?: number;
+	/** Linked Todo ID if transferred from or synced to To-Do */
+	todoId?: string;
 	/** Planner-only extras (BTracker day tasks). */
 	col?: number;
 	st?: string;
@@ -65,7 +73,7 @@ export interface HomeworkItem {
 	test?: boolean;
 	locked?: boolean;
 	isClass?: boolean;
-	subs?: string[];
+	subs?: Array<string | PlannerSubtask>;
 	[key: string]: unknown;
 }
 
@@ -217,6 +225,8 @@ export interface ChapterRecallData {
 	}>;
 	/** Next scheduled spaced revision date (YYYY-MM-DD) */
 	nextRevisionDate?: string;
+	/** Spacing method */
+	method?: 'steady' | 'fast' | 'smart';
 	/** Explicitly added by user */
 	userAdded?: boolean;
 }

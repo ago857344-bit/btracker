@@ -141,22 +141,32 @@
 
 	function scoreCard(quality: number) {
 		const card = dueCards[currentCardIndex];
+		if (!card) return;
 
-		let efactor = card.efactor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+		let efactor = (card.efactor || 2.5) + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
 		if (efactor < 1.3) efactor = 1.3;
 
 		let interval = card.interval || 1;
-		let repetition = card.repetition;
+		let repetition = card.repetition || 0;
+		let nextReviewAt: number;
 
-		if (quality < 3) {
-			interval = 1;
+		if (quality === 1) {
 			repetition = 0;
-		} else {
-			interval = repetition === 0 ? 1 : (repetition === 1 ? 6 : Math.ceil(interval * efactor));
+			interval = 0;
+			nextReviewAt = Date.now() + 10 * 60 * 1000;
+		} else if (quality === 3) {
+			interval = Math.max(1, Math.round((card.interval || 1) * 1.2));
+			repetition = (card.repetition || 0) + 1;
+			nextReviewAt = Date.now() + interval * 86400000;
+		} else if (quality === 4) {
+			interval = repetition === 0 ? 1 : (repetition === 1 ? 6 : Math.round(interval * efactor));
 			repetition += 1;
+			nextReviewAt = Date.now() + interval * 86400000;
+		} else {
+			interval = repetition === 0 ? 2 : (repetition === 1 ? 7 : Math.round(interval * efactor * 1.3));
+			repetition += 1;
+			nextReviewAt = Date.now() + interval * 86400000;
 		}
-
-		const nextReviewAt = Date.now() + interval * 24 * 60 * 60 * 1000;
 
 		updateTracker(s => {
 			if (!s.flashcards) s.flashcards = [];
@@ -165,6 +175,10 @@
 				s.flashcards[idx] = { ...s.flashcards[idx], efactor, interval, repetition, nextReviewAt };
 			}
 		});
+
+		if (quality === 1) {
+			dueCards.push({ ...card, efactor, interval, repetition, nextReviewAt });
+		}
 
 		currentCardIndex++;
 		flipped = false;
@@ -340,17 +354,21 @@ ${academicConstraints}`;
 					{#if !flipped}
 						<button class="flip-btn" on:click={flipCard}>Flip Card</button>
 					{:else}
-						<button class="score-btn hard" on:click={() => scoreCard(1)}>
+						<button class="score-btn again" on:click={() => scoreCard(1)}>
 							<span>Again</span>
-							<small>&lt; 1d</small>
+							<small>10m</small>
 						</button>
-						<button class="score-btn good" on:click={() => scoreCard(3)}>
+						<button class="score-btn hard" on:click={() => scoreCard(3)}>
+							<span>Hard</span>
+							<small>{Math.max(1, Math.round((dueCards[currentCardIndex].interval || 1) * 1.2))}d</small>
+						</button>
+						<button class="score-btn good" on:click={() => scoreCard(4)}>
 							<span>Good</span>
-							<small>{dueCards[currentCardIndex].interval ? Math.ceil(dueCards[currentCardIndex].interval * dueCards[currentCardIndex].efactor) : 1}d</small>
+							<small>{dueCards[currentCardIndex].repetition === 0 ? 1 : (dueCards[currentCardIndex].repetition === 1 ? 6 : Math.round((dueCards[currentCardIndex].interval || 1) * (dueCards[currentCardIndex].efactor || 2.5)))}d</small>
 						</button>
 						<button class="score-btn easy" on:click={() => scoreCard(5)}>
 							<span>Easy</span>
-							<small>{dueCards[currentCardIndex].interval ? Math.ceil(dueCards[currentCardIndex].interval * dueCards[currentCardIndex].efactor * 1.3) : 3}d</small>
+							<small>{dueCards[currentCardIndex].repetition === 0 ? 2 : (dueCards[currentCardIndex].repetition === 1 ? 7 : Math.round((dueCards[currentCardIndex].interval || 1) * (dueCards[currentCardIndex].efactor || 2.5) * 1.3))}d</small>
 						</button>
 					{/if}
 				</div>
@@ -584,7 +602,8 @@ ${academicConstraints}`;
 
 	.score-btn { flex: 1; padding: 1rem .5rem; border: 0; border-radius: 16px; font-size: .95rem; font-weight: 800; cursor: pointer; color: var(--accent-contrast, #fff); display: flex; flex-direction: column; align-items: center; gap: .2rem; }
 	.score-btn small { font-size: .7rem; font-weight: 600; opacity: 0.8; }
-	.score-btn.hard { background: var(--danger, #e0455a); box-shadow: 0 4px 12px color-mix(in srgb, var(--danger, #e0455a), transparent 70%); }
+	.score-btn.again { background: var(--danger, #e0455a); box-shadow: 0 4px 12px color-mix(in srgb, var(--danger, #e0455a), transparent 70%); }
+	.score-btn.hard { background: #ea580c; box-shadow: 0 4px 12px color-mix(in srgb, #ea580c, transparent 70%); }
 	.score-btn.good { background: var(--warning, #f6ad55); box-shadow: 0 4px 12px color-mix(in srgb, var(--warning, #f6ad55), transparent 70%); color: #000; }
 	.score-btn.easy { background: var(--success, #42b883); box-shadow: 0 4px 12px color-mix(in srgb, var(--success, #42b883), transparent 70%); }
 

@@ -266,7 +266,7 @@
 		}, duration);
 	}
 
-	let lastElo = { P: 1200, C: 1200, M: 1200 };
+	let lastElo = { P: 300, C: 300, M: 300 };
 	
 	let initTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -360,7 +360,7 @@
 
 		const academicConstraints = buildAcademicConstraintPrompt($tracker);
 		let systemInstruction = `You are the BTracker AI Mentor. 
-Current Elo: P: ${$tracker.gamification?.elo?.P ?? 1200}, C: ${$tracker.gamification?.elo?.C ?? 1200}, M: ${$tracker.gamification?.elo?.M ?? 1200}.
+Current Elo (Scale: 300 = Starting/Bronze, 500–800 = Silver, 800–1200 = Gold, 1200+ = Diamond/Elite, 1600+ = Grandmaster): P: ${$tracker.gamification?.elo?.P ?? 300}, C: ${$tracker.gamification?.elo?.C ?? 300}, M: ${$tracker.gamification?.elo?.M ?? 300}.
 ${academicConstraints}
 CRITICAL INSTRUCTIONS:
 1. KEEP IT SHORT! Answer in 1-2 brief sentences max unless explicitly asked for a summary, formula list, or flashcards. NO FLUFF.

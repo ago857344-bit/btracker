@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
-	import { addSubtask, deleteTask, patchTask, removeSubtask } from '$lib/stores/tracker';
+	import { addSubtask, deleteTask, patchTask, removeSubtask, togglePlannerSubtask } from '$lib/stores/tracker';
 	import { TASK_COLORS, SUBJECTS, subjectColor, subjectName } from '$lib/state/subjects';
 	import { addDaysKey, longDateKey, todayKey } from '$lib/state/dates';
 	import type { HomeworkItem } from '$lib/types/tracker';
@@ -59,8 +59,9 @@
 	function addSub() {
 		if (!task || !subtaskText.trim()) return;
 		const text = subtaskText.trim();
-		addSubtask(task.id, text);
-		task = { ...task, subs: [...(task.subs || []), text] };
+		const newSub = { id: `st_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, title: text, done: false };
+		addSubtask(task.id, newSub);
+		task = { ...task, subs: [...(task.subs || []), newSub] };
 		subtaskText = '';
 	}
 
@@ -126,8 +127,31 @@
 			<div class="subtasks">
 				<p class="label">Subtasks</p>
 				{#each task.subs ?? [] as sub, idx}
-					<div class="sub-item">
-						<p class="sub"><NavIcon name="circle" size={12} /> <span>{sub}</span></p>
+					{@const isDone = typeof sub === 'object' && sub !== null ? Boolean(sub.done) : false}
+					{@const subTitle = typeof sub === 'object' && sub !== null ? sub.title : String(sub)}
+					<div class="sub-item" class:done={isDone}>
+						<button
+							type="button"
+							class="sub-chk-btn"
+							aria-label="Toggle subtask"
+							on:click={() => {
+								if (task && task.subs) {
+									togglePlannerSubtask(task.id, idx);
+									const current = task.subs[idx];
+									if (typeof current === 'object' && current !== null) {
+										current.done = !current.done;
+									} else if (typeof current === 'string') {
+										task.subs[idx] = { id: String(idx), title: current, done: true };
+									}
+									task = { ...task };
+								}
+							}}
+						>
+							<span class="sub-circle" class:checked={isDone}>
+								{#if isDone}<NavIcon name="check" size={10} />{/if}
+							</span>
+						</button>
+						<p class="sub"><span class:strike={isDone}>{subTitle}</span></p>
 						<button type="button" class="sub-del" on:click={() => deleteSub(idx)} aria-label="Delete subtask"><NavIcon name="x" size={12} /></button>
 					</div>
 				{/each}
@@ -177,6 +201,11 @@
 	.subtasks { display: grid; gap: .45rem; padding: .8rem .9rem; border: 1px solid var(--border-subtle); border-radius: 13px; background: var(--surface-subtle); }
 	.label { margin: 0; color: var(--text-secondary); font-size: .64rem; font-weight: 750; letter-spacing: .07em; text-transform: uppercase; }
 	.sub-item { display: flex; align-items: center; justify-content: space-between; gap: .45rem; }
+	.sub-chk-btn { background: transparent; border: 0; padding: 0; cursor: pointer; display: grid; place-items: center; }
+	.sub-circle { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--border-subtle); display: grid; place-items: center; transition: all .15s ease; color: var(--accent-contrast, #fff); }
+	.sub-circle.checked { background: var(--accent); border-color: var(--accent); }
+	.strike { text-decoration: line-through; opacity: 0.6; }
+	.sub-item.done { opacity: 0.8; }
 	.sub { display: flex; align-items: center; gap: .45rem; margin: 0; font-size: .78rem; flex: 1; min-width: 0; }
 	.sub span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.sub-del { display: grid; place-items: center; width: 22px; height: 22px; border: 0; border-radius: 6px; background: transparent; color: var(--text-secondary); cursor: pointer; opacity: .7; transition: all .15s ease; }

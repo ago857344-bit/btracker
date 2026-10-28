@@ -9,7 +9,7 @@ import { applyEloResult, ascend, canAscend } from '$lib/state/gamification';
 import { updateDecayAfterRevision } from '$lib/state/decay';
 import { DEFAULT_BT_NAME } from '$lib/state/coaching';
 import type {
-	GoalTarget, HomeworkItem, StudySession, TimerState, TrackerGoal, TrackerState, WidgetLayout,
+	GoalTarget, HomeworkItem, PlannerSubtask, StudySession, TimerState, TrackerGoal, TrackerState, WidgetLayout,
 	ConfidenceRating, CoachingTimetable, TimetablePeriod, StudyFlowMode, CoachingType, UniversalSource,
 	Flashcard
 } from '$lib/types/tracker';
@@ -18,11 +18,7 @@ export const tracker = writable<TrackerState>(createInitialTrackerState());
 export const hydration = writable<'idle' | 'loading' | 'ready' | 'error'>('idle');
 export const saveStatus = writable<'saved' | 'saving' | 'error'>('saved');
 export const targetsModalOpen = writable(false);
-export const timer = writable<TimerState>({
-	running: false, mode: 'focus', kind: 'pomo', secondsRemaining: 25 * 60, elapsedSeconds: 0, totalSeconds: 25 * 60,
-	activityId: null, deadlineId: null, speedrun: { phase: 'setup', target: 10, minutes: 15, done: 0 },
-	focusSessionId: null
-});
+export { timerSession as timer } from '$lib/stores/timerState';
 
 let pendingSave: ReturnType<typeof setTimeout> | undefined;
 // Optional hook so the sync layer can mirror saves to the cloud without tracker importing it.
@@ -36,6 +32,18 @@ export function updateTracker(mutator: (draft: TrackerState) => void) {
 	tracker.update((current) => {
 		const draft: TrackerState = {
 			...current,
+			h: current.h ? [...current.h] : [],
+			hd: current.hd ? [...current.hd] : [],
+			todos: current.todos ? [...current.todos] : [],
+			log: current.log ? [...current.log] : [],
+			sess: current.sess ? [...current.sess] : [],
+			mocks: current.mocks ? [...current.mocks] : [],
+			mistakes: current.mistakes ? [...current.mistakes] : [],
+			flashcards: current.flashcards ? [...current.flashcards] : [],
+			gt: current.gt ? [...current.gt] : [],
+			lib: current.lib ? [...current.lib] : [],
+			customReminders: current.customReminders ? [...current.customReminders] : [],
+			starredFormulas: current.starredFormulas ? [...current.starredFormulas] : [],
 			d: current.d ? { ...current.d } : {},
 			stat: current.stat ? { ...current.stat } : {},
 			ui: current.ui ? { ...current.ui } : ({} as any),
@@ -49,7 +57,10 @@ export function updateTracker(mutator: (draft: TrackerState) => void) {
 			rev: current.rev ? {
 				...current.rev,
 				items: current.rev.items ? { ...current.rev.items } : {},
-				chapters: current.rev.chapters ? { ...current.rev.chapters } : {}
+				chapters: current.rev.chapters ? { ...current.rev.chapters } : {},
+				studyBlocks: current.rev.studyBlocks ? [...current.rev.studyBlocks] : [],
+				focusSessions: current.rev.focusSessions ? [...current.rev.focusSessions] : [],
+				dailyHeatmap: current.rev.dailyHeatmap ? { ...current.rev.dailyHeatmap } : {}
 			} : ({} as any),
 			x: current.x ? {
 				...current.x,
@@ -265,8 +276,9 @@ export function logStudySession(session: StudySession) {
 	});
 	const sub = session[7];
 	const ch = session[8];
-	if (sub && ch && sessionBoostHandler) {
-		sessionBoostHandler(sub, ch, session[1]);
+	const validSubs = new Set(['P', 'C', 'M']);
+	if (sub && validSubs.has(sub) && ch && ch.trim() && sessionBoostHandler) {
+		sessionBoostHandler(sub, ch.trim(), session[1]);
 	}
 }
 
@@ -366,7 +378,7 @@ export function addFlashcard(card: { front: string; back: string; subject: strin
 			interval: 1,
 			repetition: 0,
 			efactor: 2.5,
-			nextReviewAt: Date.now() + 24 * 60 * 60 * 1000
+			nextReviewAt: Date.now()
 		});
 	});
 }
@@ -474,6 +486,31 @@ export function toggleTask(id: string): boolean {
 		task.fin = task.done ? Date.now() : undefined;
 		task.updated = Date.now();
 		done = Boolean(task.done);
+
+		// Synchronize subtasks
+		if (task.subs && task.subs.length > 0) {
+			for (let i = 0; i < task.subs.length; i++) {
+				const item = task.subs[i];
+				if (typeof item === 'object' && item !== null) {
+					item.done = task.done;
+				} else if (typeof item === 'string') {
+					task.subs[i] = { id: uid(), title: item, done: task.done };
+				}
+			}
+		}
+
+		// Synchronize linked Todo item
+		if (task.todoId) {
+			const linkedTodo = s.todos?.find((t) => t.id === task.todoId);
+			if (linkedTodo) {
+				linkedTodo.done = task.done;
+				linkedTodo.updated = Date.now();
+				if (linkedTodo.subtasks && linkedTodo.subtasks.length > 0) {
+					for (const st of linkedTodo.subtasks) st.done = task.done;
+				}
+			}
+		}
+
 		if (task.done) {
 			s.h = s.h.filter((i) => i.id !== id);
 			s.hd = s.hd.filter((i) => i.id !== id);
@@ -501,14 +538,68 @@ export function reorderDayTasks(dragId: string, overId: string) {
 	});
 }
 
-export function addSubtask(id: string, text: string) {
+export function addSubtask(id: string, textOrSub: string | PlannerSubtask) {
 	updateTracker((s) => {
 		const task = s.h.find((item) => item.id === id) ?? s.hd.find((item) => item.id === id);
 		if (!task) return;
 		const subs = Array.isArray(task.subs) ? task.subs : [];
-		subs.push(text);
+		const newSub: PlannerSubtask = typeof textOrSub === 'string'
+			? { id: uid(), title: textOrSub.trim(), done: false }
+			: textOrSub;
+		subs.push(newSub);
 		task.subs = subs;
 		task.updated = Date.now();
+	});
+}
+
+export function togglePlannerSubtask(taskId: string, subIndex: number) {
+	updateTracker((s) => {
+		const list = s.h.some((item) => item.id === taskId) ? s.h : s.hd;
+		const task = list.find((item) => item.id === taskId);
+		if (!task || !task.subs || !task.subs[subIndex]) return;
+
+		let sub = task.subs[subIndex];
+		if (typeof sub === 'string') {
+			sub = { id: uid(), title: sub, done: false };
+			task.subs[subIndex] = sub;
+		}
+
+		sub.done = !sub.done;
+		task.updated = Date.now();
+
+		// Auto-complete parent task when all subtasks are done
+		const allDone = task.subs.length > 0 && task.subs.every((item) => {
+			if (typeof item === 'string') return false;
+			return item.done;
+		});
+
+		if (allDone && !task.done) {
+			task.done = true;
+			task.fin = Date.now();
+			s.h = s.h.filter((i) => i.id !== taskId);
+			s.hd = s.hd.filter((i) => i.id !== taskId);
+			s.hd.push(task);
+			if (task.todoId) {
+				const linkedTodo = s.todos?.find((t) => t.id === task.todoId);
+				if (linkedTodo) {
+					linkedTodo.done = true;
+					linkedTodo.updated = Date.now();
+				}
+			}
+		} else if (!allDone && task.done) {
+			task.done = false;
+			task.fin = undefined;
+			s.hd = s.hd.filter((i) => i.id !== taskId);
+			s.h = s.h.filter((i) => i.id !== taskId);
+			s.h.push(task);
+			if (task.todoId) {
+				const linkedTodo = s.todos?.find((t) => t.id === task.todoId);
+				if (linkedTodo) {
+					linkedTodo.done = false;
+					linkedTodo.updated = Date.now();
+				}
+			}
+		}
 	});
 }
 
@@ -566,6 +657,33 @@ export function toggleTodo(id: string) {
 			if (item.subtasks && item.subtasks.length > 0) {
 				for (const st of item.subtasks) {
 					st.done = item.done;
+				}
+			}
+
+			// Synchronize linked Planner task if any
+			const linkedTask = s.h.find((t) => t.todoId === id) ?? s.hd.find((t) => t.todoId === id);
+			if (linkedTask && linkedTask.done !== item.done) {
+				linkedTask.done = item.done;
+				linkedTask.fin = item.done ? Date.now() : undefined;
+				linkedTask.updated = Date.now();
+				if (linkedTask.subs && linkedTask.subs.length > 0) {
+					for (let i = 0; i < linkedTask.subs.length; i++) {
+						const sub = linkedTask.subs[i];
+						if (typeof sub === 'object' && sub !== null) {
+							sub.done = item.done;
+						} else if (typeof sub === 'string') {
+							linkedTask.subs[i] = { id: uid(), title: sub, done: item.done };
+						}
+					}
+				}
+				if (item.done) {
+					s.h = s.h.filter((i) => i.id !== linkedTask.id);
+					s.hd = s.hd.filter((i) => i.id !== linkedTask.id);
+					s.hd.push(linkedTask);
+				} else {
+					s.hd = s.hd.filter((i) => i.id !== linkedTask.id);
+					s.h = s.h.filter((i) => i.id !== linkedTask.id);
+					s.h.push(linkedTask);
 				}
 			}
 		}
@@ -707,7 +825,8 @@ export function transferTodosToPlanner(targetDayKey?: string): number {
 					s: todo.sub as any,
 					ch: todo.ch,
 					hrs: 1,
-					subs: (todo.subtasks || []).map((st) => st.title),
+					subs: (todo.subtasks || []).map((st) => ({ id: st.id || uid(), title: st.title, done: Boolean(st.done) })),
+					todoId: todo.id,
 					updated: Date.now()
 				});
 				existingTitles.add(todo.title.trim().toLowerCase());
@@ -1054,9 +1173,26 @@ export const subjectSolvedTotals = derived(tracker, ($t) => {
 
 export const weeklyFocusMinutes = derived(tracker, ($t) => lastNDays(7).reduce((sum, key) => sum + focusMinutesOn($t.log, key), 0));
 
+/**
+ * Daily qualification helper: checks whether focus minutes on dayKey meet
+ * the daily goal hours, OR questions solved in state.stat[dayKey] meet the daily question goal.
+ */
+export function isStreakDayMet(state: TrackerState, dayKey: string): boolean {
+	const streakNeedMinutes = (state.meta?.streakGoalH || 1) * 60;
+	if (focusMinutesOn(state.log, dayKey) >= streakNeedMinutes) return true;
+
+	const statBucket = state.stat?.[dayKey];
+	if (statBucket) {
+		const solvedCount = Object.values(statBucket).reduce((sum: number, n) => sum + (Number(n) || 0), 0);
+		const questionTarget = state.goals?.day?.q || 30;
+		if (solvedCount >= questionTarget) return true;
+	}
+
+	return false;
+}
+
 export function calculateStreakDays(state: TrackerState): number {
-	const need = (state.meta?.streakGoalH || 1) * 60;
-	const studied = (key: string) => focusMinutesOn(state.log, key) >= need;
+	const studied = (key: string) => isStreakDayMet(state, key);
 
 	const today = todayKey();
 	const yesterday = addDaysKey(today, -1);
@@ -1117,18 +1253,17 @@ export const streakDays = derived(tracker, ($t) => calculateStreakDays($t));
 export function autoCheckStreakFreeze() {
 	updateTracker((state) => {
 		if (!state.streakFreezes) state.streakFreezes = { available: 2, usedDates: [] };
-		const need = (state.meta?.streakGoalH || 1) * 60;
 		const yesterday = addDaysKey(todayKey(), -1);
 		const dayBeforeYesterday = addDaysKey(todayKey(), -2);
 
-		const yesterdayStudied = focusMinutesOn(state.log, yesterday) >= need;
+		const yesterdayStudied = isStreakDayMet(state, yesterday);
 		const yesterdayFrozen = state.streakFreezes.usedDates.includes(yesterday);
 
 		if (yesterdayStudied || yesterdayFrozen) return;
 
 		// If yesterday was missed:
 		// Only an isolated single missed day gets a streak freeze!
-		const dayBeforeStudied = focusMinutesOn(state.log, dayBeforeYesterday) >= need;
+		const dayBeforeStudied = isStreakDayMet(state, dayBeforeYesterday);
 
 		if (dayBeforeStudied) {
 			// Single missed day: "when a person misses a day they get a streak freeze"
@@ -1402,6 +1537,7 @@ export type QuestionAction =
 /** Per-day solved counters, skipped while "catching up" mode is on. */
 function bumpSolved(state: TrackerState, sc: string, delta: number) {
 	if (state.norec) return;
+	if (!state.stat) state.stat = {};
 	const day = todayKey();
 	const bucket = state.stat[day] ?? (state.stat[day] = {});
 	bucket[sc] = Math.max(0, (Number(bucket[sc]) || 0) + delta);

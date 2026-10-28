@@ -1,12 +1,12 @@
-import { tracker, scheduleSave, setSessionBoostHandler } from "./tracker";
+import { tracker, updateTracker, setSessionBoostHandler } from "./tracker";
 
-function _updateAndSave(updater: (state: TrackerState) => TrackerState) {
-    tracker.update((current) => {
-        const next = updater(structuredClone(current));
-        next.savedAt = new Date().toISOString();
-        return next;
-    });
-    scheduleSave();
+function _updateAndSave(updater: (state: TrackerState) => TrackerState | void) {
+	updateTracker((draft) => {
+		const res = updater(draft);
+		if (res && res !== draft) {
+			Object.assign(draft, res);
+		}
+	});
 }
 import type { TrackerState, 
 	ChapterRecallData,
@@ -45,6 +45,7 @@ export function addChapterToRecall(
 		const newCh = createChapterRecallData(chapterKey, weightage);
 		newCh.userAdded = true;
 		newCh.nextRevisionDate = today;
+		newCh.method = method;
 
 		const [sub, ...rest] = chapterKey.split(/[-:]/);
 		const chName = rest.join('-').trim();
@@ -440,28 +441,54 @@ export function completeFocusSession(
 		// Record the revision for each subtopic
 		const chapter = $tracker.rev.chapters[session.chapterKey];
 		if (chapter) {
+			const updatedSubtopics = { ...(chapter.subtopics || {}) };
 			session.subtopicIds.forEach((subtopicId) => {
 				const subtopic = chapter.subtopics[subtopicId];
 				if (subtopic) {
-					// Update subtopic decay
-					const updatedSubtopic = {
+					updatedSubtopics[subtopicId] = {
 						...subtopic,
+						lastRevisedAt: Date.now(),
 						decay: updateDecayAfterRevision(subtopic.decay, confidence)
 					};
-
-					// This is a simplified update - in practice you'd use recordSubtopicRevision
-					// But we're updating inline here to avoid circular dependencies
 				}
 			});
 
 			// Also update chapter-level decay
+			const newDecay = updateDecayAfterRevision(chapter.decay, confidence);
+			const today = todayKey();
+			const daysLeft = Math.max(1, Math.round(daysUntilThreshold(newDecay, 60)));
+			const nextDate = addDaysKey(today, daysLeft);
+
 			const updatedChapter: ChapterRecallData = {
 				...chapter,
-				decay: updateDecayAfterRevision(chapter.decay, confidence)
+				decay: newDecay,
+				subtopics: updatedSubtopics,
+				nextRevisionDate: nextDate
+			};
+
+			const [sub, ...rest] = session.chapterKey.split(/[-:]/);
+			const chName = rest.join('-').trim();
+			const colonKey = `${sub}:${chName}`;
+			const existingItem = $tracker.rev.items[colonKey] || $tracker.rev.items[session.chapterKey];
+			const nextStep = existingItem ? (existingItem.step ?? 1) + 1 : 1;
+
+			const updatedItems = {
+				...$tracker.rev.items,
+				[colonKey]: {
+					weight: chapter.weightage,
+					last: Date.now(),
+					method: existingItem?.method ?? chapter.method ?? 'steady',
+					step: nextStep,
+					sub,
+					ch: chName,
+					ef: existingItem?.ef ?? 2.5,
+					remindDate: nextDate,
+					remindDone: false,
+					userAdded: true
+				}
 			};
 
 			// Update daily heatmap
-			const today = todayKey();
 			const todayData = $tracker.rev.dailyHeatmap[today] || {
 				revisedCount: 0,
 				totalTimeMinutes: 0
@@ -476,6 +503,7 @@ export function completeFocusSession(
 						...$tracker.rev.chapters,
 						[session.chapterKey]: updatedChapter
 					},
+					items: updatedItems,
 					dailyHeatmap: {
 						...$tracker.rev.dailyHeatmap,
 						[today]: {

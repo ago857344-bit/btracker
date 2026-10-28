@@ -7,7 +7,7 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import { subjectColor, CHAPTERS } from '$lib/state/subjects';
-	import { allChapters, allChaptersWithCustom, SYLLABUS } from '$lib/state/syllabus';
+	import { allChapters, allChaptersWithCustom, syllabusChapter, SYLLABUS } from '$lib/state/syllabus';
 	import { extractPdfText, extractImageText, matchChapters, matchChaptersAI, type ChapterMatch } from '$lib/services/btest';
 import { triageTodos } from '$lib/services/aiTriage';
 import { buildAcademicConstraintPrompt } from '$lib/services/aiContext';
@@ -43,7 +43,7 @@ async function runAiTriage() {
     triaging = true;
     try {
         const constraint = buildAcademicConstraintPrompt($tracker);
-        const result = await triageTodos(openTodos, $tracker.gamification?.elo || { P: 1200, C: 1200, M: 1200 }, constraint);
+        const result = await triageTodos(openTodos, $tracker.gamification?.elo || { P: 300, C: 300, M: 300 }, constraint);
         
         updateTracker(s => {
             s.todos = s.todos.map(t => {
@@ -106,7 +106,7 @@ async function runAiTriage() {
 		toggleTodo(id);
 		if (wasDone) uiPop(); else uiSuccess();
 		if (!wasDone && item && item.sub && item.ch) {
-			const chName = CHAPTERS[item.sub]?.[item.ch - 1];
+			const chName = syllabusChapter(item.sub, item.ch)?.name ?? CHAPTERS[item.sub]?.[item.ch - 1];
 			if (chName) boostChapterFromPractice(`${item.sub}-${chName}`);
 			celebration.set('Sent to Active Recall Hub!');
 		}

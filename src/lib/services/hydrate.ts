@@ -88,15 +88,7 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 			}
 		}
 	} else {
-		// Apply normal retroactive Elo boundary (prevents losing newly gained active Elo)
-		for (const code of ['P', 'C', 'M']) {
-			const count = trueSolved[code as 'P' | 'C' | 'M'];
-			if (count > 0) {
-				let current = retroElo[code as 'P' | 'C' | 'M'] ?? 300;
-				const bump = count * 0.3; 
-				retroElo[code as 'P' | 'C' | 'M'] = Math.max(current, 300 + bump);
-			}
-		}
+		// Already migrated with v3_elo: respect saved Elo as-is without overriding with 300 + count * 0.3
 	}
 
 	// Clean theme and sanitize any corrupted wallpaper data from previous versions
@@ -168,7 +160,8 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 			level: Math.max(saved.gamification?.level || 1, getLevelData(retroXp).level),
 			elo: retroElo,
 			v3_elo: true,
-			prestige: undefined
+			prestige: saved.gamification?.prestige,
+			peak: needsWipe ? undefined : saved.gamification?.peak
 		},
 		streakFreezes: saved.streakFreezes || base.streakFreezes || { available: 2, usedDates: [] },
 		deletedTodos: (() => {
@@ -291,23 +284,14 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 	
 	// Reconcile question stat with real question bitmasks in d
 	if (!merged.stat) merged.stat = {};
-	const today = todayKey();
 	for (const sc of ['P', 'C', 'M'] as const) {
 		const solvedInD = trueSolved[sc] || 0;
 		const loggedInStat = statQuestions[sc] || 0;
 		const diff = solvedInD - loggedInStat;
 		if (diff > 0) {
-			const recent = Math.min(diff, 250);
-			const historical = diff - recent;
-			
-			const todayBucket = merged.stat[today] ?? (merged.stat[today] = {});
-			todayBucket[sc] = (Number(todayBucket[sc]) || 0) + recent;
-			
-			if (historical > 0) {
-				const baselineDay = '2026-10-01';
-				const baseBucket = merged.stat[baselineDay] ?? (merged.stat[baselineDay] = {});
-				baseBucket[sc] = (Number(baseBucket[sc]) || 0) + historical;
-			}
+			const baselineDay = '2026-10-01';
+			const baseBucket = merged.stat[baselineDay] ?? (merged.stat[baselineDay] = {});
+			baseBucket[sc] = (Number(baseBucket[sc]) || 0) + diff;
 		}
 	}
 

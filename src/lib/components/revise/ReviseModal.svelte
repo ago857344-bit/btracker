@@ -8,7 +8,7 @@
 	import { subjectColor } from '$lib/state/subjects';
 	import { createChapterRecallData } from '$lib/state/defaults';
 	import { todayKey } from '$lib/state/dates';
-	import { cellKey, EXERCISE_DEFS } from '$lib/state/syllabus';
+	import { cellKey, resolveSyllabusChapter, visibleExercises } from '$lib/state/syllabus';
 	import { isFlag, resultOf } from '$lib/state/questions';
 	import type { ChapterRecallData } from '$lib/types/tracker';
 
@@ -25,22 +25,18 @@
 	$: color = subjectColor(subject);
 
 	// Error Log Sync
-	$: chNo = extractChapterNumber(chapterTitle);
+	$: chNo = resolveSyllabusChapter(subject, chapterTitle)?.no ?? null;
 	$: errorLog = analyzeErrors($tracker, subject, chNo);
 
-	function extractChapterNumber(title: string) {
-		// Mock mapping. In reality, we'd lookup from syllabus.ts
-		const match = title.match(/(\d+)/);
-		return match ? parseInt(match[1], 10) : 1;
-	}
-
-	function analyzeErrors(state: any, sub: string, ch: number) {
+	function analyzeErrors(state: any, sub: string, ch: number | null) {
+		if (ch === null || !state?.d) return { flagged: 0, mistakes: 0 };
 		let flagged = 0;
 		let mistakes = 0;
-		EXERCISE_DEFS.forEach(ex => {
+		const exercises = visibleExercises(state, sub, ch);
+		exercises.forEach(ex => {
 			const cKey = cellKey(sub, ch, ex.code);
 			const cells = state.d[cKey];
-			if (cells) {
+			if (cells && Array.isArray(cells)) {
 				cells.forEach((v: number) => {
 					if (isFlag(v)) flagged++;
 					const r = resultOf(v);

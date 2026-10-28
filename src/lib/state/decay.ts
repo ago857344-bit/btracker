@@ -208,15 +208,9 @@ export function daysUntilThreshold(
 	decay: DecayMetrics,
 	threshold: number = DECAY_CONSTANTS.CRITICAL_THRESHOLD
 ): number {
-	if (decay.r0 <= threshold) return 0;
-
-	// Solve for t in: threshold = r0 * 2^(-t/τ)
-	// threshold / r0 = 2^(-t/τ)
-	// log2(threshold / r0) = -t/τ
-	// t = -τ * log2(threshold / r0)
-	const daysUntil = -decay.halfLife * Math.log2(threshold / decay.r0);
-
-	return Math.max(0, daysUntil);
+	const currentScore = calculateCurrentScore(decay);
+	if (currentScore <= threshold) return 0;
+	return Math.max(0, -decay.halfLife * Math.log2(threshold / currentScore));
 }
 
 /**

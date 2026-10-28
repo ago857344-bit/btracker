@@ -55,6 +55,16 @@
 		);
 	}
 
+	$: unplannedPeriods = dayPeriods.filter((p) => !isPeriodPlanned(p));
+	$: unplannedCount = unplannedPeriods.length;
+
+	function handlePlanAll() {
+		for (const p of unplannedPeriods) {
+			addPeriodToPlanner(p, dayKey);
+		}
+		celebration.set(`Planned all ${unplannedPeriods.length} classes for today! 🎯`);
+	}
+
 	function handleAddPeriod(p: TimetablePeriod) {
 		addPeriodToPlanner(p, dayKey);
 		celebration.set(`Added "${p.topic}" to daily planner! 🎯`);
@@ -211,6 +221,17 @@
 				</div>
 
 				<div class="header-right">
+					{#if unplannedCount > 0}
+						<button
+							type="button"
+							class="btn-plan-all"
+							title="Add all remaining classes to today's planner"
+							on:click={handlePlanAll}
+						>
+							<NavIcon name="plus" size={12} />
+							<span>Plan All ({unplannedCount})</span>
+						</button>
+					{/if}
 					<button
 						type="button"
 						class="btn-manage"
@@ -548,6 +569,27 @@
 	.count-badge {
 		font-size: 0.62rem;
 		color: var(--text-secondary);
+	}
+
+	.btn-plan-all {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.22rem 0.55rem;
+		border-radius: 7px;
+		border: 1px solid var(--accent);
+		background: var(--accent);
+		color: var(--accent-contrast, #fff);
+		font-size: 0.66rem;
+		font-weight: 750;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all 0.15s ease;
+	}
+
+	.btn-plan-all:hover {
+		opacity: 0.9;
+		transform: translateY(-1px);
 	}
 
 	.btn-manage {

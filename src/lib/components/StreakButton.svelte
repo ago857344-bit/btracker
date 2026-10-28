@@ -2,7 +2,7 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { celebrateConfetti } from '$lib/utils/confetti';
-	import { celebration, hydration, intelligence, streakDays, tracker, useStreakFreeze, earnStreakFreeze } from '$lib/stores/tracker';
+	import { celebration, hydration, intelligence, streakDays, tracker, useStreakFreeze, earnStreakFreeze, isStreakDayMet } from '$lib/stores/tracker';
 	import { todayKey, addDaysKey, focusMinutesOn } from '$lib/state/dates';
 
 	interface Badge { id: string; icon: string; name: string; need: number; unit: 'day' | 'hour'; label: string }
@@ -28,8 +28,9 @@
 	$: yesterday = addDaysKey(todayKey(), -1);
 	$: dayBeforeYesterday = addDaysKey(todayKey(), -2);
 	$: streakNeed = ($tracker.meta?.streakGoalH || 1) * 60;
-	$: yesterdayMet = focusMinutesOn($tracker.log, yesterday) >= streakNeed;
-	$: dayBeforeMet = focusMinutesOn($tracker.log, dayBeforeYesterday) >= streakNeed;
+	$: yesterdayMet = isStreakDayMet($tracker, yesterday);
+	$: dayBeforeMet = isStreakDayMet($tracker, dayBeforeYesterday);
+	$: todayMet = isStreakDayMet($tracker, todayKey());
 	$: yesterdayFrozen = ($tracker.streakFreezes?.usedDates || []).includes(yesterday);
 	$: canShieldYesterday = ($tracker.streakFreezes?.available ?? 0) > 0 && !yesterdayMet && !yesterdayFrozen && dayBeforeMet;
 
@@ -105,7 +106,7 @@
 				<small>Yesterday was shielded with a Streak Freeze! Your {$streakDays}-day flame is safe. Complete today's goal to keep growing.</small>
 			</div>
 		</div>
-	{:else if focusMinutesOn($tracker.log, todayKey()) >= streakNeed}
+	{:else if todayMet}
 		<div class="streak-alert secured">
 			<span class="alert-icon">🔥</span>
 			<div>

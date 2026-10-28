@@ -431,8 +431,23 @@
 				<input value={note} placeholder="Add a note" aria-label="Note for question {i + 1}" on:change={(e) => setQuestionNote(loc, i, e.currentTarget.value)} />
 			</span>
 			<span class="c-marks">
-				<button type="button" class="flag" class:on={isFlag(v)} aria-pressed={isFlag(v)} on:click={() => toggleQuestionFlag(loc, i)}>RETRY</button>
-				<button type="button" class="stuck" class:on={r === 3} aria-pressed={r === 3} title="Could not solve" on:click={() => setQuestionResult(loc, i, 3)}>STUCK</button>
+				<button
+					type="button"
+					class="flag"
+					class:on={isFlag(v)}
+					aria-pressed={isFlag(v)}
+					on:pointerdown={(e) => beginMarkPaint(e, i, 'flag')}
+					on:click={(e) => onMarkClick(e, i, 'flag')}
+				>RETRY</button>
+				<button
+					type="button"
+					class="stuck"
+					class:on={r === 3}
+					aria-pressed={r === 3}
+					title="Could not solve"
+					on:pointerdown={(e) => beginMarkPaint(e, i, 'cant')}
+					on:click={(e) => onMarkClick(e, i, 'cant')}
+				>STUCK</button>
 				{#if r === 2 || r === 3}
 					<button
 						type="button"
@@ -489,6 +504,8 @@
 			<button type="button" class="dangerbtn" on:click={() => runBulk(confirm!)}>{CONFIRM_COPY[confirm].cta}</button>
 		</svelte:fragment>
 	</Modal>
+{/if}
+
 {#if showEditCount}
 	<Modal open={true} title="Edit Question Count" width="360px" on:close={() => (showEditCount = false)}>
 		<p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 1rem;">Change the number of questions in {exName}.</p>
@@ -501,8 +518,6 @@
 			<button type="button" on:click={saveCount} style="padding: 0.5rem 1rem; background: var(--accent); color: var(--accent-contrast, white); border: none; border-radius: 8px; cursor: pointer; font-weight: 700;">Save</button>
 		</div>
 	</Modal>
-{/if}
-
 {/if}
 
 <style>

@@ -275,14 +275,15 @@
 		const savedReport = event.detail;
 		stopwatchReports.update((list) => [savedReport, ...list]);
 		const mins = Math.max(1, Math.round(savedReport.seconds / 60));
+		const finalSub = savedReport.sub === 'X' ? null : savedReport.sub;
 		recordFocus({
 			startedEpochMinutes: sessionStartedEpochMin || Math.floor(savedReport.at / 60000),
 			durationMinutes: mins,
 			activity: savedReport.kind === 'questions' ? 'Stopwatch · Questions' : savedReport.kind === 'revision' ? 'Stopwatch · Revision' : 'Stopwatch · Theory',
-			deadlineId: null, subject: savedReport.sub, chapter: swChapter || undefined
+			deadlineId: null, subject: finalSub, chapter: swChapter || undefined
 		});
-		if (savedReport.kind === 'questions' && savedReport.done > 0 && savedReport.sub !== 'X') {
-			addSubjectSession({ sub: savedReport.sub, ch: swChapter || 'General', att: savedReport.done, cor: Math.min(savedReport.correct, savedReport.done) });
+		if (savedReport.kind === 'questions' && savedReport.done > 0 && finalSub) {
+			addSubjectSession({ sub: finalSub, ch: swChapter || 'General', att: savedReport.done, cor: Math.min(savedReport.correct, savedReport.done) });
 		}
 		setSwChapter('');
 	}

@@ -129,13 +129,16 @@
 			
 			// Adjust Elo based on mock performance
 			const subMap = { 'P': 'Physics', 'C': 'Chemistry', 'M': 'Maths' } as const;
+			const subMax = totalMarks > 0 ? totalMarks / 3 : 100;
 			['P', 'C', 'M'].forEach(code => {
 				const sData = (newTest.subjects as any)[subMap[code as 'P'|'C'|'M']];
 				if (sData) {
 					const attempted = sData.correct + sData.incorrect;
 					if (attempted > 0) {
 						const accuracy = (sData.correct / attempted) * 100;
-						applyEloResult(t.gamification!, code, accuracy, 100);
+						const scorePct = subMax > 0 ? Math.max(0, (sData.score / subMax) * 100) : accuracy;
+						const blended = 0.5 * accuracy + 0.5 * scorePct;
+						applyEloResult(t.gamification!, code, blended, 100);
 					}
 				}
 			});
@@ -152,15 +155,20 @@
 		if (!target) return;
 		updateTracker(t => {
 			t.mocks = t.mocks.filter(m => m.id !== id);
+			if (t.gamification) {
+				t.gamification.xp = Math.max(0, (t.gamification.xp || 0) - 200);
+			}
 			return t;
 		});
 		triggerToast({
-			text: `Deleted test "${target.name}"`,
+			text: `Deleted test "${target.name}" (-200 XP)`,
 			actionLabel: 'Undo',
 			onAction: () => {
 				updateTracker(t => {
 					if (!t.mocks) t.mocks = [];
 					t.mocks.push(target);
+					if (!t.gamification) t.gamification = { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } };
+					t.gamification.xp += 200;
 					return t;
 				});
 			}

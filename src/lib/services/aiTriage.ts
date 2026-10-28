@@ -9,10 +9,10 @@ export async function triageTodos(
     const prompt = `
 You are an elite JEE Mentor AI. The student has requested an "AI Smart Triage" of their To-Do list based on game theory and their current Elo ratings.
 ${academicConstraints}
-Current Elo Ratings (Baseline is 1200, >1600 is strong, <1000 is weak):
-Physics: ${elo.P || 1200}
-Chemistry: ${elo.C || 1200}
-Maths: ${elo.M || 1200}
+Current Elo Ratings (Scale: 300 = Starting/Bronze, 500–800 = Silver, 800–1200 = Gold, 1200+ = Diamond/Elite, 1600+ = Grandmaster):
+Physics: ${elo.P ?? 300}
+Chemistry: ${elo.C ?? 300}
+Maths: ${elo.M ?? 300}
 
 Here are their pending tasks (ID and Title):
 ${todos.map(t => `- [${t.id}] ${t.title}`).join('\n')}

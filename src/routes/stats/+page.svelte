@@ -74,12 +74,33 @@
 	$: velocityMax = Math.max(1, thisWeek, lastWeek);
 	$: deltaPct = lastWeek ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) : thisWeek ? 100 : 0;
 	$: curTable = $tracker.marks?.tables?.find((table) => table.id === $tracker.marks?.cur) ?? $tracker.marks?.tables?.[0];
-	$: testRows = (curTable?.rows ?? []).map((row) => {
-		const tot = Number(row.v['tot']) || 0; const sc = Number(row.v['sc']) || 0;
-		return { name: row.v['name'] || 'Untitled', pct: tot ? Math.round((sc / tot) * 100) : null };
-	}).filter((row) => row.pct !== null);
+	$: testRows = (() => {
+		if ($tracker.mocks && $tracker.mocks.length > 0) {
+			return $tracker.mocks.map((m) => {
+				const tot = Number(m.totalMarks) || 300;
+				const sc = Number(m.score) || 0;
+				return {
+					name: m.name || 'Untitled',
+					pct: tot > 0 ? Math.round((sc / tot) * 100) : 0,
+					date: m.date || 0
+				};
+			});
+		}
+		return (curTable?.rows ?? []).map((row) => {
+			const tot = Number(row.v['tot']) || 0; const sc = Number(row.v['sc']) || 0;
+			return { name: row.v['name'] || 'Untitled', pct: tot ? Math.round((sc / tot) * 100) : null, date: 0 };
+		}).filter((row) => row.pct !== null) as { name: string; pct: number; date: number }[];
+	})();
 	$: avgPct = testRows.length ? Math.round(testRows.reduce((sum, row) => sum + (row.pct ?? 0), 0) / testRows.length) : null;
 	$: bestTest = testRows.length ? testRows.reduce((best, row) => ((row.pct ?? 0) > (best.pct ?? 0) ? row : best)) : null;
+	$: recentTrend = (() => {
+		if (testRows.length < 2) return null;
+		const sorted = [...testRows].sort((a, b) => (a.date || 0) - (b.date || 0));
+		const last = sorted[sorted.length - 1].pct;
+		const prev = sorted[sorted.length - 2].pct;
+		const diff = last - prev;
+		return diff > 0 ? `+${diff}%` : `${diff}%`;
+	})();
 </script>
 
 <section class="stats">
@@ -325,7 +346,7 @@
 							<div class="cell"><span class="k">TESTS LOGGED</span><b>{testRows.length}</b></div>
 							<div class="cell"><span class="k">AVERAGE</span><b>{avgPct}%</b></div>
 							<div class="cell hl"><span class="k">BEST</span><b>{bestTest?.pct}%<small>{bestTest?.name}</small></b></div>
-							<div class="cell"><span class="k">SERIES</span><b class="series">{curTable?.n}</b></div>
+							<div class="cell"><span class="k">RECENT TREND</span><b class="series">{recentTrend ?? (curTable?.n || 'Steady')}</b></div>
 						</div>
 					{:else}
 						<p class="dim">No test data yet — log a test score to see academic trends here.</p>

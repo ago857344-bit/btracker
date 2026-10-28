@@ -221,6 +221,153 @@ export const syllabusChapter = (code: string, no: number): SyllabusChapter | nul
 };
 export const allChapters = (code: string) => syllabusSubject(code)?.modules.flatMap((m) => m.chapters) ?? [];
 
+const NCERT_ALIASES: Record<string, Record<string, string>> = {
+	P: {
+		'physical world': 'Units, Dimensions and Measurement',
+		'units and measurements': 'Units, Dimensions and Measurement',
+		'motion in a straight line': 'Kinematics',
+		'motion in a plane': 'Kinematics',
+		'laws of motion': 'Kinematics',
+		'work, energy and power': 'Work, Power and Energy',
+		'work energy and power': 'Work, Power and Energy',
+		'system of particles and rotational motion': 'Rotational Dynamics',
+		'rotational motion': 'Rotational Dynamics',
+		'gravitation': 'Gravitation',
+		'mechanical properties of solids': 'Mechanical Properties of Matter',
+		'mechanical properties of fluids': 'Fluids',
+		'thermal properties of matter': 'Thermal Expansion and Calorimetry',
+		'thermodynamics': 'Thermodynamics',
+		'kinetic theory': 'Kinetic Theory of Gases',
+		'oscillations': 'Simple Harmonic Motion',
+		'waves': 'Wave Motion',
+		'electric charges and fields': 'Electrostatics',
+		'electrostatic potential and capacitance': 'Capacitance',
+		'current electricity': 'Current Electricity',
+		'moving charges and magnetism': 'Magnetic Field',
+		'magnetism and matter': 'Magnetism and Matter',
+		'electromagnetic induction': 'Electromagnetic Induction',
+		'alternating current': 'Alternating Current',
+		'electromagnetic waves': 'Electromagnetic Waves',
+		'ray optics': 'Geometrical Optics',
+		'wave optics': 'Wave Optics',
+		'dual nature of radiation and matter': 'Modern Physics',
+		'atoms': 'Modern Physics',
+		'nuclei': 'Modern Physics',
+		'semiconductor electronics': 'Semiconductor Devices'
+	},
+	C: {
+		'some basic concepts of chemistry': 'Mole Concept',
+		'structure of atom': 'Atomic Structure',
+		'classification of elements and periodicity': 'Periodic Structure',
+		'chemical bonding and molecular structure': 'Chemical Bonding',
+		'states of matter': 'Gaseous State',
+		'thermodynamics': 'Thermodynamics',
+		'equilibrium': 'Chemical Equilibrium',
+		'redox reactions': 'Redox Reactions',
+		'hydrogen': 'Hydrogen and its Compounds',
+		'the s-block elements': 'S-Block Elements',
+		'the p-block elements': 'P-Block (part 1)',
+		'organic chemistry: basic principles': 'General Organic Chemistry',
+		'organic chemistry basic principles': 'General Organic Chemistry',
+		'hydrocarbons': 'Hydrocarbons',
+		'environmental chemistry': 'Environmental Chemistry',
+		'solutions': 'Solutions and Colligative Properties',
+		'electrochemistry': 'Electrochemistry',
+		'chemical kinetics': 'Chemical Kinetics',
+		'the d- and f-block elements': 'Chemistry of d and f block',
+		'coordination compounds': 'Coordination Compounds',
+		'haloalkanes and haloarenes': 'Alkyl and Aryl Halides',
+		'alcohols, phenols and ethers': 'Alcohol, Ethers and Phenols',
+		'alcohols phenols and ethers': 'Alcohol, Ethers and Phenols',
+		'aldehydes, ketones and carboxylic acids': 'Aldehydes and Ketones',
+		'amines': 'Nitrogen Containing Compounds',
+		'biomolecules': 'Biomolecules and Polymers'
+	},
+	M: {
+		'sets': 'Sets and Relations',
+		'relations and functions': 'Functions',
+		'trigonometric functions': 'Trigonometric Ratios and Identities',
+		'principle of mathematical induction': 'Sequence and Series',
+		'complex numbers and quadratic equations': 'Complex Numbers',
+		'linear inequalities': 'Basic Mathematics',
+		'permutations and combinations': 'Permutations and Combinations',
+		'binomial theorem': 'Binomial Theorem',
+		'sequences and series': 'Sequence and Series',
+		'straight lines': 'Straight Lines',
+		'conic sections': 'Circles',
+		'introduction to three-dimensional geometry': '3D Geometry',
+		'limits and derivatives': 'Limits, Continuity and Differentiability',
+		'mathematical reasoning': 'Basic Mathematics',
+		'statistics': 'Statistics',
+		'probability': 'Probability',
+		'inverse trigonometric functions': 'Inverse Trigonometric Functions',
+		'matrices': 'Matrices',
+		'determinants': 'Determinants',
+		'continuity and differentiability': 'Limits, Continuity and Differentiability',
+		'application of derivatives': 'Application of Derivatives',
+		'integrals': 'Indefinite Integration',
+		'differential equations': 'Differential Equations',
+		'vector algebra': 'Vector Algebra',
+		'three-dimensional geometry': '3D Geometry',
+		'linear programming': 'Basic Mathematics'
+	}
+};
+
+/**
+ * Fuzzy alias resolver that maps any chapter number, code (e.g. 'P5', 'P-5'),
+ * exact chapter name, or legacy NCERT chapter name cleanly to its SyllabusChapter.
+ */
+export function resolveSyllabusChapter(sub: string, nameOrNo: string | number): SyllabusChapter | null {
+	const chapters = allChapters(sub);
+	if (!chapters.length) return null;
+
+	if (typeof nameOrNo === 'number') {
+		return syllabusChapter(sub, nameOrNo) ?? null;
+	}
+
+	const raw = String(nameOrNo).trim();
+	if (!raw) return null;
+
+	// Check if string is a number or like 'P-5', 'Ch 5', 'Chapter 5'
+	const numMatch = raw.match(/^(?:[PCM][-:]?)?\s*(?:Ch(?:apter)?\.?\s*)?(\d+)$/i);
+	if (numMatch) {
+		const n = parseInt(numMatch[1], 10);
+		if (!isNaN(n)) {
+			const found = syllabusChapter(sub, n);
+			if (found) return found;
+		}
+	}
+
+	const rawLower = raw.toLowerCase();
+
+	// 1. Exact match on syllabus name
+	const exact = chapters.find((c) => c.name.toLowerCase() === rawLower);
+	if (exact) return exact;
+
+	// 2. NCERT alias lookup
+	const aliasTarget = NCERT_ALIASES[sub]?.[rawLower];
+	if (aliasTarget) {
+		const aliasMatch = chapters.find((c) => c.name.toLowerCase() === aliasTarget.toLowerCase());
+		if (aliasMatch) return aliasMatch;
+	}
+
+	// 3. Normalized alphanumeric match
+	const clean = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+	const cleanInput = clean(raw);
+	if (cleanInput) {
+		const normMatch = chapters.find((c) => clean(c.name) === cleanInput);
+		if (normMatch) return normMatch;
+
+		// 4. Substring contains match
+		const subMatch = chapters.find(
+			(c) => clean(c.name).includes(cleanInput) || cleanInput.includes(clean(c.name))
+		);
+		if (subMatch) return subMatch;
+	}
+
+	return null;
+}
+
 /**
  * Discover custom chapter numbers that exist in user data but not in the built-in syllabus.
  * Scans state.x.exs and state.d for keys matching the subject prefix.

@@ -76,6 +76,12 @@
 			const [subCode, ...restParts] = chapter.chapterKey.split(/[-:]/);
 			const chTitle = restParts.join(' ').trim() || chapter.chapterKey;
 			if (subFilter && subCode !== subFilter) return false;
+			if (methodFilter) {
+				const chName = restParts.join('-').trim();
+				const colonKey = `${subCode}:${chName}`;
+				const m = chapter.method || $tracker.rev?.items?.[colonKey]?.method || $tracker.rev?.items?.[chapter.chapterKey]?.method || 'steady';
+				if (m !== methodFilter) return false;
+			}
 			if (query.trim() && !chTitle.toLowerCase().includes(query.trim().toLowerCase())) return false;
 			if (tab === 'due') return dueChapters.some((c) => c.chapterKey === chapter.chapterKey);
 			if (tab === 'critical') return criticalChaptersList.some((c) => c.chapterKey === chapter.chapterKey);
