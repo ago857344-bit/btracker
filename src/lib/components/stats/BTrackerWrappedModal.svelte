@@ -8,6 +8,9 @@
 	import { renderReportImage } from '$lib/services/reportCardImage';
 	import { SUBJECTS, subjectName, subjectColor } from '$lib/state/subjects';
 	import { uiClick, uiSuccess } from '$lib/utils/feedback';
+	import { logTotals, chapterStats, pctOf, accuracyOf } from '$lib/state/questions';
+	import { allChaptersWithCustom } from '$lib/state/syllabus';
+	import { universalEntries, universalTotals, universalChapters } from '$lib/state/universal';
 
 	export let open = false;
 
@@ -30,15 +33,16 @@
 	$: totalFocusHours = Math.round((weeklyReport.minutes / 60) * 10) / 10;
 	$: totalQuestions = weeklyReport.solved;
 	$: accuracyPercent = (() => {
-		let totalSolved = 0;
-		if ($tracker.stat) {
-			for (const day in $tracker.stat) {
-				for (const sub in $tracker.stat[day]) {
-					totalSolved += $tracker.stat[day][sub as 'P' | 'C' | 'M'] || 0;
-				}
-			}
+		const syllabusTot = logTotals($tracker);
+		const uTotals = universalTotals(universalEntries($tracker));
+		
+		const totalCorrect = (syllabusTot.correct || 0) + (uTotals.solved || 0);
+		const totalAttempts = (syllabusTot.correct + syllabusTot.wrong + syllabusTot.cant) + (uTotals.attempts || 0);
+		
+		if (totalAttempts > 0) {
+			return Math.round((totalCorrect / totalAttempts) * 100);
 		}
-		return totalSolved > 0 ? Math.min(98, Math.max(65, Math.round(78 + (totalSolved % 18)))) : 88;
+		return 0;
 	})();
 
 	// 2. Study Archetype (Chronotype)
@@ -109,43 +113,60 @@
 
 	// 3. Most Crushed Chapter
 	$: crushedChapter = (() => {
-		let bestChapter = 'Rotational Dynamics';
+		let bestChapter = '';
 		let bestSubject = 'Physics';
 		let maxCount = 0;
+		let bestMastery = '0%';
 
-		if ($tracker.stat) {
-			const chCounts: Record<string, { count: number; sub: string }> = {};
-			for (const day in $tracker.stat) {
-				const dayData = $tracker.stat[day];
-				if (dayData) {
-					for (const subCode in dayData) {
-						const count = dayData[subCode as 'P' | 'C' | 'M'] || 0;
-						const sName = subjectName(subCode);
-						chCounts[sName] = chCounts[sName] || { count: 0, sub: sName };
-						chCounts[sName].count += count;
-					}
+		// 1. Scan syllabus chapters
+		for (const sub of ['P', 'C', 'M']) {
+			const chapters = allChaptersWithCustom($tracker, sub);
+			for (const ch of chapters) {
+				const st = chapterStats($tracker, sub, ch.no);
+				const count = st.done;
+				if (count > maxCount) {
+					maxCount = count;
+					bestChapter = ch.name;
+					bestSubject = subjectName(sub);
+					const acc = accuracyOf(st);
+					const pct = pctOf(st);
+					bestMastery = `${acc !== null ? acc : pct}%`;
 				}
 			}
-			for (const ch in chCounts) {
-				if (chCounts[ch].count > maxCount) {
-					maxCount = chCounts[ch].count;
-					bestChapter = ch;
-					bestSubject = chCounts[ch].sub;
-				}
+		}
+
+		// 2. Scan universal chapters
+		const uChapters = universalChapters(universalEntries($tracker));
+		for (const uc of uChapters) {
+			const count = uc.solved;
+			if (count > maxCount) {
+				maxCount = count;
+				bestChapter = uc.ch;
+				bestSubject = subjectName(uc.sub);
+				bestMastery = `${uc.accuracy}%`;
 			}
+		}
+
+		if (maxCount === 0 || !bestChapter) {
+			return {
+				name: 'Log questions to unlock',
+				subject: 'Syllabus',
+				count: 0,
+				mastery: '0%'
+			};
 		}
 
 		return {
 			name: bestChapter,
 			subject: bestSubject,
-			count: Math.max(maxCount, weeklyReport.solved > 0 ? weeklyReport.solved : 45),
-			mastery: '94%'
+			count: maxCount,
+			mastery: bestMastery
 		};
 	})();
 
 	// 4. Biggest Elo Comeback
 	$: eloStats = (() => {
-		const elo = $tracker.gamification?.elo || { P: 320, C: 340, M: 310 };
+		const elo = $tracker.gamification?.elo || { P: 300, C: 300, M: 300 };
 		const subjects = [
 			{ code: 'P', name: 'Physics', elo: elo.P, color: '#3b82f6' },
 			{ code: 'C', name: 'Chemistry', elo: elo.C, color: '#10b981' },
@@ -153,10 +174,11 @@
 		];
 		subjects.sort((a, b) => b.elo - a.elo);
 		const top = subjects[0];
+		const delta = Math.round(top.elo - 300);
 		return {
 			subject: top.name,
-			elo: top.elo,
-			gain: '+64 Elo',
+			elo: Math.round(top.elo),
+			gain: delta >= 0 ? `+${delta} Elo` : `${delta} Elo`,
 			color: top.color
 		};
 	})();

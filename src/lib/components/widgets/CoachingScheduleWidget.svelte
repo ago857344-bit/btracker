@@ -1,6 +1,8 @@
 <script lang="ts">
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { tracker, addPeriodToPlanner, celebration } from '$lib/stores/tracker';
+	import { globalTimer } from '$lib/stores/timerState';
+	import { goto } from '$app/navigation';
 	import { todayKey, addDaysKey } from '$lib/state/dates';
 	import type { TimetableDay, TimetablePeriod } from '$lib/types/tracker';
 
@@ -120,6 +122,12 @@
 		addPeriodToPlanner(p, targetDate);
 		celebration.set(`Added "${p.topic}" to planner for ${targetDate}! 🎯`);
 	}
+
+	function handleFocusTopic(p: TimetablePeriod) {
+		$globalTimer.start(p.subject, 45 * 60, p.topic, 'timer');
+		celebration.set(`Starting 45m Focus on ${p.topic}! 🎯`);
+		goto('/focus');
+	}
 </script>
 
 <div class="coaching-widget">
@@ -216,15 +224,28 @@
 						</div>
 					</div>
 
-					<button
-						type="button"
-						class="btn-add-plan"
-						title="Add to daily planner tasks"
-						aria-label="Add period to daily planner"
-						on:click={() => handleAddToPlan(period)}
-					>
-						<NavIcon name="plus" size={12} />
-					</button>
+					<div class="period-actions">
+						{#if period.subject === 'P' || period.subject === 'C' || period.subject === 'M'}
+							<button
+								type="button"
+								class="btn-focus-topic"
+								title="Focus on Topic (Start 45m Session)"
+								aria-label="Focus on Topic"
+								on:click={() => handleFocusTopic(period)}
+							>
+								<NavIcon name="play" size={11} />
+							</button>
+						{/if}
+						<button
+							type="button"
+							class="btn-add-plan"
+							title="Add to daily planner tasks"
+							aria-label="Add period to daily planner"
+							on:click={() => handleAddToPlan(period)}
+						>
+							<NavIcon name="plus" size={12} />
+						</button>
+					</div>
 				</li>
 			{/each}
 		</ul>
@@ -519,6 +540,34 @@
 		text-overflow: ellipsis;
 	}
 
+	.period-actions {
+		display: flex;
+		align-items: center;
+		gap: 0.3rem;
+		flex-shrink: 0;
+	}
+
+	.btn-focus-topic {
+		display: grid;
+		place-items: center;
+		width: 24px;
+		height: 24px;
+		border-radius: 7px;
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+		color: var(--accent);
+		cursor: pointer;
+		flex-shrink: 0;
+		transition: all 0.16s ease;
+	}
+
+	.btn-focus-topic:hover {
+		background: var(--accent);
+		border-color: var(--accent);
+		color: var(--accent-contrast, #ffffff);
+		transform: scale(1.05);
+	}
+
 	.btn-add-plan {
 		display: grid;
 		place-items: center;
@@ -637,6 +686,7 @@
 			line-height: 1.3;
 		}
 
+		.btn-focus-topic,
 		.btn-add-plan {
 			width: 32px;
 			height: 32px;

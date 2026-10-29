@@ -50,6 +50,7 @@
 	import { SUBJECTS, chaptersOf, subjectColor, subjectName } from '$lib/state/subjects';
 	import { playChime } from '$lib/services/chime';
 	import { DEFAULT_POMODORO } from '$lib/state/defaults';
+	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
 
 	type Tab = 'focus' | 'stopwatch' | 'short' | 'long';
 	const TABS: { id: Tab; label: string }[] = [
@@ -285,12 +286,18 @@
 		if (savedReport.kind === 'questions' && savedReport.done > 0 && finalSub) {
 			addSubjectSession({ sub: finalSub, ch: swChapter || 'General', att: savedReport.done, cor: Math.min(savedReport.correct, savedReport.done) });
 		}
+		if (finalSub && swChapter && mins >= 5) {
+			boostChapterFromPractice(`${finalSub}-${swChapter}`, mins);
+		}
 		setSwChapter('');
 	}
 
 	function submitLog() {
 		const minutes = Math.max(1, Math.round(Number(logMinutes) || 0));
 		logManualMinutes(minutes, logSubject, logChapter || undefined);
+		if (logSubject && logChapter && minutes >= 5) {
+			boostChapterFromPractice(`${logSubject}-${logChapter}`, minutes);
+		}
 		celebration.set(`${minutes} min logged!`);
 		logOpen = false;
 	}
@@ -570,20 +577,20 @@
 				<div class="sw-setup" class:hidden={running || elapsed > 0}>
 					<p class="label">SESSION TYPE</p>
 					<div class="kinds">
-						<button type="button" class="kind amber" class:on={swKind === 'questions'} disabled={locked} on:click={() => (swKind = 'questions')}>QUESTIONS</button>
-						<button type="button" class="kind" class:on={swKind === 'theory'} disabled={locked} on:click={() => (swKind = 'theory')}>THEORY</button>
-							<button type="button" class="kind green" class:on={swKind === 'revision'} disabled={locked} style="background: var(--success); color: var(--accent-contrast, #fff);" on:click={() => (swKind = 'revision')}>REVISION</button>
+						<button type="button" class="kind amber" class:on={swKind === 'questions'} disabled={locked} on:click={() => setSwKind('questions')}>QUESTIONS</button>
+						<button type="button" class="kind" class:on={swKind === 'theory'} disabled={locked} on:click={() => setSwKind('theory')}>THEORY</button>
+							<button type="button" class="kind green" class:on={swKind === 'revision'} disabled={locked} style="background: var(--success); color: var(--accent-contrast, #fff);" on:click={() => setSwKind('revision')}>REVISION</button>
 					</div>
 					<p class="label">SELECT SUBJECT</p>
 					<div class="chips">
 						{#each SUBJECTS as s}
-							<button type="button" class="chip" class:on={subject === s.code} disabled={locked} style="--c: {s.color}" on:click={() => { subject = subject === s.code ? null : s.code; swChapter = ''; }}>
+							<button type="button" class="chip" class:on={subject === s.code} disabled={locked} style="--c: {s.color}" on:click={() => { setTimerSubject(subject === s.code ? null : s.code); setSwChapter(''); }}>
 								<span class="dot" style="background: {s.color}"></span>{s.name}
 							</button>
 						{/each}
 					</div>
 					<p class="label">CHAPTER{swKind === 'questions' ? ' *' : ''}</p>
-					<select class="chapter" bind:value={swChapter} disabled={locked || !subject}>
+					<select class="chapter" value={swChapter} on:change={(e) => setSwChapter(e.currentTarget.value)} disabled={locked || !subject}>
 						<option value="">{subject ? 'Select a chapter…' : 'Select a subject first'}</option>
 						{#each chapters as ch}<option value={ch}>{ch}</option>{/each}
 					</select>
@@ -608,16 +615,22 @@
 						{/if}
 					</div>
 					{#if tab === 'focus'}
+						<p class="label">SESSION TYPE</p>
+						<div class="kinds">
+							<button type="button" class="kind amber" class:on={focusKind === 'questions'} on:click={() => setFocusKind('questions')}>QUESTIONS</button>
+							<button type="button" class="kind" class:on={focusKind === 'theory'} on:click={() => setFocusKind('theory')}>THEORY</button>
+							<button type="button" class="kind green" class:on={focusKind === 'revision'} style="background: var(--success); color: var(--accent-contrast, #fff);" on:click={() => setFocusKind('revision')}>REVISION</button>
+						</div>
 						<p class="label">SELECT SUBJECT</p>
 						<div class="chips">
 							{#each SUBJECTS as s}
-								<button type="button" class="chip" class:on={subject === s.code} style="--c: {s.color}" on:click={() => (subject = subject === s.code ? null : s.code)}>
+								<button type="button" class="chip" class:on={subject === s.code} style="--c: {s.color}" on:click={() => { setTimerSubject(subject === s.code ? null : s.code); setFocusChapter(''); }}>
 									<span class="dot" style="background: {s.color}"></span>{s.name}
 								</button>
 							{/each}
 						</div>
-						<p class="label">CHAPTER</p>
-						<select class="chapter" bind:value={focusChapter} disabled={!subject}>
+						<p class="label">CHAPTER{focusKind === 'questions' ? ' *' : ''}</p>
+						<select class="chapter" value={focusChapter} on:change={(e) => setFocusChapter(e.currentTarget.value)} disabled={!subject}>
 							<option value="">{subject ? 'Select a chapter…' : 'Select a subject first'}</option>
 							{#each chapters as ch}<option value={ch}>{ch}</option>{/each}
 						</select>

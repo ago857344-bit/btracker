@@ -578,6 +578,13 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 			usedDates: Array.from(new Set([...(base.streakFreezes?.usedDates ?? []), ...(remote.streakFreezes?.usedDates ?? [])]))
 		},
 		starredFormulas: Array.from(new Set([...(base.starredFormulas || []), ...(remote.starredFormulas || [])])),
+		customFormulas: (() => {
+			const map = new Map((base.customFormulas || []).map((f) => [f.id, f]));
+			for (const f of remote.customFormulas || []) {
+				map.set(f.id, f);
+			}
+			return Array.from(map.values());
+		})(),
 		examNotes: (() => {
 			if (base.examNotes && remote.examNotes) {
 				return cloudIsNewer ? remote.examNotes : base.examNotes;

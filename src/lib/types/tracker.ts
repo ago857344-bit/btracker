@@ -41,6 +41,17 @@ export interface CustomReminder {
 	updatedAt: number;
 }
 
+export interface CustomFormula {
+	id: string;
+	subject: 'P' | 'C' | 'M';
+	chapterName: string;
+	title: string;
+	latex: string;
+	description?: string;
+	tags: string[];
+	important?: boolean;
+}
+
 export interface PlannerSubtask {
 	id: string;
 	title: string;
@@ -441,6 +452,7 @@ export interface TrackerState {
 	coaching_type?: CoachingType;
 	coaching_name?: string;
 	starredFormulas?: string[];
+	customFormulas?: CustomFormula[];
 	examNotes?: string;
 	customReminders?: CustomReminder[];
 	lectureNotes?: Record<string, { videoId: string; title: string; subject: SubjectCode; chapter: string; content: string; updatedAt: number }>;

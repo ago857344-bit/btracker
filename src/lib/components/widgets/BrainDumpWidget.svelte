@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
-	import { tracker, updateTracker, celebration, addTodos } from '$lib/stores/tracker';
+	import { tracker, updateTracker, celebration, addTodos, addFlashcard } from '$lib/stores/tracker';
+	import type { MistakeLog } from '$lib/types/tracker';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { uiClick } from '$lib/utils/feedback';
 
@@ -90,20 +91,92 @@
 	function convertToTodo() {
 		uiClick();
 		if (!text.trim()) return;
-		// Split by lines, find valid task lines or use entire text if short
-		const lines = text
-			.split('\n')
-			.map((l) => l.replace(/^[-*•]\s*(\[[ xX]\]\s*)?/, '').trim())
-			.filter((l) => l.length > 0);
 
-		if (lines.length === 0) return;
+		const rawLines = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0);
+		if (rawLines.length === 0) return;
 
-		const addedCount = addTodos(lines.map((l) => ({ title: l, source: 'brain-dump' })));
+		let mistakesCount = 0;
+		let flashcardsCount = 0;
+		const todoLines: string[] = [];
+		const newMistakes: MistakeLog[] = [];
 
-		if (addedCount > 0) {
-			celebration.set(`Converted ${addedCount} item${addedCount > 1 ? 's' : ''} to To-Do list!`);
+		for (const rawLine of rawLines) {
+			if (rawLine.startsWith('⚠️ Mistake:') || rawLine.startsWith('Mistake:')) {
+				let content = rawLine.replace(/^(⚠️\s*)?Mistake:\s*/i, '').trim();
+				let subject = 'Physics';
+				if (/^(P:|\[P\]|Physics:)/i.test(content)) {
+					subject = 'Physics';
+					content = content.replace(/^(P:|\[P\]|Physics:)\s*/i, '').trim();
+				} else if (/^(C:|\[C\]|Chemistry:)/i.test(content)) {
+					subject = 'Chemistry';
+					content = content.replace(/^(C:|\[C\]|Chemistry:)\s*/i, '').trim();
+				} else if (/^(M:|\[M\]|Maths?:)/i.test(content)) {
+					subject = 'Maths';
+					content = content.replace(/^(M:|\[M\]|Maths?:)\s*/i, '').trim();
+				}
+
+				if (content) {
+					newMistakes.push({
+						id: `mistake_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+						date: Date.now(),
+						subject,
+						errorType: 'Conceptual',
+						description: content,
+						testName: 'Brain Dump'
+					});
+					mistakesCount++;
+				}
+			} else if (rawLine.startsWith('⚡ Formula:') || rawLine.startsWith('Formula:')) {
+				let content = rawLine.replace(/^(⚡\s*)?Formula:\s*/i, '').trim();
+				let subject = 'P';
+				if (/^(P:|\[P\]|Physics:)/i.test(content)) {
+					subject = 'P';
+					content = content.replace(/^(P:|\[P\]|Physics:)\s*/i, '').trim();
+				} else if (/^(C:|\[C\]|Chemistry:)/i.test(content)) {
+					subject = 'C';
+					content = content.replace(/^(C:|\[C\]|Chemistry:)\s*/i, '').trim();
+				} else if (/^(M:|\[M\]|Maths?:)/i.test(content)) {
+					subject = 'M';
+					content = content.replace(/^(M:|\[M\]|Maths?:)\s*/i, '').trim();
+				}
+
+				if (content) {
+					addFlashcard({
+						front: content,
+						back: 'Review formula & conditions',
+						subject,
+						chapter: 'Brain Dump'
+					});
+					flashcardsCount++;
+				}
+			} else {
+				const cleaned = rawLine.replace(/^[-*•]\s*(\[[ xX]\]\s*)?/, '').trim();
+				if (cleaned) {
+					todoLines.push(cleaned);
+				}
+			}
+		}
+
+		if (newMistakes.length > 0) {
+			updateTracker((s) => {
+				s.mistakes = [...(s.mistakes || []), ...newMistakes];
+			});
+		}
+
+		let tasksAdded = 0;
+		if (todoLines.length > 0) {
+			tasksAdded = addTodos(todoLines.map((l) => ({ title: l, source: 'brain-dump' })));
+		}
+
+		const parts: string[] = [];
+		if (tasksAdded > 0) parts.push(`${tasksAdded} Task${tasksAdded > 1 ? 's' : ''}`);
+		if (mistakesCount > 0) parts.push(`${mistakesCount} Mistake${mistakesCount > 1 ? 's' : ''}`);
+		if (flashcardsCount > 0) parts.push(`${flashcardsCount} Flashcard${flashcardsCount > 1 ? 's' : ''}`);
+
+		if (parts.length > 0) {
+			celebration.set(`Routed ${parts.join(', ')}! 🚀`);
 		} else {
-			celebration.set('Items already exist in your To-Do list.');
+			celebration.set('Notes processed (items already exist).');
 		}
 	}
 
@@ -154,12 +227,12 @@
 			<button
 				type="button"
 				class="btn-send-todo"
-				title="Convert items to To-Do tasks"
+				title="Smart Tag Routing: Routes Tasks to To-Do, '⚡ Formula:' to Flashcards, and '⚠️ Mistake:' to Mistake Log"
 				on:click={convertToTodo}
 				disabled={!text.trim()}
 			>
-				<NavIcon name="plus" size={12} />
-				<span>Send to Tasks</span>
+				<NavIcon name="sparkles" size={12} />
+				<span>Process Notes</span>
 			</button>
 		</div>
 	</div>
@@ -172,7 +245,7 @@
 			on:input={handleInput}
 			on:focus={() => (isFocused = true)}
 			on:blur={handleBlur}
-			placeholder="Quick scratchpad for formulas, coaching doubts, flash thoughts, or rapid problem notes...&#10;• Type anything — it auto-saves!&#10;• Hit 'Send to Tasks' to turn bullets into To-Dos."
+			placeholder="Quick scratchpad for formulas, coaching doubts, flash thoughts, or rapid problem notes...&#10;• Type anything — it auto-saves!&#10;• Hit 'Process Notes' to smart route Tasks, Formulas & Mistakes."
 			spellcheck="false"
 			rows="4"
 		></textarea>

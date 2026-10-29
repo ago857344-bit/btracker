@@ -5,6 +5,7 @@ import { playChime } from '$lib/services/chime';
 import { notifyUser } from '$lib/utils/notifications';
 import { formatClock } from '$lib/state/dates';
 import { DEFAULT_POMODORO } from '$lib/state/defaults';
+import { boostChapterFromPractice } from '$lib/stores/recall-actions';
 
 export type TimerTab = 'focus' | 'stopwatch' | 'short' | 'long';
 export type TimerPhase = 'focus' | 'break';
@@ -167,6 +168,9 @@ function logSession(minutes: number, activity: string, s: ActiveTimerSession) {
 		subject: s.subject,
 		chapter: s.focusChapter || undefined
 	});
+	if (s.subject && s.focusChapter && minutes >= 5) {
+		boostChapterFromPractice(`${s.subject}-${s.focusChapter}`, minutes);
+	}
 	celebration.set(`${minutes} min focus logged!`);
 }
 

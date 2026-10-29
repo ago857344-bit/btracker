@@ -197,6 +197,7 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 			}
 			return Array.isArray(list) ? list : [];
 		})(),
+		customFormulas: Array.isArray(saved.customFormulas) ? saved.customFormulas : [],
 		examNotes: (() => {
 			let notes = saved.examNotes;
 			if (notes === undefined && typeof window !== 'undefined') {

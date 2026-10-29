@@ -23,6 +23,7 @@
 	let renderTick = 0;
 	let copiedMarkdown = false;
 	let copyTimeout: ReturnType<typeof setTimeout> | undefined;
+	let excludeResolved = true;
 
 	$: starredIds = $tracker.starredFormulas || [];
 
@@ -123,6 +124,9 @@
 	$: isUsingCuratedMistakes = !($tracker.mistakes && $tracker.mistakes.length > 0);
 
 	$: filteredMistakes = allMistakes.filter((m) => {
+		if (excludeResolved && m.resolved) {
+			return false;
+		}
 		// Subject match
 		if ($testDaySheetOptions.subject !== 'ALL') {
 			const sub = m.subject.toLowerCase();
@@ -138,8 +142,10 @@
 		return true;
 	});
 
-	// Filter formulas based on user options
-	$: filteredFormulas = JEE_FORMULAS.filter((f) => {
+	// Filter formulas based on user options (including custom formulas)
+	$: allFormulasList = [...JEE_FORMULAS, ...($tracker.customFormulas || [])];
+
+	$: filteredFormulas = allFormulasList.filter((f) => {
 		// Subject match
 		if ($testDaySheetOptions.subject !== 'ALL') {
 			const subCode = $testDaySheetOptions.subject === 'Physics' ? 'P' : $testDaySheetOptions.subject === 'Chemistry' ? 'C' : 'M';
@@ -361,6 +367,10 @@
 				<label class="config-toggle">
 					<input type="checkbox" bind:checked={$testDaySheetOptions.includeMistakes} />
 					<span>Mistakes ({totalMistakesCount})</span>
+				</label>
+				<label class="config-toggle" title="Filter out already resolved/mastered mistakes">
+					<input type="checkbox" bind:checked={excludeResolved} />
+					<span>Unmastered Only</span>
 				</label>
 				<label class="config-toggle">
 					<input type="checkbox" bind:checked={$testDaySheetOptions.includeFormulas} />

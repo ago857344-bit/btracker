@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { createEventDispatcher, onMount } from 'svelte';
-	import { fly, fade } from 'svelte/transition';
+	import { fly, fade, slide } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { JEE_FORMULAS, type FormulaItem } from '$lib/data/formulas';
 	import { uiClick } from '$lib/utils/feedback';
-	import { formulaVaultFilter, openTestDaySheet, tracker, updateTracker } from '$lib/stores/tracker';
+	import { formulaVaultFilter, openTestDaySheet, tracker, updateTracker, celebration } from '$lib/stores/tracker';
+	import type { CustomFormula } from '$lib/types/tracker';
 
 	export let open = false;
 
@@ -18,6 +19,67 @@
 	let copiedId: string | null = null;
 	let copyTimeout: ReturnType<typeof setTimeout> | undefined;
 	let collapsedGroups: Record<string, boolean> = {};
+
+	// Custom Formula Form State
+	let showAddForm = false;
+	let newSubject: 'P' | 'C' | 'M' = 'P';
+	let newChapter = '';
+	let newTitle = '';
+	let newLatex = '';
+	let newDescription = '';
+	let newImportant = false;
+
+	function toggleAddForm() {
+		uiClick();
+		showAddForm = !showAddForm;
+		if (showAddForm && selectedSubject !== 'ALL') {
+			newSubject = selectedSubject;
+		}
+		if (showAddForm && selectedChapter !== 'ALL') {
+			newChapter = selectedChapter;
+		}
+	}
+
+	function saveCustomFormula() {
+		if (!newTitle.trim() || !newLatex.trim() || !newChapter.trim()) return;
+		uiClick();
+		const newFormula: CustomFormula = {
+			id: `custom_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+			subject: newSubject,
+			chapterName: newChapter.trim(),
+			title: newTitle.trim(),
+			latex: newLatex.trim(),
+			description: newDescription.trim() || undefined,
+			tags: ['custom'],
+			important: newImportant
+		};
+		updateTracker((st) => {
+			st.customFormulas = [...(st.customFormulas || []), newFormula];
+		});
+		celebration.set(`Added formula "${newTitle}"! 📐`);
+		newTitle = '';
+		newLatex = '';
+		newDescription = '';
+		newImportant = false;
+		showAddForm = false;
+	}
+
+	function deleteCustomFormula(item: FormulaItem) {
+		uiClick();
+		const prev = [...($tracker.customFormulas || [])];
+		updateTracker((st) => {
+			st.customFormulas = (st.customFormulas || []).filter((f) => f.id !== item.id);
+		});
+		celebration.set({
+			text: `Deleted "${item.title}"`,
+			actionLabel: 'Undo',
+			onAction: () => {
+				updateTracker((st) => {
+					st.customFormulas = prev;
+				});
+			}
+		});
+	}
 
 	let katexModule: any = null;
 	let renderTick = 0;
@@ -95,9 +157,11 @@
 		return `<code class="math-fallback">${tex}</code>`;
 	}
 
+	$: allFormulas = [...JEE_FORMULAS, ...($tracker.customFormulas || [])] as FormulaItem[];
+
 	$: availableChapters = Array.from(
 		new Set(
-			JEE_FORMULAS
+			allFormulas
 				.filter((f) => selectedSubject === 'ALL' || f.subject === selectedSubject)
 				.map((f) => f.chapterName)
 		)
@@ -112,7 +176,7 @@
 	$: chapterPills = (() => {
 		const list: ChapterInfo[] = [];
 		for (const ch of availableChapters) {
-			const matching = JEE_FORMULAS.filter((f) => {
+			const matching = allFormulas.filter((f) => {
 				if (selectedSubject !== 'ALL' && f.subject !== selectedSubject) return false;
 				return f.chapterName === ch;
 			});
@@ -127,7 +191,7 @@
 		return list;
 	})();
 
-	$: filteredFormulas = JEE_FORMULAS.filter((f) => {
+	$: filteredFormulas = allFormulas.filter((f) => {
 		if (selectedSubject !== 'ALL' && f.subject !== selectedSubject) return false;
 		if (selectedChapter !== 'ALL' && f.chapterName !== selectedChapter) return false;
 		if (starredOnly && !starredIds.includes(f.id)) return false;
@@ -209,6 +273,16 @@
 				<div class="header-actions-right">
 					<button
 						type="button"
+						class="btn-add-formula"
+						class:active={showAddForm}
+						title="Add Custom Formula"
+						on:click={toggleAddForm}
+					>
+						<NavIcon name="plus" size={13} />
+						<span>+ Add Formula</span>
+					</button>
+					<button
+						type="button"
 						class="btn-print-sheet"
 						title="Generate Test Day Paper Sheet with Starred Formulas & Mistakes"
 						on:click={() => { close(); openTestDaySheet(); }}
@@ -246,7 +320,7 @@
 						class:active={selectedSubject === 'ALL'}
 						on:click={() => { selectedSubject = 'ALL'; selectedChapter = 'ALL'; }}
 					>
-						All ({JEE_FORMULAS.length})
+						All ({allFormulas.length})
 					</button>
 					<button
 						type="button"
@@ -328,6 +402,102 @@
 
 		<!-- Content List -->
 		<div class="vault-body">
+			{#if showAddForm}
+				<div class="add-formula-card" transition:slide={{ duration: 220 }}>
+					<div class="form-card-header">
+						<div class="form-title-wrap">
+							<NavIcon name="plus" size={15} />
+							<h4>Add Custom Formula</h4>
+						</div>
+						<button type="button" class="form-close-btn" on:click={() => (showAddForm = false)} aria-label="Cancel">
+							<NavIcon name="x" size={14} />
+						</button>
+					</div>
+
+					<div class="form-grid">
+						<div class="form-field">
+							<label for="form-new-sub">Subject</label>
+							<div id="form-new-sub" class="form-sub-pills">
+								<button type="button" class="sub-btn phy" class:active={newSubject === 'P'} on:click={() => (newSubject = 'P')}>Physics</button>
+								<button type="button" class="sub-btn chem" class:active={newSubject === 'C'} on:click={() => (newSubject = 'C')}>Chemistry</button>
+								<button type="button" class="sub-btn math" class:active={newSubject === 'M'} on:click={() => (newSubject = 'M')}>Maths</button>
+							</div>
+						</div>
+
+						<div class="form-field">
+							<label for="form-new-ch">Chapter</label>
+							<input
+								id="form-new-ch"
+								type="text"
+								list="vault-chapters-datalist"
+								placeholder="Select or enter chapter name..."
+								bind:value={newChapter}
+							/>
+							<datalist id="vault-chapters-datalist">
+								{#each availableChapters as ch}
+									<option value={ch}>{ch}</option>
+								{/each}
+							</datalist>
+						</div>
+
+						<div class="form-field">
+							<label for="form-new-title">Formula Title</label>
+							<input
+								id="form-new-title"
+								type="text"
+								placeholder="e.g. Doppler Effect Frequency Shift"
+								bind:value={newTitle}
+							/>
+						</div>
+
+						<div class="form-field">
+							<label for="form-new-latex">LaTeX Math Expression</label>
+							<input
+								id="form-new-latex"
+								type="text"
+								placeholder="e.g. f' = f \\left(\\frac&#123;v \\pm v_0&#125;&#123;v \\mp v_s&#125;\\right)"
+								bind:value={newLatex}
+							/>
+							{#if newLatex.trim()}
+								<div class="live-preview-box">
+									<span class="preview-tag font-mono">LIVE PREVIEW</span>
+									<div class="math-render">
+										{@html renderMath(newLatex, renderTick)}
+									</div>
+								</div>
+							{/if}
+						</div>
+
+						<div class="form-field">
+							<label for="form-new-desc">Description / Caveats (Optional)</label>
+							<input
+								id="form-new-desc"
+								type="text"
+								placeholder="e.g. Valid only when velocities are along line of motion"
+								bind:value={newDescription}
+							/>
+						</div>
+
+						<label class="form-checkbox">
+							<input type="checkbox" bind:checked={newImportant} />
+							<span>Mark as High-Yield (highlighted on Test Day Sheet)</span>
+						</label>
+
+						<div class="form-actions">
+							<button type="button" class="btn-cancel" on:click={() => (showAddForm = false)}>Cancel</button>
+							<button
+								type="button"
+								class="btn-save"
+								disabled={!newTitle.trim() || !newLatex.trim() || !newChapter.trim()}
+								on:click={saveCustomFormula}
+							>
+								Save Formula
+							</button>
+						</div>
+					</div>
+				</div>
+			{/if}
+
 			{#if filteredFormulas.length === 0}
 				<div class="empty-state">
 					<div class="empty-icon"><NavIcon name="book" size={28} /></div>
@@ -367,6 +537,16 @@
 									<span class="ch-badge">{item.chapterName}</span>
 								</div>
 								<div class="card-actions">
+									{#if item.id.startsWith('custom_')}
+										<button
+											type="button"
+											class="action-btn delete-btn"
+											title="Delete custom formula"
+											on:click={() => deleteCustomFormula(item)}
+										>
+											<NavIcon name="trash" size={14} />
+										</button>
+									{/if}
 									<button
 										type="button"
 										class="action-btn"
@@ -462,6 +642,16 @@
 													<span class="ch-badge">{item.chapterName}</span>
 												</div>
 												<div class="card-actions">
+													{#if item.id.startsWith('custom_')}
+														<button
+															type="button"
+															class="action-btn delete-btn"
+															title="Delete custom formula"
+															on:click={() => deleteCustomFormula(item)}
+														>
+															<NavIcon name="trash" size={14} />
+														</button>
+													{/if}
 													<button
 														type="button"
 														class="action-btn"
@@ -610,6 +800,33 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+	}
+
+	.btn-add-formula {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.4rem 0.75rem;
+		border-radius: 9px;
+		background: var(--accent);
+		color: var(--accent-contrast, #ffffff);
+		border: 1px solid var(--accent);
+		font-size: 0.72rem;
+		font-weight: 750;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		white-space: nowrap;
+	}
+
+	.btn-add-formula:hover {
+		opacity: 0.92;
+		transform: translateY(-1px);
+	}
+
+	.btn-add-formula.active {
+		background: var(--surface-subtle);
+		color: var(--text-primary);
+		border-color: var(--border-subtle);
 	}
 
 	.btn-print-sheet {
@@ -1108,6 +1325,216 @@
 		border-color: var(--success, #10b981);
 	}
 
+	.action-btn.delete-btn:hover {
+		color: #ef4444;
+		border-color: #ef4444;
+		background: color-mix(in srgb, #ef4444 15%, transparent);
+	}
+
+	/* Add Custom Formula Card */
+	.add-formula-card {
+		background: var(--surface-panel);
+		border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border-subtle));
+		border-radius: 14px;
+		padding: 1.1rem 1.25rem;
+		margin-bottom: 1.25rem;
+		box-shadow: 0 10px 28px -6px rgba(0, 0, 0, 0.35);
+	}
+
+	.form-card-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		margin-bottom: 0.9rem;
+	}
+
+	.form-title-wrap {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		color: var(--accent);
+	}
+
+	.form-title-wrap h4 {
+		margin: 0;
+		font-size: 0.9rem;
+		font-weight: 800;
+		color: var(--text-primary);
+	}
+
+	.form-close-btn {
+		width: 26px;
+		height: 26px;
+		border-radius: 7px;
+		background: transparent;
+		border: 1px solid var(--border-subtle);
+		color: var(--text-secondary);
+		display: grid;
+		place-items: center;
+		cursor: pointer;
+	}
+
+	.form-close-btn:hover {
+		color: var(--text-primary);
+		background: var(--surface-subtle);
+	}
+
+	.form-grid {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.form-field {
+		display: flex;
+		flex-direction: column;
+		gap: 0.3rem;
+	}
+
+	.form-field label {
+		font-size: 0.68rem;
+		font-weight: 750;
+		letter-spacing: 0.04em;
+		text-transform: uppercase;
+		color: var(--text-secondary);
+	}
+
+	.form-field input {
+		width: 100%;
+		padding: 0.5rem 0.7rem;
+		border-radius: 8px;
+		border: 1px solid var(--border-subtle);
+		background: var(--surface-canvas);
+		color: var(--text-primary);
+		font-size: 0.8rem;
+		outline: none;
+		box-sizing: border-box;
+		transition: border-color 0.15s ease;
+	}
+
+	.form-field input:focus {
+		border-color: var(--accent);
+	}
+
+	.form-sub-pills {
+		display: flex;
+		gap: 0.4rem;
+	}
+
+	.sub-btn {
+		flex: 1;
+		padding: 0.35rem 0.6rem;
+		border-radius: 8px;
+		border: 1px solid var(--border-subtle);
+		background: var(--surface-canvas);
+		color: var(--text-secondary);
+		font-size: 0.74rem;
+		font-weight: 700;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.sub-btn:hover {
+		color: var(--text-primary);
+	}
+
+	.sub-btn.phy.active {
+		border-color: #4cc9f0;
+		color: #4cc9f0;
+		background: color-mix(in srgb, #4cc9f0 18%, var(--surface-canvas));
+	}
+
+	.sub-btn.chem.active {
+		border-color: #ff70a6;
+		color: #ff70a6;
+		background: color-mix(in srgb, #ff70a6 18%, var(--surface-canvas));
+	}
+
+	.sub-btn.math.active {
+		border-color: #a78bfa;
+		color: #a78bfa;
+		background: color-mix(in srgb, #a78bfa 18%, var(--surface-canvas));
+	}
+
+	.live-preview-box {
+		margin-top: 0.4rem;
+		padding: 0.5rem 0.75rem;
+		border-radius: 8px;
+		background: var(--surface-canvas);
+		border: 1px dashed var(--border-subtle);
+	}
+
+	.preview-tag {
+		font-size: 0.6rem;
+		font-weight: 800;
+		letter-spacing: 0.08em;
+		color: var(--accent);
+		display: block;
+		margin-bottom: 0.25rem;
+	}
+
+	.form-checkbox {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.76rem;
+		color: var(--text-primary);
+		cursor: pointer;
+		margin-top: 0.1rem;
+	}
+
+	.form-checkbox input {
+		width: 15px;
+		height: 15px;
+		accent-color: var(--accent);
+		cursor: pointer;
+	}
+
+	.form-actions {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		gap: 0.5rem;
+		margin-top: 0.35rem;
+	}
+
+	.btn-cancel {
+		padding: 0.4rem 0.8rem;
+		border-radius: 8px;
+		background: transparent;
+		border: 1px solid var(--border-subtle);
+		color: var(--text-secondary);
+		font-size: 0.75rem;
+		font-weight: 700;
+		cursor: pointer;
+	}
+
+	.btn-cancel:hover {
+		color: var(--text-primary);
+		background: var(--surface-subtle);
+	}
+
+	.btn-save {
+		padding: 0.4rem 0.95rem;
+		border-radius: 8px;
+		background: var(--accent);
+		color: var(--accent-contrast, #ffffff);
+		border: 1px solid var(--accent);
+		font-size: 0.75rem;
+		font-weight: 750;
+		cursor: pointer;
+		transition: opacity 0.15s ease;
+	}
+
+	.btn-save:hover:not(:disabled) {
+		opacity: 0.92;
+	}
+
+	.btn-save:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
 	.formula-title {
 		margin: 0 0 0.6rem;
 		font-size: 0.94rem;
@@ -1190,9 +1617,11 @@
 			padding-right: 1rem;
 			gap: 0.7rem;
 		}
+		.btn-add-formula,
 		.btn-print-sheet {
 			padding: 0.4rem 0.6rem;
 		}
+		.btn-add-formula span,
 		.btn-print-sheet span {
 			display: none;
 		}
