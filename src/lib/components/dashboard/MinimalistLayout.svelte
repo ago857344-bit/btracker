@@ -9,6 +9,7 @@
 	} from '$lib/stores/tracker';
 	import { SUBJECTS, subjectName, subjectColor } from '$lib/state/subjects';
 	import { universalBySubject, universalEntries } from '$lib/state/universal';
+	import { subjectStats } from '$lib/state/questions';
 	import { getEloRank } from '$lib/state/gamification';
 	import { lastNDays, focusMinutesOn, formatMinutes, weekdayShort } from '$lib/state/dates';
 
@@ -50,7 +51,7 @@
 	const SUBJECT_TOTALS: Record<string, number> = { P: 680, C: 720, M: 650 };
 	$: subjectRows = SUBJECTS.map(sub => {
 		const solved = $subjectSolvedTotals[sub.code] || 0;
-		const total = SUBJECT_TOTALS[sub.code] || 650;
+		const total = Math.max(1, subjectStats($tracker, sub.code).n || SUBJECT_TOTALS[sub.code] || 650);
 		const generic = genericSubjects[sub.code];
 		const attempts = isGeneric ? (generic?.attempts ?? 0) : total;
 		const pct = isGeneric
@@ -66,6 +67,16 @@
 	$: aggregatePct = isGeneric
 		? (totalAttempts ? Math.round((totalSolved / totalAttempts) * 100) : 0)
 		: Math.round((totalSolved / totalTarget) * 100) || 0;
+
+	// 360-Day Matrix Inspector State
+	let selectedMatrixDay: { dayKey: string; mins: number; level: number } | null = null;
+	function selectMatrixDay(day: { dayKey: string; mins: number; level: number }) {
+		if (selectedMatrixDay?.dayKey === day.dayKey) {
+			selectedMatrixDay = null;
+		} else {
+			selectedMatrixDay = day;
+		}
+	}
 
 	// 7-Day Velocity Spline Calculation
 	$: days7 = lastNDays(7);
@@ -388,10 +399,13 @@
 					{#each matrixWeeks as week, wIdx}
 						<div class="matrix-column">
 							{#each week as day}
-								<div 
+								<button 
+									type="button"
 									class="matrix-cell rounded-sm lvl-{day.level}"
+									class:selected={selectedMatrixDay?.dayKey === day.dayKey}
 									title="{day.dayKey}: {day.mins} minutes studied"
-								></div>
+									on:click={() => selectMatrixDay(day)}
+								></button>
 							{/each}
 						</div>
 					{/each}
@@ -400,6 +414,20 @@
 
 			<!-- Heatmap Bottom Telemetry Bar -->
 			<footer class="matrix-telemetry-bar font-mono">
+				{#if selectedMatrixDay}
+					<div class="matrix-inspect-pill">
+						<span class="inspect-date font-mono">{selectedMatrixDay.dayKey}</span>
+						<span class="inspect-mins font-mono">
+							<b>{Math.floor(selectedMatrixDay.mins / 60)}h {selectedMatrixDay.mins % 60}m</b>
+						</span>
+						<span class="inspect-badge lvl-{selectedMatrixDay.level}">
+							{selectedMatrixDay.level === 0 ? 'Rest' : selectedMatrixDay.level === 1 ? 'Light' : selectedMatrixDay.level === 2 ? 'Deep Work' : selectedMatrixDay.level === 3 ? 'Hyperfocus' : 'God Mode 🔥'}
+						</span>
+						<button type="button" class="inspect-clear" on:click={() => (selectedMatrixDay = null)} title="Close inspector">
+							<NavIcon name="x" size={11} />
+						</button>
+					</div>
+				{/if}
 				<div class="telemetry-item">
 					<span class="k">TOTAL ACTIVE DAYS:</span>
 					<b class="v text-white">{activeDaysCount} / 360</b>
@@ -896,24 +924,86 @@
 		width: 100%;
 		aspect-ratio: 1;
 		cursor: pointer;
+		border: none;
+		padding: 0;
+		background: inherit;
 		transition: transform 0.12s ease;
 	}
-	.matrix-cell:hover {
-		transform: scale(1.3);
+	.matrix-cell:hover,
+	.matrix-cell.selected {
+		transform: scale(1.35);
 		outline: 1.5px solid var(--accent);
 		z-index: 5;
+	}
+	.matrix-cell.selected {
+		box-shadow: 0 0 8px var(--accent);
 	}
 
 	.matrix-telemetry-bar {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
-		gap: 1rem;
+		gap: 0.75rem;
 		margin-top: 1rem;
 		padding-top: 0.85rem;
 		border-top: 1px solid var(--border-subtle);
 		font-size: 0.72rem;
 		flex-wrap: wrap;
+	}
+
+	.matrix-inspect-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.25rem 0.65rem;
+		border-radius: 99px;
+		background: color-mix(in srgb, var(--accent) 15%, var(--surface-panel));
+		border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--border-subtle));
+		font-size: 0.72rem;
+		color: var(--text-primary);
+		box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 15%, transparent);
+	}
+
+	.inspect-date {
+		font-weight: 750;
+		color: var(--accent);
+	}
+
+	.inspect-mins b {
+		color: var(--text-primary);
+	}
+
+	.inspect-badge {
+		font-size: 0.6rem;
+		font-weight: 800;
+		padding: 0.08rem 0.4rem;
+		border-radius: 99px;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+
+	.inspect-badge.lvl-0 { background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); }
+	.inspect-badge.lvl-1 { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+	.inspect-badge.lvl-2 { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+	.inspect-badge.lvl-3 { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+	.inspect-badge.lvl-4 { background: rgba(239, 68, 68, 0.25); color: #f87171; }
+
+	.inspect-clear {
+		display: grid;
+		place-items: center;
+		width: 16px;
+		height: 16px;
+		border-radius: 50%;
+		background: transparent;
+		border: none;
+		color: var(--text-secondary);
+		cursor: pointer;
+		padding: 0;
+		transition: color 0.15s ease;
+	}
+
+	.inspect-clear:hover {
+		color: var(--text-primary);
 	}
 	.telemetry-item .k {
 		color: var(--text-secondary);

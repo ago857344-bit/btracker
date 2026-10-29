@@ -4,7 +4,9 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import TimelineStrip from './TimelineStrip.svelte';
 	import EvaluationModal from './EvaluationModal.svelte';
-	import { tracker, updateTracker } from '$lib/stores/tracker';
+	import { tracker, updateTracker, celebration } from '$lib/stores/tracker';
+	import { globalTimer } from '$lib/stores/timerState';
+	import { goto } from '$app/navigation';
 	import { subjectColor } from '$lib/state/subjects';
 	import { createChapterRecallData } from '$lib/state/defaults';
 	import { todayKey } from '$lib/state/dates';
@@ -61,7 +63,12 @@
 		// Create a new study block for this revision
 		const d = new Date(e.detail.time);
 		const dEnd = new Date(d.getTime() + 45 * 60000);
+		const pad = (n: number) => String(n).padStart(2, '0');
+		const startHHMM = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+		const endHHMM = `${pad(dEnd.getHours())}:${pad(dEnd.getMinutes())}`;
+
 		updateTracker(t => {
+			if (!t.rev.studyBlocks) t.rev.studyBlocks = [];
 			t.rev.studyBlocks.push({
 				id: 'blk-' + Date.now(),
 				subject: subject as any,
@@ -74,7 +81,19 @@
 					end: dEnd.toISOString()
 				}]
 			});
+			if (!t.h) t.h = [];
+			t.h.push({
+				id: 'rev-hw-' + Date.now(),
+				title: 'Revise: ' + chapterTitle,
+				s: subject as any,
+				due: todayKey(),
+				st: startHHMM,
+				en: endHHMM,
+				hrs: 0.75,
+				done: false
+			});
 		});
+		celebration.set('Scheduled revision in Daily Planner! 📅');
 		handleClose();
 	}
 
@@ -92,9 +111,10 @@
 		handleClose();
 	}
 
-	function startFocusMode() {
-		// Go to evaluation (or redirect to focus page)
-		evalOpen = true;
+	function startFocusTimer() {
+		globalTimer.start(subject, 25 * 60, chapterTitle, 'timer');
+		handleClose();
+		goto('/focus');
 	}
 </script>
 
@@ -131,9 +151,13 @@
 		<!-- Actions -->
 		<div class="actions">
 			<button type="button" class="btn ghost" on:click={handleClose}>Cancel</button>
-			<button type="button" class="btn solid" on:click={startFocusMode}>
+			<button type="button" class="btn secondary" on:click={startFocusTimer}>
 				<NavIcon name="focus" size={14} />
-				<span>Start Session Now</span>
+				<span>⏱️ Start 25m Focus Timer</span>
+			</button>
+			<button type="button" class="btn solid" on:click={() => (evalOpen = true)}>
+				<NavIcon name="check" size={14} />
+				<span>✓ Evaluate &amp; Log Revision</span>
 			</button>
 		</div>
 	</div>
@@ -160,5 +184,7 @@
 	.btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.65rem 1.2rem; border-radius: 10px; font-size: 0.85rem; font-weight: 750; cursor: pointer; border: 0; }
 	.btn.ghost { background: transparent; color: var(--text-secondary); }
 	.btn.ghost:hover { color: var(--text-primary); background: var(--surface-subtle); }
+	.btn.secondary { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
+	.btn.secondary:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); }
 	.btn.solid { background: var(--accent); color: var(--accent-contrast, #fff); box-shadow: 0 4px 12px color-mix(in srgb, var(--accent), transparent 60%); }
 </style>

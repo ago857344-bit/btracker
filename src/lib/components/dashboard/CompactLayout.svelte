@@ -13,6 +13,7 @@
 	import { globalTimer } from '$lib/stores/timerState';
 	import { SUBJECTS, subjectName, subjectColor } from '$lib/state/subjects';
 	import { universalBySubject, universalEntries } from '$lib/state/universal';
+	import { subjectStats } from '$lib/state/questions';
 	import { getEloRank } from '$lib/state/gamification';
 	import { QUOTES, quoteForDay } from '$lib/state/quotes';
 	import { formatMinutes, todayKey, lastNDays, focusMinutesOn, weekdayShort } from '$lib/state/dates';
@@ -237,7 +238,7 @@
 	);
 	$: subjectItems = SUBJECTS.map((sub) => {
 		const solved = $subjectSolvedTotals[sub.code] || 0;
-		const total = SUBJECT_TARGETS[sub.code] || 650;
+		const total = Math.max(1, subjectStats($tracker, sub.code).n || SUBJECT_TARGETS[sub.code] || 650);
 		const generic = genericSubjects[sub.code];
 		const attempts = isGeneric ? (generic?.attempts ?? 0) : total;
 		const pct = isGeneric
@@ -278,42 +279,6 @@
 </script>
 
 <div class="pocket-dashboard" class:mode-mobile={deviceMode === 'mobile'}>
-	<!-- ========================================================= -->
-	<!-- 0. DYNAMIC ISLAND LIVE FOCUS PILL                         -->
-	<!-- ========================================================= -->
-	{#if $globalTimer.running}
-		<aside class="dynamic-island-pill" in:fly={{ y: -8, duration: 220 }}>
-			<button type="button" class="island-main" on:click={() => { haptic(10); goto('/focus'); }}>
-				<span class="live-pulse-dot"></span>
-				<div class="island-text">
-					<span class="island-sub">
-						{$globalTimer.subject ? subjectName($globalTimer.subject) : 'Active Focus Session'}
-					</span>
-					<span class="island-time num-val">{$globalTimer.dialTime || '00:00'} remaining</span>
-				</div>
-			</button>
-			<div class="island-actions">
-				<button
-					type="button"
-					class="island-action-btn"
-					on:click|stopPropagation={() => { $globalTimer.toggle(); haptic(15); }}
-					title="Pause/Resume Timer"
-					aria-label="Pause/Resume Timer"
-				>
-					<NavIcon name="pause" size={13} />
-				</button>
-				<button
-					type="button"
-					class="island-action-btn add-btn num-val"
-					on:click|stopPropagation={() => { $globalTimer.addFive(); celebration.set('+5 mins added! ⏳'); haptic(15); }}
-					title="Add 5 Minutes"
-				>
-					+5m
-				</button>
-			</div>
-		</aside>
-	{/if}
-
 	<!-- ========================================================= -->
 	<!-- 1. GLANCEABLE KPI HERO POD (COLLAPSIBLE EXECUTION VIEW)   -->
 	<!-- ========================================================= -->

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { fly, slide } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import HealthBar from './HealthBar.svelte';
 	import Sparkline from './Sparkline.svelte';
@@ -84,11 +84,12 @@
 
 	$: weightageLabel = chapter.weightage === 3 ? 'High' : chapter.weightage === 2 ? 'Medium' : 'Low';
 	$: weightageColor = chapter.weightage === 3 ? '#ef4444' : chapter.weightage === 2 ? '#f59e0b' : '#10b981';
+	let challengeOpen = false;
 	let challengeText = '';
 	let challengeLoading = false;
 
-	async function loadChallenge() {
-		if (challengeText) return;
+	async function loadChallenge(force = false) {
+		if (challengeText && !force) return;
 		challengeLoading = true;
 		try {
 			const constraint = buildAcademicConstraintPrompt($tracker);
@@ -101,9 +102,16 @@
 		}
 		challengeLoading = false;
 	}
+
+	function toggleChallenge() {
+		challengeOpen = !challengeOpen;
+		if (challengeOpen && !challengeText) {
+			loadChallenge();
+		}
+	}
 </script>
 
-<article class="chapter-card" in:fly={{ y: 8, duration: 220 }} style="--c: {subColor}" on:mouseenter={loadChallenge}>
+<article class="chapter-card" in:fly={{ y: 8, duration: 220 }} style="--c: {subColor}">
 	<div class="card-header">
 		<div class="badges">
 			<span class="badge subject" style="color: {subColor}; background: color-mix(in srgb, {subColor}, transparent 88%)">
@@ -164,6 +172,16 @@
 			<NavIcon name="bolt" size={13} />
 			Revise
 		</button>
+		<button
+			type="button"
+			class="delete-btn"
+			class:active={challengeOpen}
+			style="color: #38bdf8; border-color: var(--border-subtle);"
+			title="Quick Micro-Challenge"
+			on:click={toggleChallenge}
+		>
+			<NavIcon name="bulb" size={13} />
+		</button>
 		<button type="button" class="delete-btn" style="color: #f59e0b; border-color: var(--border-subtle); font-size: 0.95rem; line-height: 1;" title="Teach Feynman Duck (Socratic AI)" on:click={triggerFeynmanDuck}>
 			🦆
 		</button>
@@ -174,6 +192,35 @@
 			<NavIcon name="trash" size={13} />
 		</button>
 	</div>
+
+	{#if challengeOpen}
+		<div class="micro-challenge-box" transition:slide={{ duration: 180 }}>
+			<div class="challenge-header font-mono">
+				<span class="challenge-badge">🎯 MICRO-CHALLENGE</span>
+				<button
+					type="button"
+					class="btn-refresh-challenge"
+					on:click={() => loadChallenge(true)}
+					disabled={challengeLoading}
+					title="Refresh Question"
+				>
+					<NavIcon name="history" size={11} />
+					<span>{challengeLoading ? 'Thinking...' : 'Refresh'}</span>
+				</button>
+			</div>
+
+			{#if challengeLoading}
+				<div class="challenge-shimmer">
+					<div class="shimmer-line"></div>
+					<div class="shimmer-line short"></div>
+				</div>
+			{:else}
+				<div class="challenge-body">
+					{@html challengeText}
+				</div>
+			{/if}
+		</div>
+	{/if}
 </article>
 
 <style>
@@ -334,5 +381,91 @@
 	.delete-btn:hover {
 		color: var(--danger, #e0455a);
 		border-color: var(--danger, #e0455a);
+	}
+
+	.delete-btn.active {
+		background: color-mix(in srgb, #38bdf8 18%, var(--surface-panel));
+		border-color: #38bdf8;
+		color: #38bdf8;
+	}
+
+	/* Micro-Challenge Box */
+	.micro-challenge-box {
+		margin-top: 0.4rem;
+		padding: 0.75rem 0.85rem;
+		border-radius: 12px;
+		background: color-mix(in srgb, var(--surface-subtle) 90%, black);
+		border: 1px solid color-mix(in srgb, #38bdf8 30%, var(--border-subtle));
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+	}
+
+	.challenge-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		font-size: 0.65rem;
+	}
+
+	.challenge-badge {
+		font-weight: 800;
+		color: #38bdf8;
+		letter-spacing: 0.06em;
+	}
+
+	.btn-refresh-challenge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.15rem 0.4rem;
+		border-radius: 6px;
+		background: transparent;
+		border: 1px solid var(--border-subtle);
+		color: var(--text-secondary);
+		font-size: 0.62rem;
+		font-weight: 700;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.btn-refresh-challenge:hover:not(:disabled) {
+		color: var(--text-primary);
+		border-color: #38bdf8;
+	}
+
+	.btn-refresh-challenge:disabled {
+		opacity: 0.5;
+		cursor: not-allowed;
+	}
+
+	.challenge-body {
+		font-size: 0.78rem;
+		line-height: 1.45;
+		color: var(--text-primary);
+	}
+
+	.challenge-shimmer {
+		display: flex;
+		flex-direction: column;
+		gap: 0.4rem;
+		padding: 0.25rem 0;
+	}
+
+	.shimmer-line {
+		height: 10px;
+		border-radius: 4px;
+		background: linear-gradient(90deg, var(--surface-subtle) 25%, color-mix(in srgb, var(--surface-panel) 60%, white) 50%, var(--surface-subtle) 75%);
+		background-size: 200% 100%;
+		animation: shimmer 1.5s infinite;
+	}
+
+	.shimmer-line.short {
+		width: 60%;
+	}
+
+	@keyframes shimmer {
+		0% { background-position: 200% 0; }
+		100% { background-position: -200% 0; }
 	}
 </style>

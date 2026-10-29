@@ -9,8 +9,11 @@
 		dailyProgress, streakDays, tracker, updateTracker, 
 		toggleTask, subjectSolvedTotals, setExamDate 
 	} from '$lib/stores/tracker';
-	import { formatMinutes, todayKey } from '$lib/state/dates';
+	import { formatMinutes, todayKey, addDaysKey, focusMinutesOn } from '$lib/state/dates';
 	import { SUBJECTS, subjectName, subjectColor } from '$lib/state/subjects';
+	import { chaptersByPriority } from '$lib/stores/recall-selectors';
+	import { chapterStats } from '$lib/state/questions';
+	import { allChaptersWithCustom } from '$lib/state/syllabus';
 	import { QUOTES, quoteForDay } from '$lib/state/quotes';
 	import { DEFAULT_POMODORO } from '$lib/state/defaults';
 
@@ -97,9 +100,107 @@
 		{ id: 'P18', code: 'P', name: 'Current Electricity & Circuit Theorems', solved: 55, total: 65, due: 'This Week', weight: 'Core' }
 	];
 
+	$: activeChapters = (() => {
+		const list: Array<{
+			id: string;
+			code: string;
+			name: string;
+			solved: number;
+			total: number;
+			due: string;
+			weight: string;
+			chNo: number;
+		}> = [];
+
+		if ($chaptersByPriority && $chaptersByPriority.length > 0) {
+			for (const cp of $chaptersByPriority.slice(0, 4)) {
+				const parts = cp.chapterKey.split('-');
+				const sub = (parts[0] || 'P') as 'P' | 'C' | 'M';
+				const chIdent = parts.slice(1).join('-');
+				const chNo = parseInt(chIdent, 10) || 1;
+
+				const allChs = allChaptersWithCustom($tracker, sub);
+				const found = allChs.find(c => c.no === chNo || c.name.toLowerCase() === chIdent.toLowerCase()) || allChs[0];
+				const chName = found ? found.name : chIdent;
+				const st = chapterStats($tracker, sub, found?.no ?? chNo);
+
+				list.push({
+					id: cp.chapterKey,
+					code: sub,
+					name: chName,
+					solved: st.done,
+					total: Math.max(st.n || 0, st.done || 0, 40),
+					due: cp.health === 'critical' ? 'Urgent' : cp.health === 'fading' ? 'Due Soon' : 'Fresh',
+					weight: cp.weightage === 3 ? 'High ROI' : cp.weightage === 2 ? 'Core' : 'Standard',
+					chNo: found?.no ?? chNo
+				});
+			}
+		}
+
+		if (list.length < 4) {
+			for (const sub of ['P', 'C', 'M'] as const) {
+				const allChs = allChaptersWithCustom($tracker, sub);
+				for (const ch of allChs) {
+					if (list.length >= 4) break;
+					const st = chapterStats($tracker, sub, ch.no);
+					if (st.done > 0 && !list.some(x => x.code === sub && x.chNo === ch.no)) {
+						list.push({
+							id: `${sub}-${ch.no}`,
+							code: sub,
+							name: ch.name,
+							solved: st.done,
+							total: Math.max(st.n || 0, st.done || 0, 40),
+							due: 'Active',
+							weight: 'Core',
+							chNo: ch.no
+						});
+					}
+				}
+				if (list.length >= 4) break;
+			}
+		}
+
+		if (list.length === 0) {
+			return fallbackChapters.map((fb, idx) => ({ ...fb, chNo: idx + 1 }));
+		}
+
+		return list;
+	})();
+
+	// Prep Velocity Calculation (7-day comparative delta)
+	$: prepVelocity = (() => {
+		const log = $tracker.log || [];
+		let current7DaysMins = 0;
+		let prior7DaysMins = 0;
+
+		const todayKeyStr = todayKey();
+		for (let i = 0; i < 7; i++) {
+			const dKey = addDaysKey(todayKeyStr, -i);
+			current7DaysMins += focusMinutesOn(log, dKey);
+		}
+		for (let i = 7; i < 14; i++) {
+			const dKey = addDaysKey(todayKeyStr, -i);
+			prior7DaysMins += focusMinutesOn(log, dKey);
+		}
+
+		if (prior7DaysMins > 0) {
+			const deltaPct = Math.round(((current7DaysMins - prior7DaysMins) / prior7DaysMins) * 100);
+			if (deltaPct >= 0) {
+				return { label: `On Track (+${deltaPct}%)`, positive: true };
+			} else {
+				return { label: `Pacing (${deltaPct}%)`, positive: false };
+			}
+		} else if (current7DaysMins > 0) {
+			return { label: 'Building Momentum (+100%)', positive: true };
+		} else {
+			return { label: 'Awaiting Session', positive: true };
+		}
+	})();
+
 	// Circular Dial SVG geometry (circumference for r=84 is ~527.79)
 	const CIRCLE_CIRCUMFERENCE = 527.79;
-	$: strokeOffset = CIRCLE_CIRCUMFERENCE - (CIRCLE_CIRCUMFERENCE * Math.min(100, Math.max(0, $globalTimer.ringProgress || 0)) / 100);
+	$: progressRatio = Math.min(1, Math.max(0, ($globalTimer.ringProgress || 0) > 1 ? (($globalTimer.ringProgress || 0) / 100) : ($globalTimer.ringProgress || 0)));
+	$: strokeOffset = CIRCLE_CIRCUMFERENCE * (1 - progressRatio);
 
 	// Pomodoro Time Editing
 	let editingTime = false;
@@ -454,7 +555,7 @@
 							class:active={activeTab === 'chapters'}
 							on:click={() => (activeTab = 'chapters')}
 						>
-							Chapters ({fallbackChapters.length})
+							Chapters ({activeChapters.length})
 						</button>
 					</div>
 				</div>
@@ -505,8 +606,15 @@
 				{:else}
 					<!-- Active Chapter Checklist -->
 					<div class="list-flow">
-						{#each fallbackChapters as ch (ch.id)}
-							<div class="chapter-deck-item rounded-xl">
+						{#each activeChapters as ch (ch.id)}
+							<div
+								class="chapter-deck-item rounded-xl"
+								role="button"
+								tabindex="0"
+								title="Click to inspect chapter in Subject Hub or Revise"
+								on:click={() => openHub(ch.code)}
+								on:keydown={(e) => e.key === 'Enter' && openHub(ch.code)}
+							>
 								<div class="ch-info">
 									<div class="ch-tag-row">
 										<span class="ch-subject-tag rounded-lg" style="color: {subjectColor(ch.code)}">
@@ -632,7 +740,7 @@
 
 				<div class="countdown-footer">
 					<span class="pace-label">Prep Velocity:</span>
-					<span class="pace-val font-mono">On Track (+4.2%)</span>
+					<span class="pace-val font-mono">{prepVelocity.label}</span>
 				</div>
 			</section>
 
@@ -1550,6 +1658,7 @@
 		padding: 0.85rem 1rem;
 		border: 1px solid var(--border-subtle);
 		background: var(--surface-subtle);
+		cursor: pointer;
 		transition: all 0.18s ease;
 	}
 	.chapter-deck-item:hover {

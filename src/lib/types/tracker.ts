@@ -240,6 +240,10 @@ export interface ChapterRecallData {
 	method?: 'steady' | 'fast' | 'smart';
 	/** Explicitly added by user */
 	userAdded?: boolean;
+	/** Cached AI crash course markdown */
+	crashCourseMd?: string;
+	/** Timestamp when the crash course was generated */
+	crashCourseUpdatedAt?: number;
 }
 
 export interface StudyBlock {

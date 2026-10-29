@@ -1,4 +1,4 @@
-import { writable, get } from 'svelte/store';
+import { writable, get, type Writable } from 'svelte/store';
 import { browser } from '$app/environment';
 import { tracker, updateTracker, recordFocus, celebration, type StopwatchReport } from '$lib/stores/tracker';
 import { playChime } from '$lib/services/chime';
@@ -552,7 +552,15 @@ export interface GlobalTimerState {
 	setTime: (minutes: number) => void;
 }
 
-export const globalTimer = writable<GlobalTimerState>({
+export interface GlobalTimerStore extends Writable<GlobalTimerState> {
+	start: (subject: string, seconds: number, chapter: string, mode?: 'timer' | 'stopwatch') => void;
+	toggle: () => void;
+	addFive: () => void;
+	stop: () => void;
+	setTime: (minutes: number) => void;
+}
+
+const baseGlobalTimer = writable<GlobalTimerState>({
 	running: false,
 	remaining: 25 * 60,
 	elapsed: 0,
@@ -571,9 +579,20 @@ export const globalTimer = writable<GlobalTimerState>({
 	setTime: setPomodoroMinutes
 });
 
+export const globalTimer: GlobalTimerStore = {
+	subscribe: baseGlobalTimer.subscribe,
+	set: baseGlobalTimer.set,
+	update: baseGlobalTimer.update,
+	start: aiStart,
+	toggle: primaryTimerAction,
+	addFive: addFiveMinutes,
+	stop: stopSessionAction,
+	setTime: setPomodoroMinutes
+};
+
 // Sync timerSession -> globalTimer
 timerSession.subscribe((s) => {
-	globalTimer.set({
+	baseGlobalTimer.set({
 		running: s.running,
 		remaining: s.remaining,
 		elapsed: s.elapsed,

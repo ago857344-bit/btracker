@@ -2,6 +2,8 @@
 	import { fade, slide } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
+	import { globalTimer } from '$lib/stores/timerState';
+	import { goto } from '$app/navigation';
 	import {
 		tracker,
 		addPeriodToPlanner,
@@ -275,6 +277,20 @@
 							</div>
 
 							<div class="class-action">
+								{#if period.subject === 'P' || period.subject === 'C' || period.subject === 'M'}
+									<button
+										type="button"
+										class="btn-focus-class font-mono"
+										title="Start 45m Focus Session for {period.topic}"
+										on:click={() => {
+											globalTimer.start(period.subject, 45 * 60, period.topic, 'timer');
+											goto('/focus');
+										}}
+									>
+										<NavIcon name="focus" size={11} />
+										<span>Focus</span>
+									</button>
+								{/if}
 								{#if planned}
 									<span class="planned-indicator font-mono" title="Already added to today's tasks">
 										<NavIcon name="check" size={11} />
@@ -701,6 +717,30 @@
 
 	.class-action {
 		flex-shrink: 0;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+	}
+
+	.btn-focus-class {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		padding: 0.25rem 0.55rem;
+		border-radius: 7px;
+		background: color-mix(in srgb, var(--surface) 60%, transparent);
+		color: var(--text-primary);
+		border: 1px solid var(--border-subtle);
+		font-size: 0.64rem;
+		font-weight: 750;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.btn-focus-class:hover {
+		background: color-mix(in srgb, var(--accent) 20%, transparent);
+		border-color: color-mix(in srgb, var(--accent) 50%, transparent);
+		color: var(--accent);
 	}
 
 	.btn-plan-class {
@@ -1115,6 +1155,7 @@
 			line-height: 1.25;
 		}
 		.btn-plan-class,
+		.btn-focus-class,
 		.planned-indicator {
 			min-height: 32px;
 			padding: 0.35rem 0.65rem;
