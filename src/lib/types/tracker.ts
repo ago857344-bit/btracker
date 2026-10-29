@@ -349,6 +349,8 @@ export interface MistakeLog {
 	errorType: 'Silly' | 'Formula' | 'Conceptual' | 'Time';
 	description: string;
 	testName?: string;
+	resolved?: boolean;
+	resolvedAt?: number;
 }
 
 export type TimetableDay = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
@@ -441,6 +443,7 @@ export interface TrackerState {
 	starredFormulas?: string[];
 	examNotes?: string;
 	customReminders?: CustomReminder[];
+	lectureNotes?: Record<string, { videoId: string; title: string; subject: SubjectCode; chapter: string; content: string; updatedAt: number }>;
 }
 
 export interface StateSnapshot {

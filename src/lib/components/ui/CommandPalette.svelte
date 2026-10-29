@@ -1,12 +1,14 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { fade, scale } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 	import { isDarkTheme, presetOf, syncThemeWallpaper } from '$lib/state/themes';
-	import { tracker, updateTracker, addTodo, openFormulaVault, formulaVaultOpen, customizingHome, openFeynmanDuck, openTestDaySheet, openWrappedStory, commandPaletteOpen } from '$lib/stores/tracker';
+	import { tracker, updateTracker, addTodo, openFormulaVault, formulaVaultOpen, customizingHome, openFeynmanDuck, openTestDaySheet, openWrappedStory, commandPaletteOpen, triggerToast } from '$lib/stores/tracker';
 	import { JEE_FORMULAS } from '$lib/data/formulas';
 	import { subjectColor, subjectName } from '$lib/state/subjects';
 	import { allChaptersWithCustom } from '$lib/state/syllabus';
+	import { globalTimer } from '$lib/stores/timerState';
+	import { todayKey } from '$lib/state/dates';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 
 	let open = false;
@@ -23,6 +25,7 @@
 	}
 	let query = '';
 	let inputRef: HTMLInputElement;
+	let resultsEl: HTMLElement;
 
 	type NavIconName = import('svelte').ComponentProps<NavIcon>['name'];
 
@@ -30,7 +33,7 @@
 		id: string;
 		label: string;
 		icon: NavIconName;
-		category: 'navigation' | 'formula-chapter' | 'formula';
+		category: 'quick-action' | 'navigation' | 'formula-chapter' | 'formula' | 'syllabus' | 'todo' | 'dump' | 'mistake';
 		subtitle?: string;
 		badge?: string;
 		badgeColor?: string;
@@ -189,7 +192,7 @@
 							id: `syl-${sub}-${ch.no}`,
 							label: `${ch.name}`,
 							icon: 'grid',
-							category: 'navigation',
+							category: 'syllabus',
 							subtitle: `${sName} · Chapter ${ch.no} · Jump to Question Log`,
 							badge: `${sName} Ch.${ch.no}`,
 							badgeColor: subjectColor(sub),
@@ -209,7 +212,7 @@
 						id: `todo-${todo.id}`,
 						label: todo.title,
 						icon: 'list',
-						category: 'navigation',
+						category: 'todo',
 						subtitle: 'Open task in To-Do Checklist',
 						badge: todo.roiTag || 'To-Do',
 						badgeColor: '#3b82f6',
@@ -228,7 +231,7 @@
 						id: `dump-${file.id}`,
 						label: file.name,
 						icon: 'download',
-						category: 'navigation',
+						category: 'dump',
 						subtitle: `Study Dump · ${file.section.toUpperCase()} (${(file.size / 1024).toFixed(0)} KB)`,
 						badge: 'Dump',
 						badgeColor: '#10b981',
@@ -247,7 +250,7 @@
 						id: `mistake-${mistake.id}`,
 						label: mistake.description,
 						icon: 'tests',
-						category: 'navigation',
+						category: 'mistake',
 						subtitle: `${mistake.subject} · ${mistake.errorType}${mistake.testName ? ` in ${mistake.testName}` : ''}`,
 						badge: mistake.errorType,
 						badgeColor: '#ef4444',
@@ -278,8 +281,109 @@
 			}
 		}
 
+		// Natural language quick actions (Item 9)
+		if (cleanQuery) {
+			const quickActions: CommandItem[] = [];
+
+			const focusMatch = cleanQuery.match(/^(?:focus|pomo|timer)\s*(\d+)?\s*(p|phys|physics|c|chem|chemistry|m|math|maths)?/i);
+			if (focusMatch && (focusMatch[1] || focusMatch[2] || /^(?:focus|pomo|timer)$/i.test(cleanQuery))) {
+				const mins = focusMatch[1] ? parseInt(focusMatch[1], 10) : 25;
+				const subRaw = focusMatch[2]?.toLowerCase() || 'p';
+				const sub: 'P' | 'C' | 'M' = subRaw.startsWith('c') ? 'C' : subRaw.startsWith('m') ? 'M' : 'P';
+				const subFull = subjectName(sub) || sub;
+				quickActions.push({
+					id: 'qa-focus',
+					label: `Start ${mins}m ${subFull} Focus Timer`,
+					icon: 'focus',
+					category: 'quick-action',
+					subtitle: `Launches ${mins}-minute ${subFull} Pomodoro session`,
+					badge: 'Timer',
+					badgeColor: '#00b894',
+					action: () => {
+						$globalTimer.start(sub, mins * 60, '', 'timer');
+						close();
+						goto('/focus');
+					}
+				});
+			}
+
+			const todoMatch = cleanQuery.match(/^(?:todo|task)\s+(.+)/i);
+			if (todoMatch && todoMatch[1]?.trim()) {
+				const text = todoMatch[1].trim();
+				quickActions.push({
+					id: 'qa-todo',
+					label: `Add To-Do: "${text}"`,
+					icon: 'plus',
+					category: 'quick-action',
+					subtitle: 'Save instant action item to your To-Do checklist',
+					badge: 'Task',
+					badgeColor: '#3b82f6',
+					action: () => {
+						addTodo({ title: text });
+						triggerToast('Task added to To-Do! 📋');
+						close();
+					}
+				});
+			}
+
+			const remindMatch = cleanQuery.match(/^remind(?:er)?\s+(.+)/i);
+			if (remindMatch && remindMatch[1]?.trim()) {
+				const rText = remindMatch[1].trim();
+				quickActions.push({
+					id: 'qa-remind',
+					label: `Set Reminder Today: "${rText}"`,
+					icon: 'reminders',
+					category: 'quick-action',
+					subtitle: 'Set reminder for today at 18:00',
+					badge: 'Reminder',
+					badgeColor: '#f59e0b',
+					action: () => {
+						updateTracker((t) => {
+							if (!t.customReminders) t.customReminders = [];
+							t.customReminders.push({
+								id: `cr_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+								kind: 'custom',
+								title: rText,
+								blurb: 'Quick Reminder from Cmd+K',
+								when: `${todayKey()}T18:00`,
+								dismissed: false,
+								createdAt: Date.now(),
+								updatedAt: Date.now()
+							});
+						});
+						triggerToast('Reminder set for today! ⏰');
+						close();
+					}
+				});
+			}
+
+			if (quickActions.length) {
+				items.unshift(...quickActions);
+			}
+		}
+
 		return items;
 	})();
+
+	function categoryLabel(cat: CommandItem['category']): string {
+		switch (cat) {
+			case 'quick-action': return 'Quick Actions';
+			case 'navigation': return 'Navigation';
+			case 'formula-chapter': return 'Formula Chapters';
+			case 'formula': return 'Formulas';
+			case 'syllabus': return 'Syllabus Chapters';
+			case 'todo': return 'Open Tasks';
+			case 'dump': return 'Study Dump Files';
+			case 'mistake': return 'Mistake Book';
+			default: return cat;
+		}
+	}
+
+	function scrollSelectedIntoView() {
+		tick().then(() => {
+			resultsEl?.querySelector('.result-item.selected')?.scrollIntoView({ block: 'nearest' });
+		});
+	}
 
 	$: showBrainDump = query.trim() !== '' && filteredCommands.length === 0;
 
@@ -309,9 +413,11 @@
 		if (e.key === 'ArrowDown') {
 			e.preventDefault();
 			selectedIndex = (selectedIndex + 1) % totalOptions;
+			scrollSelectedIntoView();
 		} else if (e.key === 'ArrowUp') {
 			e.preventDefault();
 			selectedIndex = (selectedIndex - 1 + totalOptions) % totalOptions;
+			scrollSelectedIntoView();
 		} else if (e.key === 'Enter') {
 			e.preventDefault();
 			if (showBrainDump) {
@@ -351,7 +457,7 @@
 				{/if}
 			</div>
 			
-			<div class="results">
+			<div class="results" bind:this={resultsEl}>
 				{#if showBrainDump}
 					<button class="result-item selected" on:click={() => {
 						const text = query.trim();
@@ -371,6 +477,11 @@
 					</button>
 				{:else}
 					{#each filteredCommands as cmd, i (cmd.id)}
+						{#if i === 0 || cmd.category !== filteredCommands[i - 1].category}
+							<div class="cmd-group-header">
+								<span>{categoryLabel(cmd.category)}</span>
+							</div>
+						{/if}
 						<button 
 							class="result-item" 
 							class:selected={i === selectedIndex}
@@ -482,6 +593,23 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.15rem;
+	}
+	.cmd-group-header {
+		position: sticky;
+		top: -0.45rem;
+		z-index: 2;
+		background: color-mix(in srgb, var(--surface-popup-solid, var(--surface-popup, #121020)) 95%, transparent);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		padding: 0.4rem 0.65rem 0.25rem;
+		font-size: 0.68rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		color: var(--text-secondary);
+		border-bottom: 1px solid var(--border-subtle);
+		margin: 0.35rem 0 0.15rem;
+		border-radius: 4px;
 	}
 	.result-item {
 		display: flex;
@@ -618,6 +746,13 @@
 		background: #ffffff !important;
 		border: 1px solid var(--border-subtle) !important;
 		box-shadow: 0 24px 64px -8px rgba(44, 37, 92, 0.2), inset 0 1px 1px rgba(255, 255, 255, 0.95) !important;
+	}
+	:global(:root[data-theme='light']) .cmd-group-header,
+	:global(:root[data-theme='notion']) .cmd-group-header,
+	:global(:root[data-theme='duolingo']) .cmd-group-header,
+	:global(:root[data-theme='anki']) .cmd-group-header,
+	:global(:root[data-theme='master']) .cmd-group-header {
+		background: #ffffff !important;
 	}
 	:global(:root[data-theme='light']) .palette-footer,
 	:global(:root[data-theme='notion']) .palette-footer,

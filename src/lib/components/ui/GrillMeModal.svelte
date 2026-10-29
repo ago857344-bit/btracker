@@ -5,7 +5,7 @@
 	import { askGeminiChat, type ChatMessage } from '$lib/services/gemini';
 	import { renderMarkdown } from '$lib/services/markdown';
 
-	import { tracker } from '$lib/stores/tracker';
+	import { tracker, updateTracker, openFeynmanDuck, addFlashcard, celebration, triggerToast } from '$lib/stores/tracker';
 	import { buildAcademicConstraintPrompt } from '$lib/services/aiContext';
 
 	export let mistake: MistakeLog | null = null;
@@ -17,6 +17,52 @@
 	let loading = false;
 	let error = '';
 	let chatBox: HTMLElement;
+
+	$: latestModelReply = [...history].reverse().find((m) => m.role === 'model')?.parts?.[0]?.text || '';
+
+	function saveFlashcard() {
+		if (!mistake) return;
+		const subChar = mistake.subject ? mistake.subject.charAt(0).toUpperCase() : 'P';
+		addFlashcard({
+			front: `${mistake.subject} [${mistake.errorType}]: ${mistake.description}`,
+			back: latestModelReply || mistake.description,
+			subject: subChar,
+			chapter: mistake.testName || 'Mistake Book'
+		});
+		triggerToast('Flashcard saved to deck! 🗂️');
+	}
+
+	function teachDuck() {
+		if (!mistake) return;
+		const subChar = mistake.subject ? mistake.subject.charAt(0).toUpperCase() : 'P';
+		openFeynmanDuck({
+			subject: subChar as any,
+			chapter: mistake.testName || 'Mistake Analysis',
+			concept: mistake.description
+		});
+		close();
+	}
+
+	function markMastered() {
+		if (!mistake) return;
+		const targetId = mistake.id;
+		updateTracker((t) => {
+			if (Array.isArray(t.mistakes)) {
+				const idx = t.mistakes.findIndex((m) => m.id === targetId || (m.date === mistake?.date && m.description === mistake?.description));
+				if (idx !== -1) {
+					t.mistakes[idx].resolved = true;
+					t.mistakes[idx].resolvedAt = Date.now();
+				}
+			}
+			if (!t.gamification) {
+				t.gamification = { xp: 50, level: 1, elo: { P: 1000, C: 1000, M: 1000 } };
+			} else {
+				t.gamification.xp = (t.gamification.xp || 0) + 50;
+			}
+		});
+		celebration.set('Mistake mastered! +50 XP 🏆');
+		close();
+	}
 
 	$: if (mistake && history.length === 0) {
 		initGrill();
@@ -141,6 +187,21 @@ Keep your responses concise and format math cleanly with KaTeX. DO NOT answer th
 			{/if}
 		</div>
 
+		{#if history.length >= 2}
+			<div class="gm-action-bar">
+				<button type="button" class="gm-act-btn" on:click={saveFlashcard} title="Save to flashcards">
+					<NavIcon name="copy" size={13} />
+					<span>+ Save Flashcard</span>
+				</button>
+				<button type="button" class="gm-act-btn" on:click={teachDuck} title="Explain to Feynman Duck">
+					<span>🦆 Teach Duck</span>
+				</button>
+				<button type="button" class="gm-act-btn gm-act-master" on:click={markMastered} title="Mark mistake as mastered and earn 50 XP">
+					<span>⭐ Mark Mastered (+50 XP)</span>
+				</button>
+			</div>
+		{/if}
+
 		<div class="gm-input">
 			<input 
 				type="text" 
@@ -200,6 +261,46 @@ Keep your responses concise and format math cleanly with KaTeX. DO NOT answer th
 	
 	.err-box { background: color-mix(in srgb, var(--danger) 15%, transparent); color: var(--danger); padding: .8rem; border-radius: 8px; font-size: .85rem; font-weight: 700; text-align: center; }
 
+	.gm-action-bar {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+		padding: 0.5rem 1.2rem;
+		background: color-mix(in srgb, var(--surface-subtle) 95%, transparent);
+		border-top: 1px solid var(--border-subtle);
+		overflow-x: auto;
+	}
+	.gm-act-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.35rem 0.65rem;
+		border-radius: 8px;
+		font-size: 0.72rem;
+		font-weight: 700;
+		background: var(--surface-canvas);
+		border: 1px solid var(--border-subtle);
+		color: var(--text-secondary);
+		cursor: pointer;
+		white-space: nowrap;
+		transition: all 0.15s ease;
+	}
+	.gm-act-btn:hover {
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+		color: var(--text-primary);
+		transform: translateY(-1px);
+	}
+	.gm-act-btn.gm-act-master {
+		color: #eab308;
+		border-color: color-mix(in srgb, #eab308 30%, transparent);
+	}
+	.gm-act-btn.gm-act-master:hover {
+		background: color-mix(in srgb, #eab308 20%, transparent);
+		border-color: #eab308;
+		color: #fbbf24;
+	}
+
 	.gm-input { padding: 1rem 1.5rem; background: var(--surface-subtle); border-top: 1px solid var(--border-subtle); display: flex; gap: .6rem; }
 	.gm-input input { flex: 1; background: var(--surface-canvas); border: 1px solid var(--border-subtle); color: var(--text-primary); padding: .8rem 1rem; border-radius: 12px; font-size: .95rem; }
 	.gm-input input:focus { outline: none; border-color: var(--accent); }
@@ -250,6 +351,11 @@ Keep your responses concise and format math cleanly with KaTeX. DO NOT answer th
 	:global(:root[data-theme='duolingo']) .gm-head,
 	:global(:root[data-theme='anki']) .gm-head,
 	:global(:root[data-theme='master']) .gm-head,
+	:global(:root[data-theme='light']) .gm-action-bar,
+	:global(:root[data-theme='notion']) .gm-action-bar,
+	:global(:root[data-theme='duolingo']) .gm-action-bar,
+	:global(:root[data-theme='anki']) .gm-action-bar,
+	:global(:root[data-theme='master']) .gm-action-bar,
 	:global(:root[data-theme='light']) .gm-input,
 	:global(:root[data-theme='notion']) .gm-input,
 	:global(:root[data-theme='duolingo']) .gm-input,

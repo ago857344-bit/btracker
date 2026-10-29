@@ -4,6 +4,8 @@
 	import { cubicOut, cubicIn } from 'svelte/easing';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { tracker, updateTracker, recordFocus, celebration } from '$lib/stores/tracker';
+	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
+	import { sendToAiMentor } from '$lib/stores/aiMentor';
 	import { SUBJECTS } from '$lib/state/subjects';
 	import type { SubjectCode } from '$lib/types/tracker';
 	import { uiClick, uiSuccess } from '$lib/utils/feedback';
@@ -95,7 +97,7 @@
 
 	function loadVideoNotes(id: string) {
 		try {
-			const saved = localStorage.getItem(`btracker_lecture_notes_${id}`);
+			const saved = $tracker.lectureNotes?.[id]?.content || localStorage.getItem(`btracker_lecture_notes_${id}`);
 			notesText = saved || `## Key Derivations & Takeaways\n[00:00] Lecture began — setup & core definitions.\n`;
 		} catch {
 			notesText = '';
@@ -104,9 +106,52 @@
 
 	function saveVideoNotes() {
 		if (!currentVideoId) return;
+		const vid = currentVideoId;
 		try {
-			localStorage.setItem(`btracker_lecture_notes_${currentVideoId}`, notesText);
+			localStorage.setItem(`btracker_lecture_notes_${vid}`, notesText);
 		} catch {}
+		updateTracker((t) => {
+			if (!t.lectureNotes) t.lectureNotes = {};
+			t.lectureNotes[vid] = {
+				videoId: vid,
+				title: videoTitle,
+				subject: selectedSubject,
+				chapter: chapterName.trim(),
+				content: notesText,
+				updatedAt: Date.now()
+			};
+		});
+	}
+
+	function exportNotesMarkdown() {
+		if (!notesText.trim()) {
+			celebration.set('No notes to export yet.');
+			return;
+		}
+		const filename = `${selectedSubject}_${(chapterName || videoTitle).replace(/[^a-zA-Z0-9_-]/g, '_')}_notes.md`;
+		const blob = new Blob([notesText], { type: 'text/markdown;charset=utf-8;' });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement('a');
+		link.href = url;
+		link.download = filename;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+		celebration.set(`Exported ${filename}! 📄`);
+	}
+
+	function generateAiFlashcards() {
+		if (!notesText.trim()) {
+			celebration.set('Please write some lecture notes before generating flashcards.');
+			return;
+		}
+		sendToAiMentor({
+			prompt: `Extract 5 high-yield conceptual and formula flashcards from these ${selectedSubject} lecture notes (${chapterName || videoTitle}):\n\n${notesText}`,
+			initialMessage: `Generating 5 flashcards from lecture notes for ${chapterName || videoTitle}...`,
+			autoSend: true
+		});
+		celebration.set('Sent notes to AI Mentor to extract flashcards! ✨');
 	}
 
 	async function loadVideo(id: string, title?: string) {
@@ -284,6 +329,11 @@
 			subject: selectedSubject,
 			chapter
 		});
+
+		if (chapterName.trim()) {
+			boostChapterFromPractice(`${selectedSubject}-${chapterName.trim()}`, mins);
+		}
+
 		celebration.set(`Saved ${mins}m of Theory Focus to study logs! 📚`);
 		theorySeconds = 0;
 	}
@@ -570,6 +620,22 @@
 					<div class="notes-panel-controls">
 						<button
 							type="button"
+							class="btn-note-action"
+							on:click={generateAiFlashcards}
+							title="Extract 5 high-yield flashcards with AI"
+						>
+							✨ AI Cards
+						</button>
+						<button
+							type="button"
+							class="btn-note-action"
+							on:click={exportNotesMarkdown}
+							title="Download notes as markdown file"
+						>
+							📄 .md
+						</button>
+						<button
+							type="button"
 							class="btn-preview-toggle"
 							class:active={isPreviewMode}
 							on:click={() => (isPreviewMode = !isPreviewMode)}
@@ -649,8 +715,8 @@
 		position: fixed;
 		inset: 1.2rem;
 		z-index: 10001;
-		background: #0a0a14 !important;
-		border: 1px solid var(--border-subtle);
+		background: var(--surface-popup-solid, var(--surface-panel)) !important;
+		border: 1px solid var(--surface-popup-border, var(--border-strong));
 		border-radius: 20px;
 		display: flex;
 		flex-direction: column;
@@ -1110,7 +1176,7 @@
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		background: #000000;
+		background: #090910;
 		overflow: hidden;
 		position: relative;
 	}
@@ -1527,6 +1593,28 @@
 	.stamp-chip-btn:active,
 	.stamp-chip-btn.stamp-flash {
 		transform: scale(0.92);
+	}
+
+	.btn-note-action {
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
+		color: var(--text-secondary);
+		border-radius: 7px;
+		padding: 0.2rem 0.45rem;
+		font-size: 0.65rem;
+		font-weight: 700;
+		cursor: pointer;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.2rem;
+		white-space: nowrap;
+		transition: all 0.2s;
+	}
+
+	.btn-note-action:hover {
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+		color: var(--text-primary);
 	}
 
 	.btn-preview-toggle {

@@ -198,6 +198,7 @@
 	let showPhysics = true;
 	let showChemistry = true;
 	let showMaths = true;
+	let showPotential = false;
 	let hoveredIndex: number | null = null;
 
 	$: chronologicalTests = [...filteredTests].sort((a, b) => a.date - b.date);
@@ -231,6 +232,10 @@
 
 	function testTotalPct(t: MockTest) {
 		return Math.round((t.score / (t.totalMarks || 300)) * 100);
+	}
+
+	function testPotentialPct(t: MockTest) {
+		return Math.min(100, Math.round(((t.score + (t.incorrect || 0)) / (t.totalMarks || 300)) * 100));
 	}
 
 	function buildSvgLine(tests: MockTest[], getPct: (t: MockTest) => number) {
@@ -300,10 +305,62 @@
 
 	let filterSubject = 'All';
 	let filterType = 'All';
-	$: filteredMistakes = mistakes.filter(m => 
-		(filterSubject === 'All' || m.subject === filterSubject) &&
-		(filterType === 'All' || m.errorType === filterType)
-	);
+	let filterStatus: 'active' | 'mastered' | 'all' = 'active';
+
+	$: filteredMistakes = mistakes.filter(m => {
+		const matchesSubject = filterSubject === 'All' || m.subject === filterSubject;
+		const matchesType = filterType === 'All' || m.errorType === filterType;
+		const matchesStatus =
+			filterStatus === 'all' ? true :
+			filterStatus === 'mastered' ? !!m.resolved :
+			!m.resolved;
+		return matchesSubject && matchesType && matchesStatus;
+	});
+
+	function toggleMistakeMastered(m: MistakeLog) {
+		const targetId = m.id;
+		const wasResolved = !!m.resolved;
+		const newResolved = !wasResolved;
+		const xpAwarded = !wasResolved && !m.resolvedAt;
+
+		updateTracker(t => {
+			if (!t.mistakes) return t;
+			const idx = t.mistakes.findIndex(item => item.id === targetId);
+			if (idx !== -1) {
+				t.mistakes[idx].resolved = newResolved;
+				if (newResolved && !t.mistakes[idx].resolvedAt) {
+					t.mistakes[idx].resolvedAt = Date.now();
+				}
+			}
+			if (xpAwarded) {
+				if (!t.gamification) t.gamification = { xp: 50, level: 1, elo: { P: 1000, C: 1000, M: 1000 } };
+				else t.gamification.xp = (t.gamification.xp || 0) + 50;
+			}
+			return t;
+		});
+
+		if (xpAwarded) {
+			celebration.set('Mistake mastered! +50 XP 🏆');
+		}
+
+		triggerToast({
+			text: newResolved ? 'Mistake marked as mastered' : 'Mistake restored to active',
+			actionLabel: 'Undo',
+			onAction: () => {
+				updateTracker(t => {
+					if (!t.mistakes) return t;
+					const idx = t.mistakes.findIndex(item => item.id === targetId);
+					if (idx !== -1) {
+						t.mistakes[idx].resolved = wasResolved;
+					}
+					if (xpAwarded) {
+						if (t.gamification) t.gamification.xp = Math.max(0, (t.gamification.xp || 0) - 50);
+					}
+					return t;
+				});
+			}
+		});
+	}
 
 	function mistakeCardFront(m: MistakeLog) {
 		return `${m.subject} [${m.errorType} Error]: ${m.description}`;
@@ -419,6 +476,9 @@
 						<button type="button" class="chip-toggle total" class:active={showTotal} on:click={() => showTotal = !showTotal}>
 							<span class="chip-dot"></span> Total ({chronologicalTests[chronologicalTests.length - 1].score}/{chronologicalTests[chronologicalTests.length - 1].totalMarks})
 						</button>
+						<button type="button" class="chip-toggle potential" class:active={showPotential} on:click={() => showPotential = !showPotential}>
+							<span class="chip-dot"></span> No-Negative Potential
+						</button>
 						<button type="button" class="chip-toggle phys" class:active={showPhysics} on:click={() => showPhysics = !showPhysics}>
 							<span class="chip-dot"></span> Physics
 						</button>
@@ -453,6 +513,9 @@
 						{/if}
 
 						<!-- Subject Lines -->
+						{#if showPotential}
+							<path d={buildSvgLine(chronologicalTests, testPotentialPct)} class="chart-path potential-path" stroke-dasharray="4 4" />
+						{/if}
 						{#if showPhysics}
 							<path d={buildSvgLine(chronologicalTests, (t) => testSubjectPct(t, 'P'))} class="chart-path phys-path" />
 						{/if}
@@ -508,6 +571,12 @@
 								<span>Total:</span>
 								<b>{ht.score} / {ht.totalMarks} ({testTotalPct(ht)}%)</b>
 							</div>
+							{#if showPotential}
+								<div class="tip-row potential" style="color: #ec4899; font-size: 0.72rem; display: flex; justify-content: space-between; margin-top: 0.15rem;">
+									<span>Potential:</span>
+									<b>{testPotentialPct(ht)}% (Bleed: -{Math.max(0, testPotentialPct(ht) - testTotalPct(ht))}%)</b>
+								</div>
+							{/if}
 							<div class="tip-subjects">
 								<span class="sub-pill p">P: {ht.subjects?.Physics?.score ?? ht.subjects?.P?.score ?? 0}</span>
 								<span class="sub-pill c">C: {ht.subjects?.Chemistry?.score ?? ht.subjects?.C?.score ?? 0}</span>
@@ -524,6 +593,13 @@
 			{#if filteredTests.length > 0}
 				<div class="grid">
 					{#each [...filteredTests].sort((a, b) => b.date - a.date) as test (test.id)}
+						{@const pScore = Math.max(0, test.subjects?.Physics?.score ?? test.subjects?.P?.score ?? 0)}
+						{@const cScore = Math.max(0, test.subjects?.Chemistry?.score ?? test.subjects?.C?.score ?? 0)}
+						{@const mScore = Math.max(0, test.subjects?.Maths?.score ?? test.subjects?.M?.score ?? 0)}
+						{@const scoreSum = (pScore + cScore + mScore) || 1}
+						{@const pPct = (pScore / scoreSum) * 100}
+						{@const cPct = (cScore / scoreSum) * 100}
+						{@const mPct = (mScore / scoreSum) * 100}
 						<div class="test-card glass">
 							<div class="test-header">
 								<h3>{test.name}</h3>
@@ -546,6 +622,13 @@
 								<div class="stat"><span class="incorrect">✗ {test.incorrect}</span></div>
 							</div>
 							{/if}
+
+							<div class="score-stacked-bar" title="Score Share: P {Math.round(pPct)}% · C {Math.round(cPct)}% · M {Math.round(mPct)}%">
+								<div class="bar-seg p" style="width: {pPct}%"></div>
+								<div class="bar-seg c" style="width: {cPct}%"></div>
+								<div class="bar-seg m" style="width: {mPct}%"></div>
+							</div>
+
 							<div class="subject-breakdown">
 								{#each Object.entries(test.subjects).filter(([sub]) => ['Physics', 'Chemistry', 'Maths'].includes(sub)) as [sub, data]}
 									<div style="display: flex; justify-content: space-between;">
@@ -591,6 +674,14 @@
 					<option value="Time">Time</option>
 				</select>
 			</div>
+			<div class="filter-group">
+				<label for="filterStatus">Status</label>
+				<div id="filterStatus" class="segmented-control">
+					<button type="button" class:active={filterStatus === 'active'} on:click={() => filterStatus = 'active'}>Active</button>
+					<button type="button" class:active={filterStatus === 'mastered'} on:click={() => filterStatus = 'mastered'}>Mastered</button>
+					<button type="button" class:active={filterStatus === 'all'} on:click={() => filterStatus = 'all'}>All</button>
+				</div>
+			</div>
 		</div>
 
 		<!-- Test Day Paper Sheet Callout Banner -->
@@ -622,10 +713,20 @@
 				</div>
 			{:else}
 				{#each filteredMistakes as mistake (mistake.id)}
-					<div class="mistake-card glass">
+					<div class="mistake-card glass" class:is-resolved={mistake.resolved}>
 						<div class="card-header">
 							<span class="badge {mistake.subject.toLowerCase()}">{mistake.subject}</span>
 							<span class="badge type">{mistake.errorType}</span>
+							<button
+								type="button"
+								class="master-pill-btn"
+								class:mastered={mistake.resolved}
+								title={mistake.resolved ? "Mastered (click to unresolve)" : "Mark as Mastered (+50 XP)"}
+								on:click={() => toggleMistakeMastered(mistake)}
+							>
+								<NavIcon name={mistake.resolved ? "check" : "circle"} size={12} />
+								<span>{mistake.resolved ? 'Mastered' : 'Master'}</span>
+							</button>
 							{#if isMistakeCardSaved(mistake)}
 								<span class="icon-btn saved" title="Already added to Flashcards" style="color: var(--success); cursor: default;">
 									<NavIcon name="check" size={13} />
@@ -894,6 +995,7 @@
 		border-radius: 999px;
 	}
 	.chip-toggle.total .chip-dot { background: var(--accent); }
+	.chip-toggle.potential .chip-dot { background: #ec4899; }
 	.chip-toggle.phys .chip-dot { background: #3b82f6; }
 	.chip-toggle.chem .chip-dot { background: #10b981; }
 	.chip-toggle.math .chip-dot { background: #f59e0b; }
@@ -937,6 +1039,7 @@
 		stroke-linejoin: round;
 	}
 	.chart-path.total-path { stroke: var(--accent); stroke-width: 2.8; filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--accent), transparent 60%)); }
+	.chart-path.potential-path { stroke: #ec4899; stroke-width: 2.2; opacity: 0.85; }
 	.chart-path.phys-path { stroke: #3b82f6; opacity: 0.85; }
 	.chart-path.chem-path { stroke: #10b981; opacity: 0.85; }
 	.chart-path.math-path { stroke: #f59e0b; opacity: 0.85; }
@@ -1018,6 +1121,24 @@
 	.test-stats { display: flex; gap: 1rem; font-size: 0.9rem; font-weight: 600; }
 	.correct { color: #10b981; }
 	.incorrect { color: #ef4444; }
+
+	.score-stacked-bar {
+		display: flex;
+		height: 6px;
+		border-radius: 99px;
+		overflow: hidden;
+		background: var(--surface-subtle);
+		gap: 2px;
+		margin: 0.2rem 0;
+	}
+	.score-stacked-bar .bar-seg {
+		height: 100%;
+		border-radius: 99px;
+		transition: width 0.3s ease;
+	}
+	.score-stacked-bar .bar-seg.p { background: #38bdf8; }
+	.score-stacked-bar .bar-seg.c { background: #34d399; }
+	.score-stacked-bar .bar-seg.m { background: #a78bfa; }
 	
 	.subject-breakdown { border-top: 1px solid var(--border-subtle); padding-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem; color: var(--text-secondary); }
 	
@@ -1050,7 +1171,35 @@
 
 	.mistake-card { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; transition: transform 0.2s, box-shadow 0.2s; }
 	.mistake-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
+	.mistake-card.is-resolved {
+		opacity: 0.82;
+		border-color: color-mix(in srgb, #10b981 30%, var(--border-subtle));
+	}
 	.card-header { display: flex; align-items: center; gap: 0.5rem; }
+	.master-pill-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		padding: 0.2rem 0.55rem;
+		border-radius: 99px;
+		font-size: 0.7rem;
+		font-weight: 700;
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
+		color: var(--text-secondary);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+	.master-pill-btn:hover {
+		background: color-mix(in srgb, #eab308 15%, transparent);
+		border-color: #eab308;
+		color: #eab308;
+	}
+	.master-pill-btn.mastered {
+		background: color-mix(in srgb, #10b981 18%, transparent);
+		border-color: #10b981;
+		color: #10b981;
+	}
 	.badge { padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 	.badge.physics { background: color-mix(in srgb, #3b82f6, transparent 80%); color: #60a5fa; }
 	.badge.chemistry { background: color-mix(in srgb, #f59e0b, transparent 80%); color: #fbbf24; }

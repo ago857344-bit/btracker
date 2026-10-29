@@ -323,10 +323,9 @@ ${academicConstraints}`;
 	</div>
 
 	<!-- Mode Switcher -->
-	<div class="tabs-nav">
+	<div class="tabs-nav segmented-control">
 		<button
 			type="button"
-			class="tab-btn"
 			class:active={panelTab === 'review'}
 			on:click={() => { panelTab = 'review'; reviewing = false; }}
 		>
@@ -334,7 +333,6 @@ ${academicConstraints}`;
 		</button>
 		<button
 			type="button"
-			class="tab-btn"
 			class:active={panelTab === 'manage'}
 			on:click={() => { panelTab = 'manage'; reviewing = false; }}
 		>
@@ -436,11 +434,10 @@ ${academicConstraints}`;
 					{/if}
 				</div>
 
-				<div class="subject-pills">
+				<div class="subject-pills segmented-control">
 					{#each ['ALL', 'P', 'C', 'M'] as s}
 						<button
 							type="button"
-							class="pill-btn"
 							class:active={deckSubject === s}
 							on:click={() => deckSubject = s as any}
 						>
@@ -470,10 +467,10 @@ ${academicConstraints}`;
 
 							<div class="card-body">
 								<div class="side front">
-									<b>Q:</b> <span>{card.front}</span>
+									<b>Q:</b> <span class="md-inline">{@html renderMarkdownSync(card.front)}</span>
 								</div>
 								<div class="side back">
-									<b>A:</b> <span>{card.back}</span>
+									<b>A:</b> <span class="md-inline">{@html renderMarkdownSync(card.back)}</span>
 								</div>
 							</div>
 
@@ -606,10 +603,7 @@ ${academicConstraints}`;
 	.create-btn.duck-btn { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4); color: #f59e0b; box-shadow: none; }
 	.create-btn.ai-btn { background: linear-gradient(135deg, var(--accent), #9333ea); }
 
-	.tabs-nav { display: inline-flex; gap: 0.35rem; padding: 0.3rem; border-radius: 999px; background: var(--surface-panel); border: 1px solid var(--border-subtle); margin-bottom: 1.8rem; }
-	.tab-btn { padding: 0.45rem 1.15rem; border-radius: 999px; border: 0; background: transparent; color: var(--text-secondary); font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease; }
-	.tab-btn:hover { color: var(--text-primary); }
-	.tab-btn.active { background: var(--surface-subtle); color: var(--text-primary); border: 1px solid var(--border-subtle); }
+	.tabs-nav { margin-bottom: 1.8rem; }
 
 	.dashboard { display: grid; gap: 2rem; text-align: center; }
 	.stat-card { padding: 3rem; border: 1px solid var(--border-subtle); border-radius: 24px; }
@@ -729,22 +723,10 @@ ${academicConstraints}`;
 	.search-wrap input { flex: 1; background: transparent; border: 0; color: var(--text-primary); font-size: 0.85rem; outline: none; }
 	.clear-btn { background: transparent; border: 0; color: var(--text-secondary); cursor: pointer; }
 
-	.subject-pills { display: flex; gap: 0.35rem; }
-	.pill-btn { padding: 0.35rem 0.75rem; border-radius: 999px; border: 1px solid var(--border-subtle); background: var(--surface-panel); color: var(--text-secondary); font-size: 0.75rem; font-weight: 700; cursor: pointer; }
-	.pill-btn.active { background: var(--accent); color: var(--accent-contrast, white); border-color: var(--accent); }
-
-	.deck-cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 1rem; }
-	.deck-card { padding: 1.15rem; border-radius: 18px; border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 0.85rem; }
-	.card-head { display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; }
-	.sub-badge { font-size: 0.68rem; font-weight: 800; padding: 0.2rem 0.55rem; border-radius: 6px; }
-	.card-controls { display: flex; gap: 0.35rem; }
-	.btn-icon { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--border-subtle); background: var(--surface-subtle); color: var(--text-secondary); cursor: pointer; display: grid; place-items: center; }
-	.btn-icon:hover { color: var(--text-primary); border-color: var(--accent); }
-	.btn-icon.del:hover { color: var(--danger, #ef4444); border-color: var(--danger, #ef4444); }
-
 	.card-body { display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.85rem; line-height: 1.4; color: var(--text-primary); flex: 1; }
 	.card-body .side b { font-size: 0.72rem; color: var(--text-secondary); margin-right: 0.3rem; }
 	.card-body .back { color: var(--text-secondary); border-top: 1px dashed var(--border-subtle); padding-top: 0.45rem; }
+	.md-inline :global(p) { margin: 0; display: inline; }
 
 	.card-footer { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-secondary); border-top: 1px solid var(--border-subtle); padding-top: 0.6rem; }
 	.card-footer b { color: var(--text-primary); }

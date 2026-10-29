@@ -63,16 +63,18 @@
 </script>
 
 <section class="universal">
-	<header class="head">
-		<div>
-			<p class="eyebrow">Study log · {coaching}</p>
-			<h1>Every question counts.</h1>
-			<p class="sub">Log modules, DPPs, PYQs, books and tests by chapter. No module codes, no missing exercises.</p>
+	<header class="page-header head">
+		<div class="page-header-copy">
+			<p class="page-eyebrow">Study log · {coaching}</p>
+			<h1 class="page-title">Every question counts.</h1>
+			<p class="page-subtitle">Log modules, DPPs, PYQs, books and tests by chapter. No module codes, no missing exercises.</p>
 		</div>
-		<button type="button" class="log-btn" on:click={() => openEntry('P')}>
-			<NavIcon name="plus" size={16} />
-			<span>Log session</span>
-		</button>
+		<div class="page-header-actions">
+			<button type="button" class="log-btn primary-btn" on:click={() => openEntry('P')}>
+				<NavIcon name="plus" size={16} />
+				<span>Log session</span>
+			</button>
+		</div>
 	</header>
 
 	<div class="summary-grid">
@@ -144,10 +146,10 @@
 					<h2>Recent sessions</h2>
 					<p>Latest practice across every source</p>
 				</div>
-				<div class="filters" role="tablist" aria-label="Filter sessions by subject">
-					<button type="button" class="filter-chip" class:active={filter === 'all'} on:click={() => (filter = 'all')}>All</button>
+				<div class="segmented-control" role="tablist" aria-label="Filter sessions by subject">
+					<button type="button" class:active={filter === 'all'} on:click={() => (filter = 'all')}>All</button>
 					{#each SUBJECTS as sub (sub.code)}
-						<button type="button" class="filter-chip" class:active={filter === sub.code} on:click={() => (filter = sub.code as SubjectFilter)}>
+						<button type="button" class:active={filter === sub.code} on:click={() => (filter = sub.code as SubjectFilter)}>
 							{sub.name}
 						</button>
 					{/each}
@@ -155,11 +157,13 @@
 			</div>
 
 			{#if recent.length === 0}
-				<div class="empty">
-					<span class="empty-icon"><NavIcon name="layers" size={22} /></span>
-					<b>No sessions {filter === 'all' ? 'yet' : `in ${subjectName(filter)}`}.</b>
-					<p>Log your first module, DPP or PYQ set and it will appear here instantly.</p>
-					<button type="button" class="empty-btn" on:click={() => openEntry(filter === 'all' ? 'P' : filter)}>
+				<div class="empty-state">
+					<div class="empty-state-icon">
+						<NavIcon name="layers" size={24} />
+					</div>
+					<h3 class="empty-state-title">No sessions {filter === 'all' ? 'yet' : `in ${subjectName(filter)}`}</h3>
+					<p class="empty-state-desc">Log your first module, DPP or PYQ set and it will appear here instantly.</p>
+					<button type="button" class="primary-btn" on:click={() => openEntry(filter === 'all' ? 'P' : filter)}>
 						<NavIcon name="plus" size={14} /> Log a session
 					</button>
 				</div>
@@ -297,14 +301,6 @@
 	.panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; flex-wrap: wrap; margin-bottom: .8rem; }
 	.panel-head h2 { margin: 0; font-size: .98rem; letter-spacing: -.02em; }
 	.panel-head p { margin: .15rem 0 0; color: var(--text-secondary); font-size: .72rem; }
-	.filters { display: flex; flex-wrap: wrap; gap: .3rem; }
-	.filter-chip {
-		padding: .32rem .62rem; border-radius: 99px; border: 1px solid var(--border-subtle);
-		background: transparent; color: var(--text-secondary); font-family: inherit; font-size: .7rem;
-		font-weight: 700; cursor: pointer; transition: all .15s ease;
-	}
-	.filter-chip:hover { border-color: var(--accent); color: var(--text-primary); }
-	.filter-chip.active { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 13%, transparent); color: var(--accent); }
 
 	.session-list { display: flex; flex-direction: column; }
 	.session-row { display: flex; align-items: center; gap: .65rem; padding: .7rem .15rem; border-top: 1px solid color-mix(in srgb, var(--border-subtle) 65%, transparent); }
@@ -344,12 +340,6 @@
 	.chapter-rail i { display: block; height: 100%; border-radius: 99px; background: var(--c); }
 	.chapter-meta { color: var(--text-secondary); font-size: .64rem; font-weight: 600; }
 	.side-empty { margin: .3rem 0 0; color: var(--text-secondary); font-size: .76rem; line-height: 1.5; }
-
-	.empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: .35rem; padding: 1.8rem 1rem; }
-	.empty-icon { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 14px; background: var(--surface-subtle); color: var(--accent); margin-bottom: .2rem; }
-	.empty b { font-size: .9rem; }
-	.empty p { margin: 0; max-width: 36ch; color: var(--text-secondary); font-size: .76rem; line-height: 1.5; }
-	.empty-btn { display: inline-flex; align-items: center; gap: .35rem; margin-top: .45rem; padding: .5rem .85rem; border-radius: 10px; border: 1px solid var(--accent); background: var(--accent); color: var(--accent-contrast, #fff); font-family: inherit; font-size: .76rem; font-weight: 750; cursor: pointer; }
 
 	.bridge-note { display: flex; align-items: center; gap: .4rem; margin: 0; color: var(--text-secondary); font-size: .7rem; font-weight: 600; }
 	.bridge-note :global(svg) { color: var(--accent); flex-shrink: 0; }

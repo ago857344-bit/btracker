@@ -38,6 +38,7 @@
 	let rowRects: { i: number; top: number; bottom: number }[] = [];
 	let paintAction: 'flag' | 'cant' | null = null;
 	let painted = new Set<number>();
+	let focusedRowIndex: number | null = null;
 
 	$: n = questionCount($tracker, loc.sc, loc.ch, loc.ex);
 	$: cells = $tracker.d[cellKey(loc.sc, loc.ch, loc.ex)] ?? [];
@@ -295,9 +296,70 @@
 		correct: { title: 'Mark all correct?', body: `This marks all ${n} questions in ${exName} as solved and correct. Anything recorded as wrong will be overwritten.`, cta: 'Mark all correct' },
 		clear: { title: 'Clear this exercise?', body: `This erases every tick, result, star and note in ${exName}.`, cta: 'Clear exercise' }
 	};
+
+	function scrollFocusedRow() {
+		if (focusedRowIndex === null) return;
+		const row = document.querySelector(`.qrow[data-i="${focusedRowIndex}"]`);
+		row?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+	}
+
+	function handleSheetKeydown(e: KeyboardEvent) {
+		const target = e.target as HTMLElement | null;
+		const tag = target?.tagName?.toLowerCase();
+		if (target?.isContentEditable || tag === 'input' || tag === 'textarea' || tag === 'select') return;
+		if (reasonIndex !== null || confirm !== null || showEditCount) return;
+		if (e.metaKey || e.ctrlKey || e.altKey) return;
+
+		if (e.key === 'j' || e.key === 'J') {
+			e.preventDefault();
+			if (!order.length) return;
+			if (focusedRowIndex === null) {
+				focusedRowIndex = order[0];
+			} else {
+				const currentPos = order.indexOf(focusedRowIndex);
+				if (currentPos === -1 || currentPos >= order.length - 1) {
+					focusedRowIndex = order[0];
+				} else {
+					focusedRowIndex = order[currentPos + 1];
+				}
+			}
+			scrollFocusedRow();
+		} else if (e.key === 'k' || e.key === 'K') {
+			e.preventDefault();
+			if (!order.length) return;
+			if (focusedRowIndex === null) {
+				focusedRowIndex = order[order.length - 1];
+			} else {
+				const currentPos = order.indexOf(focusedRowIndex);
+				if (currentPos <= 0) {
+					focusedRowIndex = order[order.length - 1];
+				} else {
+					focusedRowIndex = order[currentPos - 1];
+				}
+			}
+			scrollFocusedRow();
+		} else if (focusedRowIndex !== null) {
+			if (e.key === 'x' || e.key === 'X') {
+				e.preventDefault();
+				toggleQuestionDone(loc, focusedRowIndex);
+			} else if (e.key === 'c' || e.key === 'C') {
+				e.preventDefault();
+				setQuestionResult(loc, focusedRowIndex, 1);
+			} else if (e.key === 'w' || e.key === 'W') {
+				e.preventDefault();
+				markWrong(focusedRowIndex);
+			} else if (e.key === 's' || e.key === 'S') {
+				e.preventDefault();
+				setQuestionResult(loc, focusedRowIndex, 3);
+			} else if (e.key === 'r' || e.key === 'R') {
+				e.preventDefault();
+				toggleQuestionFlag(loc, focusedRowIndex);
+			}
+		}
+	}
 </script>
 
-<svelte:window on:pointermove={onMove} on:pointerup={onUp} />
+<svelte:window on:pointermove={onMove} on:pointerup={onUp} on:keydown={handleSheetKeydown} />
 
 <div class="sheet-head">
 	<div>
@@ -409,8 +471,9 @@
 			class:done={isDone(v)}
 			class:cant={r === 3}
 			class:sel={sel.has(i)}
+			class:kb-focus={focusedRowIndex === i}
 			data-i={i}
-			on:pointerdown={(e) => onRowPointerDown(e, i)}
+			on:pointerdown={(e) => { focusedRowIndex = i; onRowPointerDown(e, i); }}
 		>
 			<span class="qn" class:qsel={sel.has(i)} title="Drag to select a run · shift-click to extend">{String(i + 1).padStart(3, '0')}</span>
 			<span class="c-chk">
@@ -474,7 +537,7 @@
 <p class="hint">Click a row to select it · drag down the numbers or shift-click to select a run · tick the header box to select all — then mark them together below.</p>
 
 {#if sel.size}
-	<div class="selbar" role="toolbar" aria-label="Selection actions">
+	<div class="selbar" transition:fly={{ y: 20, duration: 200 }} role="toolbar" aria-label="Selection actions">
 		<span class="n">{sel.size} selected</span>
 		<button type="button" class="tbtn" on:click={() => selectionAction('done')}>Mark solved</button>
 		<button type="button" class="tbtn" on:click={() => selectionAction('correct')}>Correct</button>
@@ -667,6 +730,10 @@
 	.qrow.sel {
 		background: color-mix(in srgb, var(--accent) 12%, transparent);
 	}
+	.qrow.kb-focus {
+		box-shadow: inset 3px 0 0 var(--accent);
+		background: color-mix(in srgb, var(--accent) 8%, transparent);
+	}
 	.qn {
 		font-family: var(--font-mono, ui-monospace, monospace);
 		font-variant-numeric: tabular-nums;
@@ -741,21 +808,22 @@
 	.hint { margin: .7rem 0 0; color: var(--text-secondary); font-size: .74rem; }
 	.selbar {
 		position: fixed;
-		z-index: 60;
+		bottom: calc(max(env(safe-area-inset-bottom, 0px), 1rem) + 0.5rem);
 		left: 50%;
 		transform: translateX(-50%);
-		bottom: 1.5rem;
+		z-index: 90;
 		display: flex;
-		flex-wrap: wrap;
 		align-items: center;
-		gap: .5rem;
-		padding: .5rem 1rem;
-		border: 1px solid var(--border-strong);
-		border-radius: 9999px;
-		background: color-mix(in srgb, var(--surface-panel) 88%, transparent);
+		gap: 0.45rem;
+		padding: 0.55rem 0.85rem;
+		border-radius: 16px;
+		background: var(--surface-popup, rgba(18, 16, 32, 0.94));
 		backdrop-filter: blur(24px) saturate(180%);
 		-webkit-backdrop-filter: blur(24px) saturate(180%);
-		box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.45), var(--inner-glow);
+		border: 1px solid var(--border-strong);
+		box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.5), var(--inner-glow);
+		max-width: calc(100vw - 2rem);
+		overflow-x: auto;
 	}
 	.selbar .n {
 		font-variant-numeric: tabular-nums;
@@ -788,7 +856,7 @@
 	@media (max-width: 768px) {
 		.sheet { margin-bottom: 4rem; }
 		.selbar {
-			bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+			bottom: calc(max(env(safe-area-inset-bottom, 0px), 12px) + 74px);
 			width: calc(100% - 1.5rem);
 			max-width: 440px;
 			justify-content: center;

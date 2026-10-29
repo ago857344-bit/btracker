@@ -173,6 +173,41 @@
 		week = allCards.filter((c) => c.group === 'week');
 	}
 
+	let sourceFilter: 'all' | 'revision' | 'homework' | 'deadline' | 'custom' = 'all';
+
+	$: filteredOverdue = overdue.filter((c) => sourceFilter === 'all' || c.source === sourceFilter);
+	$: filteredTodayGroup = todayGroup.filter((c) => sourceFilter === 'all' || c.source === sourceFilter);
+	$: filteredWeek = week.filter((c) => sourceFilter === 'all' || c.source === sourceFilter);
+
+	function snoozeAllOverdueToTomorrow() {
+		const tomorrow = addDaysKey(todayKey(), 1);
+		let snoozedCount = 0;
+
+		updateTracker((s) => {
+			for (const c of overdue) {
+				if (c.source === 'revision' && c.linkId) {
+					const chap = s.rev.chapters[c.linkId];
+					if (chap) {
+						chap.nextRevisionDate = tomorrow;
+						snoozedCount++;
+					}
+				} else if (c.source === 'custom') {
+					if (s.customReminders) {
+						s.customReminders = s.customReminders.map((item) => {
+							if (item.id === c.id) {
+								snoozedCount++;
+								return { ...item, when: `${tomorrow}T09:00`, dismissed: false, updatedAt: Date.now() };
+							}
+							return item;
+						});
+					}
+				}
+			}
+		});
+
+		triggerToast(`Snoozed ${snoozedCount} overdue reminder${snoozedCount === 1 ? '' : 's'} to tomorrow ⏰`);
+	}
+
 	/* ---------------- actions ---------------- */
 	function markRevisionComplete(key: string, cardId?: string) {
 		boostChapterFromPractice(key);
@@ -435,8 +470,16 @@
 		</div>
 	</header>
 
+	<div class="filter-bar segmented-control" role="tablist" aria-label="Filter reminders by source">
+		<button type="button" class:active={sourceFilter === 'all'} on:click={() => sourceFilter = 'all'}>All</button>
+		<button type="button" class:active={sourceFilter === 'revision'} on:click={() => sourceFilter = 'revision'}>Spaced Recall</button>
+		<button type="button" class:active={sourceFilter === 'homework'} on:click={() => sourceFilter = 'homework'}>Tasks</button>
+		<button type="button" class:active={sourceFilter === 'deadline'} on:click={() => sourceFilter = 'deadline'}>Deadlines</button>
+		<button type="button" class:active={sourceFilter === 'custom'} on:click={() => sourceFilter = 'custom'}>Custom Nudges</button>
+	</div>
+
 	{#each (['overdue', 'today', 'week'] as const) as key}
-		{@const cards = key === 'overdue' ? overdue : key === 'today' ? todayGroup : week}
+		{@const cards = key === 'overdue' ? filteredOverdue : key === 'today' ? filteredTodayGroup : filteredWeek}
 		{@const head = key === 'overdue' ? 'Overdue' : key === 'today' ? 'Today' : 'Later this week'}
 		{@const count = cards.length}
 		<section class="group">
@@ -448,6 +491,13 @@
 					{head}
 				</h2>
 				<span class="count">{count}</span>
+
+				{#if key === 'overdue' && cards.length > 1}
+					<button type="button" class="snooze-all-btn" on:click={snoozeAllOverdueToTomorrow} title="Snooze all overdue reminders to tomorrow">
+						<NavIcon name="clock" size={13} />
+						<span>Snooze All to Tomorrow</span>
+					</button>
+				{/if}
 			</div>
 
 			{#if count}
@@ -604,6 +654,27 @@
 	.set-reminder:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
 
 	.group { display: grid; gap: .6rem; }
+	.filter-bar { margin-bottom: 0.75rem; align-self: flex-start; }
+	.snooze-all-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.22rem 0.65rem;
+		border-radius: 99px;
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
+		color: var(--text-secondary);
+		font-size: 0.72rem;
+		font-weight: 700;
+		cursor: pointer;
+		transition: all 0.15s ease;
+		margin-left: 0.5rem;
+	}
+	.snooze-all-btn:hover {
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		border-color: var(--accent);
+		color: var(--text-primary);
+	}
 	.group-head { display: flex; align-items: center; gap: .55rem; padding: 0 .25rem .15rem; }
 	.group-head h2 { display: inline-flex; align-items: center; gap: .4rem; margin: 0; font-size: .72rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--text-secondary); }
 	.group-head h2.urgent { color: color-mix(in srgb, var(--danger, #e0455a) 45%, var(--text-primary)); }

@@ -154,6 +154,7 @@
 		<section class="sec">
 			<button type="button" class="sec-head" aria-expanded={open.rank} on:click={() => toggle('rank')}>
 				<span class="dot" style="background: var(--accent)"></span> PLAYER RANK & ELO
+				<span class="sec-summary-pill">{getLevelData($tracker.gamification?.xp || 0).title} · Lv.{getLevelData($tracker.gamification?.xp || 0).level}</span>
 				<NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.rank}
@@ -219,6 +220,7 @@
 		<section class="sec">
 			<button type="button" class="sec-head" aria-expanded={open.momentum} on:click={() => toggle('momentum')}>
 				<span class="dot" style="background: {$momentum.color}"></span> MOMENTUM STATUS
+				<span class="sec-summary-pill">{$momentum.word}</span>
 				<NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.momentum}
@@ -240,7 +242,9 @@
 
 		<section class="sec">
 			<button type="button" class="sec-head" aria-expanded={open.quick} on:click={() => toggle('quick')}>
-				<span class="dot acc"></span> QUICK STATS <NavIcon name="chevron-down" size={15} />
+				<span class="dot acc"></span> QUICK STATS
+				<span class="sec-summary-pill">{$streakDays}d streak · {formatMinutes($intelligence.avgDaily)}/d</span>
+				<NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.quick}
 				<div class="sec-body grid4">
@@ -295,7 +299,9 @@
 
 		<section class="sec">
 			<button type="button" class="sec-head" aria-expanded={open.deep} on:click={() => toggle('deep')}>
-				<span class="dot" style="background: #d99a2b"></span> DEEP WORK INSIGHTS <NavIcon name="chevron-down" size={15} />
+				<span class="dot" style="background: #d99a2b"></span> DEEP WORK INSIGHTS
+				<span class="sec-summary-pill">{$peakProductivity.has ? $peakProductivity.label : 'No data'}</span>
+				<NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.deep}
 				<div class="sec-body">
@@ -309,7 +315,7 @@
 					</div>
 					<div class="strip">
 						{#each hourBuckets as minutes, hour}
-							<div class="hcol" title="{hour}:00 — {minutes}m">
+							<div class="hcol" data-tip="{hour}:00 · {formatMinutes(minutes)}" title="{hour}:00 — {formatMinutes(minutes)}">
 								<div class="hbar" class:on={minutes > 0} style="height: {minutes ? Math.max(6, (minutes / hourMax) * 100) : 3}%"></div>
 							</div>
 						{/each}
@@ -366,8 +372,8 @@
 				<div class="sec-body">
 					<div class="dna">
 						{#each ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as label, i (i)}
-							<div class="dcol">
-								<div class="dbar" class:on={dayBuckets[i] > 0} style="height: {dayBuckets[i] ? Math.max(8, (dayBuckets[i] / dayMax) * 100) : 4}%" title="{formatMinutes(dayBuckets[i])}"></div>
+							<div class="dcol" data-tip="{label} · {formatMinutes(dayBuckets[i])}" title="{label} — {formatMinutes(dayBuckets[i])}">
+								<div class="dbar" class:on={dayBuckets[i] > 0} style="height: {dayBuckets[i] ? Math.max(8, (dayBuckets[i] / dayMax) * 100) : 4}%"></div>
 								<span>{label}</span>
 							</div>
 						{/each}
@@ -379,7 +385,9 @@
 
 		<section class="sec">
 			<button type="button" class="sec-head" aria-expanded={open.velocity} on:click={() => toggle('velocity')}>
-				<span class="dot" style="background: #e0455a"></span> WEEKLY VELOCITY <NavIcon name="chevron-down" size={15} />
+				<span class="dot" style="background: #e0455a"></span> WEEKLY VELOCITY
+				<span class="sec-summary-pill">{formatMinutes(thisWeek)} ({deltaPct >= 0 ? '+' : ''}{deltaPct}%)</span>
+				<NavIcon name="chevron-down" size={15} />
 			</button>
 			{#if open.velocity}
 				<div class="sec-body">
@@ -411,7 +419,19 @@
 	.accordion { display: grid; gap: .8rem; }
 	.sec { border: 1px solid var(--border-subtle); border-radius: var(--radius-card); background: var(--surface-panel); box-shadow: var(--shadow-card); overflow: hidden; }
 	.sec-head { display: flex; align-items: center; gap: .6rem; width: 100%; padding: 1rem 1.2rem; border: 0; background: transparent; color: var(--text-primary); font-size: .78rem; font-weight: 800; letter-spacing: .1em; text-align: left; }
-	.sec-head :global(svg) { margin-left: auto; color: var(--text-secondary); transition: transform .2s ease; }
+	.sec-summary-pill {
+		margin-left: auto;
+		margin-right: 0.5rem;
+		font-size: 0.7rem;
+		font-weight: 700;
+		color: var(--text-secondary);
+		background: var(--surface-subtle);
+		padding: 0.18rem 0.55rem;
+		border-radius: 99px;
+		border: 1px solid var(--border-subtle);
+		white-space: nowrap;
+	}
+	.sec-head :global(svg) { color: var(--text-secondary); transition: transform .2s ease; flex-shrink: 0; }
 	.sec-head[aria-expanded="true"] :global(svg) { transform: rotate(180deg); }
 	.dot { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 99px; background: var(--text-secondary); }
 	.dot.acc { background: var(--accent); }
@@ -489,6 +509,25 @@
 	.hbar { width: 100%; border-radius: 5px 5px 2px 2px; background: color-mix(in srgb, var(--border-subtle) 60%, transparent); transition: height 0.3s ease, filter 0.18s ease; }
 	.hbar.on { background: linear-gradient(180deg, #d99a2b, color-mix(in srgb, #d99a2b 30%, transparent)); box-shadow: 0 0 8px rgba(217, 154, 43, 0.25); }
 	.hcol:hover .hbar.on { filter: brightness(1.2); }
+	.hcol:hover::after,
+	.dcol:hover::after {
+		content: attr(data-tip);
+		position: absolute;
+		bottom: calc(100% + 6px);
+		left: 50%;
+		transform: translateX(-50%);
+		background: var(--surface-popup-solid, var(--surface-panel));
+		color: var(--text-primary);
+		border: 1px solid var(--border-strong);
+		padding: 3px 7px;
+		border-radius: 6px;
+		font-size: 0.65rem;
+		font-family: var(--font-mono, monospace);
+		white-space: nowrap;
+		pointer-events: none;
+		z-index: 25;
+		box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+	}
 	.axis { display: flex; justify-content: space-between; margin-top: .4rem; color: var(--text-secondary); font-size: .62rem; font-weight: 700; font-family: var(--font-mono, monospace); }
 
 	.prow { display: flex; align-items: center; gap: .6rem; padding: .55rem 0; }
