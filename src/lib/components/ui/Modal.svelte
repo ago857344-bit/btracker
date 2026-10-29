@@ -174,9 +174,9 @@
 		display: grid;
 		place-items: center;
 		padding: 1.2rem;
-		background: rgba(0, 0, 0, 0.60);
-		backdrop-filter: blur(28px) saturate(190%);
-		-webkit-backdrop-filter: blur(28px) saturate(190%);
+		background: rgba(4, 6, 12, 0.65);
+		backdrop-filter: blur(16px) saturate(140%);
+		-webkit-backdrop-filter: blur(16px) saturate(140%);
 		pointer-events: auto;
 	}
 	.modal-card {
@@ -184,12 +184,12 @@
 		width: 100%;
 		max-height: 86vh;
 		overflow: hidden auto;
-		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
+		border: 1px solid var(--border-strong);
 		border-radius: 24px;
-		background: var(--surface-popup-solid, #121020);
+		background: var(--surface-3);
 		backdrop-filter: blur(36px) saturate(210%);
 		-webkit-backdrop-filter: blur(36px) saturate(210%);
-		box-shadow: var(--shadow-modal), var(--vision-bevel-inner);
+		box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.55), var(--inner-glow);
 		transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1);
 		-webkit-overflow-scrolling: touch;
 	}
@@ -205,8 +205,8 @@
 		justify-content: space-between;
 		gap: 1rem;
 		padding: 1.15rem 1.35rem;
-		border-bottom: 0.5px solid color-mix(in srgb, var(--border-subtle), transparent 30%);
-		background: var(--surface-popup-solid, #121020);
+		border-bottom: 1px solid var(--border-subtle);
+		background: var(--surface-3);
 		backdrop-filter: blur(28px) saturate(190%);
 		-webkit-backdrop-filter: blur(28px) saturate(190%);
 	}
@@ -244,7 +244,7 @@
 		justify-content: flex-end;
 		gap: .6rem;
 		padding: 1rem 1.35rem;
-		border-top: 0.5px solid color-mix(in srgb, var(--border-subtle), transparent 30%);
+		border-top: 1px solid var(--border-subtle);
 	}
 
 	@media (max-width: 768px) {
@@ -285,10 +285,10 @@
 			top: 8px;
 			left: 50%;
 			transform: translateX(-50%);
-			width: 42px;
-			height: 5px;
+			width: 36px;
+			height: 4px;
 			border-radius: 9999px;
-			background: color-mix(in srgb, var(--text-secondary), transparent 40%);
+			background: color-mix(in srgb, var(--text-secondary) 30%, transparent);
 			touch-action: none;
 			transition: background 0.15s ease;
 		}

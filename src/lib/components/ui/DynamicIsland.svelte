@@ -524,27 +524,21 @@
 
 	.dynamic-island {
 		pointer-events: auto;
-		background: color-mix(in srgb, var(--island-accent, var(--accent, #6d5dfc)) 6%, rgba(13, 12, 22, 0.94));
+		background: rgba(15, 17, 23, 0.85);
 		color: #ffffff !important;
-		border: 1px solid color-mix(in srgb, var(--island-accent, var(--accent, #6d5dfc)) 24%, rgba(255, 255, 255, 0.16));
-		backdrop-filter: blur(32px) saturate(210%);
-		-webkit-backdrop-filter: blur(32px) saturate(210%);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		backdrop-filter: blur(28px) saturate(190%);
+		-webkit-backdrop-filter: blur(28px) saturate(190%);
 		border-radius: 9999px;
 		cursor: pointer;
 		user-select: none;
 		box-sizing: border-box;
 		overflow: hidden;
 		transform-origin: center top;
+		box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.18);
 
-		/* Apple iOS Spring physics for fluid morphing */
-		transition:
-			width 0.42s cubic-bezier(0.32, 0.72, 0, 1),
-			height 0.42s cubic-bezier(0.32, 0.72, 0, 1),
-			border-radius 0.42s cubic-bezier(0.32, 0.72, 0, 1),
-			box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
-			transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
-			background 0.3s ease,
-			border-color 0.3s ease;
+		/* Ultra-smooth spring physics for fluid morphing */
+		transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
 	}
 
 	.dynamic-island.dock-mode {
@@ -675,7 +669,7 @@
 			0 10px 28px -4px rgba(0, 0, 0, 0.65),
 			0 0 16px -2px color-mix(in srgb, var(--island-accent, var(--accent, #6d5dfc)) 20%, transparent),
 			0 0 0 1px color-mix(in srgb, var(--island-accent, var(--accent, #6d5dfc)) 20%, rgba(255, 255, 255, 0.1)),
-			inset 0 1px 0 rgba(255, 255, 255, 0.28);
+			inset 0 1px 0 rgba(255, 255, 255, 0.18);
 	}
 
 	.dynamic-island.dock-mode:not(.expanded) {

@@ -103,14 +103,15 @@
 
 	let pointerRaf: number | null = null;
 	let lastTiltedEl: HTMLElement | null = null;
+	let lastSpecularCard: HTMLElement | null = null;
 	function handleGlobalPointerMove(e: PointerEvent) {
-		if (e.pointerType === 'touch' || isMobile || $page.url.pathname !== '/') return;
+		if (e.pointerType === 'touch' || isMobile) return;
 		if (pointerRaf) return;
 		pointerRaf = requestAnimationFrame(() => {
 			pointerRaf = null;
 
 			const el = e.target as HTMLElement | null;
-			// Popups, modals, dialogs, drawers, and menus NEVER tilt
+			// Popups, modals, dialogs, drawers, and menus NEVER tilt or capture specular
 			if (!el || el.closest('.modal-card, .modal-backdrop, [role="dialog"], .menu, .drawer, .goals-drawer, .no-tilt, header, nav, .bottom-nav')) {
 				if (lastTiltedEl) {
 					lastTiltedEl.style.removeProperty('--tilt-x');
@@ -118,45 +119,76 @@
 					lastTiltedEl.style.removeProperty('--card-lift');
 					lastTiltedEl = null;
 				}
+				if (lastSpecularCard) {
+					lastSpecularCard.style.removeProperty('--mouse-x');
+					lastSpecularCard.style.removeProperty('--mouse-y');
+					lastSpecularCard = null;
+				}
 				return;
 			}
 
-			// Only allow ultra-subtle tilt on dashboard widgets and bento cards
-			const target = el.closest?.('.widget, .bento-card') as HTMLElement | null;
+			// Specular cursor beam tracking across cards (Pillar 2)
+			const card = el.closest?.('.widget, .bento-card, .specular-card, .card, .r-card, .test-card, .dump-card') as HTMLElement | null;
+			if (lastSpecularCard && lastSpecularCard !== card) {
+				lastSpecularCard.style.removeProperty('--mouse-x');
+				lastSpecularCard.style.removeProperty('--mouse-y');
+			}
+			lastSpecularCard = card;
 
-			if (lastTiltedEl && lastTiltedEl !== target) {
+			if (card) {
+				const rect = card.getBoundingClientRect();
+				const mouseX = e.clientX - rect.left;
+				const mouseY = e.clientY - rect.top;
+				card.style.setProperty('--mouse-x', `${mouseX.toFixed(1)}px`);
+				card.style.setProperty('--mouse-y', `${mouseY.toFixed(1)}px`);
+
+				// Subtle 3D tilt exclusively on desktop dashboard widgets on '/'
+				if ($page.url.pathname === '/' && card.matches('.widget, .bento-card') && !card.closest('.no-tilt, [role="dialog"]')) {
+					if (lastTiltedEl && lastTiltedEl !== card) {
+						lastTiltedEl.style.removeProperty('--tilt-x');
+						lastTiltedEl.style.removeProperty('--tilt-y');
+						lastTiltedEl.style.removeProperty('--card-lift');
+					}
+					lastTiltedEl = card;
+
+					const centerX = rect.width / 2;
+					const centerY = rect.height / 2;
+					const deltaX = Math.max(-1, Math.min(1, (mouseX - centerX) / (centerX || 1)));
+					const deltaY = Math.max(-1, Math.min(1, (mouseY - centerY) / (centerY || 1)));
+					const maxTilt = 1.8;
+					const tiltX = -deltaY * maxTilt;
+					const tiltY = deltaX * maxTilt;
+					card.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
+					card.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
+					card.style.setProperty('--card-lift', '-2px');
+				} else if (lastTiltedEl) {
+					lastTiltedEl.style.removeProperty('--tilt-x');
+					lastTiltedEl.style.removeProperty('--tilt-y');
+					lastTiltedEl.style.removeProperty('--card-lift');
+					lastTiltedEl = null;
+				}
+			} else if (lastTiltedEl) {
 				lastTiltedEl.style.removeProperty('--tilt-x');
 				lastTiltedEl.style.removeProperty('--tilt-y');
 				lastTiltedEl.style.removeProperty('--card-lift');
-			}
-			lastTiltedEl = target;
-
-			if (target && !target.closest('.no-tilt, [role="dialog"]')) {
-				const rect = target.getBoundingClientRect();
-				const mouseX = e.clientX - rect.left;
-				const mouseY = e.clientY - rect.top;
-
-				// Micro-depth tilt: only 1.8 deg max to avoid peripheral distortion
-				const centerX = rect.width / 2;
-				const centerY = rect.height / 2;
-				const deltaX = Math.max(-1, Math.min(1, (mouseX - centerX) / (centerX || 1)));
-				const deltaY = Math.max(-1, Math.min(1, (mouseY - centerY) / (centerY || 1)));
-				const maxTilt = 1.8;
-				const tiltX = -deltaY * maxTilt;
-				const tiltY = deltaX * maxTilt;
-				target.style.setProperty('--tilt-x', `${tiltX.toFixed(2)}deg`);
-				target.style.setProperty('--tilt-y', `${tiltY.toFixed(2)}deg`);
-				target.style.setProperty('--card-lift', '-2px');
+				lastTiltedEl = null;
 			}
 		});
 	}
 
 	function handleGlobalPointerOut(e: PointerEvent) {
-		if (!e.relatedTarget && lastTiltedEl) {
-			lastTiltedEl.style.removeProperty('--tilt-x');
-			lastTiltedEl.style.removeProperty('--tilt-y');
-			lastTiltedEl.style.removeProperty('--card-lift');
-			lastTiltedEl = null;
+		if (!e.relatedTarget) {
+			if (lastTiltedEl) {
+				lastTiltedEl.style.removeProperty('--tilt-x');
+				lastTiltedEl.style.removeProperty('--tilt-y');
+				lastTiltedEl.style.removeProperty('--card-lift');
+				lastTiltedEl = null;
+			}
+			if (lastSpecularCard) {
+				lastSpecularCard.style.removeProperty('--mouse-x');
+				lastSpecularCard.style.removeProperty('--mouse-y');
+				lastSpecularCard = null;
+			}
 		}
 	}
 
@@ -595,15 +627,19 @@
 						aria-label="Open command palette"
 					>
 						<NavIcon name="search" size={14} />
-						<span class="search-hint">Search or jump to...</span>
+						<span class="search-hint">Search syllabus, log, or run a command...</span>
 						<kbd>⌘K</kbd>
 					</button>
 				</div>
 				<div class="topbar-actions">
-					<span class:error={$saveStatus === 'error'} class="save-state"><i></i>{saveLabel}</span>
-					<StreakButton />
-					<TriRingsButton />
-					<a class="quick-add" href="/plan?new=task"><NavIcon name="plus" size={17} /><span>New task</span></a>
+					<div class="telemetry-capsule">
+						<span class:error={$saveStatus === 'error'} class="save-state"><i></i>{saveLabel}</span>
+						<span class="capsule-sep" aria-hidden="true"></span>
+						<StreakButton />
+						<span class="capsule-sep" aria-hidden="true"></span>
+						<TriRingsButton />
+					</div>
+					<a class="quick-add" href="/log"><NavIcon name="plus" size={16} /><span>+ Log</span></a>
 					<AccountMenu />
 				</div>
 			</header>
@@ -681,28 +717,37 @@
 		position: sticky;
 		top: 0;
 		z-index: 30;
-		transition: min-height 0.26s var(--ease-ios-spring), padding 0.26s var(--ease-ios-spring);
+		transition: min-height 0.26s var(--ease-ios-spring), padding 0.26s var(--ease-ios-spring), background 0.26s ease, border-color 0.26s ease, box-shadow 0.26s ease;
 	}
 	.topbar.scrolled {
 		min-height: 62px;
 		padding-top: 0.75rem;
 		padding-bottom: 0.75rem;
+		background: var(--glass-bg, var(--surface-3));
+		backdrop-filter: blur(24px) saturate(180%);
+		-webkit-backdrop-filter: blur(24px) saturate(180%);
+		border-bottom: 1px solid var(--border-subtle);
+		box-shadow: 0 4px 24px -8px rgba(0, 0, 0, 0.18);
 	}
 	.page-heading, .topbar-actions { display: flex; align-items: center; }
 	.page-heading { gap: .85rem; }
 	.breadcrumb { margin: 0 0 .2rem; color: var(--text-secondary); font-size: .72rem; font-weight: 650; }
 	.breadcrumb span { margin: 0 .26rem; color: color-mix(in srgb, var(--text-secondary), transparent 45%); }
 	h2 { margin: 0; font-size: 1.15rem; line-height: 1.1; letter-spacing: -.035em; font-weight: 800; color: var(--text-primary); }
-	:global(:root[data-wallpaper='true']:not([data-wallpaper-luminance='bright'])) .breadcrumb {
+	
+	:global(:root[data-wallpaper='true']:not([data-wallpaper-luminance='bright'])) .topbar:not(.scrolled) .breadcrumb,
+	:global(:root[data-live-wallpaper='true']) .topbar:not(.scrolled) .breadcrumb {
 		color: rgba(255, 255, 255, 0.85) !important;
-		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45) !important;
+		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55) !important;
 	}
-	:global(:root[data-wallpaper='true']:not([data-wallpaper-luminance='bright'])) .breadcrumb span {
+	:global(:root[data-wallpaper='true']:not([data-wallpaper-luminance='bright'])) .topbar:not(.scrolled) .breadcrumb span,
+	:global(:root[data-live-wallpaper='true']) .topbar:not(.scrolled) .breadcrumb span {
 		color: rgba(255, 255, 255, 0.45) !important;
 	}
-	:global(:root[data-wallpaper='true']:not([data-wallpaper-luminance='bright'])) h2 {
+	:global(:root[data-wallpaper='true']:not([data-wallpaper-luminance='bright'])) .topbar:not(.scrolled) h2,
+	:global(:root[data-live-wallpaper='true']) .topbar:not(.scrolled) h2 {
 		color: #ffffff !important;
-		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.45) !important;
+		text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55) !important;
 	}
 	.topbar-center {
 		display: flex;
@@ -718,25 +763,22 @@
 		align-items: center;
 		gap: 0.55rem;
 		height: 36px;
-		padding: 0 0.9rem;
+		padding: 0 0.95rem;
 		border-radius: 999px;
-		background: var(--surface-panel);
-		backdrop-filter: var(--glass-filter);
-		-webkit-backdrop-filter: var(--glass-filter);
+		background: var(--surface-2);
 		border: 1px solid var(--border-subtle);
 		color: var(--text-secondary);
 		font-size: 0.78rem;
 		font-weight: 600;
 		cursor: pointer;
 		transition: all 0.2s var(--ease-ios-spring);
-		width: clamp(160px, 24vw, 280px);
+		width: clamp(200px, 28vw, 360px);
 		box-sizing: border-box;
 	}
 	.topbar-search-pill:hover {
 		border-color: var(--accent);
 		color: var(--text-primary);
-		transform: translateY(-1px);
-		box-shadow: 0 6px 18px color-mix(in srgb, var(--accent), transparent 85%);
+		box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 15%, transparent);
 	}
 	.topbar-search-pill .search-hint {
 		flex: 1;
@@ -744,80 +786,94 @@
 		white-space: nowrap;
 		overflow: hidden;
 		text-overflow: ellipsis;
+		font-size: 0.76rem;
+		color: var(--text-muted);
 	}
 	.topbar-search-pill kbd {
 		display: inline-flex;
 		align-items: center;
 		padding: 0.12rem 0.4rem;
 		border-radius: 6px;
-		background: var(--surface-subtle);
+		background: var(--surface-1);
 		border: 1px solid var(--border-subtle);
 		font-size: 0.68rem;
-		font-family: inherit;
+		font-family: var(--font-mono, monospace);
 		color: var(--text-secondary);
 		line-height: 1;
+		font-weight: 600;
 	}
 	@media (max-width: 768px) {
 		.topbar-center { display: none !important; }
 	}
 	.topbar-actions { display: flex; align-items: center; gap: .65rem; }
+
+	/* Telemetry Capsule (Pillar 3.1) */
+	.telemetry-capsule {
+		display: inline-flex;
+		align-items: center;
+		gap: 2px;
+		background: var(--surface-2);
+		border: 1px solid var(--border-subtle);
+		border-radius: 999px;
+		padding: 3px 5px;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+	}
+	.capsule-sep {
+		display: block;
+		width: 1px;
+		height: 16px;
+		background: var(--border-subtle);
+		margin: 0 2px;
+	}
 	.save-state {
 		display: inline-flex;
 		align-items: center;
 		gap: .42rem;
-		height: 36px;
-		padding: 0 .85rem;
+		height: 30px;
+		padding: 0 .65rem;
 		border-radius: 999px;
-		background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 28%, rgba(20, 16, 38, 0.65)), color-mix(in srgb, var(--accent) 18%, rgba(12, 10, 24, 0.78)));
-		backdrop-filter: blur(16px);
-		-webkit-backdrop-filter: blur(16px);
-		border: 1.5px solid color-mix(in srgb, var(--accent) 65%, rgba(255, 255, 255, 0.35));
-		color: #ffffff;
+		background: transparent;
+		color: var(--text-secondary);
 		font-size: .74rem;
-		font-weight: 700;
-		box-shadow: 0 4px 18px -2px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 14px -2px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 1px color-mix(in srgb, var(--accent) 45%, rgba(255, 255, 255, 0.5));
-		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+		font-weight: 600;
+		font-family: var(--font-mono, monospace);
+		font-variant-numeric: tabular-nums;
+		border: none;
 	}
-	.save-state i { display: block; width: 7px; height: 7px; border-radius: 99px; background: var(--success); box-shadow: 0 0 6px var(--success); }
+	.save-state i { display: block; width: 6px; height: 6px; border-radius: 99px; background: var(--success); box-shadow: 0 0 6px var(--success); }
 	.save-state.error i { background: var(--danger); box-shadow: 0 0 6px var(--danger); }
 
-	.topbar-actions :global(.streak-button),
-	.topbar-actions :global(.tri-rings-btn),
-	.topbar-actions :global(.signin),
-	.topbar-actions :global(.avatar-btn) {
-		background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 28%, rgba(20, 16, 38, 0.65)), color-mix(in srgb, var(--accent) 18%, rgba(12, 10, 24, 0.78))) !important;
-		backdrop-filter: blur(16px) !important;
-		-webkit-backdrop-filter: blur(16px) !important;
-		border: 1.5px solid color-mix(in srgb, var(--accent) 65%, rgba(255, 255, 255, 0.35)) !important;
-		color: #ffffff !important;
-		box-shadow: 0 4px 18px -2px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 14px -2px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 1px color-mix(in srgb, var(--accent) 45%, rgba(255, 255, 255, 0.5)) !important;
-		transition: all 0.2s var(--ease-ios-spring) !important;
+	.telemetry-capsule :global(.streak-button),
+	.telemetry-capsule :global(.tri-rings-btn) {
+		background: transparent !important;
+		border: none !important;
+		box-shadow: none !important;
+		height: 30px !important;
+		padding: 0 8px !important;
+		color: var(--text-primary) !important;
+		border-radius: 999px !important;
+		transition: background 0.16s ease !important;
 	}
-	.topbar-actions :global(.streak-button:hover),
-	.topbar-actions :global(.tri-rings-btn:hover),
-	.topbar-actions :global(.signin:hover),
-	.topbar-actions :global(.avatar-btn:hover) {
-		border-color: var(--accent) !important;
-		background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 40%, rgba(25, 20, 48, 0.70)), color-mix(in srgb, var(--accent) 28%, rgba(15, 12, 28, 0.82))) !important;
-		box-shadow: 0 6px 24px -2px color-mix(in srgb, var(--accent) 65%, transparent), 0 0 20px color-mix(in srgb, var(--accent) 45%, transparent), inset 0 1px 1px color-mix(in srgb, var(--accent) 60%, rgba(255, 255, 255, 0.7)) !important;
-		transform: translateY(-1px) scale(1.02) !important;
+	.telemetry-capsule :global(.streak-button:hover),
+	.telemetry-capsule :global(.tri-rings-btn:hover) {
+		background: color-mix(in srgb, var(--accent) 12%, transparent) !important;
+		transform: none !important;
 	}
-	.topbar-actions :global(.streak-button .flame) {
+	.telemetry-capsule :global(.streak-button .flame) {
 		color: var(--accent) !important;
-		filter: drop-shadow(0 0 7px color-mix(in srgb, var(--accent) 80%, transparent)) !important;
+		filter: none !important;
 	}
-	.topbar-actions :global(.streak-button .count),
-	.topbar-actions :global(.tri-rings-btn .count-pill) {
-		color: #ffffff !important;
-		text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 70%, transparent), 0 1px 2px rgba(0, 0, 0, 0.6) !important;
-		font-weight: 850 !important;
+	.telemetry-capsule :global(.streak-button .count),
+	.telemetry-capsule :global(.tri-rings-btn .count-pill) {
+		color: var(--text-primary) !important;
+		text-shadow: none !important;
+		font-weight: 700 !important;
+		font-family: var(--font-mono, monospace) !important;
+		font-variant-numeric: tabular-nums !important;
 	}
-	.topbar-actions :global(.tri-rings-btn .count-pill.complete) {
-		color: var(--success, #2af598) !important;
-		text-shadow: 0 0 10px rgba(42, 245, 152, 0.6), 0 1px 2px rgba(0, 0, 0, 0.6) !important;
-	}
-	.topbar-actions :global(.signin) {
-		color: #ffffff !important;
+	.telemetry-capsule :global(.tri-rings-btn .count-pill.complete) {
+		color: var(--success) !important;
+		text-shadow: none !important;
 	}
 
 	.quick-add {

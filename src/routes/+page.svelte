@@ -172,15 +172,13 @@
 
 {#if !showLanding}
 	<section class="home">
-	<header class="hero">
-		<div>
-			<p class="eyebrow">{dateLabel}</p>
-			<h1>{greeting}{name ? `, ${name}` : ''}. <span>Let’s make it count.</span></h1>
-			<p class="sub">Your personalized command center — progress, targets, and what needs you next.</p>
+	<header class="page-header hero">
+		<div class="page-header-copy">
+			<p class="page-eyebrow eyebrow">{dateLabel}</p>
+			<h1 class="page-title">{greeting}{name ? `, ${name}` : ''}. <span>Let’s make it count.</span></h1>
+			<p class="page-subtitle sub">Your personalized command center — progress, targets, and what needs you next.</p>
 		</div>
-		<div class="hero-tools">
-
-
+		<div class="page-header-actions hero-tools">
 			{#if dashboardLayout === 'default'}
 				<button type="button" class="customize-toggle" class:active={$customizingHome} on:click={() => customizingHome.update((v) => !v)}>
 					<NavIcon name="settings" size={15} />

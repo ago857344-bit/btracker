@@ -563,9 +563,12 @@
 </script>
 
 <section class="settings">
-	<header>
-		<h1>Settings</h1>
-		<p>PROFILE, APPEARANCE &amp; DATA</p>
+	<header class="page-header">
+		<div class="page-header-copy">
+			<p class="page-eyebrow">Preferences &amp; Engine</p>
+			<h1 class="page-title">Settings</h1>
+			<p class="page-subtitle">Configure your profile, theme appearance, study flow, and data backups.</p>
+		</div>
 	</header>
 
 	<div class="panels">

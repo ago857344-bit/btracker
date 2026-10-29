@@ -345,37 +345,35 @@
 </svelte:head>
 
 <div class="tests-container">
-	<header class="glass">
-		<div class="header-content">
-			<div>
-				<h1>Assessments</h1>
-				<p>Track your test performance and log mistakes to improve.</p>
-			</div>
-			<div class="header-actions">
-				<button type="button" class="paper-sheet-btn" on:click={() => openTestDaySheet()} title="Generate Test Day Paper Sheet">
-					<NavIcon name="printer" size={15} />
-					<span>Test Day Sheet</span>
-				</button>
-				{#if viewMode === 'mocks'}
-					<button class="primary-btn" on:click={openNewTestModal}>
-						<NavIcon name="plus" size={16} /> Log Test
-					</button>
-				{:else}
-					<button class="primary-btn" on:click={() => showMistakeModal = true}>
-						<NavIcon name="plus" size={16} /> Log Mistake
-					</button>
-				{/if}
-			</div>
+	<header class="page-header">
+		<div class="page-header-copy">
+			<span class="page-eyebrow">Academic Benchmark Engine</span>
+			<h1 class="page-title">Assessments</h1>
+			<p class="page-subtitle">Track your mock test performance, score analytics, and log mistake patterns to optimize exam strategy.</p>
 		</div>
-
-		<div class="view-tabs" role="tablist">
-			<button type="button" role="tab" class:selected={viewMode === 'mocks'} on:click={() => viewMode = 'mocks'}>Mock Scores</button>
-			<button type="button" role="tab" class:selected={viewMode === 'mistakes'} on:click={() => viewMode = 'mistakes'}>Mistake Book</button>
+		<div class="page-header-actions">
+			<div class="segmented-control" role="tablist" aria-label="Assessment views">
+				<button type="button" role="tab" class:active={viewMode === 'mocks'} on:click={() => viewMode = 'mocks'}>Mock Scores</button>
+				<button type="button" role="tab" class:active={viewMode === 'mistakes'} on:click={() => viewMode = 'mistakes'}>Mistake Book</button>
+			</div>
+			<button type="button" class="paper-sheet-btn" on:click={() => openTestDaySheet()} title="Generate Test Day Paper Sheet">
+				<NavIcon name="printer" size={15} />
+				<span>Test Day Sheet</span>
+			</button>
+			{#if viewMode === 'mocks'}
+				<button class="primary-btn" on:click={openNewTestModal}>
+					<NavIcon name="plus" size={16} /> Log Test
+				</button>
+			{:else}
+				<button class="primary-btn" on:click={() => showMistakeModal = true}>
+					<NavIcon name="plus" size={16} /> Log Mistake
+				</button>
+			{/if}
 		</div>
 	</header>
 
 	{#if viewMode === 'mocks'}
-		<div class="tabs">
+		<div class="segmented-control" style="margin-bottom: 1.25rem;">
 			<button class:active={tab === 'Btest'} on:click={() => tab = 'Btest'}>BTest Mocks</button>
 			<button class:active={tab === 'Alt'} on:click={() => tab = 'Alt'}>Alt Mocks</button>
 			<button class:active={tab === 'CET'} on:click={() => tab = 'CET'}>CET Mocks</button>
@@ -560,9 +558,15 @@
 					{/each}
 				</div>
 			{:else}
-				<div class="empty-state glass">
-					<NavIcon name="tests" size={48} />
-					<p>No {tab} tests logged yet. Start tracking your progress!</p>
+				<div class="empty-state">
+					<div class="empty-state-icon">
+						<NavIcon name="tests" size={24} />
+					</div>
+					<h3 class="empty-state-title">No {tab} tests logged yet</h3>
+					<p class="empty-state-desc">Log your scores, question breakdown, and negative marks to benchmark progress.</p>
+					<button class="primary-btn" on:click={openNewTestModal}>
+						<NavIcon name="plus" size={15} /> Log First Test
+					</button>
 				</div>
 			{/if}
 		</div>
@@ -606,9 +610,15 @@
 
 		<div class="grid">
 			{#if filteredMistakes.length === 0}
-				<div class="empty-state glass">
-					<NavIcon name="book" size={48} />
-					<p>No mistakes logged yet. Stay sharp!</p>
+				<div class="empty-state">
+					<div class="empty-state-icon">
+						<NavIcon name="book" size={24} />
+					</div>
+					<h3 class="empty-state-title">No mistakes logged yet</h3>
+					<p class="empty-state-desc">Capture conceptual traps, calculation errors, or silly slips to eliminate repeat mistakes.</p>
+					<button class="primary-btn" on:click={() => showMistakeModal = true}>
+						<NavIcon name="plus" size={15} /> Log First Mistake
+					</button>
 				</div>
 			{:else}
 				{#each filteredMistakes as mistake (mistake.id)}
@@ -812,16 +822,6 @@
 	.btn-sheet-cta:hover { filter: brightness(1.1); transform: translateY(-1px); }
 	h1 { font-size: 1.75rem; margin: 0 0 0.5rem 0; color: var(--text-primary); }
 	p { margin: 0; color: var(--text-secondary); }
-	
-	.view-tabs { display: flex; border-bottom: 1px solid var(--border-subtle); margin: 0 -1.5rem; padding: 0 1.5rem; }
-	.view-tabs button { background: transparent; border: none; padding: 0.75rem 0; margin-right: 1.5rem; color: var(--text-secondary); font-weight: 600; font-size: 0.95rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s ease; transform: translateY(1px); }
-	.view-tabs button:hover { color: var(--text-primary); }
-	.view-tabs button.selected { color: var(--accent); border-bottom-color: var(--accent); }
-
-	.tabs { display: flex; gap: 0.5rem; border-top: 1px solid transparent; }
-	.tabs button { background: transparent; border: none; padding: 0.75rem 1.25rem; color: var(--text-secondary); font-weight: 600; font-size: 0.95rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s ease; }
-	.tabs button:hover { color: var(--text-primary); }
-	.tabs button.active { color: var(--accent); border-bottom-color: var(--accent); }
 	
 	.primary-btn { background: var(--accent); color: var(--accent-contrast, white); border: none; padding: 0.75rem 1.5rem; border-radius: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: transform 0.15s ease, box-shadow 0.15s ease; }
 	.primary-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px color-mix(in srgb, var(--accent), transparent 60%); }
@@ -1068,11 +1068,7 @@
 		header { padding: 1.15rem 1rem; border-radius: 16px; }
 		.header-content { flex-direction: column; align-items: flex-start; gap: 0.85rem; margin-bottom: 1rem; }
 		.header-actions { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-		.paper-sheet-btn, .header-content .primary-btn { width: 100%; justify-content: center; min-height: 42px; font-size: 0.85rem; }
-		.view-tabs { display: grid; grid-template-columns: 1fr 1fr; width: 100%; margin: 0; padding: 0.3rem; border-radius: 12px; }
-		.view-tabs button { justify-content: center; text-align: center; font-size: 0.82rem; }
-		.tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; width: 100%; overflow-x: visible; }
-		.tabs button { justify-content: center; text-align: center; padding: 0.55rem 0.25rem; font-size: 0.8rem; }
+		.paper-sheet-btn, .primary-btn { width: 100%; justify-content: center; min-height: 42px; font-size: 0.85rem; }
 		.analytics-grid { grid-template-columns: repeat(2, 1fr); gap: 0.65rem; }
 		.negative-analysis { grid-column: span 2; }
 		.negative-stats { gap: 1rem; }

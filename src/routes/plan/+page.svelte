@@ -202,23 +202,35 @@
 <svelte:head><title>Plan · BTracker</title></svelte:head>
 
 <div class="plan" bind:this={plannerRoot}>
-	<div class="tabs" role="tablist">
-		<button type="button" role="tab" aria-selected={tab === 'planner'} class:selected={tab === 'planner'} on:click={() => tab = 'planner'}>Daily Planner</button>
-		<button type="button" role="tab" aria-selected={tab === 'goals'} class:selected={tab === 'goals'} on:click={() => tab = 'goals'}>Goals Tracker</button>
-	</div>
+	<header class="page-header">
+		<div class="page-header-copy">
+			<span class="page-eyebrow">Execution Architecture</span>
+			<h1 class="page-title">Planner &amp; Routine</h1>
+			<p class="page-subtitle">Timeblock high-yield deep work sessions, align daily goals, and execute with disciplined cadence.</p>
+		</div>
+		<div class="page-header-actions">
+			<div class="segmented-control" role="tablist">
+				<button type="button" role="tab" aria-selected={tab === 'planner'} class:active={tab === 'planner'} on:click={() => tab = 'planner'}>Daily Planner</button>
+				<button type="button" role="tab" aria-selected={tab === 'goals'} class:active={tab === 'goals'} on:click={() => tab = 'goals'}>Goals Tracker</button>
+			</div>
+			<button type="button" class="tool btn-primary" on:click={() => { detailTask = null; detailOpen = true; }}>
+				<NavIcon name="plus" size={14} /> Add Block
+			</button>
+		</div>
+	</header>
 
 	{#if tab === 'planner'}
 		<div class="toolbar">
-			<span class="legend"><i class="missed-dot"></i> White = missed task</span>
+			<span class="legend"><i class="missed-dot"></i> Amber = missed task</span>
 			<button type="button" class="tool" on:click={goToday}>Today</button>
 			<button type="button" class="tool icon" aria-label="Previous" on:click={() => step(-1)}><NavIcon name="chevron" size={14} /></button>
 			<button type="button" class="tool icon" aria-label="Next" on:click={() => step(1)}><span class="flip"><NavIcon name="chevron" size={14} /></span></button>
 			<b class="cursor-label">{monthLabelOf(cursor)}</b>
 			<button type="button" class="tool" on:click={() => balancerOpen = true}><NavIcon name="plan" size={13} /> Auto Balance</button>
 			<button type="button" class="tool" on:click={() => guideOpen = true}><NavIcon name="info" size={13} /> Guide</button>
-			<div class="view-toggle">
-				<button type="button" class:selected={view === 'week'} on:click={() => view = 'week'}>Week</button>
-				<button type="button" class:selected={view === 'month'} on:click={() => view = 'month'}>Month</button>
+			<div class="segmented-control" style="margin-left: auto;">
+				<button type="button" class:active={view === 'week'} on:click={() => view = 'week'}>Week</button>
+				<button type="button" class:active={view === 'month'} on:click={() => view = 'month'}>Month</button>
 			</div>
 		</div>
 
@@ -372,9 +384,12 @@
 						{/each}
 					</ul>
 				{:else}
-					<div class="empty-day">
-						<b>Nothing scheduled</b>
-						<p>Add a task using the form{dayTasks.length === 0 && tasksOn(selectedDay).length === 0 ? ' on the right' : ''}, or clear your filters.</p>
+					<div class="empty-state">
+						<div class="empty-state-icon">
+							<NavIcon name="plan" size={24} />
+						</div>
+						<h3 class="empty-state-title">Nothing scheduled for {selWeekday}</h3>
+						<p class="empty-state-desc">Add a study block using the form on the right, or import your pending to-do tasks.</p>
 					</div>
 				{/if}
 
@@ -486,42 +501,6 @@
 
 <style>
 	.plan { display: grid; gap: 1.1rem; }
-	.tabs {
-		display: inline-flex;
-		gap: 3px;
-		justify-self: start;
-		padding: 3px;
-		border: 1px solid var(--border-subtle);
-		border-radius: 14px;
-		background: color-mix(in srgb, var(--surface-panel) 85%, transparent);
-		backdrop-filter: blur(16px);
-		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-	}
-	.tabs button {
-		width: 130px;
-		height: 38px;
-		padding: 0 1rem;
-		border: 0;
-		border-radius: 11px;
-		background: transparent;
-		color: var(--text-secondary);
-		font-size: .78rem;
-		font-weight: 600;
-		letter-spacing: -.01em;
-		cursor: pointer;
-		font-family: inherit;
-		transition: all 0.22s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1));
-		-webkit-tap-highlight-color: transparent;
-	}
-	.tabs button.selected {
-		color: var(--accent-contrast, #ffffff);
-		background: var(--accent);
-		box-shadow: 0 3px 10px color-mix(in srgb, var(--accent), transparent 55%), inset 0 1px 0 rgba(255, 255, 255, 0.25);
-		font-weight: 700;
-	}
-	.tabs button:active {
-		transform: scale(0.965);
-	}
 
 	.toolbar { display: flex; align-items: center; gap: .55rem; flex-wrap: wrap; }
 	.legend { display: inline-flex; align-items: center; gap: .4rem; color: var(--text-secondary); font-size: .64rem; font-weight: 750; letter-spacing: .06em; text-transform: uppercase; }
@@ -532,39 +511,6 @@
 	.tool.icon { width: 38px; justify-content: center; padding: 0; }
 	.flip { display: grid; transform: rotate(180deg); }
 	.cursor-label { font-size: .86rem; letter-spacing: -.02em; font-weight: 650; }
-	.view-toggle {
-		display: inline-flex;
-		margin-left: auto;
-		padding: 3px;
-		border: 1px solid var(--border-subtle);
-		border-radius: 12px;
-		background: color-mix(in srgb, var(--surface-panel) 85%, transparent);
-		backdrop-filter: blur(16px);
-		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-	}
-	.view-toggle button {
-		height: 34px;
-		padding: 0 .8rem;
-		border: 0;
-		border-radius: 9px;
-		background: transparent;
-		color: var(--text-secondary);
-		font-size: .72rem;
-		font-weight: 600;
-		cursor: pointer;
-		font-family: inherit;
-		transition: all 0.22s var(--ease-ios-spring);
-		-webkit-tap-highlight-color: transparent;
-	}
-	.view-toggle button.selected {
-		color: var(--accent);
-		background: color-mix(in srgb, var(--accent) 18%, transparent);
-		box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.15);
-		font-weight: 700;
-	}
-	.view-toggle button:active {
-		transform: scale(0.96);
-	}
 
 	.week-strip { display: grid; grid-template-columns: repeat(7, 1fr); gap: .5rem; }
 	.day-cell { position: relative; display: grid; gap: .3rem; justify-items: center; padding: .8rem .4rem; border: 1px solid var(--border-subtle); border-radius: 16px; background: var(--surface-panel); color: var(--text-primary); cursor: pointer; font-family: inherit; transition: border-color .18s var(--ease-ios-spring), transform .18s var(--ease-ios-spring), box-shadow .18s var(--ease-ios-spring); min-height: 90px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05); }
@@ -609,28 +555,42 @@
 	.funnel select:focus { outline: none; }
 
 	.task-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .4rem; touch-action: pan-y; }
-	.task-row { display: flex; align-items: center; gap: .55rem; padding: .55rem .6rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); touch-action: pan-y; }
+	.task-row {
+		display: flex;
+		align-items: center;
+		gap: .55rem;
+		padding: .55rem .75rem;
+		border: 1px solid var(--border-subtle);
+		border-radius: 12px;
+		background: var(--surface-subtle);
+		touch-action: pan-y;
+		transition: opacity 0.22s ease, border-color 0.2s ease, background 0.2s ease;
+	}
+	.task-row:hover {
+		border-color: color-mix(in srgb, var(--accent) 35%, var(--border-subtle));
+		background: color-mix(in srgb, var(--surface-subtle) 90%, var(--accent) 10%);
+	}
 	.task-row:active { cursor: grabbing; }
 	.circle-check { display: grid; flex: 0 0 22px; place-items: center; width: 22px; height: 22px; border: 2px solid var(--border-subtle); border-radius: 99px; background: transparent; color: var(--accent-contrast, #fff); cursor: pointer; touch-action: manipulation; transition: all .15s ease; }
 	.circle-check:hover { border-color: var(--accent); transform: scale(1.08); }
 	.circle-check.checked { border-color: #2f9e6e; background: #2f9e6e; }
 	.class-schedule-badge { display: grid; flex: 0 0 22px; place-items: center; width: 22px; height: 22px; border-radius: 99px; background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); color: var(--accent); }
-	.color-bar { flex: 0 0 4px; align-self: stretch; border-radius: 99px; }
+	.color-bar { flex: 0 0 3px; width: 3px; align-self: stretch; border-radius: 99px; margin-right: 2px; }
 	.task-copy { display: grid; flex: 1; gap: .18rem; min-width: 0; border: 0; background: transparent; text-align: left; color: inherit; cursor: pointer; font-family: inherit; }
 	.task-copy b { font-size: .82rem; letter-spacing: -.01em; }
-	.task-copy small { display: flex; align-items: center; gap: .35rem; color: var(--text-secondary); font-size: .66rem; flex-wrap: wrap; }
+	.task-copy small { display: flex; align-items: center; gap: .35rem; color: var(--text-secondary); font-size: .66rem; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+	.task-row.done { opacity: 0.65; }
 	.task-row.done .task-copy b { color: var(--text-secondary); text-decoration: line-through; }
-	.task-row.missed { border-style: dashed; }
+	.task-row.missed {
+		border-color: color-mix(in srgb, var(--warning, #f59e0b) 40%, var(--border-subtle));
+		background: color-mix(in srgb, var(--warning, #f59e0b) 6%, var(--surface-subtle));
+	}
 	.dot { width: 8px; height: 8px; border-radius: 99px; }
 	.test-tag, .missed-tag, .class-tag, .subs-tag { padding: .1rem .45rem; border-radius: 99px; font-size: .56rem; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
 	.class-tag { color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent); }
 	.subs-tag { color: var(--text-secondary); background: color-mix(in srgb, var(--surface-subtle) 80%, transparent); border: 1px solid var(--border-subtle); }
 	.test-tag { color: var(--accent); background: var(--accent-soft); }
-	.missed-tag { color: var(--text-secondary); border: 1px solid var(--border-subtle); }
-
-	.empty-day { display: grid; gap: .3rem; justify-items: center; padding: 1.8rem 1rem; border: 1px dashed var(--border-subtle); border-radius: 14px; text-align: center; }
-	.empty-day b { font-size: .84rem; }
-	.empty-day p { margin: 0; color: var(--text-secondary); font-size: .74rem; }
+	.missed-tag { color: var(--warning, #f59e0b); background: color-mix(in srgb, var(--warning, #f59e0b) 12%, transparent); border: 1px solid color-mix(in srgb, var(--warning, #f59e0b) 28%, transparent); }
 
 	.form-col { display: grid; gap: .8rem; }
 	.your-goals { display: grid; gap: .45rem; padding: 1rem; border: 1px solid var(--border-subtle); border-radius: 16px; background: var(--surface-panel); }
@@ -649,15 +609,6 @@
 	.lib-empty { margin: 0; color: var(--text-secondary); font-size: .8rem; line-height: 1.6; }
 
 	@media (max-width: 768px) {
-		.tabs {
-			width: 100%;
-			display: flex;
-		}
-		.tabs button {
-			flex: 1;
-			width: auto;
-			min-height: 42px;
-		}
 		.toolbar {
 			display: flex;
 			flex-wrap: wrap;
@@ -679,16 +630,6 @@
 			height: 38px;
 			padding: 0 0.75rem;
 			font-size: 0.75rem;
-		}
-		.view-toggle {
-			order: 5;
-			margin-left: 0;
-			width: 100%;
-			display: flex;
-		}
-		.view-toggle button {
-			flex: 1;
-			height: 38px;
 		}
 		.legend {
 			order: 6;

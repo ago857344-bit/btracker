@@ -306,7 +306,10 @@
 					<b>{isPreview ? 'Student Aspirant' : ($tracker.meta.name || 'My Account')}</b>
 					<span class="elo-badge {tier.cls}" title="{tierElo} {stars ? 'season ' : ''}Elo{stars ? ` · Prestige ${stars}` : ''}">{tier.icon} {tier.name}{#if stars}<i class="stars">{stars > 3 ? `★${stars}` : '★'.repeat(stars)}</i>{/if}</span>
 				</div>
-				<small class="rank-name" class:gradient-text={frame} style={frame ? `--frame: linear-gradient(135deg, ${frame.colors?.join(', ')})` : undefined}>Lv {levelData.level} · {isPreview ? 'Aspirant' : ($loadout.title ?? levelData.title)}</small>
+				<div class="level-meta-row">
+					<small class="rank-name" class:gradient-text={frame} style={frame ? `--frame: linear-gradient(135deg, ${frame.colors?.join(', ')})` : undefined}>Lv {levelData.level} · {isPreview ? 'Aspirant' : ($loadout.title ?? levelData.title)}</small>
+					<span class="xp-exact">{xp.toLocaleString()} / {levelData.nextTierXp.toLocaleString()} XP</span>
+				</div>
 				<div class="xp-bar" title="{xp} XP / {levelData.nextTierXp} XP">
 					<div class="xp-fill" style="width: {levelData.progress}%"></div>
 				</div>
@@ -466,26 +469,29 @@
 	nav a:hover, .settings-link:hover { color: var(--text-primary); background: color-mix(in srgb, var(--surface-subtle) 85%, transparent); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04); }
 	nav a:active, .settings-link:active { transform: scale(0.975); }
 	nav a.active {
-		color: var(--accent);
-		background: color-mix(in srgb, var(--accent) 15%, var(--surface-panel));
+		color: var(--text-primary);
+		background: color-mix(in srgb, var(--accent) 12%, var(--surface-2));
 		border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
-		box-shadow: 0 4px 14px -3px color-mix(in srgb, var(--accent) 25%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-		font-weight: 750;
+		box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 14%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+		font-weight: 600;
+	}
+	nav a.active .nav-icon {
+		color: var(--accent);
 	}
 	nav a.active::before {
 		content: '';
 		position: absolute;
-		left: 0;
+		left: 6px;
 		top: 50%;
 		transform: translateY(-50%);
-		width: 3.5px;
-		height: 18px;
-		border-radius: 0 4px 4px 0;
+		width: 3px;
+		height: 16px;
+		border-radius: 99px;
 		background: var(--accent);
-		box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 70%, transparent);
+		box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 80%, transparent);
 	}
 	aside.collapsed nav a.active::before {
-		left: 2px;
+		left: 4px;
 	}
 	nav a[draggable='true'] { cursor: grab; }
 	nav a.dragging { opacity: .35; cursor: grabbing; }
@@ -501,7 +507,18 @@
 	nav a:hover .nav-grip { opacity: .6; }
 	.nav-grip + .due-badge { margin-left: 6px; }
 	.nav-icon { display: grid; flex: 0 0 24px; place-items: center; }
-	.due-badge { margin-left: auto; min-width: 19px; height: 19px; padding: 0 5px; border-radius: 99px; display: grid; place-items: center; background: var(--accent); color: var(--accent-contrast, white); font-size: .62rem; font-weight: 800; }
+	.due-badge {
+		margin-left: auto;
+		font-size: 0.68rem;
+		padding: 1px 7px;
+		border-radius: 999px;
+		background: color-mix(in srgb, var(--accent) 16%, transparent);
+		color: var(--accent);
+		border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+		font-variant-numeric: tabular-nums;
+		font-weight: 750;
+		line-height: 1.4;
+	}
 	.nav-divider { height: 1px; margin: clamp(0.5rem, 1.5vh, 1rem) .65rem clamp(0.1rem, 0.3vh, 0.2rem); background: var(--border-subtle); }
 	.sidebar-bottom { display: grid; gap: .55rem; margin-top: auto; min-width: 0; position: relative; }
 	.profile-container {
@@ -558,9 +575,23 @@
 	.profile-copy { display: grid; gap: .1rem; min-width: 0; flex: 1; font-size: .77rem; }
 	.user-level-row { display: flex; align-items: center; gap: .35rem; min-width: 0; }
 	.user-level-row b { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-	.rank-name { color: var(--accent); font-weight: 800; font-size: .62rem; text-transform: uppercase; letter-spacing: .06em; margin-bottom: .2rem; }
-	.xp-bar { height: 6px; background: color-mix(in srgb, var(--text-primary), transparent 90%); border-radius: 99px; overflow: hidden; box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); width: 100%; }
-	.xp-fill { height: 100%; background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 80%, white)); transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+	.level-meta-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.35rem;
+		margin-bottom: 0.2rem;
+	}
+	.xp-exact {
+		font-size: 0.62rem;
+		color: var(--text-secondary);
+		font-family: var(--font-mono, monospace);
+		font-variant-numeric: tabular-nums;
+		font-weight: 600;
+	}
+	.rank-name { color: var(--accent); font-weight: 800; font-size: .62rem; text-transform: uppercase; letter-spacing: .06em; margin: 0; }
+	.xp-bar { height: 6px; background: color-mix(in srgb, var(--text-primary), transparent 90%); border-radius: 99px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2); width: 100%; }
+	.xp-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2, #38bdf8)); border-radius: 99px; transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 50%, transparent); }
 	
 	aside.collapsed { width: 76px; }
 	aside.collapsed .brand-name, aside.collapsed .nav-text, aside.collapsed .nav-label, aside.collapsed .profile-copy { width: 0; opacity: 0; }
@@ -636,12 +667,26 @@
 		}
 	}
 
-.elo-badge { flex: none; max-width: 62%; overflow: hidden; text-overflow: ellipsis; font-size: 0.6rem; padding: 2px 5px; border-radius: 4px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; }
-.elo-badge.god { background: linear-gradient(135deg, #ffd700, #b8860b); color: #000; box-shadow: 0 0 8px rgba(255,215,0,0.5); }
-.elo-badge.chal { background: linear-gradient(135deg, #ff4500, #8b0000); color: #fff; box-shadow: 0 0 8px rgba(255,69,0,0.4); }
-.elo-badge.master { background: linear-gradient(135deg, #4dabf7, #1864ab); color: #fff; box-shadow: 0 0 8px rgba(77,171,247,0.4); }
-.elo-badge.initiate { background: linear-gradient(135deg, #00e5ff, #00838f); color: #000; box-shadow: 0 0 8px rgba(0,229,255,0.4); }
-.elo-badge.bronze { background: linear-gradient(135deg, #cd7f32, #7a4a1d); color: #fff; box-shadow: 0 0 8px rgba(205,127,50,0.4); }
+.elo-badge {
+	flex: none;
+	max-width: 62%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: 0.62rem;
+	padding: 2px 7px;
+	border-radius: 6px;
+	font-weight: 800;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	white-space: nowrap;
+	border: 1px solid var(--border-subtle);
+	backdrop-filter: blur(8px);
+}
+.elo-badge.god { background: linear-gradient(135deg, rgba(255, 215, 0, 0.22), rgba(218, 165, 32, 0.12)); border-color: rgba(255, 215, 0, 0.45); color: #ffd700; box-shadow: 0 2px 8px rgba(255, 215, 0, 0.2); }
+.elo-badge.chal { background: linear-gradient(135deg, rgba(249, 115, 22, 0.22), rgba(239, 68, 68, 0.12)); border-color: rgba(249, 115, 22, 0.45); color: #fb923c; box-shadow: 0 2px 8px rgba(249, 115, 22, 0.2); }
+.elo-badge.master { background: linear-gradient(135deg, rgba(168, 85, 247, 0.22), rgba(126, 34, 206, 0.12)); border-color: rgba(168, 85, 247, 0.45); color: #c084fc; box-shadow: 0 2px 8px rgba(168, 85, 247, 0.2); }
+.elo-badge.initiate { background: linear-gradient(135deg, rgba(56, 189, 248, 0.22), rgba(14, 165, 233, 0.12)); border-color: rgba(56, 189, 248, 0.45); color: #38bdf8; box-shadow: 0 2px 8px rgba(56, 189, 248, 0.2); }
+.elo-badge.bronze { background: linear-gradient(135deg, rgba(205, 127, 50, 0.22), rgba(180, 83, 9, 0.12)); border-color: rgba(205, 127, 50, 0.45); color: #f59e0b; box-shadow: 0 2px 8px rgba(205, 127, 50, 0.2); }
 .stars { margin-left: 3px; font-style: normal; letter-spacing: -1px; }
 
 /* Gradient border via padding-box/border-box layering, so the card keeps its own background. */

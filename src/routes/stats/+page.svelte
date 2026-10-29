@@ -104,9 +104,12 @@
 </script>
 
 <section class="stats">
-	<header>
-		<h1>Intelligence</h1>
-		<p>YOUR PERSONAL COGNITIVE DASHBOARD</p>
+	<header class="page-header">
+		<div class="page-header-copy">
+			<span class="page-eyebrow">Cognitive Analytics</span>
+			<h1 class="page-title">Intelligence</h1>
+			<p class="page-subtitle">Chronotype telemetry, behavioral consistency, and multi-dimensional academic intelligence.</p>
+		</div>
 	</header>
 
 	<div class="accordion">
@@ -481,11 +484,12 @@
 	.picon { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px; border-radius: 13px; color: #d99a2b; background: color-mix(in srgb, #d99a2b, transparent 86%); }
 	.peakrow b { display: block; font-size: 1.05rem; letter-spacing: -.03em; }
 	.dim { color: var(--text-secondary); font-size: .72rem; }
-	.strip { display: flex; align-items: flex-end; gap: 3px; height: 90px; padding: .5rem .6rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); }
-	.hcol { flex: 1; display: flex; align-items: flex-end; height: 100%; }
-	.hbar { width: 100%; border-radius: 3px 3px 1px 1px; background: var(--surface-subtle); }
-	.hbar.on { background: #d99a2b; }
-	.axis { display: flex; justify-content: space-between; margin-top: .3rem; color: var(--text-secondary); font-size: .58rem; font-weight: 700; }
+	.strip { display: flex; align-items: flex-end; gap: 4px; height: 100px; padding: .65rem .8rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-2); }
+	.hcol { flex: 1; display: flex; align-items: flex-end; height: 100%; position: relative; }
+	.hbar { width: 100%; border-radius: 5px 5px 2px 2px; background: color-mix(in srgb, var(--border-subtle) 60%, transparent); transition: height 0.3s ease, filter 0.18s ease; }
+	.hbar.on { background: linear-gradient(180deg, #d99a2b, color-mix(in srgb, #d99a2b 30%, transparent)); box-shadow: 0 0 8px rgba(217, 154, 43, 0.25); }
+	.hcol:hover .hbar.on { filter: brightness(1.2); }
+	.axis { display: flex; justify-content: space-between; margin-top: .4rem; color: var(--text-secondary); font-size: .62rem; font-weight: 700; font-family: var(--font-mono, monospace); }
 
 	.prow { display: flex; align-items: center; gap: .6rem; padding: .55rem 0; }
 	.pdot { width: 10px; height: 10px; flex: 0 0 10px; border-radius: 99px; }
@@ -495,11 +499,12 @@
 	.ptime { color: var(--text-secondary); font-size: .74rem; font-weight: 750; font-variant-numeric: tabular-nums; }
 	.psolved { min-width: 70px; text-align: right; color: var(--text-secondary); font-size: .68rem; font-weight: 700; }
 
-	.dna { display: flex; align-items: flex-end; gap: .6rem; height: 120px; padding: .6rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); }
-	.dcol { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: .3rem; height: 100%; }
-	.dbar { width: 100%; max-width: 30px; border-radius: 5px 5px 2px 2px; background: var(--surface-subtle); }
-	.dbar.on { background: var(--accent); }
-	.dcol span { color: var(--text-secondary); font-size: .64rem; font-weight: 800; }
+	.dna { display: flex; align-items: flex-end; gap: .75rem; height: 130px; padding: .75rem .85rem; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-2); }
+	.dcol { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: .35rem; height: 100%; position: relative; }
+	.dbar { width: 100%; max-width: 32px; border-radius: 5px 5px 2px 2px; background: color-mix(in srgb, var(--border-subtle) 60%, transparent); transition: height 0.3s ease, filter 0.18s ease; }
+	.dbar.on { background: linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 30%, transparent)); box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 30%, transparent); }
+	.dcol:hover .dbar.on { filter: brightness(1.2); }
+	.dcol span { color: var(--text-secondary); font-size: .68rem; font-weight: 800; }
 
 	.velocity { display: grid; gap: .6rem; }
 	.vrow { display: flex; align-items: center; gap: .7rem; }

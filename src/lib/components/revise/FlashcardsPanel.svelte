@@ -332,19 +332,21 @@ ${academicConstraints}`;
 					Reviewing {currentCardIndex + 1} of {dueCards.length}
 				</div>
 
-				<div class="flashcard glass" class:is-flipped={flipped}>
-					<div class="card-inner">
-						<div class="card-front">
-							<div class="card-subject" data-sub={dueCards[currentCardIndex].subject}>
-								{subjectName(dueCards[currentCardIndex].subject)} • {dueCards[currentCardIndex].chapter}
+				<div class="flashcard-stack-wrap">
+					<div class="flashcard glass" class:is-flipped={flipped} on:click={flipCard} role="button" tabindex="0" on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && flipCard()}>
+						<div class="card-inner">
+							<div class="card-front">
+								<div class="card-subject" data-sub={dueCards[currentCardIndex].subject}>
+									{subjectName(dueCards[currentCardIndex].subject)} • {dueCards[currentCardIndex].chapter}
+								</div>
+								<div class="card-content">
+									{@html frontHtml}
+								</div>
 							</div>
-							<div class="card-content">
-								{@html frontHtml}
-							</div>
-						</div>
-						<div class="card-back">
-							<div class="card-content">
-								{@html backHtml}
+							<div class="card-back">
+								<div class="card-content">
+									{@html backHtml}
+								</div>
 							</div>
 						</div>
 					</div>
@@ -352,21 +354,25 @@ ${academicConstraints}`;
 
 				<div class="actions">
 					{#if !flipped}
-						<button class="flip-btn" on:click={flipCard}>Flip Card</button>
+						<button class="flip-btn" on:click={flipCard}>Flip Card <kbd class="kbd-hint">Space</kbd></button>
 					{:else}
 						<button class="score-btn again" on:click={() => scoreCard(1)}>
+							<span class="key-badge">1</span>
 							<span>Again</span>
 							<small>10m</small>
 						</button>
 						<button class="score-btn hard" on:click={() => scoreCard(3)}>
+							<span class="key-badge">2</span>
 							<span>Hard</span>
 							<small>{Math.max(1, Math.round((dueCards[currentCardIndex].interval || 1) * 1.2))}d</small>
 						</button>
 						<button class="score-btn good" on:click={() => scoreCard(4)}>
+							<span class="key-badge">3</span>
 							<span>Good</span>
 							<small>{dueCards[currentCardIndex].repetition === 0 ? 1 : (dueCards[currentCardIndex].repetition === 1 ? 6 : Math.round((dueCards[currentCardIndex].interval || 1) * (dueCards[currentCardIndex].efactor || 2.5)))}d</small>
 						</button>
 						<button class="score-btn easy" on:click={() => scoreCard(5)}>
+							<span class="key-badge">4</span>
 							<span>Easy</span>
 							<small>{dueCards[currentCardIndex].repetition === 0 ? 2 : (dueCards[currentCardIndex].repetition === 1 ? 7 : Math.round((dueCards[currentCardIndex].interval || 1) * (dueCards[currentCardIndex].efactor || 2.5) * 1.3))}d</small>
 						</button>
@@ -579,10 +585,47 @@ ${academicConstraints}`;
 	.empty-state h2 { margin: 1rem 0 .5rem; color: var(--text-primary); font-size: 1.4rem; }
 	.total-cards { color: var(--text-secondary); font-size: .85rem; font-weight: 600; }
 
-	.review-area { display: grid; gap: 1.5rem; max-width: 600px; margin: 0 auto; }
-	.progress { text-align: center; color: var(--text-secondary); font-size: .9rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+	.review-area { display: grid; gap: 1.5rem; max-width: 600px; margin: 0 auto; position: relative; }
+	.progress { text-align: center; color: var(--text-secondary); font-size: .85rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; font-variant-numeric: tabular-nums; }
 
-	.flashcard { perspective: 1000px; height: 350px; cursor: pointer; border-radius: 24px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-card); }
+	.flashcard-stack-wrap {
+		position: relative;
+		height: 350px;
+	}
+	/* 3D card-stack depth effect: two subtle layered card edges peeking 4px and 8px below the active card */
+	.flashcard-stack-wrap::before,
+	.flashcard-stack-wrap::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: 24px;
+		border: 1px solid var(--border-subtle);
+		background: color-mix(in srgb, var(--surface-panel) 80%, transparent);
+		backdrop-filter: blur(12px);
+		pointer-events: none;
+		transition: transform 0.3s ease;
+	}
+	.flashcard-stack-wrap::before {
+		transform: translateY(6px) scale(0.975);
+		z-index: 0;
+		opacity: 0.65;
+	}
+	.flashcard-stack-wrap::after {
+		transform: translateY(12px) scale(0.95);
+		z-index: -1;
+		opacity: 0.35;
+	}
+
+	.flashcard {
+		position: relative;
+		z-index: 1;
+		perspective: 1000px;
+		height: 100%;
+		cursor: pointer;
+		border-radius: 24px;
+		border: 1px solid var(--border-strong);
+		box-shadow: 0 16px 40px -8px rgba(0, 0, 0, 0.35), var(--inner-glow);
+	}
 	.card-inner { position: relative; width: 100%; height: 100%; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d; }
 	.flashcard.is-flipped .card-inner { transform: rotateX(180deg); }
 
@@ -596,16 +639,50 @@ ${academicConstraints}`;
 
 	.card-content { flex: 1; display: grid; place-items: center; text-align: center; font-size: 1.2rem; font-weight: 600; line-height: 1.5; color: var(--text-primary); overflow-y: auto; }
 
-	.actions { display: flex; gap: 1rem; justify-content: center; margin-top: 1rem; }
-	.flip-btn { flex: 1; max-width: 200px; padding: 1rem; border: 1px solid var(--border-subtle); border-radius: 16px; background: var(--surface-panel); color: var(--text-primary); font-size: 1rem; font-weight: 750; cursor: pointer; }
-	.flip-btn:hover { background: var(--surface-subtle); }
+	.actions { display: flex; gap: 0.75rem; justify-content: center; margin-top: 1rem; flex-wrap: wrap; }
+	.flip-btn { flex: 1; max-width: 240px; padding: 0.85rem 1.2rem; border: 1px solid var(--border-subtle); border-radius: 16px; background: var(--surface-panel); color: var(--text-primary); font-size: 0.95rem; font-weight: 750; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s ease; }
+	.flip-btn:hover { background: var(--surface-subtle); transform: translateY(-1px); border-color: var(--accent); }
+	.kbd-hint { font-size: 0.65rem; padding: 2px 6px; border-radius: 5px; background: var(--surface-subtle); border: 1px solid var(--border-subtle); color: var(--text-secondary); font-family: var(--font-mono, monospace); }
 
-	.score-btn { flex: 1; padding: 1rem .5rem; border: 0; border-radius: 16px; font-size: .95rem; font-weight: 800; cursor: pointer; color: var(--accent-contrast, #fff); display: flex; flex-direction: column; align-items: center; gap: .2rem; }
-	.score-btn small { font-size: .7rem; font-weight: 600; opacity: 0.8; }
-	.score-btn.again { background: var(--danger, #e0455a); box-shadow: 0 4px 12px color-mix(in srgb, var(--danger, #e0455a), transparent 70%); }
-	.score-btn.hard { background: #ea580c; box-shadow: 0 4px 12px color-mix(in srgb, #ea580c, transparent 70%); }
-	.score-btn.good { background: var(--warning, #f6ad55); box-shadow: 0 4px 12px color-mix(in srgb, var(--warning, #f6ad55), transparent 70%); color: #000; }
-	.score-btn.easy { background: var(--success, #42b883); box-shadow: 0 4px 12px color-mix(in srgb, var(--success, #42b883), transparent 70%); }
+	.key-badge {
+		position: absolute;
+		top: 6px;
+		right: 6px;
+		font-size: 0.6rem;
+		font-family: var(--font-mono, monospace);
+		font-weight: 800;
+		padding: 1px 5px;
+		border-radius: 4px;
+		background: rgba(0, 0, 0, 0.32);
+		border: 1px solid rgba(255, 255, 255, 0.25);
+		line-height: 1.2;
+	}
+	.score-btn {
+		position: relative;
+		flex: 1;
+		min-width: 75px;
+		padding: 0.85rem 0.5rem;
+		border: 1px solid transparent;
+		border-radius: 16px;
+		font-size: 0.9rem;
+		font-weight: 800;
+		cursor: pointer;
+		color: var(--accent-contrast, #fff);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.15rem;
+		transition: transform 0.18s ease, box-shadow 0.2s ease;
+	}
+	.score-btn small { font-size: .68rem; font-weight: 600; opacity: 0.85; font-family: var(--font-mono, monospace); }
+	.score-btn.again { background: var(--danger, #e0455a); box-shadow: 0 4px 16px color-mix(in srgb, var(--danger, #e0455a), transparent 60%); }
+	.score-btn.again:hover { transform: translateY(-2px); box-shadow: 0 8px 24px color-mix(in srgb, var(--danger, #e0455a), transparent 40%); }
+	.score-btn.hard { background: #ea580c; box-shadow: 0 4px 16px rgba(234, 88, 12, 0.4); }
+	.score-btn.hard:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(234, 88, 12, 0.6); }
+	.score-btn.good { background: var(--warning, #f6ad55); box-shadow: 0 4px 16px color-mix(in srgb, var(--warning, #f6ad55), transparent 60%); color: #111; }
+	.score-btn.good:hover { transform: translateY(-2px); box-shadow: 0 8px 24px color-mix(in srgb, var(--warning, #f6ad55), transparent 40%); }
+	.score-btn.easy { background: var(--success, #42b883); box-shadow: 0 4px 16px color-mix(in srgb, var(--success, #42b883), transparent 60%); }
+	.score-btn.easy:hover { transform: translateY(-2px); box-shadow: 0 8px 24px color-mix(in srgb, var(--success, #42b883), transparent 40%); }
 
 	/* Manage Deck Styles */
 	.manage-deck-view { display: flex; flex-direction: column; gap: 1.2rem; }

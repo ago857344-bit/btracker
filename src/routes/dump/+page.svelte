@@ -533,62 +533,14 @@
 	{/if}
 
 	<!-- Header Hero -->
-	<header class="dump-header">
-		<div class="header-main">
-			<div class="title-row">
-				<div class="title-group">
-					<div class="vault-badge">
-						<NavIcon name="layers" size={16} />
-						<span>CLOUD ZIP VAULT</span>
-					</div>
-					<h1>Study Dump</h1>
-				</div>
-
-				<div class="cloud-actions">
-					<!-- Cloud Sync Status Pill -->
-					{#if isCloudActive}
-						<div class="cloud-pill connected" title="Connected to Cloud Storage">
-							<span class="dot green"></span>
-							<span class="pill-label">Cloud Storage: {$currentUser ? 'Synced' : 'Connected'}</span>
-						</div>
-					{:else}
-						<button
-							type="button"
-							class="cloud-pill local"
-							on:click={() => (setupModalOpen = true)}
-							title="Click to view Cloud Storage setup instructions"
-						>
-							<span class="dot yellow"></span>
-							<span class="pill-label">Local / Offline Cache</span>
-							<span class="pill-hint">Setup Cloud &rarr;</span>
-						</button>
-					{/if}
-
-					<button
-						type="button"
-						class="btn-sync"
-						disabled={isSyncing}
-						on:click={handleSyncCloud}
-						title="Fetch latest ZIP manifests from Cloud Storage across all devices"
-					>
-						<span class:spin={isSyncing}><NavIcon name="pulse" size={15} /></span>
-						<span>{isSyncing ? 'Syncing...' : 'Sync Cloud'}</span>
-					</button>
-
-					<button type="button" class="btn-primary-upload" on:click={() => openUpload()}>
-						<NavIcon name="plus" size={16} />
-						<span>Upload Files</span>
-					</button>
-				</div>
-			</div>
-
-			<p class="header-desc">
-				Store your notes, DPPs, tests & reference PDFs in compressed section ZIPs in Cloud Storage.
-				Retrieved on-demand across devices without permanently keeping heavy files on your laptop.
-			</p>
-
+	<header class="dump-header page-header">
+		<div class="page-header-copy">
+			<span class="page-eyebrow">Cloud Zip Vault</span>
+			<h1 class="page-title">Study Dump</h1>
+			<p class="page-subtitle">Store notes, DPPs, tests & reference PDFs in compressed section ZIPs with on-demand retrieval across devices.</p>
+			
 			<!-- Quick stats bar -->
-			<div class="stats-strip">
+			<div class="stats-strip" style="margin-top: 0.5rem;">
 				<div class="stat-pill">
 					<span class="stat-num">{totalFileCount}</span>
 					<span class="stat-lbl">Total Files</span>
@@ -606,9 +558,46 @@
 			</div>
 		</div>
 
+		<div class="page-header-actions cloud-actions">
+			<!-- Cloud Sync Status Pill -->
+			{#if isCloudActive}
+				<div class="cloud-pill connected" title="Connected to Cloud Storage">
+					<span class="dot green"></span>
+					<span class="pill-label">Cloud Storage: {$currentUser ? 'Synced' : 'Connected'}</span>
+				</div>
+			{:else}
+				<button
+					type="button"
+					class="cloud-pill local"
+					on:click={() => (setupModalOpen = true)}
+					title="Click to view Cloud Storage setup instructions"
+				>
+					<span class="dot yellow"></span>
+					<span class="pill-label">Local / Offline Cache</span>
+					<span class="pill-hint">Setup Cloud &rarr;</span>
+				</button>
+			{/if}
+
+			<button
+				type="button"
+				class="btn-sync"
+				disabled={isSyncing}
+				on:click={handleSyncCloud}
+				title="Fetch latest ZIP manifests from Cloud Storage across all devices"
+			>
+				<span class:spin={isSyncing}><NavIcon name="pulse" size={15} /></span>
+				<span>{isSyncing ? 'Syncing...' : 'Sync Cloud'}</span>
+			</button>
+
+			<button type="button" class="btn-primary-upload" on:click={() => openUpload()}>
+				<NavIcon name="plus" size={16} />
+				<span>Upload Files</span>
+			</button>
+		</div>
+
 		<!-- Optional Banner Notice -->
 		{#if bannerNotice}
-			<div class="banner-notice {bannerNotice.type}" transition:slide={{ duration: 200 }}>
+			<div class="banner-notice {bannerNotice.type}" transition:slide={{ duration: 200 }} style="width: 100%;">
 				<div class="banner-content">
 					<NavIcon
 						name={bannerNotice.type === 'success' ? 'check' : bannerNotice.type === 'error' ? 'alert' : 'info'}
@@ -624,7 +613,7 @@
 	</header>
 
 	<!-- Section Navigation Tabs -->
-	<nav class="section-tabs" aria-label="Study Dump Sections">
+	<nav class="section-tabs segmented-control" aria-label="Study Dump Sections">
 		<button
 			type="button"
 			class="tab-btn"
@@ -838,20 +827,19 @@
 	{:else}
 		<!-- Empty State -->
 		<div class="empty-state">
-			<div class="empty-icon-ring">
-				<NavIcon name="layers" size={36} />
+			<div class="empty-state-icon">
+				<NavIcon name="layers" size={24} />
 			</div>
 			{#if searchQuery}
-				<h3>No files match "{searchQuery}"</h3>
-				<p>Try searching for a different keyword or reset your search query.</p>
+				<h3 class="empty-state-title">No files match "{searchQuery}"</h3>
+				<p class="empty-state-desc">Try searching for a different keyword or reset your search query.</p>
 				<button type="button" class="btn-primary-upload" on:click={() => (searchQuery = '')}>
 					Clear Search
 				</button>
 			{:else}
-				<h3>No study files in {activeTab === 'all' ? 'any section' : SECTION_CONFIG[activeTab].name} yet</h3>
-				<p>
-					Drop PDFs, images, notes, or formula sheets here. They'll be compressed into a ZIP and saved
-					directly in Cloud Storage.
+				<h3 class="empty-state-title">No study files in {activeTab === 'all' ? 'any section' : SECTION_CONFIG[activeTab].name} yet</h3>
+				<p class="empty-state-desc">
+					Drop PDFs, notes, or formula sheets here. They'll be compressed into a section ZIP in Cloud Storage.
 				</p>
 				<button
 					type="button"

@@ -162,35 +162,38 @@
 
 {#if $tracker.coaching_type === 'GENERIC'}
 	<section class="review">
-		<header class="hero">
-			<div>
-				<p class="eyebrow">Universal study log</p>
-				<h1>Review</h1>
-				<p>Doubts and retries are captured with every session you log.</p>
+		<header class="page-header">
+			<div class="page-header-copy">
+				<span class="page-eyebrow">Universal Study Log</span>
+				<h1 class="page-title">Review</h1>
+				<p class="page-subtitle">Doubts and retries are captured with every session you log.</p>
 			</div>
 		</header>
-		<div class="empty generic-empty">
-			<h2>Question-level review is built for BT modules</h2>
-			<p>Your universal log tracks attempted, solved and doubt counts per chapter instead. Revisit those chapters from the Study Log.</p>
+		<div class="empty-state generic-empty">
+			<div class="empty-state-icon">
+				<NavIcon name="layers" size={24} />
+			</div>
+			<h2 class="empty-state-title">Question-level review is built for BT modules</h2>
+			<p class="empty-state-desc">Your universal log tracks attempted, solved and doubt counts per chapter instead. Revisit those chapters from the Study Log.</p>
 			<a class="btn-log" href="/log"><NavIcon name="layers" size={14} /> Open Study Log</a>
 		</div>
 	</section>
 {:else}
 <section class="review">
-	<header class="hero">
-		<div>
-			<p class="eyebrow">Question queue</p>
-			<h1>Review</h1>
-			<p>Questions you marked to retry or could not solve.</p>
+	<header class="page-header">
+		<div class="page-header-copy">
+			<span class="page-eyebrow">Smart Doubt Queue</span>
+			<h1 class="page-title">Review</h1>
+			<p class="page-subtitle">Questions you marked to retry or could not solve across physics, chemistry, and mathematics.</p>
 		</div>
-		<div class="summary" aria-label="Review summary">
-			<span><b>{activeQuestions.length}</b> total</span>
-			<span class="retry"><b>{retryCount}</b> retry</span>
-			<span class="stuck"><b>{stuckCount}</b> stuck</span>
+		<div class="page-header-actions summary" aria-label="Review summary">
+			<span class="kpi-pill"><b>{activeQuestions.length}</b> total</span>
+			<span class="kpi-pill retry"><b>{retryCount}</b> retry</span>
+			<span class="kpi-pill stuck"><b>{stuckCount}</b> stuck</span>
 		</div>
 	</header>
 
-	<div class="tabs" role="tablist" aria-label="Review subject">
+	<div class="segmented-control" role="tablist" aria-label="Review subject" style="margin-bottom: 1rem;">
 		{#each subjects as subject}
 			<button
 				type="button"
@@ -200,7 +203,7 @@
 				on:click={() => activeSubject = subject.code}
 			>
 				{subject.label}
-				<span>{questions.filter((question) => question.subject === subject.code).length}</span>
+				<span class="due-badge" style="margin-left: 4px;">{questions.filter((question) => question.subject === subject.code).length}</span>
 			</button>
 		{/each}
 	</div>
@@ -269,9 +272,12 @@
 			{/each}
 		</div>
 	{:else}
-		<div class="empty">
-			<h2>{subjectName(activeSubject)} review queue is clear</h2>
-			<p>Mark a question <b>Retry</b> or <b>Stuck</b> from the Question Log to find it here.</p>
+		<div class="empty-state">
+			<div class="empty-state-icon">
+				<NavIcon name="target" size={24} />
+			</div>
+			<h3 class="empty-state-title">{subjectName(activeSubject)} review queue is clear</h3>
+			<p class="empty-state-desc">Mark a question as <b>Retry</b> or <b>Stuck</b> from the Question Log to review it here.</p>
 		</div>
 	{/if}
 </section>
@@ -313,10 +319,6 @@
 
 <style>
 	.review { display: grid; gap: 1.2rem; max-width: 940px; }
-	.hero { display: flex; align-items: end; justify-content: space-between; gap: 1rem; padding: 1.4rem 1.5rem; border: 1px solid var(--border-subtle); border-radius: 18px; background: var(--surface-panel); }
-	.eyebrow { margin: 0 0 .28rem; color: var(--accent); font-size: .67rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
-	h1 { margin: 0; font-size: 1.55rem; letter-spacing: -.045em; }
-	.hero p:not(.eyebrow) { margin: .4rem 0 0; color: var(--text-secondary); font-size: .84rem; }
 	.summary { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .45rem; }
 	.summary span { display: inline-flex; align-items: center; gap: .35rem; min-height: 28px; padding: 0 .58rem; border: 1px solid var(--border-subtle); border-radius: 99px; color: var(--text-secondary); background: var(--surface-subtle); font-size: .7rem; font-weight: 750; }
 	.summary b { margin-right: .22rem; color: var(--text-primary); }
@@ -325,40 +327,7 @@
 	.flashcard-btn { display: inline-flex; align-items: center; gap: .35rem; min-height: 28px; padding: 0 .58rem; border: 1px solid var(--border-subtle); border-radius: 99px; background: var(--surface-subtle); font-size: .7rem; font-weight: 750; cursor: pointer; color: var(--text-primary); transition: all .15s ease; font-family: inherit; }
 	.flashcard-btn:hover { border-color: var(--accent); color: var(--accent); background: color-mix(in srgb, var(--accent), transparent 85%); }
 	.flashcard-badge.saved { display: inline-flex; align-items: center; gap: .35rem; min-height: 28px; padding: 0 .58rem; border-radius: 99px; font-size: .7rem; font-weight: 750; color: color-mix(in srgb, var(--success) 45%, var(--text-primary)); border: 1px solid color-mix(in srgb, var(--success), transparent 55%); background: color-mix(in srgb, var(--success), transparent 88%); }
-	.tabs {
-		display: inline-flex;
-		gap: 3px;
-		padding: 3px;
-		width: fit-content;
-		border: 0.5px solid color-mix(in srgb, var(--border-subtle), transparent 50%);
-		border-radius: 9999px;
-		background: color-mix(in srgb, var(--surface-subtle), transparent 30%);
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
-	}
-	.tabs button {
-		display: inline-flex;
-		align-items: center;
-		gap: .45rem;
-		height: 36px;
-		padding: 0 .95rem;
-		border: 0;
-		border-radius: 9999px;
-		color: var(--text-secondary);
-		background: transparent;
-		font-size: .76rem;
-		font-weight: 650;
-		cursor: pointer;
-		transition: all 0.22s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1));
-	}
-	.tabs button:hover { color: var(--text-primary); }
-	.tabs button.active {
-		color: var(--accent-contrast, #fff);
-		background: var(--accent);
-		box-shadow: 0 2px 10px color-mix(in srgb, var(--accent), transparent 60%), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-		font-weight: 750;
-	}
-	.tabs button span { display: grid; min-width: 18px; height: 18px; place-items: center; padding: 0 .25rem; border-radius: 99px; color: inherit; background: color-mix(in srgb, currentColor, transparent 88%); font-size: .62rem; font-variant-numeric: tabular-nums; }
+
 	.question-list {
 		display: grid;
 		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
@@ -537,16 +506,10 @@
 	.btn-ghost:hover { color: var(--text-primary); border-color: var(--accent); }
 	.btn-solid { border: 0; background: var(--accent); color: var(--accent-contrast, #fff); }
 
-	.empty { padding: 3.5rem 1.25rem; border: 1px dashed var(--border-subtle); border-radius: 18px; color: var(--text-secondary); text-align: center; }
-	.empty h2 { margin: 0 0 .45rem; color: var(--text-primary); font-size: 1.05rem; }
-	.empty p { margin: 0; font-size: .82rem; }
 	.generic-empty { display: flex; flex-direction: column; align-items: center; gap: .55rem; padding: 3rem 1.25rem; }
 	.generic-empty p { max-width: 48ch; line-height: 1.55; }
 	.btn-log { display: inline-flex; align-items: center; gap: .4rem; margin-top: .6rem; padding: .6rem 1rem; border-radius: 11px; background: var(--accent); color: var(--accent-contrast, #fff); font-size: .8rem; font-weight: 750; text-decoration: none; }
 	@media (max-width: 768px) {
-		.hero { align-items: start; flex-direction: column; }
-		.tabs { width: 100%; display: flex; }
-		.tabs button { flex: 1; justify-content: center; padding: 0 .4rem; font-size: 0.76rem; min-height: 40px; }
 		.summary { justify-content: flex-start; }
 		.question-list { touch-action: pan-y; }
 		.question { grid-template-columns: 58px 1fr; gap: .7rem; padding: 1rem 0.9rem; touch-action: pan-y; }

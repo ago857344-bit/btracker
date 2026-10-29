@@ -150,24 +150,24 @@
 </script>
 
 <section class="revise">
-	<header>
-		<div>
-			<h1>ACTIVE RECALL HUB</h1>
-			<p>Spaced repetition planner.</p>
+	<header class="page-header">
+		<div class="page-header-copy">
+			<span class="page-eyebrow">Spaced Repetition Engine</span>
+			<h1 class="page-title">Active Recall Hub</h1>
+			<p class="page-subtitle">Track cognitive memory half-lives, smash forgetting curves, and master active recall.</p>
 		</div>
-		<div class="actions" style="display: flex; gap: 0.8rem; align-items: center;">
+		<div class="page-header-actions">
+			<div class="segmented-control" role="tablist" aria-label="Revise View Mode">
+				<button type="button" class:active={viewMode === 'topic'} on:click={() => viewMode = 'topic'}>Topic Decay</button>
+				<button type="button" class:active={viewMode === 'flashcards'} on:click={() => viewMode = 'flashcards'}>Flashcards</button>
+			</div>
 			<button type="button" class="duck-header-btn" on:click={() => openFeynmanDuck()} title="Socratic Feynman Duck (Explain to Learn)">
 				🦆 Teach Duck
 			</button>
-			<button type="button" class="btn-icon" on:click={() => (manualOpen = true)} title="How this works" style="display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--border-subtle); background: var(--surface-panel); color: var(--text-secondary); cursor: pointer; transition: all 0.2s;"><NavIcon name="info" size={16} /></button>
+			<button type="button" class="btn-icon" on:click={() => (manualOpen = true)} title="How this works"><NavIcon name="info" size={16} /></button>
 			<button type="button" class="add" on:click={() => (addOpen = true)}><NavIcon name="plus" size={15} /> Add Chapter</button>
 		</div>
 	</header>
-
-	<div class="view-toggle">
-		<button class:active={viewMode === 'topic'} on:click={() => viewMode = 'topic'}>Topic Decay</button>
-		<button class:active={viewMode === 'flashcards'} on:click={() => viewMode = 'flashcards'}>Flashcards</button>
-	</div>
 
 	{#if viewMode === 'topic'}
 
@@ -186,7 +186,7 @@
 		<div class="kpi"><b>{$revisedToday}</b><span>REVISED TODAY</span></div>
 	</div>
 
-	<div class="tabs" role="tablist">
+	<div class="segmented-control" role="tablist">
 		<button type="button" role="tab" class:active={tab === 'due'} on:click={() => (tab = 'due')}>Due ({dueChapters.length})</button>
 		<button type="button" role="tab" class:active={tab === 'critical'} on:click={() => (tab = 'critical')}>Critical ({criticalChaptersList.length})</button>
 		<button type="button" role="tab" class:active={tab === 'all'} on:click={() => (tab = 'all')}>All ({recallChapters.length})</button>
@@ -218,19 +218,22 @@
 			{/each}
 		</div>
 	{:else}
-		<div class="empty">
+		<div class="empty-state">
+			<div class="empty-state-icon">
+				<NavIcon name="target" size={24} />
+			</div>
 			{#if tab === 'due'}
-				<b>No chapters due today 🎉</b>
-				<span>All your scheduled revisions are currently above fading threshold.</span>
+				<h3 class="empty-state-title">No chapters due today 🎉</h3>
+				<p class="empty-state-desc">All your scheduled revisions are currently above fading threshold.</p>
 			{:else if tab === 'critical'}
-				<b>No critical chapters 🎉</b>
-				<span>Your memory retention is healthy across all tracked topics!</span>
+				<h3 class="empty-state-title">No critical chapters 🎉</h3>
+				<p class="empty-state-desc">Your memory retention is healthy across all tracked topics!</p>
 			{:else if recallChapters.length === 0}
-				<b>No chapters in Active Recall Hub yet</b>
-				<span>Add a chapter to start tracking memory decay, or load sample JEE topics.</span>
+				<h3 class="empty-state-title">No chapters in Active Recall Hub yet</h3>
+				<p class="empty-state-desc">Add a chapter to start tracking memory decay and spacing intervals.</p>
 			{:else}
-				<b>No matching chapters</b>
-				<span>Try clearing the subject filter or search query.</span>
+				<h3 class="empty-state-title">No matching chapters</h3>
+				<p class="empty-state-desc">Try clearing the subject filter or search query to see all topics.</p>
 			{/if}
 
 			<div class="empty-actions">
@@ -319,10 +322,6 @@
 	.kpi.due b { color: var(--danger, #e0455a); }
 	.kpi span { color: var(--text-secondary); font-size: .62rem; font-weight: 800; letter-spacing: .1em; }
 
-	.tabs { display: inline-flex; gap: .25rem; padding: .3rem; border: 1px solid var(--border-subtle); border-radius: 999px; background: var(--surface-panel); width: fit-content; }
-	.tabs button { padding: .5rem 1.05rem; border: 0; border-radius: 999px; background: transparent; color: var(--text-secondary); font-size: .78rem; font-weight: 750; }
-	.tabs button.active { color: var(--accent-contrast, #fff); background: var(--accent); }
-
 	.filters { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
 	.search { display: inline-flex; align-items: center; gap: .5rem; flex: 1; min-width: 190px; padding: .55rem .8rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-panel); color: var(--text-secondary); }
 	.search input { flex: 1; border: 0; background: transparent; color: var(--text-primary); font-size: .82rem; outline: none; }
@@ -332,22 +331,6 @@
 	.mchip.on { color: #fff; border-color: var(--m); background: var(--m); }
 
 	.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: .9rem; }
-
-	.empty { display: grid; gap: .6rem; justify-items: center; padding: 2.4rem 1rem; border: 1px dashed var(--border-subtle); border-radius: var(--radius-card); text-align: center; }
-	.empty b { font-size: 1rem; }
-	.empty > span { color: var(--text-secondary); font-size: .8rem; }
-	.empty-actions { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.5rem; flex-wrap: wrap; justify-content: center; }
-	.sample-btn {
-		display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0.9rem;
-		border-radius: 9px; border: 1px solid var(--border-subtle); background: var(--surface-panel);
-		color: var(--text-primary); font-size: 0.78rem; font-weight: 700; cursor: pointer; transition: all 0.15s ease;
-	}
-	.sample-btn:hover { border-color: var(--accent); color: var(--accent); }
-	.sample-btn.primary { background: var(--accent); color: var(--accent-contrast, #fff); border-color: var(--accent); }
-	.view-toggle { display: flex; gap: 0.5rem; margin-bottom: 2rem; background: var(--surface-subtle); padding: 0.4rem; border-radius: 12px; width: fit-content; border: 1px solid var(--border-subtle); }
-	.view-toggle button { padding: 0.6rem 1.2rem; border-radius: 8px; border: none; background: transparent; color: var(--text-secondary); font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; }
-	.view-toggle button:hover { color: var(--text-primary); }
-	.view-toggle button.active { background: var(--surface-panel); color: var(--text-primary); box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
 
 	.duck-header-btn {
 		display: inline-flex;
@@ -372,8 +355,6 @@
 	}
 
 	@media (max-width: 768px) {
-		header { flex-direction: column; align-items: stretch; gap: 0.75rem; }
-		.actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
 		.duck-header-btn { height: 40px; font-size: 0.8rem; }
 		.add { height: 40px; font-size: 0.82rem; }
 		.heatmap-section { overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
@@ -381,10 +362,6 @@
 		.kpi { padding: 0.75rem 0.5rem; text-align: center; justify-items: center; }
 		.kpi b { font-size: 1.35rem; }
 		.kpi span { font-size: 0.55rem; letter-spacing: 0.05em; }
-		.view-toggle { width: 100%; }
-		.view-toggle button { flex: 1; text-align: center; font-size: 0.85rem; min-height: 42px; }
-		.tabs { width: 100%; display: flex; }
-		.tabs button { flex: 1; text-align: center; padding: 0.5rem 0.4rem; font-size: 0.74rem; min-height: 38px; }
 		.cards { grid-template-columns: 1fr; touch-action: pan-y; }
 		.search { min-width: 0; width: 100%; height: 42px; }
 		.subsel { width: 100%; height: 42px; }

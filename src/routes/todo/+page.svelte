@@ -290,15 +290,18 @@ async function runAiTriage() {
 <svelte:head><title>To Do · BTracker</title></svelte:head>
 
 <section class="todo">
-	<header>
-		<div>
-			<h1>To Do</h1>
-			<p>{open.length} open · {done.length} done{#if todos.length > 0} · <b class="num-val">{percentDone}%</b> done{/if}</p>
+	<header class="page-header">
+		<div class="page-header-copy">
+			<span class="page-eyebrow">Task Execution Board</span>
+			<h1 class="page-title">To Do</h1>
+			<p class="page-subtitle">{open.length} open · {done.length} done{#if todos.length > 0} · <b class="num-val">{percentDone}%</b> done{/if}</p>
 		</div>
-		<div class="tabs" role="tablist">
-			<button type="button" role="tab" aria-selected={tab === 'tasks'} class:selected={tab === 'tasks'} on:click={() => tab = 'tasks'}>Tasks</button>
-			<button type="button" role="tab" aria-selected={tab === 'checklist'} class:selected={tab === 'checklist'} on:click={() => tab = 'checklist'}>Checklist</button>
-			<button type="button" role="tab" aria-selected={tab === 'btest'} class:selected={tab === 'btest'} on:click={() => tab = 'btest'}>btest</button>
+		<div class="page-header-actions">
+			<div class="segmented-control" role="tablist">
+				<button type="button" role="tab" aria-selected={tab === 'tasks'} class:active={tab === 'tasks'} on:click={() => tab = 'tasks'}>Tasks</button>
+				<button type="button" role="tab" aria-selected={tab === 'checklist'} class:active={tab === 'checklist'} on:click={() => tab = 'checklist'}>Checklist</button>
+				<button type="button" role="tab" aria-selected={tab === 'btest'} class:active={tab === 'btest'} on:click={() => tab = 'btest'}>btest</button>
+			</div>
 		</div>
 	</header>
 
@@ -481,18 +484,24 @@ async function runAiTriage() {
 				{/each}
 				</ul>
 			{:else}
-				<div class="empty" style="padding: 1.6rem 1rem;">
-					<b>No {taskFilter === 'open' ? 'active' : 'completed'} tasks</b>
-					<p>{taskFilter === 'open' ? 'All caught up! Great job.' : 'No tasks marked completed yet.'}</p>
+				<div class="empty-state">
+					<div class="empty-state-icon">
+						<NavIcon name="check" size={24} />
+					</div>
+					<h3 class="empty-state-title">No {taskFilter === 'open' ? 'active' : 'completed'} tasks</h3>
+					<p class="empty-state-desc">{taskFilter === 'open' ? 'All caught up! Great focus today.' : 'No tasks marked completed yet.'}</p>
 				</div>
 			{/if}
 			{#if done.length}
 				<button type="button" class="clear" on:click={handleClearDone}><NavIcon name="trash" size={13} /> Clear {done.length} completed</button>
 			{/if}
 		{:else}
-			<div class="empty">
-				<b>No tasks yet</b>
-				<p>Add one above, or use the <button type="button" class="linkish" on:click={() => (tab = 'btest')}>btest</button> tab to turn a syllabus PDF into chapter tasks.</p>
+			<div class="empty-state">
+				<div class="empty-state-icon">
+					<NavIcon name="list" size={24} />
+				</div>
+				<h3 class="empty-state-title">No tasks on your board</h3>
+				<p class="empty-state-desc">Add one using the input above, or use syllabus extraction to plan tasks.</p>
 			</div>
 		{/if}
 	{:else if tab === 'checklist'}
@@ -1510,12 +1519,12 @@ async function runAiTriage() {
 	.subtabs button { display: inline-flex; align-items: center; gap: .45rem; }
 	.subtabs i { width: 8px; height: 8px; border-radius: 3px; display: inline-block; }
 
-	.tblwrap { max-height: 62vh; overflow: auto; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-panel); }
+	.tblwrap { max-height: 62vh; overflow: auto; border: 1px solid var(--border-subtle); border-radius: 14px; background: var(--surface-panel); box-shadow: var(--shadow-card); }
 	.sheet { width: 100%; border-collapse: separate; border-spacing: 0; font-size: .8rem; }
-	.sheet th, .sheet td { padding: .5rem .65rem; border-bottom: 1px solid var(--border-subtle); border-right: 1px solid var(--border-subtle); text-align: center; white-space: nowrap; }
-	.sheet th:last-child, .sheet td:last-child { border-right: 0; }
+	.sheet th, .sheet td { padding: .55rem .75rem; border-bottom: 1px solid var(--border-subtle); border-right: none; text-align: center; white-space: nowrap; transition: background 0.15s ease; }
 	.sheet tbody tr:last-child td { border-bottom: 0; }
-	.sheet thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-panel); font-size: .72rem; font-weight: 800; letter-spacing: .02em; color: var(--text-secondary); text-transform: uppercase; }
+	.sheet tbody tr:hover td { background: color-mix(in srgb, var(--text-primary) 3%, transparent); }
+	.sheet thead th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); font-size: .72rem; font-weight: 800; letter-spacing: .03em; color: var(--text-secondary); text-transform: uppercase; border-bottom: 1px solid var(--border-strong); }
 	.chcol { text-align: left !important; min-width: 220px; font-weight: 600; color: var(--text-primary); }
 	thead .chcol { text-transform: none !important; font-size: .78rem !important; color: var(--text-primary) !important; }
 	.coldel { margin-left: .4rem; padding: 0 .25rem; border: 0; background: transparent; color: var(--text-secondary); font-size: .85rem; line-height: 1; cursor: pointer; border-radius: 6px; }

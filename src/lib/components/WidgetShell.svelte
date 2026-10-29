@@ -62,47 +62,55 @@
 		-webkit-backdrop-filter: var(--vision-glass-blur, blur(20px));
 		box-shadow: var(--shadow-card), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.08));
 		overflow: hidden;
+		transform: perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(var(--lift-y, 0px));
+		transform-style: preserve-3d;
+		will-change: transform;
 		transition: box-shadow .25s ease, border-color .25s ease, transform .22s var(--ease-ios-spring);
 		container-type: inline-size;
 	}
 	.widget:hover {
 		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 50%);
-		transform: translateY(-2px);
+		--lift-y: -2px;
 		box-shadow: 0 16px 44px -6px rgba(0, 0, 0, 0.38), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.12));
 	}
 	.widget.editing {
 		border-style: dashed;
 		border-color: var(--accent);
-		box-shadow: none;
+		box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 25%, transparent);
+		animation: editPulse 3s ease-in-out infinite;
+	}
+	@keyframes editPulse {
+		0%, 100% { border-color: var(--accent); }
+		50% { border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
 	}
 	.widget-head {
 		position: relative;
 		z-index: 3;
 		display: flex;
 		align-items: center;
-		gap: .7rem;
-		margin-bottom: .95rem;
+		gap: .65rem;
+		margin-bottom: .9rem;
 	}
 	.widget-icon {
 		display: grid;
 		place-items: center;
-		width: 32px;
-		height: 32px;
-		flex: 0 0 32px;
-		border-radius: 10px;
+		width: 28px;
+		height: 28px;
+		flex: 0 0 28px;
+		border-radius: 8px;
 		color: var(--accent);
-		background: color-mix(in srgb, var(--accent) 15%, transparent);
-		border: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
-		box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 18%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+		background: color-mix(in srgb, var(--accent) 12%, transparent);
+		border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+		box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 14%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.25);
 		transition: transform 0.2s var(--ease-ios-spring), box-shadow 0.2s ease;
 	}
 	.widget:hover .widget-icon {
 		transform: scale(1.05);
-		box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+		box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 25%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.4);
 	}
 	.widget-titles { min-width: 0; flex: 1; }
 	.eyebrow { margin: 0; color: var(--text-secondary); font-size: .64rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; opacity: 0.85; }
-	h3 { margin: .12rem 0 0; font-size: .98rem; font-weight: 750; letter-spacing: -.03em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+	h3 { margin: .12rem 0 0; font-size: .95rem; font-weight: 700; letter-spacing: -.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 	.widget-tools { display: flex; align-items: center; gap: .3rem; margin-left: auto; flex-shrink: 0; }
 	.tool {
 		display: grid;

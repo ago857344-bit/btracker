@@ -472,12 +472,13 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 <section class="focus" on:click={() => (moreMenuOpen = false)}>
-	<header class="page-head">
-		<div class="titles">
-			<h1>Focus &amp; Analytics <a class="palette" href="/settings" title="Theme & colors"><NavIcon name="palette" size={15} /></a></h1>
-			<p>Deep work timers, stopwatch sessions and focus analytics.</p>
+	<header class="page-header page-head">
+		<div class="page-header-copy titles">
+			<p class="page-eyebrow">Deep Work Engine</p>
+			<h1 class="page-title">Focus &amp; Analytics <a class="palette" href="/settings" title="Theme & colors"><NavIcon name="palette" size={15} /></a></h1>
+			<p class="page-subtitle">Deep work timers, stopwatch sessions and focus analytics.</p>
 		</div>
-		<div class="clockbox">
+		<div class="page-header-actions clockbox">
 			<b>{clockTime}</b>
 			<span>{clockDate}</span>
 		</div>
@@ -632,7 +633,8 @@
 				</div>
 			{/if}
 
-			<div class="dial" class:break={phase === 'break' && tab === 'focus'}>
+			<div class="dial" class:running class:break={phase === 'break' && tab === 'focus'}>
+				<div class="dial-aura" aria-hidden="true"></div>
 				<StatRing value={ringProgress} size={280} stroke={16} skin={phase === 'break' && tab === 'focus' ? 'classic' : $loadout.timer} color={phase === 'break' && tab === 'focus' ? 'var(--success, #2f9e6e)' : accent}>
 					<div class="pet-dial-slot">
 						<FocusPetCompanion {running} size="compact" />
@@ -1004,11 +1006,59 @@
 	.breather { grid-template-columns: 1fr; }
 	.breather .bicon + .bicon { display: none; }
 
-	.dial { margin: .3rem 0; }
+	.dial {
+		position: relative;
+		margin: .3rem 0;
+		display: grid;
+		place-items: center;
+	}
+	.dial-aura {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 320px;
+		height: 320px;
+		border-radius: 50%;
+		filter: blur(48px);
+		opacity: 0.18;
+		pointer-events: none;
+		z-index: 0;
+		background: radial-gradient(circle, var(--accent) 0%, transparent 72%);
+		transition: background 0.4s ease, opacity 0.4s ease;
+	}
+	.dial.running .dial-aura {
+		animation: auraPulse 6s ease-in-out infinite;
+	}
+	.dial:not(.running) .dial-aura {
+		background: radial-gradient(circle, #f59e0b 0%, transparent 72%);
+		opacity: 0.12;
+	}
+	.dial.break .dial-aura {
+		background: radial-gradient(circle, #2f9e6e 0%, transparent 72%);
+	}
+	@keyframes auraPulse {
+		0%, 100% {
+			transform: translate(-50%, -50%) scale(0.92);
+			opacity: 0.15;
+		}
+		50% {
+			transform: translate(-50%, -50%) scale(1.08);
+			opacity: 0.28;
+		}
+	}
 	.pet-dial-slot { margin-bottom: 0.2rem; display: flex; justify-content: center; transform: scale(0.9); }
 	.state-pill { padding: .28rem .8rem; border-radius: 999px; background: var(--accent); color: var(--accent-contrast, #fff); font-size: .62rem; font-weight: 800; letter-spacing: .12em; }
 	.state-pill.amber { background: #d99a2b; color: #fff; }
-	.dial .time { margin-top: .5rem; font-size: 3.5rem; font-weight: 800; letter-spacing: -.06em; line-height: 1; font-variant-numeric: tabular-nums; }
+	.dial .time {
+		margin-top: .5rem;
+		font-family: var(--font-display, var(--font-sans));
+		font-size: 3.5rem;
+		font-weight: 800;
+		letter-spacing: -0.05em;
+		line-height: 1;
+		font-variant-numeric: tabular-nums;
+	}
 	.dial-label { margin-top: .45rem; color: var(--text-secondary); font-size: .78rem; font-weight: 650; letter-spacing: .02em; }
 	.theory-card { display: grid; gap: .25rem; width: 100%; max-width: 420px; padding: .85rem 1rem; border: 1px solid color-mix(in srgb, #2b8ba6, transparent 55%); border-radius: 13px; background: color-mix(in srgb, #2b8ba6, transparent 92%); }
 	.theory-card b { color: #2b8ba6; font-size: .74rem; letter-spacing: .09em; }

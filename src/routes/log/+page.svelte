@@ -105,10 +105,12 @@
 </nav>
 
 {#if !subject}
-	<header class="pagehead">
-		<p class="eyebrow">Question log</p>
-		<h1>Every question you have solved, in one place.</h1>
-		<p class="sub">Tick questions as you solve them, mark the ones that went wrong and why, and watch each chapter fill in.</p>
+	<header class="page-header pagehead">
+		<div class="page-header-copy">
+			<p class="page-eyebrow eyebrow">Question log</p>
+			<h1 class="page-title">Every question you have solved, in one place.</h1>
+			<p class="page-subtitle sub">Tick questions as you solve them, mark the ones that went wrong and why, and watch each chapter fill in.</p>
+		</div>
 	</header>
 	<div class="totalcard">
 		<span class="pct">{pctOf(total)}%</span>
@@ -146,10 +148,12 @@
 		<span><i class="f"></i> review</span>
 	</div>
 {:else if !module}
-	<header class="pagehead">
-		<p class="eyebrow" style="color:{subject.accent}">{subject.name}</p>
-		<h1>{subject.name}</h1>
-		<p class="sub">{subjectStats($tracker, subject.code).done.toLocaleString()} solved · {pctOf(subjectStats($tracker, subject.code))}% of the syllabus</p>
+	<header class="page-header pagehead">
+		<div class="page-header-copy">
+			<p class="page-eyebrow eyebrow" style="color:{subject.accent}">{subject.name}</p>
+			<h1 class="page-title">{subject.name}</h1>
+			<p class="page-subtitle sub">{subjectStats($tracker, subject.code).done.toLocaleString()} solved · {pctOf(subjectStats($tracker, subject.code))}% of the syllabus</p>
+		</div>
 	</header>
 	<div class="grid g2">
 		{#each subject.modules as mo (mo.id)}
@@ -166,9 +170,11 @@
 		{/each}
 	</div>
 {:else if !chapter}
-	<header class="pagehead">
-		<p class="eyebrow" style="color:{subject.accent}">{subject.name}</p>
-		<h1>{module.name}</h1>
+	<header class="page-header pagehead">
+		<div class="page-header-copy">
+			<p class="page-eyebrow eyebrow" style="color:{subject.accent}">{subject.name}</p>
+			<h1 class="page-title">{module.name}</h1>
+		</div>
 	</header>
 	<div class="grid g2">
 		{#each module.chapters as ch (ch.no)}
@@ -184,14 +190,16 @@
 		{/each}
 	</div>
 {:else if !exercise}
-	<header class="pagehead" style="display: flex; justify-content: space-between; align-items: flex-end;">
-		<div>
-			<p class="eyebrow" style="color:{subject.accent}">{subject.name} · {module.name}</p>
-			<h1>{chapter.no}. {chapter.name}</h1>
+	<header class="page-header pagehead">
+		<div class="page-header-copy">
+			<p class="page-eyebrow eyebrow" style="color:{subject.accent}">{subject.name} · {module.name}</p>
+			<h1 class="page-title">{chapter.no}. {chapter.name}</h1>
 		</div>
-		<button type="button" class="btn-ghost" on:click={() => { uiClick(); showAddExercise = true; }} style="display: flex; align-items: center; gap: 0.4rem; padding: 0.4rem 0.75rem; border-radius: 8px; font-size: 0.75rem; font-weight: 700; background: var(--surface-subtle); border: 1px solid var(--border-subtle); color: var(--text-secondary); cursor: pointer;">
-			<NavIcon name="plus" size={13} /> Add Exercise
-		</button>
+		<div class="page-header-actions">
+			<button type="button" class="btn-ghost" on:click={() => { uiClick(); showAddExercise = true; }} style="display: flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; border-radius: 10px; font-size: 0.76rem; font-weight: 700; background: var(--surface-subtle); border: 1px solid var(--border-subtle); color: var(--text-secondary); cursor: pointer; transition: all 0.15s ease;">
+				<NavIcon name="plus" size={13} /> Add Exercise
+			</button>
+		</div>
 	</header>
 	<div class="grid g2">
 		{#each visibleExercises($tracker, subject.code, chapter.no) as ex (ex.code)}
@@ -220,10 +228,12 @@
 		{/each}
 	</div>
 {:else if exCount === 0}
-	<header class="pagehead">
-		<p class="eyebrow" style="color:{subject.accent}">{chapter.no}. {chapter.name}</p>
-		<h1>{exercise.name}</h1>
-		<p class="sub">This exercise has no questions yet.</p>
+	<header class="page-header pagehead">
+		<div class="page-header-copy">
+			<p class="page-eyebrow eyebrow" style="color:{subject.accent}">{chapter.no}. {chapter.name}</p>
+			<h1 class="page-title">{exercise.name}</h1>
+			<p class="page-subtitle sub">This exercise has no questions yet.</p>
+		</div>
 	</header>
 	<div class="panel">
 		<p class="blabel">How many questions are in this exercise?</p>

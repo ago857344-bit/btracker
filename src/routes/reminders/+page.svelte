@@ -406,12 +406,13 @@
 </script>
 
 <section class="reminders">
-	<header class="page-head">
-		<div class="titles">
-			<h1>Reminders</h1>
-			<p class="sub">Time-sensitive alerts and scheduled nudges — revision triggers, deadlines, and nudges you set for yourself.</p>
+	<header class="page-header page-head">
+		<div class="page-header-copy titles">
+			<p class="page-eyebrow">Smart Alert Center</p>
+			<h1 class="page-title">Reminders</h1>
+			<p class="page-subtitle sub">Time-sensitive alerts and scheduled nudges — revision triggers, deadlines, and nudges you set for yourself.</p>
 		</div>
-		<div class="head-actions">
+		<div class="page-header-actions head-actions">
 			{#if !notifGranted}
 				<button type="button" class="notif-pill" on:click={async () => {
 					const res = await requestNotificationPermission();
@@ -427,7 +428,7 @@
 				<b>{allCards.length}</b>
 				<small>active</small>
 			</div>
-			<button type="button" class="set-reminder" on:click={() => (newOpen = true)}>
+			<button type="button" class="btn btn-primary set-reminder" on:click={() => (newOpen = true)}>
 				<NavIcon name="plus" size={15} />
 				<span>Set reminder</span>
 			</button>
@@ -514,16 +515,21 @@
 					{/each}
 				</div>
 			{:else}
-				<div class="empty-block">
-					<NavIcon name={key === 'overdue' ? 'check-circle' : key === 'today' ? 'sunrise' : 'shield'} size={22} />
-					<div>
-						<b>No {key === 'overdue' ? 'overdue' : key === 'today' ? 'alerts for today' : 'upcoming reminders'}</b>
-						<p>{key === 'overdue'
-							? 'You are all caught up — nothing has slipped past.'
-							: key === 'today'
-							? 'Nothing scheduled for today. Hit "Set reminder" to add one.'
-							: 'Nothing queued for the next 6 days.'}</p>
+				<div class="empty-state">
+					<div class="empty-state-badge">
+						<NavIcon name={key === 'overdue' ? 'check-circle' : key === 'today' ? 'sunrise' : 'shield'} size={22} />
 					</div>
+					<h3 class="empty-state-title">No {key === 'overdue' ? 'overdue' : key === 'today' ? 'alerts for today' : 'upcoming reminders'}</h3>
+					<p class="empty-state-desc">{key === 'overdue'
+						? 'You are all caught up — nothing has slipped past.'
+						: key === 'today'
+						? 'Nothing scheduled for today. Hit "Set reminder" to add one.'
+						: 'Nothing queued for the next 6 days.'}</p>
+					{#if key === 'today'}
+						<button type="button" class="btn empty-state-action" on:click={() => (newOpen = true)}>
+							<NavIcon name="plus" size={14} /> Set reminder
+						</button>
+					{/if}
 				</div>
 			{/if}
 		</section>
@@ -632,11 +638,6 @@
 	.snooze-pop { position: absolute; z-index: 10; right: 0; top: 100%; margin-top: 4px; display: grid; min-width: 120px; padding: .3rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-panel); box-shadow: 0 14px 30px rgb(0 0 0 / 14%); }
 	.snooze-pop button { display: flex; align-items: center; height: 32px; padding: 0 .7rem; border: 0; border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: .74rem; font-weight: 650; cursor: pointer; text-align: left; font-family: inherit; }
 	.snooze-pop button:hover { color: var(--accent); background: var(--accent-soft); }
-
-	.empty-block { display: grid; grid-template-columns: 36px 1fr; align-items: center; gap: .85rem; padding: 1.2rem 1.2rem; border: 1.4px dashed var(--border-subtle); border-radius: 16px; background: var(--surface-panel); color: var(--text-secondary); }
-	.empty-block > :global(svg) { justify-self: center; color: var(--text-secondary); opacity: .65; }
-	.empty-block b { display: block; font-size: .84rem; color: var(--text-primary); }
-	.empty-block p { margin: .2rem 0 0; font-size: .74rem; line-height: 1.55; }
 
 	/* -------- modal form -------- */
 	.form { display: grid; gap: .85rem; }
