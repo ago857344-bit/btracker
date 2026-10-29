@@ -1,14 +1,16 @@
 <script lang="ts">
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import GoalForm from '$lib/components/plan/GoalForm.svelte';
-	import { deleteGoal, goalProgress, goalStatus, patchGoal, toggleMilestone, tracker } from '$lib/stores/tracker';
+	import { deleteGoal, goalProgress, goalStatus, patchGoal, toggleMilestone, tracker, updateTracker, triggerToast } from '$lib/stores/tracker';
 	import { subjectColor, subjectName } from '$lib/state/subjects';
-	import { relativeDue } from '$lib/state/dates';
+	import { relativeDue, todayKey } from '$lib/state/dates';
+	import type { TrackerGoal } from '$lib/types/tracker';
 
 	let query = '';
 	let filter: 'all' | 'in-progress' | 'overdue' | 'completed' = 'all';
 	let formOpen = false;
 	let expanded: string | null = null;
+	let dragId: string | null = null;
 
 	$: goals = $tracker.gt;
 	$: statuses = goals.map((goal) => goalStatus(goal));
@@ -33,6 +35,54 @@
 	] as const;
 
 	const statusColor = (s: string) => s === 'completed' ? '#2f9e6e' : s === 'overdue' ? '#e0455a' : '#d99a2b';
+
+	function handleDragStart(e: DragEvent, id: string) {
+		dragId = id;
+		if (e.dataTransfer) {
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('text/plain', id);
+		}
+	}
+
+	function handleDragOver(e: DragEvent) {
+		e.preventDefault();
+		if (e.dataTransfer) {
+			e.dataTransfer.dropEffect = 'move';
+		}
+	}
+
+	function handleDrop(targetId: string) {
+		if (!dragId || dragId === targetId) {
+			dragId = null;
+			return;
+		}
+		updateTracker((t) => {
+			const fromIdx = t.gt.findIndex((g) => g.id === dragId);
+			const toIdx = t.gt.findIndex((g) => g.id === targetId);
+			if (fromIdx !== -1 && toIdx !== -1) {
+				const [moved] = t.gt.splice(fromIdx, 1);
+				t.gt.splice(toIdx, 0, moved);
+			}
+		});
+		dragId = null;
+	}
+
+	function scheduleMilestoneToday(goal: TrackerGoal) {
+		const uncompleted = goal.milestones?.find((m) => !m.done);
+		const title = uncompleted ? `${goal.title}: ${uncompleted.t}` : goal.title;
+		updateTracker((t) => {
+			if (!t.h) t.h = [];
+			t.h.push({
+				id: 'g-hw-' + Date.now(),
+				title: `🎯 ${title}`,
+				s: (goal.sub as any) || undefined,
+				due: todayKey(),
+				hrs: 1,
+				done: false
+			});
+		});
+		triggerToast(`Scheduled "${title}" into today's planner! 🎯`);
+	}
 </script>
 
 <section class="goals">
@@ -55,10 +105,18 @@
 
 	<div class="filters">
 		<span class="search"><NavIcon name="search" size={14} /><input type="text" placeholder="Search goals or subjects..." bind:value={query} aria-label="Search goals" /></span>
-		<div class="chips">
+		<div class="segmented-control" role="tablist">
 			{#each [{ id: 'all', label: 'All' }, { id: 'in-progress', label: 'In Progress' }, { id: 'overdue', label: 'Overdue' }, { id: 'completed', label: 'Completed' }] as chip (chip.id)}
-				<button type="button" class="chip" class:selected={filter === chip.id} on:click={() => filter = chip.id as typeof filter}>
-					{chip.label} <em>{counts[chip.id as keyof typeof counts]}</em>
+				<button
+					type="button"
+					class="segmented-btn"
+					class:active={filter === chip.id}
+					on:click={() => filter = chip.id as typeof filter}
+					role="tab"
+					aria-selected={filter === chip.id}
+				>
+					<span>{chip.label}</span>
+					<span class="count-pill">{counts[chip.id as keyof typeof counts]}</span>
 				</button>
 			{/each}
 		</div>
@@ -69,9 +127,17 @@
 			{#each filtered as goal (goal.id)}
 				{@const status = goalStatus(goal)}
 				{@const progress = goalProgress(goal)}
-				<li class="goal" style="--goal-color: {goal.sub ? subjectColor(goal.sub) : 'var(--accent)'}">
+				<li
+					class="goal"
+					class:dragging={dragId === goal.id}
+					style="--goal-color: {goal.sub ? subjectColor(goal.sub) : 'var(--accent)'}"
+					draggable="true"
+					on:dragstart={(e) => handleDragStart(e, goal.id)}
+					on:dragover={handleDragOver}
+					on:drop={() => handleDrop(goal.id)}
+				>
 					<div class="goal-main">
-						<span class="drag" aria-hidden="true"><NavIcon name="drag" size={14} /></span>
+						<span class="drag" aria-label="Drag to reorder"><NavIcon name="drag" size={14} /></span>
 						<button
 							type="button"
 							class="circle-check"
@@ -124,16 +190,32 @@
 							{:else}
 								<p class="no-ms">No milestones on this goal yet.</p>
 							{/if}
-							<button type="button" class="del" on:click={() => { deleteGoal(goal.id); expanded = null; }}><NavIcon name="trash" size={13} /> Delete goal</button>
+							
+							<div class="goal-detail-actions">
+								<button type="button" class="btn-schedule-milestone" on:click={() => scheduleMilestoneToday(goal)}>
+									<NavIcon name="calendar-check" size={13} />
+									<span>+ Schedule Next Milestone Today</span>
+								</button>
+								<button type="button" class="del" on:click={() => { deleteGoal(goal.id); expanded = null; }}>
+									<NavIcon name="trash" size={13} /> Delete goal
+								</button>
+							</div>
 						</div>
 					{/if}
 				</li>
 			{/each}
 		</ul>
 	{:else}
-		<div class="empty">
-			<p>{goals.length ? 'No goals matching filter.' : 'No goals yet — create your first target.'}</p>
-			<button type="button" class="add-goal" on:click={() => formOpen = true}><NavIcon name="plus" size={15} /> Create your first goal</button>
+		<div class="empty-state">
+			<div class="empty-state-icon">
+				<NavIcon name="target" size={28} />
+			</div>
+			<b class="empty-state-title">{goals.length ? 'No matching targets' : 'No long-term targets yet'}</b>
+			<p class="empty-state-desc">{goals.length ? 'Try adjusting your search query or status filter.' : 'Create your first academic target with milestones, deadlines, and PYQ trackers.'}</p>
+			<button type="button" class="add-goal" on:click={() => formOpen = true}>
+				<NavIcon name="plus" size={15} />
+				<span>Create your first goal</span>
+			</button>
 		</div>
 	{/if}
 </section>
@@ -155,14 +237,64 @@
 	.search { display: flex; align-items: center; gap: .5rem; flex: 1; min-width: 200px; height: 38px; padding: 0 .75rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-panel); color: var(--text-secondary); }
 	.search input { flex: 1; border: 0; background: transparent; color: var(--text-primary); font-size: .8rem; font-family: inherit; }
 	.search input:focus { outline: none; }
-	.chips { display: flex; gap: .35rem; flex-wrap: wrap; }
-	.chip { display: inline-flex; align-items: center; gap: .35rem; height: 30px; padding: 0 .7rem; border: 1px solid var(--border-subtle); border-radius: 99px; background: transparent; color: var(--text-secondary); font-size: .72rem; font-weight: 700; cursor: pointer; }
-	.chip em { font-style: normal; opacity: .65; }
-	.chip.selected { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+	
+	.segmented-control {
+		display: inline-flex;
+		align-items: center;
+		padding: 3px;
+		border-radius: 12px;
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
+		gap: 2px;
+	}
+
+	.segmented-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		height: 30px;
+		padding: 0 0.65rem;
+		border-radius: 9px;
+		border: 1px solid transparent;
+		background: transparent;
+		color: var(--text-secondary);
+		font-size: 0.72rem;
+		font-weight: 700;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.segmented-btn:hover {
+		color: var(--text-primary);
+	}
+
+	.segmented-btn.active {
+		background: var(--surface-panel);
+		color: var(--text-primary);
+		border-color: var(--border-subtle);
+		box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+	}
+
+	.count-pill {
+		font-size: 0.64rem;
+		padding: 0.1rem 0.35rem;
+		border-radius: 99px;
+		background: color-mix(in srgb, var(--text-secondary) 15%, transparent);
+		color: inherit;
+		font-variant-numeric: tabular-nums;
+	}
+
+	.segmented-btn.active .count-pill {
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		color: var(--accent);
+	}
+
 	.goal-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .55rem; }
-	.goal { border: 1px solid var(--border-subtle); border-left: 3px solid var(--goal-color); border-radius: 14px; background: var(--surface-panel); overflow: hidden; }
+	.goal { border: 1px solid var(--border-subtle); border-left: 3px solid var(--goal-color); border-radius: 14px; background: var(--surface-panel); overflow: hidden; transition: transform 0.15s ease, opacity 0.15s ease; }
+	.goal.dragging { opacity: 0.45; border-style: dashed; }
 	.goal-main { display: flex; align-items: center; gap: .65rem; padding: .75rem .9rem; }
-	.drag { color: var(--border-subtle); cursor: grab; }
+	.drag { color: var(--border-subtle); cursor: grab; display: grid; place-items: center; }
+	.drag:active { cursor: grabbing; }
 	.circle-check { display: grid; flex: 0 0 20px; place-items: center; width: 20px; height: 20px; border: 2px solid var(--border-subtle); border-radius: 99px; background: transparent; color: var(--accent-contrast, #fff); cursor: pointer; }
 	.circle-check.checked { border-color: #2f9e6e; background: #2f9e6e; }
 	.goal-copy { display: grid; flex: 1; gap: .28rem; min-width: 0; border: 0; background: transparent; text-align: left; cursor: pointer; font-family: inherit; color: inherit; }
@@ -184,8 +316,76 @@
 	.ms-check.checked { border-color: var(--accent); background: var(--accent); }
 	.ms-list span.done { color: var(--text-secondary); text-decoration: line-through; }
 	.no-ms { margin: 0; color: var(--text-secondary); font-size: .74rem; }
+	
+	.goal-detail-actions {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.6rem;
+		padding-top: 0.4rem;
+		border-top: 1px solid var(--border-subtle);
+		flex-wrap: wrap;
+	}
+
+	.btn-schedule-milestone {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		height: 28px;
+		padding: 0 0.7rem;
+		border-radius: 8px;
+		background: color-mix(in srgb, var(--accent) 12%, transparent);
+		border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+		color: var(--accent);
+		font-size: 0.72rem;
+		font-weight: 750;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.btn-schedule-milestone:hover {
+		background: var(--accent);
+		color: var(--accent-contrast, #fff);
+	}
+
 	.del { display: inline-flex; align-items: center; gap: .35rem; justify-self: start; height: 28px; padding: 0 .65rem; border: 1px solid var(--border-subtle); border-radius: 9px; background: transparent; color: var(--danger, #e0455a); font-size: .7rem; font-weight: 700; cursor: pointer; }
 	.del:hover { border-color: var(--danger, #e0455a); }
-	.empty { display: grid; gap: .7rem; justify-items: center; padding: 2.4rem 1rem; border: 1px dashed var(--border-subtle); border-radius: 16px; color: var(--text-secondary); font-size: .82rem; }
-	.empty p { margin: 0; }
+
+	.empty-state {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		gap: 0.5rem;
+		padding: 3rem 1.5rem;
+		border: 1px dashed var(--border-subtle);
+		border-radius: 16px;
+		background: var(--surface-panel);
+	}
+
+	.empty-state-icon {
+		display: grid;
+		place-items: center;
+		width: 50px;
+		height: 50px;
+		border-radius: 14px;
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		margin-bottom: 0.3rem;
+	}
+
+	.empty-state-title {
+		font-size: 0.95rem;
+		font-weight: 800;
+		color: var(--text-primary);
+	}
+
+	.empty-state-desc {
+		font-size: 0.76rem;
+		color: var(--text-secondary);
+		max-width: 320px;
+		margin: 0 0 0.8rem;
+		line-height: 1.45;
+	}
 </style>

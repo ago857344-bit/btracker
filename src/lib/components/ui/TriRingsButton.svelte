@@ -3,6 +3,7 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { celebrateConfetti } from '$lib/utils/confetti';
 	import { dailyProgress, revisedToday, tracker, updateTracker, setDailyGoal } from '$lib/stores/tracker';
+	import { goto } from '$app/navigation';
 
 	let open = false;
 	let isEditingGoals = false;
@@ -89,6 +90,11 @@
 		if (h === 0) return `${m}m`;
 		if (m === 0) return `${h}h`;
 		return `${h}h ${m}m`;
+	}
+
+	function navigateToRing(destination: string) {
+		open = false;
+		goto(destination);
 	}
 </script>
 
@@ -252,7 +258,12 @@
 	<!-- Ring Breakdown Cards -->
 	<div class="metrics-grid">
 		<!-- Ring 1: Focus Hours (Red) -->
-		<div class="metric-card red-card">
+		<button
+			type="button"
+			class="metric-card red-card clickable"
+			on:click={() => navigateToRing('/focus')}
+			title="Go to Focus Mode"
+		>
 			<div class="card-top">
 				<div class="card-title-group">
 					<span class="ring-dot dot-red"></span>
@@ -272,10 +283,21 @@
 			<div class="bar-track">
 				<div class="bar-fill fill-red" style="width: {Math.min(100, Math.round(hourPct * 100))}%;"></div>
 			</div>
-		</div>
+			<div class="card-footer-cta">
+				<span class="cta-pill font-mono">
+					{closedRed ? 'View Focus' : 'Close Ring'}
+					<NavIcon name="arrow-right" size={11} />
+				</span>
+			</div>
+		</button>
 
 		<!-- Ring 2: Questions (Green) -->
-		<div class="metric-card green-card">
+		<button
+			type="button"
+			class="metric-card green-card clickable"
+			on:click={() => navigateToRing('/log')}
+			title="Go to Question Log"
+		>
 			<div class="card-top">
 				<div class="card-title-group">
 					<span class="ring-dot dot-green"></span>
@@ -295,10 +317,21 @@
 			<div class="bar-track">
 				<div class="bar-fill fill-green" style="width: {Math.min(100, Math.round(questionPct * 100))}%;"></div>
 			</div>
-		</div>
+			<div class="card-footer-cta">
+				<span class="cta-pill font-mono">
+					{closedGreen ? 'View Questions' : 'Close Ring'}
+					<NavIcon name="arrow-right" size={11} />
+				</span>
+			</div>
+		</button>
 
 		<!-- Ring 3: Revision (Blue) -->
-		<div class="metric-card blue-card">
+		<button
+			type="button"
+			class="metric-card blue-card clickable"
+			on:click={() => navigateToRing('/revise')}
+			title="Go to Spaced Revision"
+		>
 			<div class="card-top">
 				<div class="card-title-group">
 					<span class="ring-dot dot-blue"></span>
@@ -318,7 +351,13 @@
 			<div class="bar-track">
 				<div class="bar-fill fill-blue" style="width: {Math.min(100, Math.round(revisionPct * 100))}%;"></div>
 			</div>
-		</div>
+			<div class="card-footer-cta">
+				<span class="cta-pill font-mono">
+					{closedBlue ? 'View Revision' : 'Close Ring'}
+					<NavIcon name="arrow-right" size={11} />
+				</span>
+			</div>
+		</button>
 	</div>
 
 	<!-- Optional In-Modal Goal Editor -->
@@ -559,6 +598,17 @@
 		display: grid;
 		gap: 0.6rem;
 	}
+	.metric-card.clickable {
+		text-align: left;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+	.metric-card.clickable:hover {
+		transform: translateY(-2px);
+		border-color: var(--border-strong, rgba(255, 255, 255, 0.2));
+		box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.3);
+	}
 	.metric-card.red-card {
 		border-color: color-mix(in srgb, #ff3366 25%, var(--border-subtle));
 	}
@@ -568,6 +618,34 @@
 	.metric-card.blue-card {
 		border-color: color-mix(in srgb, #00f2fe 25%, var(--border-subtle));
 	}
+
+	.card-footer-cta {
+		display: flex;
+		align-items: center;
+		justify-content: flex-end;
+		margin-top: 0.2rem;
+		padding-top: 0.4rem;
+		border-top: 1px dashed color-mix(in srgb, var(--border-subtle) 80%, transparent);
+	}
+
+	.cta-pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		font-size: 0.64rem;
+		font-weight: 750;
+		color: var(--text-secondary);
+		transition: all 0.15s ease;
+	}
+
+	.metric-card.clickable:hover .cta-pill {
+		color: var(--text-primary);
+		transform: translateX(2px);
+	}
+
+	.metric-card.red-card:hover .cta-pill { color: #ff3366; }
+	.metric-card.green-card:hover .cta-pill { color: #2af598; }
+	.metric-card.blue-card:hover .cta-pill { color: #00f2fe; }
 
 	.card-top {
 		display: flex;

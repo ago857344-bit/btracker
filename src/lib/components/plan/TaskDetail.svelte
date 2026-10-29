@@ -2,6 +2,8 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { addSubtask, deleteTask, patchTask, removeSubtask, togglePlannerSubtask } from '$lib/stores/tracker';
+	import { globalTimer } from '$lib/stores/timerState';
+	import { goto } from '$app/navigation';
 	import { TASK_COLORS, SUBJECTS, subjectColor, subjectName } from '$lib/state/subjects';
 	import { addDaysKey, longDateKey, todayKey } from '$lib/state/dates';
 	import type { HomeworkItem } from '$lib/types/tracker';
@@ -69,6 +71,14 @@
 		if (!task) return;
 		removeSubtask(task.id, idx);
 		task = { ...task, subs: (task.subs || []).filter((_, i) => i !== idx) };
+	}
+
+	function startFocus() {
+		if (!task) return;
+		const durationSecs = Math.max(15, Math.round((task.hrs || 0.75) * 60)) * 60;
+		globalTimer.start(task.s || 'P', durationSecs, task.title || 'Planned Task', 'timer');
+		open = false;
+		goto('/focus');
 	}
 </script>
 
@@ -168,6 +178,10 @@
 				{:else}
 					<button type="button" class="btn danger" aria-label="Delete task" on:click={remove}><NavIcon name="trash" size={15} /></button>
 					<button type="button" class="btn ghost" on:click={() => editing = true}><NavIcon name="edit" size={14} /> Edit task</button>
+					<button type="button" class="btn solid focus-btn" on:click={startFocus}>
+						<NavIcon name="focus" size={14} />
+						<span>▶ Start Focus</span>
+					</button>
 				{/if}
 			</div>
 		</div>

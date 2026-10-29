@@ -39,7 +39,7 @@
 					{#each topDue as ch (ch.chapterKey)}
 						{@const [subCode, ...rest] = ch.chapterKey.split(/[-:]/)}
 						<li>
-							<button type="button" class="ch-row" on:click={() => goto('/revise')}>
+							<button type="button" class="ch-row" on:click={() => goto(`/revise?revise=${encodeURIComponent(ch.chapterKey)}`)}>
 								<span class="sub-dot" style="background: {subjectColor(subCode)}"></span>
 								<span class="ch-name" title={rest.join('-').trim() || ch.chapterKey}>
 									{rest.join('-').trim() || ch.chapterKey}
@@ -62,7 +62,7 @@
 		<!-- Flashcards & Mock Tests Quick Card -->
 		<div class="rec-side">
 			<!-- Flashcard Mini Pill -->
-			<button type="button" class="mini-card" on:click={() => goto('/revise')}>
+			<button type="button" class="mini-card" on:click={() => goto('/revise?view=flashcards')}>
 				<div class="mini-head">
 					<span class="icon-wrap card-icon"><NavIcon name="layers" size={14} /></span>
 					<span class="mini-title">Active Recall</span>

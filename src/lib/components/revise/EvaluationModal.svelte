@@ -3,11 +3,12 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import HealthBar from '$lib/components/recall/HealthBar.svelte';
-	import { tracker, celebration } from '$lib/stores/tracker';
+	import { tracker, celebration, recordFocus, addFlashcard } from '$lib/stores/tracker';
 	import { recordChapterRevision } from '$lib/stores/recall-actions';
 	import { calculateCurrentScore, calculateHealthStatus } from '$lib/state/decay';
 	import { subjectColor, subjectName } from '$lib/state/subjects';
 	import { createChapterRecallData } from '$lib/state/defaults';
+	import { renderMarkdownSync } from '$lib/services/markdown';
 	import type { ChapterRecallData, ConfidenceRating, ModalityTag } from '$lib/types/tracker';
 
 	const dispatch = createEventDispatcher<{ close: void }>();
@@ -16,11 +17,17 @@
 	export let chapterKey = '';
 	export let chapter: ChapterRecallData | null = null;
 
-	// Timer State (Phase 4)
+	// Timer State
 	let mode: 'timer' | 'evaluate' = 'timer';
 	let timerMinutes = 10;
 	let secondsLeft = timerMinutes * 60;
 	let timerInterval: any;
+	let isPaused = false;
+
+	// Digital Recall Scratchpad State
+	let recallNotes = '';
+	let showScratchpadPreview = false;
+	let saveAsFlashcard = true;
 	
 	// Evaluation State
 	let confidence: ConfidenceRating = 'good';
@@ -54,6 +61,16 @@
 		{ id: 'easy', label: '5 · Easy', desc: 'Instant mastery (Score: 95%, τ ×2.0)', score: 95, color: 'var(--accent)' }
 	];
 
+	function setTimerPreset(m: number) {
+		timerMinutes = m;
+		secondsLeft = m * 60;
+		isPaused = false;
+	}
+
+	function togglePause() {
+		isPaused = !isPaused;
+	}
+
 	function toggleModality(mod: ModalityTag) {
 		if (selectedModalities.includes(mod)) {
 			if (selectedModalities.length > 1) {
@@ -67,6 +84,7 @@
 	function handleClose() {
 		clearInterval(timerInterval);
 		timerInterval = undefined;
+		isPaused = false;
 		open = false;
 		dispatch('close');
 	}
@@ -74,6 +92,7 @@
 	function finishTimer() {
 		clearInterval(timerInterval);
 		timerInterval = undefined;
+		isPaused = false;
 		timeSpentMinutes = Math.max(1, timerMinutes - Math.floor(secondsLeft / 60));
 		mode = 'evaluate';
 	}
@@ -82,6 +101,22 @@
 		const key = chapterKey || resolvedChapter?.chapterKey;
 		if (!key) return;
 		recordChapterRevision(key, confidence, selectedModalities, timeSpentMinutes);
+		recordFocus({
+			startedEpochMinutes: Math.floor(Date.now() / 60000) - timeSpentMinutes,
+			durationMinutes: timeSpentMinutes,
+			activity: `Active Recall · ${chapterTitle}`,
+			deadlineId: null,
+			subject,
+			chapter: chapterTitle
+		});
+		if (saveAsFlashcard && recallNotes.trim()) {
+			addFlashcard({
+				front: `Active Recall: ${chapterTitle}`,
+				back: recallNotes.trim(),
+				subject,
+				chapter: chapterTitle
+			});
+		}
 		celebration.set(`Revision logged! ${chapterTitle} memory restored.`);
 		handleClose();
 	}
@@ -91,28 +126,101 @@
 			clearInterval(timerInterval);
 			timerInterval = undefined;
 		}
+		isPaused = false;
 		mode = 'timer';
+		recallNotes = '';
+		showScratchpadPreview = false;
+		saveAsFlashcard = true;
 	}
 
 	$: if (open && mode === 'timer' && !timerInterval) {
 		secondsLeft = timerMinutes * 60;
+		isPaused = false;
 		timerInterval = setInterval(() => {
-			if (secondsLeft > 0) secondsLeft--;
-			else finishTimer();
+			if (!isPaused) {
+				if (secondsLeft > 0) secondsLeft--;
+				else finishTimer();
+			}
 		}, 1000);
 	}
 
 	onDestroy(() => clearInterval(timerInterval));
 </script>
 
-<Modal open={open} title={mode === 'timer' ? "BRAIN DUMP: FOCUS MODE" : "ACTIVE RECALL EVALUATION"} width={mode === 'timer' ? "500px" : "620px"} on:close={handleClose}>
+<Modal open={open} title={mode === 'timer' ? "BRAIN DUMP: FOCUS MODE" : "ACTIVE RECALL EVALUATION"} width={mode === 'timer' ? "660px" : "620px"} on:close={handleClose}>
 	{#if mode === 'timer'}
 		<div class="timer-dialog">
-			<h3 style="color: {color}">{chapterTitle}</h3>
-			<p class="timer-desc">Write down everything you remember on a blank sheet of paper.</p>
+			<div class="timer-head">
+				<h3 style="color: {color}">{chapterTitle}</h3>
+				<p class="timer-desc">Recall and write down formulas, derivations, and key concepts without referring to notes.</p>
+			</div>
 			
-			<div class="timer-display" style="--c: {color}">
-				{Math.floor(secondsLeft / 60).toString().padStart(2, '0')}:{(secondsLeft % 60).toString().padStart(2, '0')}
+			<div class="timer-controls-card" style="--c: {color}">
+				<div class="preset-pills">
+					{#each [5, 10, 15] as m}
+						<button
+							type="button"
+							class="preset-pill"
+							class:active={timerMinutes === m}
+							on:click={() => setTimerPreset(m)}
+						>
+							{m}m
+						</button>
+					{/each}
+				</div>
+
+				<div class="countdown-row">
+					<div class="timer-display">
+						{Math.floor(secondsLeft / 60).toString().padStart(2, '0')}:{(secondsLeft % 60).toString().padStart(2, '0')}
+					</div>
+					<button
+						type="button"
+						class="btn-pause"
+						class:paused={isPaused}
+						on:click={togglePause}
+						title={isPaused ? "Resume countdown" : "Pause countdown"}
+					>
+						<NavIcon name={isPaused ? 'play' : 'pause'} size={15} />
+						<span>{isPaused ? 'Resume' : 'Pause'}</span>
+					</button>
+				</div>
+			</div>
+
+			<!-- Digital Recall Scratchpad -->
+			<div class="scratchpad-box">
+				<div class="scratchpad-header">
+					<div class="scratchpad-title">
+						<NavIcon name="edit" size={13} />
+						<span>DIGITAL RECALL SCRATCHPAD</span>
+					</div>
+					<button
+						type="button"
+						class="preview-toggle-btn"
+						class:active={showScratchpadPreview}
+						on:click={() => (showScratchpadPreview = !showScratchpadPreview)}
+					>
+						<NavIcon name={showScratchpadPreview ? 'edit' : 'sparkles'} size={12} />
+						<span>{showScratchpadPreview ? 'Edit Notes' : 'Preview KaTeX / Markdown'}</span>
+					</button>
+				</div>
+
+				{#if showScratchpadPreview}
+					<div class="scratchpad-preview markdown-body">
+						{@html renderMarkdownSync(recallNotes || '_Type your memory dump to see formatted KaTeX math and notes here..._')}
+					</div>
+				{:else}
+					<textarea
+						class="scratchpad-textarea"
+						bind:value={recallNotes}
+						placeholder="Type every formula, derivation, and edge case you can recall from memory... (supports $LaTeX$)"
+						rows={7}
+					></textarea>
+				{/if}
+
+				<div class="scratchpad-footer">
+					<span class="word-count font-mono">{recallNotes.trim().split(/\s+/).filter(Boolean).length} words</span>
+					<span class="hint">LaTeX math like $E = mc^2$ and formulas supported</span>
+				</div>
 			</div>
 
 			<div class="actions center">
@@ -121,7 +229,7 @@
 				</button>
 				<button type="button" class="btn solid" on:click={finishTimer}>
 					<NavIcon name="check" size={14} />
-					<span>Finish & Evaluate</span>
+					<span>Finish &amp; Evaluate</span>
 				</button>
 			</div>
 		</div>
@@ -185,6 +293,17 @@
 				</div>
 			</div>
 
+			<!-- Save Recall Notes as Flashcard -->
+			{#if recallNotes.trim()}
+				<div class="flashcard-save-box">
+					<label class="flashcard-check-label">
+						<input type="checkbox" bind:checked={saveAsFlashcard} />
+						<span>Save recall dump as a Flashcard for {chapterTitle}</span>
+					</label>
+					<div class="preview-snippet font-mono">{recallNotes.slice(0, 90)}{recallNotes.length > 90 ? '...' : ''}</div>
+				</div>
+			{/if}
+
 			<!-- Actions -->
 			<div class="actions">
 				<button type="button" class="btn ghost" on:click={handleClose}>Cancel</button>
@@ -199,10 +318,184 @@
 
 <style>
 	/* Timer styles */
-	.timer-dialog { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 1rem; padding: 1rem 0; }
-	.timer-dialog h3 { font-size: 1.4rem; font-weight: 800; margin: 0; }
-	.timer-desc { font-size: 0.85rem; color: var(--text-secondary); margin: 0; }
-	.timer-display { font-size: 4.5rem; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--c); background: color-mix(in srgb, var(--c), transparent 90%); padding: 1rem 2.5rem; border-radius: 20px; border: 2px dashed color-mix(in srgb, var(--c), transparent 70%); margin: 1rem 0; }
+	.timer-dialog { display: flex; flex-direction: column; align-items: stretch; gap: 1rem; padding: 0.5rem 0; }
+	.timer-head { text-align: center; }
+	.timer-head h3 { font-size: 1.3rem; font-weight: 800; margin: 0 0 0.2rem; }
+	.timer-desc { font-size: 0.8rem; color: var(--text-secondary); margin: 0; line-height: 1.4; }
+	
+	.timer-controls-card {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.75rem;
+		background: color-mix(in srgb, var(--c), transparent 93%);
+		padding: 0.85rem 1.25rem;
+		border-radius: 16px;
+		border: 1px dashed color-mix(in srgb, var(--c), transparent 75%);
+	}
+
+	.preset-pills {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+
+	.preset-pill {
+		padding: 0.25rem 0.65rem;
+		border-radius: 8px;
+		font-size: 0.75rem;
+		font-weight: 750;
+		border: 1px solid var(--border-subtle);
+		background: var(--surface-panel);
+		color: var(--text-secondary);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.preset-pill:hover {
+		border-color: var(--c);
+		color: var(--text-primary);
+	}
+
+	.preset-pill.active {
+		background: var(--c);
+		color: #fff;
+		border-color: var(--c);
+		box-shadow: 0 2px 8px color-mix(in srgb, var(--c), transparent 60%);
+	}
+
+	.countdown-row {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+	}
+
+	.timer-display {
+		font-size: 3.2rem;
+		font-weight: 850;
+		font-variant-numeric: tabular-nums;
+		letter-spacing: -0.02em;
+		color: var(--c);
+		line-height: 1;
+	}
+
+	.btn-pause {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.45rem 0.85rem;
+		border-radius: 9px;
+		font-size: 0.78rem;
+		font-weight: 750;
+		border: 1px solid color-mix(in srgb, var(--c), transparent 70%);
+		background: var(--surface-panel);
+		color: var(--text-primary);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.btn-pause:hover {
+		background: color-mix(in srgb, var(--c), transparent 85%);
+		border-color: var(--c);
+	}
+
+	.btn-pause.paused {
+		background: var(--c);
+		color: #fff;
+	}
+
+	/* Scratchpad styles */
+	.scratchpad-box {
+		display: flex;
+		flex-direction: column;
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
+		border-radius: 12px;
+		overflow: hidden;
+	}
+
+	.scratchpad-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.55rem 0.75rem;
+		border-bottom: 1px solid var(--border-subtle);
+		background: color-mix(in srgb, var(--surface) 60%, transparent);
+	}
+
+	.scratchpad-title {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+		font-size: 0.68rem;
+		font-weight: 800;
+		color: var(--text-secondary);
+		letter-spacing: 0.05em;
+	}
+
+	.preview-toggle-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.25rem 0.55rem;
+		border-radius: 7px;
+		font-size: 0.7rem;
+		font-weight: 700;
+		border: 1px solid var(--border-subtle);
+		background: var(--surface-panel);
+		color: var(--text-secondary);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+
+	.preview-toggle-btn:hover {
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.preview-toggle-btn.active {
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.scratchpad-textarea {
+		width: 100%;
+		border: none;
+		background: transparent;
+		color: var(--text-primary);
+		padding: 0.75rem;
+		font-family: inherit;
+		font-size: 0.85rem;
+		line-height: 1.5;
+		resize: vertical;
+		outline: none;
+		box-sizing: border-box;
+	}
+
+	.scratchpad-textarea::placeholder {
+		color: var(--text-muted);
+	}
+
+	.scratchpad-preview {
+		padding: 0.75rem;
+		min-height: 140px;
+		font-size: 0.85rem;
+		line-height: 1.5;
+		overflow-y: auto;
+		max-height: 240px;
+	}
+
+	.scratchpad-footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 0.4rem 0.75rem;
+		border-top: 1px solid var(--border-subtle);
+		font-size: 0.68rem;
+		color: var(--text-muted);
+	}
+
 	.actions.center { justify-content: center; width: 100%; border: none; padding-top: 0; margin-top: 0; }
 
 	/* Recall styles */
@@ -237,6 +530,32 @@
 	.rate-top { display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: var(--rc); }
 	.rate-card p { margin: 0; font-size: 0.72rem; color: var(--text-secondary); line-height: 1.35; }
 	.check { font-size: 0.8rem; font-weight: 800; }
+
+	.flashcard-save-box {
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		padding: 0.75rem 0.9rem;
+		border-radius: 10px;
+		background: color-mix(in srgb, var(--accent) 10%, transparent);
+		border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+	}
+
+	.flashcard-check-label {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.8rem;
+		font-weight: 750;
+		color: var(--text-primary);
+		cursor: pointer;
+	}
+
+	.preview-snippet {
+		font-size: 0.72rem;
+		color: var(--text-secondary);
+		padding-left: 1.4rem;
+	}
 
 	.actions { display: flex; justify-content: flex-end; gap: 0.6rem; margin-top: 0.4rem; padding-top: 0.8rem; border-top: 1px solid var(--border-subtle); }
 	.btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.55rem 1.1rem; border-radius: 10px; font-size: 0.82rem; font-weight: 750; cursor: pointer; border: 0; }

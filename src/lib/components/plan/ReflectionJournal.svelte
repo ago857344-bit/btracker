@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
-	import { setReflection, tracker } from '$lib/stores/tracker';
+	import { setReflection, tracker, updateTracker, triggerToast } from '$lib/stores/tracker';
 	import { timeOf } from '$lib/state/dates';
+	import { renderMarkdownSync } from '$lib/services/markdown';
 
 	export let day: string;
 	export let open = false;
@@ -11,6 +12,7 @@
 	let text = '';
 	let textarea: HTMLTextAreaElement;
 	let saveTimer: ReturnType<typeof setTimeout>;
+	let previewMode = false;
 
 	let currentLoadedDay = '';
 	let currentLoadedTab: 'post' | 'mistakes' = 'post';
@@ -77,6 +79,43 @@
 		requestAnimationFrame(() => el.focus());
 	}
 
+	function syncToMistakeBook() {
+		if (!text.trim()) return;
+		const lines = text
+			.split('\n')
+			.map(l => l.replace(/^[-*•\d.]+\s*/, '').trim())
+			.filter(l => l.length > 0);
+
+		if (lines.length === 0) return;
+
+		let addedCount = 0;
+		updateTracker(s => {
+			if (!s.mistakes) s.mistakes = [];
+			const existingDescs = new Set(s.mistakes.map(m => m.description.trim().toLowerCase()));
+
+			for (const line of lines) {
+				if (!existingDescs.has(line.toLowerCase())) {
+					s.mistakes.push({
+						id: crypto.randomUUID ? crypto.randomUUID() : `mst_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+						date: Date.now(),
+						subject: 'Physics',
+						errorType: 'Conceptual',
+						description: line,
+						testName: `Journal ${day}`,
+						resolved: false
+					});
+					addedCount++;
+				}
+			}
+		});
+
+		if (addedCount > 0) {
+			triggerToast(`Synced ${addedCount} ${addedCount === 1 ? 'mistake' : 'mistakes'} to Mistake Book! ⚡`);
+		} else {
+			triggerToast('All mistakes already synced to Mistake Book.');
+		}
+	}
+
 	const tools = [
 		{ label: 'Bold', icon: 'B', run: () => wrap('**') },
 		{ label: 'Italic', icon: 'I', run: () => wrap('*') },
@@ -104,25 +143,44 @@
 			<div class="tabs" role="tablist">
 				<button type="button" role="tab" aria-selected={tab === 'post'} class:selected={tab === 'post'} on:click={() => switchTab('post')}>Post</button>
 				<button type="button" role="tab" aria-selected={tab === 'mistakes'} class:selected={tab === 'mistakes'} on:click={() => switchTab('mistakes')}>Mistakes</button>
-				<span class="badge">Visual mode</span>
+				<button
+					type="button"
+					class="toggle-preview-btn"
+					class:active={previewMode}
+					on:click={() => (previewMode = !previewMode)}
+					title="Toggle Markdown Preview"
+				>
+					{previewMode ? 'Edit Raw' : 'Preview'}
+				</button>
 			</div>
 
 			<div class="toolbar">
 				{#each tools as tool}
 					<button type="button" title={tool.label} aria-label={tool.label} on:click={tool.run}>{tool.icon}</button>
 				{/each}
+				{#if tab === 'mistakes' && text.trim().length > 0}
+					<button type="button" class="btn-sync-mistakes" on:click={syncToMistakeBook} title="Sync bullet lines to Mistake Book">
+						⚡ Sync to Mistake Book
+					</button>
+				{/if}
 				<span class="count">{text.length} chars</span>
 				<button type="button" class="clear" on:click={() => { text = ''; onInput(); }}>Clear</button>
 			</div>
 
-			<textarea
-				bind:this={textarea}
-				bind:value={text}
-				on:input={onInput}
-				rows={6}
-				placeholder={tab === 'post' ? 'What are your thoughts for today?' : 'Log any mistakes to avoid tomorrow...'}
-				aria-label={tab === 'post' ? 'Post reflection' : 'Mistakes log'}
-			></textarea>
+			{#if previewMode}
+				<div class="markdown-preview markdown-body">
+					{@html renderMarkdownSync(text || '_Nothing written yet._')}
+				</div>
+			{:else}
+				<textarea
+					bind:this={textarea}
+					bind:value={text}
+					on:input={onInput}
+					rows={6}
+					placeholder={tab === 'post' ? 'What are your thoughts for today?' : 'Log any mistakes to avoid tomorrow...'}
+					aria-label={tab === 'post' ? 'Post reflection' : 'Mistakes log'}
+				></textarea>
+			{/if}
 		</div>
 	{/if}
 </section>
@@ -136,14 +194,75 @@
 	.saved { margin-left: auto; color: var(--success, #2f9e6e); font-size: .64rem; font-weight: 700; }
 	.body { display: grid; gap: .6rem; padding: 0 1rem 1rem; }
 	.tabs { display: flex; align-items: center; gap: .4rem; }
-	.tabs button { height: 30px; padding: 0 .8rem; border: 1px solid var(--border-subtle); border-radius: 9px; background: transparent; color: var(--text-secondary); font-size: .72rem; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; cursor: pointer; }
-	.tabs button.selected { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
-	.badge { margin-left: auto; padding: .22rem .55rem; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-size: .6rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
-	.toolbar { display: flex; align-items: center; gap: .25rem; flex-wrap: wrap; }
+	.tabs button[role="tab"] { height: 30px; padding: 0 .8rem; border: 1px solid var(--border-subtle); border-radius: 9px; background: transparent; color: var(--text-secondary); font-size: .72rem; font-weight: 750; letter-spacing: .05em; text-transform: uppercase; cursor: pointer; }
+	.tabs button[role="tab"].selected { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+	
+	.toggle-preview-btn {
+		margin-left: auto;
+		padding: .25rem .65rem;
+		border-radius: 99px;
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
+		color: var(--text-secondary);
+		font-size: .62rem;
+		font-weight: 800;
+		letter-spacing: .05em;
+		text-transform: uppercase;
+		cursor: pointer;
+		transition: all .15s ease;
+	}
+	.toggle-preview-btn:hover {
+		border-color: var(--accent);
+		color: var(--text-primary);
+	}
+	.toggle-preview-btn.active {
+		background: var(--accent-soft);
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+
+	.toolbar { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
 	.toolbar button { min-width: 28px; height: 28px; padding: 0 .35rem; border: 0; border-radius: 8px; background: transparent; color: var(--text-secondary); font-size: .72rem; font-weight: 700; font-family: inherit; cursor: pointer; }
 	.toolbar button:hover { color: var(--text-primary); background: var(--surface-subtle); }
+	
+	.btn-sync-mistakes {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		height: 26px !important;
+		padding: 0 0.6rem !important;
+		border-radius: 7px !important;
+		background: color-mix(in srgb, var(--accent) 15%, transparent) !important;
+		border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent) !important;
+		color: var(--accent) !important;
+		font-size: 0.68rem !important;
+		font-weight: 750 !important;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+	.btn-sync-mistakes:hover {
+		background: var(--accent) !important;
+		color: var(--accent-contrast, #fff) !important;
+	}
+
 	.count { margin-left: auto; color: var(--text-secondary); font-size: .64rem; }
 	.clear { color: var(--danger, #e0455a) !important; }
-	textarea { width: 100%; padding: .75rem .85rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); color: var(--text-primary); font-size: .82rem; font-family: inherit; line-height: 1.55; resize: vertical; }
+	
+	textarea { width: 100%; padding: .75rem .85rem; border: 1px solid var(--border-subtle); border-radius: 12px; background: var(--surface-subtle); color: var(--text-primary); font-size: .82rem; font-family: inherit; line-height: 1.55; resize: vertical; box-sizing: border-box; }
 	textarea:focus { outline: none; border-color: var(--accent); }
+
+	.markdown-preview {
+		width: 100%;
+		min-height: 140px;
+		max-height: 320px;
+		overflow-y: auto;
+		padding: .75rem .85rem;
+		border: 1px solid var(--border-subtle);
+		border-radius: 12px;
+		background: var(--surface-subtle);
+		color: var(--text-primary);
+		font-size: .82rem;
+		line-height: 1.55;
+		box-sizing: border-box;
+	}
 </style>

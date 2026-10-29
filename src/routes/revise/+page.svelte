@@ -131,6 +131,13 @@
 		console.log('reviseOpen set to', reviseOpen);
 	}
 
+	let lastHandledReviseParam = '';
+	$: reviseParam = $page.url.searchParams.get('revise');
+	$: if (reviseParam && reviseParam !== lastHandledReviseParam) {
+		lastHandledReviseParam = reviseParam;
+		handleRevise(reviseParam);
+	}
+
 	let deleteModalOpen = false;
 	let chapterKeyToDelete = '';
 
