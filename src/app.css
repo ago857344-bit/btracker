@@ -588,6 +588,12 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 /* APPLE VISIONOS / SMOKED GLASS (PHASE 2)                                 */
 /* ========================================================================= */
 
+/* Global Smooth Selection */
+::selection {
+	background: color-mix(in srgb, var(--accent) 35%, transparent);
+	color: inherit;
+}
+
 .specular-card,
 .bento-card,
 .widget,
@@ -608,12 +614,6 @@ button:active:not(:disabled), .tb:active, .ic:active, .btn:active:not(:disabled)
 .rail-card,
 .subject-card,
 .kpi-hero-card,
-/* Global Smooth Selection */
-::selection {
-	background: color-mix(in srgb, var(--accent) 35%, transparent);
-	color: inherit;
-}
-
 .sub-pocket-card,
 .pocket-exam-card,
 .cadence-card,

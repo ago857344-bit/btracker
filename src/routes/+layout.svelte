@@ -527,10 +527,12 @@
 			mobileOpen = false;
 			hotkeyModalOpen = false;
 		}
+		if (event.defaultPrevented) return;
 		const target = event.target as HTMLElement | null;
 		const tag = target?.tagName?.toLowerCase();
 		const isEditable = target?.isContentEditable || tag === 'input' || tag === 'textarea' || tag === 'select';
-		if (!isEditable && !event.ctrlKey && !event.metaKey && !event.altKey) {
+		const isModalOpen = Boolean(hotkeyModalOpen || (typeof document !== 'undefined' && document.body?.dataset?.sheetOpen));
+		if (!isEditable && !isModalOpen && !event.ctrlKey && !event.metaKey && !event.altKey && !event.defaultPrevented) {
 			if (event.key === '?' || (event.key === '/' && event.shiftKey)) {
 				event.preventDefault();
 				hotkeyModalOpen = !hotkeyModalOpen;

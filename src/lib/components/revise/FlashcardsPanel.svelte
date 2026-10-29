@@ -188,6 +188,42 @@
 		}
 	}
 
+	function handleReviewKeydown(e: KeyboardEvent) {
+		if (!reviewing || panelTab !== 'review' || dueCards.length === 0) return;
+		const target = e.target as HTMLElement | null;
+		const tag = target?.tagName?.toLowerCase();
+		if (target?.isContentEditable || tag === 'input' || tag === 'textarea' || tag === 'select') return;
+		if (e.ctrlKey || e.metaKey || e.altKey) return;
+
+		if (e.key === ' ' || e.key === 'Enter') {
+			e.preventDefault();
+			e.stopPropagation();
+			if (!flipped) {
+				flipCard();
+			} else {
+				scoreCard(4);
+			}
+		} else if (flipped) {
+			if (e.key === '1') {
+				e.preventDefault();
+				e.stopPropagation();
+				scoreCard(1);
+			} else if (e.key === '2') {
+				e.preventDefault();
+				e.stopPropagation();
+				scoreCard(3);
+			} else if (e.key === '3') {
+				e.preventDefault();
+				e.stopPropagation();
+				scoreCard(4);
+			} else if (e.key === '4') {
+				e.preventDefault();
+				e.stopPropagation();
+				scoreCard(5);
+			}
+		}
+	}
+
 	async function createAI() {
 		if (!createChapter.trim()) {
 			createError = 'Please enter a chapter name.';
@@ -264,6 +300,8 @@ ${academicConstraints}`;
 <svelte:head>
 	<title>Flashcards - BTracker</title>
 </svelte:head>
+
+<svelte:window on:keydown={handleReviewKeydown} />
 
 <main class="content-panel">
 	<div class="head">
