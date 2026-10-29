@@ -426,6 +426,36 @@
 					</button>
 				</div>
 			</div>
+			<!-- Font Density -->
+			<div class="config-group">
+				<span class="config-label font-mono">FONT:</span>
+				<div class="btn-group-segmented">
+					<button
+						type="button"
+						class:active={$testDaySheetOptions.fontSize === 'xs'}
+						on:click={() => { $testDaySheetOptions.fontSize = 'xs'; uiClick(); }}
+						title="Compact type — fits more per page"
+					>
+						Compact
+					</button>
+					<button
+						type="button"
+						class:active={$testDaySheetOptions.fontSize === 'sm'}
+						on:click={() => { $testDaySheetOptions.fontSize = 'sm'; uiClick(); }}
+						title="Normal type"
+					>
+						Normal
+					</button>
+					<button
+						type="button"
+						class:active={$testDaySheetOptions.fontSize === 'base'}
+						on:click={() => { $testDaySheetOptions.fontSize = 'base'; uiClick(); }}
+						title="Large type — easier to read at a glance"
+					>
+						Large
+					</button>
+				</div>
+			</div>
 		</div>
 
 		<!-- Scrollable Preview Body (What gets printed onto physical paper!) -->
@@ -955,6 +985,11 @@
 		font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 	}
 
+	/* Font density presets (screen zoom keeps every section proportional) */
+	.test-day-paper-sheet.font-xs { zoom: 0.9; max-width: min(960px, 100%); }
+	.test-day-paper-sheet.font-sm { zoom: 1; }
+	.test-day-paper-sheet.font-base { zoom: 1.08; max-width: min(960px, 92%); }
+
 	/* Header */
 	.paper-header {
 		display: flex;
@@ -1465,21 +1500,30 @@
 		.sheet-modal-wrapper {
 			position: static !important;
 			inset: auto !important;
-			border: none !important;
+			height: auto !important;
+			max-height: none !important;
+			border: 0 !important;
 			border-radius: 0 !important;
 			box-shadow: none !important;
-			background: #ffffff !important;
+			background: transparent !important;
 			overflow: visible !important;
-			max-height: none !important;
 		}
 
 		.sheet-preview-scroll {
+			position: static !important;
+			inset: auto !important;
+			height: auto !important;
+			max-height: none !important;
 			padding: 0 !important;
-			background: #ffffff !important;
 			overflow: visible !important;
+			background: transparent !important;
+			box-shadow: none !important;
+			border: 0 !important;
+			display: block !important;
 		}
 
 		.test-day-paper-sheet {
+			zoom: 1 !important;
 			max-width: 100% !important;
 			width: 100% !important;
 			padding: 0 !important;

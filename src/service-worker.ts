@@ -15,14 +15,18 @@ const ROUTES = [
 self.addEventListener('install', (event: any) => {
   async function addFilesToCache() {
     const cache = await caches.open(CACHE);
-    await cache.addAll(ASSETS);
-    // Precache primary routes for offline access
-    for (const route of ROUTES) {
-      try {
-        const resp = await fetch(route);
-        if (resp.ok) await cache.put(route, resp);
-      } catch {}
-    }
+    // Non-blocking precaching so a single failed static asset doesn't abort install
+    await Promise.allSettled(ASSETS.map((asset) => cache.add(asset)));
+
+    // Precache primary app shell routes concurrently
+    await Promise.allSettled(
+      ROUTES.map(async (route) => {
+        try {
+          const resp = await fetch(route);
+          if (resp.ok) await cache.put(route, resp);
+        } catch {}
+      })
+    );
   }
   event.waitUntil(addFilesToCache());
   // @ts-ignore

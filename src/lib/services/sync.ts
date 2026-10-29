@@ -6,11 +6,42 @@ import { authReady, initAuth, syncStatus, teardownAuth } from '$lib/stores/auth'
 import { replaceTracker, setCloudSink, tracker } from '$lib/stores/tracker';
 import { saveTrackerState } from '$lib/services/persistence';
 import { currentWeekStartKey } from '$lib/state/weekly';
-import type { TrackerState, TodoItem, HomeworkItem, ReflectionEntry, TaskRoutine, TrackerGoal, ChapterRecallData, RevisionItem, StudyBlock, FocusSession, Flashcard, DumpFileMeta, StudyDumpState, CustomReminder } from '$lib/types/tracker';
+import type {
+	TrackerState, TodoItem, HomeworkItem, ReflectionEntry, TaskRoutine, TrackerGoal,
+	ChapterRecallData, RevisionItem, StudyBlock, FocusSession, Flashcard, DumpFileMeta,
+	StudyDumpState, CustomReminder, MistakeLog, QuestionKey, QuestionReview
+} from '$lib/types/tracker';
 
 let activeUserId: string | null = null;
 let pushTimer: ReturnType<typeof setTimeout> | undefined;
 let started = false;
+let lastSyncedSavedAt: string | null = null;
+
+export function isBloatedWallpaper(val: unknown): boolean {
+	if (typeof val !== 'string') return false;
+	if (val.startsWith('data:video/')) return true;
+	if (val.startsWith('data:') && val.length > 500_000) return true;
+	return false;
+}
+
+export function sanitizeWallpaperBloat(state: TrackerState): TrackerState {
+	if (!state.ui) return state;
+	const wp = state.ui.wallpaper;
+	const hist = state.ui.wallpaperHistory;
+	const isWpBloated = wp ? isBloatedWallpaper(wp) : false;
+	const hasBloatedHist = hist ? hist.some(isBloatedWallpaper) : false;
+
+	if (!isWpBloated && !hasBloatedHist) return state;
+
+	return {
+		...state,
+		ui: {
+			...state.ui,
+			wallpaper: isWpBloated ? null : wp,
+			wallpaperHistory: hist ? hist.filter((h) => !isBloatedWallpaper(h)) : []
+		}
+	};
+}
 
 /** Debounced mirror of a local save up to the cloud, only while signed in. */
 function schedulePush(state: TrackerState) {
@@ -20,9 +51,280 @@ function schedulePush(state: TrackerState) {
 		const userId = activeUserId;
 		if (!userId) return;
 		syncStatus.set('pushing');
-		try { await pushState(userId, state); syncStatus.set('synced'); }
-		catch (e) { console.error("Cloud push failed:", e); syncStatus.set('error'); }
+		try {
+			await pushState(userId, sanitizeWallpaperBloat(state));
+			lastSyncedSavedAt = state.savedAt ?? new Date().toISOString();
+			syncStatus.set('synced');
+		} catch (e) {
+			console.error("Cloud push failed:", e);
+			syncStatus.set('error');
+		}
 	}, 800);
+}
+
+/**
+ * Merges a single question integer cell bitmask field-by-field.
+ * Avoids bitwise ORing mutually exclusive result states (1=Correct, 2=Wrong, 3=Stuck).
+ */
+export function mergeQuestionCell(locVal: number, remVal: number, localNewer: boolean): number {
+	if (!locVal) return remVal || 0;
+	if (!remVal) return locVal || 0;
+	if (locVal === remVal) return locVal;
+
+	// 1. Attempted bit (bit 0, value 1): Union
+	const done = (locVal & 1) | (remVal & 1);
+
+	// 2. Result state (bits 1..2, (val >> 1) & 3):
+	// If one is 0 and other is non-zero, take non-zero. If both non-zero and differ, take newer snapshot.
+	const locResult = (locVal >> 1) & 3;
+	const remResult = (remVal >> 1) & 3;
+	let result = 0;
+	if (locResult === 0) result = remResult;
+	else if (remResult === 0) result = locResult;
+	else if (locResult === remResult) result = locResult;
+	else result = localNewer ? locResult : remResult;
+
+	// 3. Starred bit (bit 3, value 8):
+	// Prefer the newer snapshot when both states differ so un-starring a question is respected
+	const locFlag = (locVal >> 3) & 1;
+	const remFlag = (remVal >> 3) & 1;
+	let flag = 0;
+	if (locFlag === remFlag) flag = locFlag;
+	else flag = localNewer ? locFlag : remFlag;
+
+	// 4. Confidence state (bits 4..5, (val >> 4) & 3):
+	// If one is 0 and other is non-zero, take non-zero; if both non-zero and differ, take newer snapshot.
+	const locConf = (locVal >> 4) & 3;
+	const remConf = (remVal >> 4) & 3;
+	let conf = 0;
+	if (locConf === 0) conf = remConf;
+	else if (remConf === 0) conf = locConf;
+	else if (locConf === remConf) conf = locConf;
+	else conf = localNewer ? locConf : remConf;
+
+	return (done & 1) | ((result & 3) << 1) | ((flag & 1) << 3) | ((conf & 3) << 4);
+}
+
+/**
+ * Merges question bitmask dictionaries (d) field-by-field rather than raw bitwise OR.
+ */
+export function mergeQuestions(
+	localD: Record<string, number[]> = {},
+	remoteD: Record<string, number[]> = {},
+	localNewer: boolean
+): Record<string, number[]> {
+	const merged: Record<string, number[]> = {};
+	const allKeys = new Set([...Object.keys(localD || {}), ...Object.keys(remoteD || {})]);
+
+	for (const key of allKeys) {
+		const locArr = localD[key];
+		const remArr = remoteD[key];
+		if (!locArr) {
+			merged[key] = [...(remArr || [])];
+		} else if (!remArr) {
+			merged[key] = [...locArr];
+		} else {
+			const maxLen = Math.max(locArr.length, remArr.length);
+			const mergedArr = new Array<number>(maxLen).fill(0);
+			for (let i = 0; i < maxLen; i++) {
+				mergedArr[i] = mergeQuestionCell(locArr[i] || 0, remArr[i] || 0, localNewer);
+			}
+			merged[key] = mergedArr;
+		}
+	}
+	return merged;
+}
+
+/**
+ * Unions mistake logs by id, resolving conflicts with smart attribute merging.
+ */
+export function mergeMistakes(
+	locList: MistakeLog[] = [],
+	remList: MistakeLog[] = [],
+	localNewer: boolean,
+	deletedIds?: Set<string>
+): MistakeLog[] {
+	const map = new Map<string, MistakeLog>();
+	const olderList = localNewer ? remList : locList;
+	const newerList = localNewer ? locList : remList;
+
+	for (const m of olderList || []) {
+		if (deletedIds?.has(m.id)) continue;
+		map.set(m.id, { ...m });
+	}
+
+	for (const m of newerList || []) {
+		if (deletedIds?.has(m.id)) continue;
+		const existing = map.get(m.id);
+		if (!existing) {
+			map.set(m.id, { ...m });
+		} else {
+			const prim = localNewer ? m : existing;
+			const sec = localNewer ? existing : m;
+
+			const primTime = prim.updated || (prim as any).updatedAt || (prim.resolved ? prim.resolvedAt : 0) || prim.date || 0;
+			const secTime = sec.updated || (sec as any).updatedAt || (sec.resolved ? sec.resolvedAt : 0) || sec.date || 0;
+			const resolved = (primTime !== secTime)
+				? (primTime > secTime ? Boolean(prim.resolved) : Boolean(sec.resolved))
+				: Boolean(prim.resolved || sec.resolved);
+
+			const reviewCount = Math.max(
+				Number((existing as any).reviewCount) || 0,
+				Number((m as any).reviewCount) || 0
+			);
+
+			const locRevAt = (existing as any).lastReviewedAt ? new Date((existing as any).lastReviewedAt).getTime() : 0;
+			const remRevAt = (m as any).lastReviewedAt ? new Date((m as any).lastReviewedAt).getTime() : 0;
+			const lastReviewedAt = remRevAt > locRevAt
+				? (m as any).lastReviewedAt
+				: (existing as any).lastReviewedAt;
+
+			const note = (prim as any).note || (sec as any).note;
+			const questionNum = (prim as any).questionNum ?? (sec as any).questionNum;
+			const subtopic = (prim as any).subtopic || (sec as any).subtopic;
+			const errorType = prim.errorType || sec.errorType;
+			const difficulty = (prim as any).difficulty || (sec as any).difficulty;
+
+			map.set(m.id, {
+				...sec,
+				...prim,
+				resolved,
+				resolvedAt: resolved ? (prim.resolvedAt || sec.resolvedAt || Date.now()) : undefined,
+				chapter: prim.chapter || sec.chapter,
+				updated: Math.max(primTime, secTime),
+				...(reviewCount > 0 ? { reviewCount } : {}),
+				...(lastReviewedAt ? { lastReviewedAt } : {}),
+				...(note ? { note } : {}),
+				...(questionNum !== undefined ? { questionNum } : {}),
+				...(subtopic ? { subtopic } : {}),
+				...(errorType ? { errorType } : {}),
+				...(difficulty ? { difficulty } : {})
+			});
+		}
+	}
+
+	return Array.from(map.values()).sort((a, b) => (b.date || 0) - (a.date || 0));
+}
+
+/**
+ * Deep-merges lectureNotes by subject -> chapterId -> lectureId (or flat key),
+ * preferring the longer or newer markdown string when both exist.
+ */
+export function mergeLectureNotes(
+	localNotes: any,
+	cloudNotes: any,
+	localNewer: boolean
+): any {
+	if (!localNotes && !cloudNotes) return {};
+	if (!localNotes) return cloudNotes ? structuredClone(cloudNotes) : {};
+	if (!cloudNotes) return localNotes ? structuredClone(localNotes) : {};
+
+	const merged: any = structuredClone(localNewer ? cloudNotes : localNotes);
+	const priority: any = localNewer ? localNotes : cloudNotes;
+
+	function deepMerge(target: any, source: any) {
+		for (const key of Object.keys(source)) {
+			const sVal = source[key];
+			const tVal = target[key];
+
+			if (tVal === undefined) {
+				target[key] = structuredClone(sVal);
+			} else if (typeof sVal === 'object' && sVal !== null && typeof tVal === 'object' && tVal !== null) {
+				if ('content' in sVal || 'updatedAt' in sVal || 'content' in tVal || 'updatedAt' in tVal) {
+					const sTime = sVal.updatedAt || 0;
+					const tTime = tVal.updatedAt || 0;
+					if (sTime > tTime) {
+						target[key] = { ...tVal, ...sVal };
+					} else if (tTime > sTime) {
+						target[key] = { ...sVal, ...tVal };
+					} else {
+						const sLen = typeof sVal.content === 'string' ? sVal.content.length : 0;
+						const tLen = typeof tVal.content === 'string' ? tVal.content.length : 0;
+						target[key] = sLen >= tLen ? { ...tVal, ...sVal } : { ...sVal, ...tVal };
+					}
+				} else {
+					deepMerge(tVal, sVal);
+				}
+			} else if (typeof sVal === 'string' && typeof tVal === 'string') {
+				target[key] = sVal.length >= tVal.length ? sVal : (localNewer ? sVal : tVal);
+			} else {
+				target[key] = sVal !== undefined ? sVal : tVal;
+			}
+		}
+	}
+
+	deepMerge(merged, priority);
+	return merged;
+}
+
+/**
+ * Deep-merges question string maps (n = notes, r = reason tags/reviews)
+ * supporting both flat QuestionKey dictionaries and hierarchical subject -> chapter -> questionIdx structures.
+ */
+export function mergeQuestionStringMaps<T = any>(
+	localMap: Record<string, any> | undefined,
+	remoteMap: Record<string, any> | undefined,
+	localNewer: boolean
+): Record<string, any> {
+	if (!localMap && !remoteMap) return {};
+	if (!localMap) return remoteMap ? structuredClone(remoteMap) : {};
+	if (!remoteMap) return localMap ? structuredClone(localMap) : {};
+
+	const baseObj = localNewer ? remoteMap : localMap;
+	const prioObj = localNewer ? localMap : remoteMap;
+	const merged: Record<string, any> = structuredClone(baseObj);
+	const priority: Record<string, any> = prioObj;
+
+	function mergeDeep(target: any, source: any) {
+		for (const key of Object.keys(source)) {
+			const sVal = source[key];
+			const tVal = target[key];
+
+			if (tVal === undefined) {
+				target[key] = structuredClone(sVal);
+			} else if (typeof sVal === 'string' && typeof tVal === 'string') {
+				if (!tVal.trim()) {
+					target[key] = sVal;
+				} else if (!sVal.trim()) {
+					target[key] = tVal;
+				} else {
+					target[key] = localNewer ? sVal : tVal;
+				}
+			} else if (typeof sVal === 'object' && sVal !== null && typeof tVal === 'object' && tVal !== null) {
+				if ('t' in sVal || 't' in tVal) {
+					const tags = Array.from(new Set([...(sVal.t || []), ...(tVal.t || [])]));
+					const d = (sVal.d && tVal.d)
+						? (sVal.d >= tVal.d ? sVal.d : tVal.d)
+						: (sVal.d || tVal.d);
+					target[key] = { d, t: tags };
+				} else {
+					mergeDeep(tVal, sVal);
+				}
+			} else {
+				target[key] = localNewer ? sVal : tVal;
+			}
+		}
+	}
+
+	mergeDeep(merged, priority);
+	return merged;
+}
+
+/**
+ * Compares serialized state payloads excluding volatile top-level savedAt.
+ */
+export function hasMeaningfulStateDiff(a: TrackerState | null | undefined, b: TrackerState | null | undefined): boolean {
+	if (!a && !b) return false;
+	if (!a || !b) return true;
+	if (a === b) return false;
+
+	try {
+		const { savedAt: _aSavedAt, ...cleanA } = a;
+		const { savedAt: _bSavedAt, ...cleanB } = b;
+		return JSON.stringify(cleanA) !== JSON.stringify(cleanB);
+	} catch {
+		return true;
+	}
 }
 
 /**
@@ -33,21 +335,36 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 	const base = normalizeState(local);
 	const remote = normalizeState(cloud);
 
-	// 1. Question bitmasks: Bitwise OR union (local | remote)
-	const mergedD: Record<string, number[]> = { ...base.d };
-	for (const [key, remArr] of Object.entries(remote.d || {})) {
-		const locArr = mergedD[key];
-		if (!locArr) {
-			mergedD[key] = [...remArr];
-		} else {
-			const maxLen = Math.max(locArr.length, remArr.length);
-			const mergedArr = new Array<number>(maxLen).fill(0);
-			for (let i = 0; i < maxLen; i++) {
-				mergedArr[i] = (locArr[i] || 0) | (remArr[i] || 0);
-			}
-			mergedD[key] = mergedArr;
+	const cloudTime = remote.savedAt && !isNaN(new Date(remote.savedAt).getTime()) ? new Date(remote.savedAt).getTime() : 0;
+	const localTime = base.savedAt && !isNaN(new Date(base.savedAt).getTime()) ? new Date(base.savedAt).getTime() : 0;
+	const cloudIsNewer = cloudTime >= localTime;
+	const localNewer = !cloudIsNewer;
+	const newerTime = Math.max(cloudTime, localTime);
+	const prefSource = cloudIsNewer ? remote : base;
+
+	// Tombstones for soft deletion
+	const mergedDeletedIds: Record<string, number> = {
+		...(base.deletedIds || {}),
+		...(remote.deletedIds || {})
+	};
+	const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
+	for (const id of Object.keys(mergedDeletedIds)) {
+		if (mergedDeletedIds[id] < ninetyDaysAgo) {
+			delete mergedDeletedIds[id];
 		}
 	}
+	const deletedIdSet = new Set(Object.keys(mergedDeletedIds));
+
+	// 1. Question bitmasks: Field-by-field merge avoiding raw OR corruption
+	const mergedD = mergeQuestions(base.d, remote.d, localNewer);
+
+	// 1b. Question notes (n) & reason tags (r)
+	const mergedN = mergeQuestionStringMaps(base.n, remote.n, localNewer);
+	const mergedR = mergeQuestionStringMaps(base.r, remote.r, localNewer);
+
+	// 1c. Mistake Book & Lecture Notes
+	const mergedMistakes = mergeMistakes(base.mistakes, remote.mistakes, localNewer, deletedIdSet);
+	const mergedLectureNotes = mergeLectureNotes(base.lectureNotes, remote.lectureNotes, localNewer);
 
 	// 2. Custom exercises: Union by code, max count for counts
 	const mergedExs: Record<string, { code: string; name: string }[]> = { ...(base.x?.exs || {}) };
@@ -96,28 +413,21 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 
 	// 4b. Subject practice sessions: union by id so a newer device never drops
 	// universal log entries (or manual BT sessions) from an older one.
-	const mergedSess = [...(base.sess || [])];
+	const mergedSess = (base.sess || []).filter((entry) => !deletedIdSet.has(entry.id));
 	const seenPractice = new Set(mergedSess.map((entry) => entry.id));
 	for (const entry of remote.sess || []) {
-		if (!seenPractice.has(entry.id)) {
+		if (!seenPractice.has(entry.id) && !deletedIdSet.has(entry.id)) {
 			mergedSess.push(entry);
 			seenPractice.add(entry.id);
 		}
 	}
 	mergedSess.sort((a, b) => b.at - a.at);
 
-	const cloudTime = remote.savedAt && !isNaN(new Date(remote.savedAt).getTime()) ? new Date(remote.savedAt).getTime() : 0;
-	const localTime = base.savedAt && !isNaN(new Date(base.savedAt).getTime()) ? new Date(base.savedAt).getTime() : 0;
-	const cloudIsNewer = cloudTime >= localTime;
-	const newerTime = Math.max(cloudTime, localTime);
-	const prefSource = cloudIsNewer ? remote : base;
-
 	// 5. Todos: Union by id with subtask merging and distributed tombstone deletion
 	const mergedDeletedTodos: Record<string, number> = {
 		...(base.deletedTodos || {}),
 		...(remote.deletedTodos || {})
 	};
-	const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
 	for (const id of Object.keys(mergedDeletedTodos)) {
 		if (mergedDeletedTodos[id] < ninetyDaysAgo) {
 			delete mergedDeletedTodos[id];
@@ -194,8 +504,11 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 	const allRemoteHd = new Map((remote.hd || []).map((i) => [i.id, i]));
 	const mergedHdMap = new Map<string, HomeworkItem>();
 
-	for (const [id, item] of allRemoteHd.entries()) mergedHdMap.set(id, { ...item, done: true });
+	for (const [id, item] of allRemoteHd.entries()) {
+		if (!deletedIdSet.has(id)) mergedHdMap.set(id, { ...item, done: true });
+	}
 	for (const [id, item] of allLocalHd.entries()) {
+		if (deletedIdSet.has(id)) continue;
 		const existing = mergedHdMap.get(id);
 		if (!existing) {
 			mergedHdMap.set(id, { ...item, done: true });
@@ -218,6 +531,7 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 	const secHMap = new Map(secH.map((i) => [i.id, i]));
 
 	for (const item of primH) {
+		if (deletedIdSet.has(item.id)) continue;
 		const existingHd = mergedHdMap.get(item.id);
 		if (existingHd) {
 			const itemTime = item.updated || 0;
@@ -247,18 +561,26 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 	}
 
 	for (const item of secH) {
-		if (seenHIds.has(item.id) || mergedHdMap.has(item.id)) continue;
+		if (deletedIdSet.has(item.id) || seenHIds.has(item.id) || mergedHdMap.has(item.id)) continue;
 		mergedH.push({ ...item });
 		seenHIds.add(item.id);
 	}
 
-	// 6. Mocks: Union by id
-	const mergedMocks = [...(base.mocks || [])];
-	const mockIds = new Set(mergedMocks.map((m) => m.id));
+	// 6. Mocks: Union by id with tombstone check and timestamp conflict resolution
+	const mergedMocks = (base.mocks || []).filter(m => !deletedIdSet.has(m.id));
+	const mockMap = new Map(mergedMocks.map((m) => [m.id, m]));
 	for (const m of remote.mocks || []) {
-		if (!mockIds.has(m.id)) {
+		if (deletedIdSet.has(m.id)) continue;
+		const existing = mockMap.get(m.id);
+		if (!existing) {
 			mergedMocks.push(m);
-			mockIds.add(m.id);
+			mockMap.set(m.id, m);
+		} else {
+			const existingTime = existing.updated || existing.date || 0;
+			const remoteTime = m.updated || m.date || 0;
+			if (remoteTime > existingTime) {
+				Object.assign(existing, m);
+			}
 		}
 	}
 
@@ -391,21 +713,21 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		}
 	}
 
-	// 10. Planner routines library: Union by id
-	const mergedLib = [...(base.lib || [])];
+	// 10. Planner routines library: Union by id with tombstone check
+	const mergedLib = (base.lib || []).filter((r) => !deletedIdSet.has(r.id));
 	const libIds = new Set(mergedLib.map((r) => r.id));
 	for (const r of remote.lib || []) {
-		if (!libIds.has(r.id)) {
+		if (!libIds.has(r.id) && !deletedIdSet.has(r.id)) {
 			mergedLib.push(r);
 			libIds.add(r.id);
 		}
 	}
 
-	// 11. Goals tracker: Union by id
-	const mergedGt = [...(base.gt || [])];
+	// 11. Goals tracker: Union by id with tombstone check
+	const mergedGt = (base.gt || []).filter((g) => !deletedIdSet.has(g.id));
 	const gtIds = new Set(mergedGt.map((g) => g.id));
 	for (const g of remote.gt || []) {
-		if (!gtIds.has(g.id)) {
+		if (!gtIds.has(g.id) && !deletedIdSet.has(g.id)) {
 			mergedGt.push(g);
 			gtIds.add(g.id);
 		}
@@ -508,10 +830,11 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		}
 	}
 
-	// 14. Flashcards: union by id, preferring card with greater repetition/newer nextReviewAt
-	const mergedFlashcards: Flashcard[] = [...(base.flashcards || [])];
+	// 14. Flashcards: union by id with tombstone check, preferring card with greater repetition/newer nextReviewAt
+	const mergedFlashcards: Flashcard[] = (base.flashcards || []).filter((f) => !deletedIdSet.has(f.id));
 	const fcMap = new Map(mergedFlashcards.map((f) => [f.id, f]));
 	for (const card of remote.flashcards || []) {
+		if (deletedIdSet.has(card.id)) continue;
 		const existing = fcMap.get(card.id);
 		if (!existing) {
 			mergedFlashcards.push(card);
@@ -543,6 +866,10 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 	const merged: TrackerState = {
 		...prefSource,
 		d: mergedD,
+		n: mergedN,
+		r: mergedR,
+		mistakes: mergedMistakes,
+		lectureNotes: mergedLectureNotes,
 		x: {
 			...prefSource.x,
 			exs: mergedExs,
@@ -553,6 +880,7 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		sess: mergedSess,
 		todos: mergedTodos,
 		deletedTodos: mergedDeletedTodos,
+		deletedIds: Object.keys(mergedDeletedIds).length > 0 ? mergedDeletedIds : undefined,
 		chapterGrids: Object.keys(mergedGrids).length > 0 ? mergedGrids : prefSource.chapterGrids || {},
 		onboarded: Boolean(base.onboarded || remote.onboarded),
 		h: mergedH,
@@ -592,11 +920,12 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 			return base.examNotes || remote.examNotes || '';
 		})(),
 		customReminders: (() => {
-			const locMap = new Map((base.customReminders || []).map((r) => [r.id, r]));
-			const remMap = new Map((remote.customReminders || []).map((r) => [r.id, r]));
+			const locMap = new Map((base.customReminders || []).filter((r) => !deletedIdSet.has(r.id)).map((r) => [r.id, r]));
+			const remMap = new Map((remote.customReminders || []).filter((r) => !deletedIdSet.has(r.id)).map((r) => [r.id, r]));
 			const allIds = new Set([...locMap.keys(), ...remMap.keys()]);
 			const res: CustomReminder[] = [];
 			for (const id of allIds) {
+				if (deletedIdSet.has(id)) continue;
 				const loc = locMap.get(id);
 				const rem = remMap.get(id);
 				if (loc && rem) {
@@ -611,8 +940,11 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		})(),
 		ui: {
 			...prefSource.ui,
-			wallpaper: base.ui?.wallpaper || remote.ui?.wallpaper || null,
-			wallpaperHistory: Array.from(new Set([...(base.ui?.wallpaperHistory || []), ...(remote.ui?.wallpaperHistory || [])]))
+			wallpaper: (() => {
+				const wp = base.ui?.wallpaper || remote.ui?.wallpaper || null;
+				return isBloatedWallpaper(wp) ? null : wp;
+			})(),
+			wallpaperHistory: Array.from(new Set([...(base.ui?.wallpaperHistory || []), ...(remote.ui?.wallpaperHistory || [])])).filter((h) => !isBloatedWallpaper(h))
 		},
 		savedAt: new Date().toISOString()
 	};
@@ -628,17 +960,22 @@ async function onSignIn(userId: string) {
 		const local = get(tracker);
 		
 		if (cloud) {
-			// Deep union merge local and cloud to ensure no custom exercises or question progress is lost across devices
 			const merged = mergeTrackerStates(local, cloud);
 			replaceTracker(merged, true);
-			await pushState(userId, merged);
+			if (hasMeaningfulStateDiff(cloud, merged)) {
+				await pushState(userId, sanitizeWallpaperBloat(merged));
+			}
+			lastSyncedSavedAt = merged.savedAt;
 			syncStatus.set('synced');
 		} else {
-			// First login on this account: migrate the existing local data up so nothing is lost.
-			if (local.savedAt) await pushState(userId, local);
+			if (local.savedAt) await pushState(userId, sanitizeWallpaperBloat(local));
+			lastSyncedSavedAt = local.savedAt ?? new Date().toISOString();
 			syncStatus.set('synced');
 		}
-	} catch (e) { console.error("Cloud pull failed:", e); syncStatus.set('error'); }
+	} catch (e) {
+		console.error("Cloud pull failed:", e);
+		syncStatus.set('error');
+	}
 }
 
 let lastPullTime = 0;
@@ -654,16 +991,36 @@ export async function pullAndSync() {
 		if (!cloud) return;
 		const local = get(tracker);
 		const merged = mergeTrackerStates(local, cloud);
-		replaceTracker(merged, false);
-		await saveTrackerState(merged);
-		schedulePush(merged);
-		syncStatus.set('synced');
+
+		const localChanged = hasMeaningfulStateDiff(local, merged);
+		const cloudChanged = hasMeaningfulStateDiff(cloud, merged);
+
+		if (localChanged) {
+			replaceTracker(merged, false);
+			await saveTrackerState(merged);
+		}
+
+		if (cloudChanged) {
+			schedulePush(merged);
+		} else {
+			lastSyncedSavedAt = merged.savedAt ?? new Date().toISOString();
+			syncStatus.set('synced');
+		}
 	} catch (e) {
 		console.error("Auto pull & sync failed:", e);
 	}
 }
 
-function handleVisibilityOrFocus() {
+function handleVisibilityChange() {
+	if (typeof document === 'undefined') return;
+	if (document.visibilityState === 'hidden') {
+		void flushPush();
+	} else if (document.visibilityState === 'visible') {
+		void pullAndSync();
+	}
+}
+
+function handleFocus() {
 	if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
 		void pullAndSync();
 	}
@@ -682,14 +1039,18 @@ export async function flushPush(): Promise<void> {
 	pushTimer = undefined;
 	const state = get(tracker);
 	try {
-		await pushState(activeUserId, state);
+		await pushState(activeUserId, sanitizeWallpaperBloat(state));
+		lastSyncedSavedAt = state.savedAt ?? new Date().toISOString();
 		syncStatus.set('synced');
 	} catch (e) {
 		console.error("Flush push to cloud failed:", e);
 	}
 }
 
-function handleOnline() {
+async function handleOnline() {
+	if (pushTimer) {
+		await flushPush();
+	}
 	void pullAndSync();
 }
 
@@ -712,10 +1073,11 @@ export function startSync() {
 	setCloudSink(schedulePush);
 	initAuth(onSignIn, onSignOut);
 	if (typeof window !== 'undefined') {
-		window.addEventListener('visibilitychange', handleVisibilityOrFocus);
-		window.addEventListener('focus', handleVisibilityOrFocus);
+		window.addEventListener('visibilitychange', handleVisibilityChange);
+		window.addEventListener('focus', handleFocus);
 		window.addEventListener('online', handleOnline);
 		window.addEventListener('beforeunload', handleBeforeUnload);
+		window.addEventListener('pagehide', handleBeforeUnload);
 	}
 }
 
@@ -726,10 +1088,15 @@ export function stopSync() {
 	clearTimeout(pushTimer);
 	activeUserId = null;
 	if (typeof window !== 'undefined') {
-		window.removeEventListener('visibilitychange', handleVisibilityOrFocus);
-		window.removeEventListener('focus', handleVisibilityOrFocus);
+		window.removeEventListener('visibilitychange', handleVisibilityChange);
+		window.removeEventListener('focus', handleFocus);
 		window.removeEventListener('online', handleOnline);
 		window.removeEventListener('beforeunload', handleBeforeUnload);
+		window.removeEventListener('pagehide', handleBeforeUnload);
 	}
 	teardownAuth();
 }
+
+// Aliases for sync initialization and teardown
+export const initCloudSync = startSync;
+export const teardownCloudSync = stopSync;

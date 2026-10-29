@@ -3,6 +3,7 @@
 	import { tracker, updateTracker, celebration, triggerToast, openFeynmanDuck, openTestDaySheet } from '$lib/stores/tracker';
 	import type { MockTest, MistakeLog, Flashcard } from '$lib/types/tracker';
 	import { applyEloResult } from '$lib/state/gamification';
+	import { SYLLABUS } from '$lib/state/syllabus';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import GrillMeModal from '$lib/components/ui/GrillMeModal.svelte';
@@ -81,6 +82,7 @@
 						totalMarks,
 						correct: p.correct + c.correct + m.correct,
 						incorrect: p.incorrect + c.incorrect + m.incorrect,
+						updated: Date.now(),
 						subjects: {
 							Physics: { ...p },
 							Chemistry: { ...c },
@@ -110,6 +112,7 @@
 			correct: p.correct + c.correct + m.correct,
 			incorrect: p.incorrect + c.incorrect + m.incorrect,
 			unattempted: 0,
+			updated: Date.now(),
 			subjects: {
 				Physics: { ...p },
 				Chemistry: { ...c },
@@ -155,6 +158,8 @@
 		if (!target) return;
 		updateTracker(t => {
 			t.mocks = t.mocks.filter(m => m.id !== id);
+			t.deletedIds ??= {};
+			t.deletedIds[id] = Date.now();
 			if (t.gamification) {
 				t.gamification.xp = Math.max(0, (t.gamification.xp || 0) - 200);
 			}
@@ -167,6 +172,7 @@
 				updateTracker(t => {
 					if (!t.mocks) t.mocks = [];
 					t.mocks.push(target);
+					if (t.deletedIds) delete t.deletedIds[id];
 					if (!t.gamification) t.gamification = { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } };
 					t.gamification.xp += 200;
 					return t;
@@ -257,18 +263,23 @@
 	let showMistakeModal = false;
 
 	let mistakeSubject = 'Physics';
+	let mistakeChapter = '';
 	let mistakeType: MistakeLog['errorType'] = 'Silly';
 	let description = '';
 	let mistakeTestName = '';
+
+	$: availableChapters = SYLLABUS.find(s => s.name === mistakeSubject || s.code === mistakeSubject?.charAt(0))?.modules.flatMap(m => m.chapters) || [];
 
 	function saveMistake() {
 		const newMistake: MistakeLog = {
 			id: makeTestId('mistake'),
 			date: Date.now(),
 			subject: mistakeSubject,
+			chapter: mistakeChapter || undefined,
 			errorType: mistakeType,
 			description,
-			testName: mistakeTestName || undefined
+			testName: mistakeTestName || undefined,
+			updated: Date.now()
 		};
 
 		updateTracker(t => {
@@ -281,6 +292,7 @@
 		showMistakeModal = false;
 		description = '';
 		mistakeTestName = '';
+		mistakeChapter = '';
 	}
 
 	function deleteMistake(id: string) {
@@ -288,6 +300,8 @@
 		if (!target) return;
 		updateTracker(t => {
 			t.mistakes = t.mistakes.filter(m => m.id !== id);
+			t.deletedIds ??= {};
+			t.deletedIds[id] = Date.now();
 			return t;
 		});
 		triggerToast({
@@ -297,6 +311,7 @@
 				updateTracker(t => {
 					if (!t.mistakes) t.mistakes = [];
 					t.mistakes.push(target);
+					if (t.deletedIds) delete t.deletedIds[id];
 					return t;
 				});
 			}
@@ -328,12 +343,13 @@
 			const idx = t.mistakes.findIndex(item => item.id === targetId);
 			if (idx !== -1) {
 				t.mistakes[idx].resolved = newResolved;
+				t.mistakes[idx].updated = Date.now();
 				if (newResolved && !t.mistakes[idx].resolvedAt) {
 					t.mistakes[idx].resolvedAt = Date.now();
 				}
 			}
 			if (xpAwarded) {
-				if (!t.gamification) t.gamification = { xp: 50, level: 1, elo: { P: 1000, C: 1000, M: 1000 } };
+				if (!t.gamification) t.gamification = { xp: 50, level: 1, elo: { P: 300, C: 300, M: 300 } };
 				else t.gamification.xp = (t.gamification.xp || 0) + 50;
 			}
 			return t;
@@ -352,6 +368,7 @@
 					const idx = t.mistakes.findIndex(item => item.id === targetId);
 					if (idx !== -1) {
 						t.mistakes[idx].resolved = wasResolved;
+						t.mistakes[idx].updated = Date.now();
 					}
 					if (xpAwarded) {
 						if (t.gamification) t.gamification.xp = Math.max(0, (t.gamification.xp || 0) - 50);
@@ -716,6 +733,9 @@
 					<div class="mistake-card glass" class:is-resolved={mistake.resolved}>
 						<div class="card-header">
 							<span class="badge {mistake.subject.toLowerCase()}">{mistake.subject}</span>
+							{#if mistake.chapter}
+								<span class="badge chapter font-mono">{mistake.chapter}</span>
+							{/if}
 							<span class="badge type">{mistake.errorType}</span>
 							<button
 								type="button"
@@ -832,6 +852,15 @@
 					<option value="Time">Time (Rushed/Too slow)</option>
 				</select>
 			</div>
+		</div>
+		<div class="form-group">
+			<label for="mistakeChapter">Chapter (Optional)</label>
+			<select id="mistakeChapter" bind:value={mistakeChapter}>
+				<option value="">-- None / General --</option>
+				{#each availableChapters as ch}
+					<option value={ch.name}>{ch.no}. {ch.name}</option>
+				{/each}
+			</select>
 		</div>
 		<div class="form-group">
 			<label for="mistakeTestName">Test/Mock Name (Optional)</label>
@@ -1204,6 +1233,7 @@
 	.badge.physics { background: color-mix(in srgb, #3b82f6, transparent 80%); color: #60a5fa; }
 	.badge.chemistry { background: color-mix(in srgb, #f59e0b, transparent 80%); color: #fbbf24; }
 	.badge.maths { background: color-mix(in srgb, #ef4444, transparent 80%); color: #f87171; }
+	.badge.chapter { background: color-mix(in srgb, var(--accent) 12%, var(--surface-subtle)); color: var(--accent); font-size: 0.72rem; text-transform: none; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 	.badge.type { background: var(--surface-subtle); color: var(--text-secondary); margin-right: auto; }
 	.card-body p { margin: 0; color: var(--text-primary); font-size: 0.95rem; line-height: 1.5; white-space: pre-wrap; }
 	.card-footer { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-subtle); padding-top: 1rem; color: var(--text-secondary); font-size: 0.8rem; }

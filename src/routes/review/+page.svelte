@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { tracker, updateTracker, celebration, triggerToast, setQuestionResult, toggleQuestionFlag, setQuestionNote, setQuestionReasons, addWrongTag } from '$lib/stores/tracker';
-	import { isFlag, resultOf } from '$lib/state/questions';
+	import { tracker, updateTracker, celebration, triggerToast, setQuestionResult, toggleQuestionFlag, toggleQuestionDone, setQuestionNote, setQuestionReasons, addWrongTag, openFeynmanDuck } from '$lib/stores/tracker';
+	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
+	import { isDone, isFlag, resultOf } from '$lib/state/questions';
 	import { allChaptersWithCustom, cellKey, questionCount, visibleExercises, questionKey } from '$lib/state/syllabus';
 	import { subjectColor, subjectName } from '$lib/state/subjects';
 	import NavIcon from '$lib/components/NavIcon.svelte';
@@ -42,9 +43,12 @@
 
 	function convertToFlashcard(q: ReviewQuestion) {
 		const front = cardFront(q);
-		const reason = q.stuck ? 'Stuck question' : 'Marked for retry';
-		const back = `${reason} in ${q.chapter} (${q.exercise}).\nKey step: Recall the core formula, boundary conditions, and the critical step where mistakes occurred.`;
-		
+		const lines = [`${q.stuck ? 'Stuck question' : 'Marked for retry'} in ${q.chapter} (${q.exercise}).`];
+		if (q.reasonTags.length) lines.push(`Mistake Tags: ${q.reasonTags.join(', ')}`);
+		if (q.note) lines.push(`Takeaway / Note: ${q.note}`);
+		lines.push('Key step: Recall the core formula, boundary conditions, and the critical point where the mistake happened.');
+		const back = lines.join('\n');
+
 		updateTracker(s => {
 			if (!s.flashcards) s.flashcards = [];
 			if (s.flashcards.some(c => c.front === front)) return;
@@ -61,17 +65,36 @@
 			};
 			s.flashcards.push(card);
 		});
-		triggerToast('Added to Active Recall Flashcards! 🗂️');
+		triggerToast('Added to Active Recall Flashcards');
 	}
 
 	function markSolvedAndCorrect(q: ReviewQuestion) {
 		const loc = { sc: q.subject, ch: q.chapterNo, ex: q.exerciseCode };
+		const key = cellKey(q.subject, q.chapterNo, q.exerciseCode);
+		const prevVal = $tracker.d?.[key]?.[q.index] || 0;
+
 		setQuestionResult(loc, q.index, 1);
-		const cells = $tracker.d?.[cellKey(q.subject, q.chapterNo, q.exerciseCode)] ?? [];
-		if (isFlag(cells[q.index] || 0)) {
+		const cells = $tracker.d?.[key] ?? [];
+		const hadFlag = isFlag(cells[q.index] || 0);
+		if (hadFlag) {
 			toggleQuestionFlag(loc, q.index);
 		}
-		triggerToast(`Q${q.number} marked solved & correct! 🎉`);
+		boostChapterFromPractice(`${q.subject}-${q.chapter}`);
+
+		triggerToast({
+			text: `Q${q.number} marked solved & correct`,
+			actionLabel: 'Undo',
+			onAction: () => {
+				const currentResult = resultOf($tracker.d?.[key]?.[q.index] || 0);
+				if (currentResult !== resultOf(prevVal)) {
+					setQuestionResult(loc, q.index, resultOf(prevVal) as 0 | 1 | 2 | 3);
+				}
+				const now = $tracker.d?.[key]?.[q.index] || 0;
+				if (isDone(now) !== isDone(prevVal)) toggleQuestionDone(loc, q.index);
+				const after = $tracker.d?.[key]?.[q.index] || 0;
+				if (isFlag(after) !== isFlag(prevVal)) toggleQuestionFlag(loc, q.index);
+			}
+		});
 	}
 
 	let editingQuestion: ReviewQuestion | null = null;
@@ -246,6 +269,19 @@
 						<button type="button" class="action-btn note-btn" on:click={() => openEditNoteModal(question)} title="Edit Note & Mistake Reasons">
 							<NavIcon name="edit" size={12} />
 							<span>{question.note || question.reasonTags.length ? 'Edit Note' : '+ Note'}</span>
+						</button>
+
+						<button
+							type="button"
+							class="action-btn duck-btn"
+							title="Explain this question to the Socratic Feynman Duck"
+							on:click={() => openFeynmanDuck({
+								subject: question.subject,
+								chapter: question.chapter,
+								concept: `${question.exercise} Q${question.number}${question.note ? ': ' + question.note : ''}`
+							})}
+						>
+							<span>🦆 Ask Duck</span>
 						</button>
 
 						<a href="/log?s={question.subject}&c={question.chapterNo}&e={question.exerciseCode}" class="action-btn open-btn" title="Open in Exercise Sheet">
@@ -428,6 +464,11 @@
 		color: var(--accent);
 		border-color: var(--accent);
 		background: var(--accent-soft);
+	}
+	.action-btn.duck-btn:hover {
+		color: color-mix(in srgb, var(--warning, #f59e0b) 80%, var(--text-primary));
+		border-color: var(--warning, #f59e0b);
+		background: color-mix(in srgb, var(--warning, #f59e0b), transparent 88%);
 	}
 	.action-btn.open-btn:hover {
 		color: var(--text-primary);

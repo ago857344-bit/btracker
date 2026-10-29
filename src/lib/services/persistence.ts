@@ -115,6 +115,16 @@ export async function takeSnapshot(
 		}
 	}
 
+	const clonedState = structuredClone(state);
+	if (clonedState.ui?.wallpaper && (clonedState.ui.wallpaper.startsWith('data:video/') || (clonedState.ui.wallpaper.startsWith('data:') && clonedState.ui.wallpaper.length > 500_000))) {
+		clonedState.ui.wallpaper = null;
+	}
+	if (clonedState.ui?.wallpaperHistory) {
+		clonedState.ui.wallpaperHistory = clonedState.ui.wallpaperHistory.filter(
+			(wp) => typeof wp === 'string' && !wp.startsWith('data:video/') && !(wp.startsWith('data:') && wp.length > 500_000)
+		);
+	}
+
 	const snap: StateSnapshot = {
 		id: `snap_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
 		timestamp: Date.now(),
@@ -123,7 +133,7 @@ export async function takeSnapshot(
 		questionCount: qCount,
 		testCount: state.mocks?.length || 0,
 		streak: calculateStreakDays(state),
-		state: structuredClone(state)
+		state: clonedState
 	};
 
 	await new Promise<void>((resolve, reject) => {

@@ -361,11 +361,13 @@ export interface MistakeLog {
 	id: string;
 	date: number;
 	subject: string;
+	chapter?: string;
 	errorType: 'Silly' | 'Formula' | 'Conceptual' | 'Time';
 	description: string;
 	testName?: string;
 	resolved?: boolean;
 	resolvedAt?: number;
+	updated?: number;
 }
 
 export type TimetableDay = 'Monday' | 'Tuesday' | 'Wednesday' | 'Thursday' | 'Friday' | 'Saturday' | 'Sunday';
@@ -419,6 +421,8 @@ export interface TrackerState {
 	gt: TrackerGoal[];
 	todos: TodoItem[];
 	deletedTodos?: Record<string, number>;
+	/** Tombstones for soft-deleted records so cloud sync cannot resurrect them. */
+	deletedIds?: Record<string, number>;
 	chapterGrids: Record<string, ChapterGrid>;
 	refl: Record<DayKey, ReflectionEntry>;
 	sess: SubjectSession[];
@@ -486,6 +490,7 @@ export interface MockTest {
 	score: number; totalMarks: number;
 	correct: number; incorrect: number; unattempted: number;
 	subjects: Record<string, { score: number, correct: number, incorrect: number }>;
+	updated?: number;
 }
 
 export interface TimerState {

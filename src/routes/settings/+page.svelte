@@ -455,12 +455,14 @@
 		const file = input.files?.[0];
 		if (!file) return;
 		const reader = new FileReader();
-		reader.onload = () => {
+		reader.onload = async () => {
 			input.value = '';
 			try {
 				const parsed = JSON.parse(String(reader.result)) as Partial<TrackerState>;
+				await takeSnapshot($tracker, undefined, 'Pre-Import Backup');
+				await loadSnapshots();
 				replaceTracker({ ...createInitialTrackerState(), ...parsed });
-				celebration.set('Backup restored!');
+				celebration.set('Backup restored! (Safety snapshot created)');
 			} catch { celebration.set('Invalid backup file'); }
 		};
 		reader.onerror = () => { input.value = ''; celebration.set('Could not read that file'); };
@@ -489,6 +491,12 @@
 	async function handleRestoreSnapshot(snap: Omit<StateSnapshot, 'state'>) {
 		const restored = await restoreSnapshot(snap.id);
 		if (restored) {
+			try {
+				await takeSnapshot($tracker, undefined, 'Pre-Restore Backup');
+				await loadSnapshots();
+			} catch (e) {
+				console.warn('Safety snapshot failed before restore:', e);
+			}
 			replaceTracker(restored);
 			restoreConfirmSnap = null;
 			celebration.set(`Restored snapshot from ${snap.label}!`);
@@ -527,7 +535,7 @@
 		importCode();
 	}
 
-	function importCode() {
+	async function importCode() {
 		legacyError = '';
 		try {
 			const input = legacyCode.trim();
@@ -547,18 +555,26 @@
 			} else {
 				next = mergeImportedProgress(parseImportedProgress<Partial<TrackerState>>(input), $tracker);
 			}
+			await takeSnapshot($tracker, undefined, 'Pre-Import Backup');
+			await loadSnapshots();
 			replaceTracker(next);
 			legacyCode = '';
-			celebration.set('Progress imported from old tracker!');
+			celebration.set('Progress imported from old tracker! (Safety snapshot created)');
 		} catch (error) {
 			legacyError = error instanceof Error ? error.message : 'Import failed.';
 		}
 	}
 
-	function clearAll() {
+	async function clearAll() {
+		try {
+			await takeSnapshot($tracker, undefined, 'Pre-Reset Backup');
+			await loadSnapshots();
+		} catch (e) {
+			console.warn('Safety snapshot failed before clearAll:', e);
+		}
 		replaceTracker(createInitialTrackerState());
 		confirmClear = false;
-		celebration.set('All data cleared');
+		celebration.set('All data cleared (Safety snapshot created)');
 	}
 </script>
 

@@ -31,6 +31,42 @@ setInterval(() => {
 	}
 }, 300_000);
 
+// ── Groq Model Cache (10-minute TTL, 3s timeout) ──────────────────────────────
+let cachedGroqModels: { ids: string[]; expiresAt: number } | null = null;
+const GROQ_MODEL_CACHE_TTL_MS = 10 * 60 * 1000;
+
+async function getAvailableGroqModels(groqKey: string): Promise<string[] | null> {
+	const now = Date.now();
+	if (cachedGroqModels && now < cachedGroqModels.expiresAt) {
+		return cachedGroqModels.ids;
+	}
+
+	try {
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), 3000);
+		const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
+			headers: { Authorization: `Bearer ${groqKey}` },
+			signal: controller.signal
+		});
+		clearTimeout(timeout);
+		if (modelsRes.ok) {
+			const modelsData = await modelsRes.json();
+			const ids: string[] = (modelsData.data ?? []).map((m: any) => m.id as string);
+			if (ids.length > 0) {
+				cachedGroqModels = {
+					ids,
+					expiresAt: now + GROQ_MODEL_CACHE_TTL_MS
+				};
+				return ids;
+			}
+		}
+	} catch {
+		// Ignore dynamic fetch failure, fallback to stale cache or defaults
+	}
+
+	return cachedGroqModels?.ids || null;
+}
+
 // Convert Gemini-style history to OpenAI-style messages (supporting text, images, and Groq JSON requirement)
 function toOpenAIMessages(history: any[], systemInstruction?: string, jsonMode?: boolean) {
 	const messages: any[] = [];
@@ -213,29 +249,23 @@ export async function POST({ request, getClientAddress }) {
 				? ['llama-3.2-11b-vision-preview', 'llama-3.2-90b-vision-preview']
 				: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant'];
 
-			try {
-				const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
-					headers: { Authorization: `Bearer ${groqKey}` }
-				});
-				if (modelsRes.ok) {
-					const modelsData = await modelsRes.json();
-					const available: string[] = (modelsData.data ?? []).map((m: any) => m.id as string);
-					if (hasVision) {
-						const visionModels = available.filter(id => id.includes('vision'));
-						if (visionModels.length) groqCandidateModels = visionModels;
-					} else {
-						const textModels = available.filter(id =>
-							!id.includes('whisper') && !id.includes('tts') && !id.includes('embed') && !id.includes('guard') && !id.includes('vision')
-						);
-						if (textModels.length) {
-							groqCandidateModels = [
-								...textModels.filter(id => id.includes('70b') || id.includes('llama-3.3')),
-								...textModels.filter(id => !id.includes('70b') && !id.includes('llama-3.3'))
-							];
-						}
+			const available = await getAvailableGroqModels(groqKey);
+			if (available && available.length > 0) {
+				if (hasVision) {
+					const visionModels = available.filter(id => id.includes('vision'));
+					if (visionModels.length) groqCandidateModels = visionModels;
+				} else {
+					const textModels = available.filter(id =>
+						!id.includes('whisper') && !id.includes('tts') && !id.includes('embed') && !id.includes('guard') && !id.includes('vision')
+					);
+					if (textModels.length) {
+						groqCandidateModels = [
+							...textModels.filter(id => id.includes('70b') || id.includes('llama-3.3')),
+							...textModels.filter(id => !id.includes('70b') && !id.includes('llama-3.3'))
+						];
 					}
 				}
-			} catch { /* ignore dynamic fetch failure, use defaults */ }
+			}
 
 			const messages = toOpenAIMessages(history, systemInstruction, jsonMode);
 

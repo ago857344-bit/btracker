@@ -1,6 +1,7 @@
 <svelte:head><title>Stats · BTracker</title></svelte:head>
 
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import InfoTip from '$lib/components/ui/InfoTip.svelte';
@@ -21,6 +22,21 @@
 	let aiLoading = false;
 	let aiReportHtml = '';
 	let aiError = '';
+	let aiReportGeneratedAt = 0;
+
+	const AI_REPORT_STORAGE_KEY = 'btracker_ai_weakness_report_v1';
+
+	onMount(() => {
+		try {
+			const raw = localStorage.getItem(AI_REPORT_STORAGE_KEY);
+			if (!raw) return;
+			const saved = JSON.parse(raw) as { html?: string; generatedAt?: number };
+			if (typeof saved.html === 'string' && saved.html) {
+				aiReportHtml = saved.html;
+				aiReportGeneratedAt = Number(saved.generatedAt) || 0;
+			}
+		} catch {}
+	});
 
 	async function handleGenerateAIReport() {
 		aiLoading = true;
@@ -31,6 +47,16 @@
 				accumulated += chunk;
 				aiReportHtml = await renderMarkdown(accumulated);
 			});
+			if (accumulated.trim()) {
+				aiReportHtml = await renderMarkdown(accumulated);
+				aiReportGeneratedAt = Date.now();
+				try {
+					localStorage.setItem(AI_REPORT_STORAGE_KEY, JSON.stringify({
+						html: aiReportHtml,
+						generatedAt: aiReportGeneratedAt
+					}));
+				} catch {}
+			}
 		} catch (e: any) {
 			aiError = e.message || 'Failed to generate report.';
 		} finally {
@@ -45,6 +71,20 @@
 		for (let i = 0; i < 7; i++) {
 			const d = new Date(start); d.setDate(start.getDate() + i);
 			if (d > new Date()) break;
+			sum += focusMinutesOn($tracker.log, dayKeyOf(d));
+		}
+		return sum;
+	}
+
+	/** Minutes from Monday through today's weekday, so two weeks compare at the same pace. */
+	function weekMinutesElapsed(offset: number) {
+		const start = startOfWeek();
+		start.setDate(start.getDate() + offset * 7);
+		const todayIndex = (new Date().getDay() + 6) % 7;
+		let sum = 0;
+		for (let i = 0; i <= todayIndex; i++) {
+			const d = new Date(start);
+			d.setDate(start.getDate() + i);
 			sum += focusMinutesOn($tracker.log, dayKeyOf(d));
 		}
 		return sum;
@@ -71,8 +111,10 @@
 	})();
 	$: thisWeek = weekMinutes(0);
 	$: lastWeek = weekMinutes(-1);
+	$: thisWeekElapsed = weekMinutesElapsed(0);
+	$: lastWeekElapsed = weekMinutesElapsed(-1);
 	$: velocityMax = Math.max(1, thisWeek, lastWeek);
-	$: deltaPct = lastWeek ? Math.round(((thisWeek - lastWeek) / lastWeek) * 100) : thisWeek ? 100 : 0;
+	$: deltaPct = lastWeekElapsed ? Math.round(((thisWeekElapsed - lastWeekElapsed) / lastWeekElapsed) * 100) : thisWeekElapsed ? 100 : 0;
 	$: curTable = $tracker.marks?.tables?.find((table) => table.id === $tracker.marks?.cur) ?? $tracker.marks?.tables?.[0];
 	$: testRows = (() => {
 		if ($tracker.mocks && $tracker.mocks.length > 0) {
@@ -141,9 +183,16 @@
 							{#if aiLoading}
 								<span style="display: inline-block; width: 6px; height: 14px; background: var(--accent); margin-left: 4px; vertical-align: middle;"></span>
 							{:else}
-								<button type="button" class="btn ghost ai-refresh" on:click={handleGenerateAIReport}>
-									<NavIcon name="history" size={13} /> Regenerate Report
-								</button>
+								<div class="ai-report-actions">
+									<button type="button" class="btn ghost ai-refresh" on:click={handleGenerateAIReport}>
+										<NavIcon name="history" size={13} /> Regenerate Report
+									</button>
+									{#if aiReportGeneratedAt}
+										<span class="ai-generated-pill">
+											Generated {new Date(aiReportGeneratedAt).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+										</span>
+									{/if}
+								</div>
 							{/if}
 						</div>
 					{/if}
@@ -403,7 +452,7 @@
 							<b>{formatMinutes(thisWeek)}</b>
 						</div>
 					</div>
-					<p class="dim" class:up={deltaPct >= 0}>{deltaPct >= 0 ? '▲' : '▼'} {Math.abs(deltaPct)}% vs last week</p>
+					<p class="dim" class:up={deltaPct >= 0}>{deltaPct >= 0 ? '▲' : '▼'} {Math.abs(deltaPct)}% vs same point last week</p>
 				</div>
 			{/if}
 		</section>
@@ -477,7 +526,20 @@
 	.ai-report :global(strong) { color: var(--text-primary); font-weight: 750; }
 	.ai-report :global(ul) { padding-left: 1.5rem; margin-bottom: 1rem; }
 	.ai-report :global(li) { margin-bottom: .4rem; }
-	.ai-refresh { margin-top: 1.5rem; display: inline-flex; align-items: center; gap: .4rem; font-size: .8rem; color: var(--text-secondary); }
+	.ai-report-actions { margin-top: 1.5rem; display: flex; align-items: center; flex-wrap: wrap; gap: .6rem; }
+	.ai-refresh { display: inline-flex; align-items: center; gap: .4rem; font-size: .8rem; color: var(--text-secondary); }
+	.ai-generated-pill {
+		display: inline-flex;
+		align-items: center;
+		padding: .18rem .55rem;
+		border: 1px solid var(--border-subtle);
+		border-radius: 99px;
+		background: var(--surface-subtle);
+		color: var(--text-secondary);
+		font-size: .66rem;
+		font-weight: 700;
+		white-space: nowrap;
+	}
 
 	.word { display: block; font-size: clamp(2.2rem, 7vw, 3.4rem); font-style: italic; font-weight: 900; letter-spacing: -.04em; line-height: 1.05; }
 	.sentence { margin: .5rem 0 1.2rem; color: var(--text-secondary); font-size: .88rem; }

@@ -698,10 +698,14 @@ export function boostChapterFromTheory(chapterKey: string, durationMinutes: numb
 	boostChapterFromPractice(chapterKey, durationMinutes, 'hard');
 }
 
-// Automatically register with tracker store so logStudySession triggers boostChapterFromPractice
-if (typeof setSessionBoostHandler === 'function') {
-	setSessionBoostHandler((sub, ch, duration) => {
-		boostChapterFromPractice(`${sub}-${ch}`, duration);
-	});
-}
+// Register with the tracker store so logStudySession can boost recall.
+// Deferred: tracker -> timerState -> recall-actions -> tracker is circular, so
+// touching tracker's module bindings during evaluation hits their TDZ on SSR.
+queueMicrotask(() => {
+	if (typeof setSessionBoostHandler === 'function') {
+		setSessionBoostHandler((sub, ch, duration) => {
+			boostChapterFromPractice(`${sub}-${ch}`, duration);
+		});
+	}
+});
 

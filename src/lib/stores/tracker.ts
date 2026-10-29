@@ -393,8 +393,14 @@ export function updateFlashcard(id: string, patch: Partial<Flashcard>) {
 	});
 }
 
+export function markDeleted(s: TrackerState, id: string): void {
+	s.deletedIds ??= {};
+	s.deletedIds[id] = Date.now();
+}
+
 export function deleteFlashcard(id: string) {
 	updateTracker((s) => {
+		markDeleted(s, id);
 		if (!s.flashcards) return;
 		s.flashcards = s.flashcards.filter((c) => c.id !== id);
 	});
@@ -463,7 +469,11 @@ export function patchTask(id: string, patch: Partial<HomeworkItem>) {
 }
 
 export function deleteTask(id: string) {
-	updateTracker((s) => { s.h = s.h.filter((item) => item.id !== id); s.hd = s.hd.filter((item) => item.id !== id); });
+	updateTracker((s) => {
+		markDeleted(s, id);
+		s.h = s.h.filter((item) => item.id !== id);
+		s.hd = s.hd.filter((item) => item.id !== id);
+	});
 }
 
 /** Flips a planner task's done state; returns the new state so callers can celebrate. */
@@ -694,6 +704,7 @@ export function deleteTodo(id: string) {
 	updateTracker((s) => {
 		s.deletedTodos ??= {};
 		s.deletedTodos[id] = Date.now();
+		markDeleted(s, id);
 		s.todos = s.todos.filter((t) => t.id !== id);
 	});
 }
@@ -914,6 +925,13 @@ export function applyRoutine(id: string, day: string) {
 	});
 }
 
+export function deleteRoutine(id: string) {
+	updateTracker((s) => {
+		markDeleted(s, id);
+		s.lib = (s.lib || []).filter((entry) => entry.id !== id);
+	});
+}
+
 /* Goals tracker ------------------------------------------------------ */
 
 export function addGoal(goal: Omit<TrackerGoal, 'id' | 'created'>) {
@@ -922,7 +940,12 @@ export function addGoal(goal: Omit<TrackerGoal, 'id' | 'created'>) {
 export function patchGoal(id: string, patch: Partial<TrackerGoal>) {
 	updateTracker((s) => { const goal = s.gt.find((entry) => entry.id === id); if (goal) Object.assign(goal, patch); });
 }
-export function deleteGoal(id: string) { updateTracker((s) => { s.gt = s.gt.filter((entry) => entry.id !== id); }); }
+export function deleteGoal(id: string) {
+	updateTracker((s) => {
+		markDeleted(s, id);
+		s.gt = s.gt.filter((entry) => entry.id !== id);
+	});
+}
 export function toggleMilestone(goalId: string, milestoneId: string) {
 	updateTracker((s) => {
 		const goal = s.gt.find((entry) => entry.id === goalId);
@@ -1000,6 +1023,7 @@ export function logUniversalSession(input: UniversalSessionInput): string {
 
 export function deleteUniversalSession(id: string) {
 	updateTracker((s) => {
+		markDeleted(s, id);
 		const entry = s.sess.find((candidate) => candidate.id === id && candidate.kind === 'universal');
 		if (!entry) return;
 		s.sess = s.sess.filter((candidate) => candidate.id !== id);
@@ -1012,6 +1036,7 @@ export function deleteUniversalSession(id: string) {
 		if (s.gamification) s.gamification.xp = Math.max(0, s.gamification.xp - 10 * (Number(entry.cor) || 0));
 	});
 }
+export const deleteSession = deleteUniversalSession;
 
 export function logManualMinutes(minutes: number, subject: string | null, chapter?: string | null) {
 	const start = Math.floor(Date.now() / 60000) - minutes;
@@ -1851,9 +1876,17 @@ export function updateTimetablePeriod(id: string, updates: Partial<TimetablePeri
 
 export function deleteTimetablePeriod(id: string) {
 	updateTracker((s) => {
+		markDeleted(s, id);
 		if (!s.timetable?.periods) return;
 		s.timetable.periods = s.timetable.periods.filter((item) => item.id !== id);
 		s.timetable.updatedAt = Date.now();
+	});
+}
+
+export function deleteCustomReminder(id: string) {
+	updateTracker((s) => {
+		markDeleted(s, id);
+		s.customReminders = (s.customReminders || []).filter((item) => item.id !== id);
 	});
 }
 

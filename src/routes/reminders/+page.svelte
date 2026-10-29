@@ -191,6 +191,17 @@
 						chap.nextRevisionDate = tomorrow;
 						snoozedCount++;
 					}
+				} else if (c.source === 'homework' && c.linkId) {
+					const task = s.h.find((t) => t.id === c.linkId) || s.hd.find((t) => t.id === c.linkId);
+					if (!task || task.done || task.locked || task.isClass) continue;
+					task.due = tomorrow;
+					task.updated = Date.now();
+					snoozedCount++;
+				} else if (c.source === 'deadline' && c.linkId) {
+					const deadline = s.dl.find((d) => d.id === c.linkId);
+					if (!deadline) continue;
+					deadline.date = tomorrow;
+					snoozedCount++;
 				} else if (c.source === 'custom') {
 					if (s.customReminders) {
 						s.customReminders = s.customReminders.map((item) => {
@@ -205,7 +216,7 @@
 			}
 		});
 
-		triggerToast(`Snoozed ${snoozedCount} overdue reminder${snoozedCount === 1 ? '' : 's'} to tomorrow ⏰`);
+		triggerToast(`Snoozed ${snoozedCount} overdue reminder${snoozedCount === 1 ? '' : 's'} to tomorrow`);
 	}
 
 	/* ---------------- actions ---------------- */
@@ -317,12 +328,15 @@
 		if (!target) return;
 		updateTracker((s) => {
 			s.customReminders = (s.customReminders || []).filter((c) => c.id !== id);
+			s.deletedIds ??= {};
+			s.deletedIds[id] = Date.now();
 		});
 		triggerToast({
 			text: `Deleted reminder "${target.title}"`,
 			actionLabel: 'Undo',
 			onAction: () => {
 				updateTracker((s) => {
+					if (s.deletedIds) delete s.deletedIds[id];
 					s.customReminders = [...(s.customReminders || []), target];
 				});
 			}
@@ -330,6 +344,9 @@
 	}
 
 	function snooze(id: string, option: typeof snoozeOptions[number]) {
+		snoozeMenu = null;
+		const tomorrow = addDaysKey(todayKey(), 1);
+
 		if (id.startsWith('rev-')) {
 			const rawKey = id.slice(4);
 			const parts = rawKey.split(/[-:]/);
@@ -338,7 +355,9 @@
 			const colonKey = `${sub}:${ch}`;
 			const hyphenKey = `${sub}-${ch}`;
 
-			const daysToAdd = 1;
+			// Revision reminders are day-granular, so short snoozes keep them pinned
+			// to today and only clear the queue for this session.
+			const daysToAdd = option === 'Tomorrow' ? 1 : 0;
 			const nextDate = addDaysKey(todayKey(), daysToAdd);
 
 			updateTracker((s) => {
@@ -349,10 +368,70 @@
 					chap.nextRevisionDate = nextDate;
 				}
 			});
-			snoozeMenu = null;
-			dismissedIds = new Set([...dismissedIds, id]);
+			if (option !== 'Tomorrow') dismissedIds = new Set([...dismissedIds, id]);
 			triggerToast({
-				text: `Revision snoozed until ${nextDate}`
+				text: option === 'Tomorrow'
+					? `Revision snoozed until ${nextDate}`
+					: `Revision hidden for ${option}`
+			});
+			return;
+		}
+
+		if (id.startsWith('hw-')) {
+			const hwId = id.slice(3);
+			let prevDue: string | undefined;
+			let moved = false;
+
+			updateTracker((s) => {
+				const task = s.h.find((t) => t.id === hwId) || s.hd.find((t) => t.id === hwId);
+				if (!task || task.done || task.locked || task.isClass) return;
+				prevDue = task.due;
+				task.due = tomorrow;
+				task.updated = Date.now();
+				moved = true;
+			});
+
+			if (!moved) {
+				triggerToast('Class and locked tasks keep their scheduled day');
+				return;
+			}
+
+			triggerToast({
+				text: `Task snoozed until ${tomorrow}`,
+				actionLabel: 'Undo',
+				onAction: () => {
+					updateTracker((s) => {
+						const task = s.h.find((t) => t.id === hwId) || s.hd.find((t) => t.id === hwId);
+						if (task) {
+							task.due = prevDue;
+							task.updated = Date.now();
+						}
+					});
+				}
+			});
+			return;
+		}
+
+		if (id.startsWith('dl-')) {
+			const dlId = id.slice(3);
+			let prevDate: string | undefined;
+
+			updateTracker((s) => {
+				const deadline = s.dl.find((d) => d.id === dlId);
+				if (!deadline) return;
+				prevDate = deadline.date;
+				deadline.date = tomorrow;
+			});
+
+			triggerToast({
+				text: `Deadline moved to ${tomorrow}`,
+				actionLabel: 'Undo',
+				onAction: () => {
+					updateTracker((s) => {
+						const deadline = s.dl.find((d) => d.id === dlId);
+						if (deadline && prevDate) deadline.date = prevDate;
+					});
+				}
 			});
 			return;
 		}
@@ -376,7 +455,6 @@
 					c.id === id ? { ...c, when: newWhen, dismissed: false, updatedAt: Date.now() } : c
 				);
 			});
-			snoozeMenu = null;
 			triggerToast({
 				text: `Snoozed until ${newWhen.replace('T', ' ')}`
 			});
