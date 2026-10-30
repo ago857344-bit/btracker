@@ -27,6 +27,12 @@
 	$: xp = isPreview ? 0 : ($tracker.gamification?.xp || 0);
 	$: levelData = getLevelData(xp);
 
+	function formatXpCompact(val: number): string {
+		if (val >= 1_000_000) return (val / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+		if (val >= 10_000) return (val / 1_000).toFixed(1).replace(/\.0$/, '') + 'k';
+		return val.toLocaleString();
+	}
+
 	type NavIconName = ComponentProps<NavIcon>['name'];
 	interface NavItem {
 		href: string;
@@ -303,12 +309,12 @@
 			</div>
 			<span class="profile-copy">
 				<div class="user-level-row">
-					<b>{isPreview ? 'Student Aspirant' : ($tracker.meta.name || 'My Account')}</b>
+					<b title={isPreview ? 'Student Aspirant' : ($tracker.meta.name || 'My Account')}>{isPreview ? 'Student Aspirant' : ($tracker.meta.name || 'My Account')}</b>
 					<span class="elo-badge {tier.cls}" title="{tierElo} {stars ? 'season ' : ''}Elo{stars ? ` · Prestige ${stars}` : ''}">{tier.icon} {tier.name}{#if stars}<i class="stars">{stars > 3 ? `★${stars}` : '★'.repeat(stars)}</i>{/if}</span>
 				</div>
 				<div class="level-meta-row">
-					<small class="rank-name" class:gradient-text={frame} style={frame ? `--frame: linear-gradient(135deg, ${frame.colors?.join(', ')})` : undefined}>Lv {levelData.level} · {isPreview ? 'Aspirant' : ($loadout.title ?? levelData.title)}</small>
-					<span class="xp-exact">{xp.toLocaleString()} / {levelData.nextTierXp.toLocaleString()} XP</span>
+					<small class="rank-name" title="{isPreview ? 'Aspirant' : ($loadout.title ?? levelData.title)}" class:gradient-text={frame} style={frame ? `--frame: linear-gradient(135deg, ${frame.colors?.join(', ')})` : undefined}>Lv {levelData.level} · {isPreview ? 'Aspirant' : ($loadout.title ?? levelData.title)}</small>
+					<span class="xp-exact" title="{xp.toLocaleString()} / {levelData.nextTierXp.toLocaleString()} XP">{formatXpCompact(xp)} / {formatXpCompact(levelData.nextTierXp)} XP</span>
 				</div>
 				<div class="xp-bar" title="{xp} XP / {levelData.nextTierXp} XP">
 					<div class="xp-fill" style="width: {levelData.progress}%"></div>
@@ -520,8 +526,19 @@
 		line-height: 1.4;
 	}
 	.nav-divider { height: 1px; margin: clamp(0.5rem, 1.5vh, 1rem) .65rem clamp(0.1rem, 0.3vh, 0.2rem); background: var(--border-subtle); }
-	.sidebar-bottom { display: grid; gap: .55rem; margin-top: auto; min-width: 0; position: relative; }
+	.sidebar-bottom {
+		display: flex;
+		flex-direction: column;
+		gap: .55rem;
+		margin-top: auto;
+		width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+		position: relative;
+	}
 	.profile-container {
+		box-sizing: border-box;
+		width: 100%;
 		min-width: 0;
 		max-width: 100%;
 		padding: .7rem .65rem;
@@ -539,6 +556,7 @@
 			inset 0 1px 0 rgba(255, 255, 255, 0.14),
 			inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 		transition: all 0.2s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1));
+		overflow: hidden;
 	}
 	.profile-container:hover {
 		border-color: color-mix(in srgb, var(--accent) 40%, var(--border-subtle));
@@ -572,15 +590,40 @@
 		border-right: 1px solid var(--border-subtle);
 		box-shadow: 4px 0 24px -4px rgba(44, 37, 92, 0.06);
 	}
-	.profile-copy { display: grid; gap: .1rem; min-width: 0; flex: 1; font-size: .77rem; }
-	.user-level-row { display: flex; align-items: center; gap: .35rem; min-width: 0; }
-	.user-level-row b { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.profile-copy {
+		display: flex;
+		flex-direction: column;
+		gap: .15rem;
+		min-width: 0;
+		width: 100%;
+		flex: 1 1 auto;
+		overflow: hidden;
+		font-size: .77rem;
+		white-space: normal;
+	}
+	.user-level-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: .35rem;
+		min-width: 0;
+		width: 100%;
+	}
+	.user-level-row b {
+		flex: 1 1 auto;
+		min-width: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
 	.level-meta-row {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
 		gap: 0.35rem;
-		margin-bottom: 0.2rem;
+		min-width: 0;
+		width: 100%;
+		margin-bottom: 0.15rem;
 	}
 	.xp-exact {
 		font-size: 0.62rem;
@@ -588,9 +631,32 @@
 		font-family: var(--font-mono, monospace);
 		font-variant-numeric: tabular-nums;
 		font-weight: 600;
+		white-space: nowrap;
+		flex-shrink: 0;
 	}
-	.rank-name { color: var(--accent); font-weight: 800; font-size: .62rem; text-transform: uppercase; letter-spacing: .06em; margin: 0; }
-	.xp-bar { height: 6px; background: color-mix(in srgb, var(--text-primary), transparent 90%); border-radius: 99px; overflow: hidden; box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2); width: 100%; }
+	.rank-name {
+		color: var(--accent);
+		font-weight: 800;
+		font-size: .62rem;
+		text-transform: uppercase;
+		letter-spacing: .06em;
+		margin: 0;
+		min-width: 0;
+		flex: 1 1 auto;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.xp-bar {
+		height: 6px;
+		background: color-mix(in srgb, var(--text-primary), transparent 90%);
+		border-radius: 99px;
+		overflow: hidden;
+		box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.2);
+		width: 100%;
+		min-width: 0;
+		box-sizing: border-box;
+	}
 	.xp-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2, #38bdf8)); border-radius: 99px; transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); box-shadow: 0 0 8px color-mix(in srgb, var(--accent) 50%, transparent); }
 	
 	aside.collapsed { width: 76px; }
@@ -668,8 +734,8 @@
 	}
 
 .elo-badge {
-	flex: none;
-	max-width: 62%;
+	flex-shrink: 0;
+	max-width: 48%;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	font-size: 0.62rem;
@@ -690,7 +756,7 @@
 .stars { margin-left: 3px; font-style: normal; letter-spacing: -1px; }
 
 /* Gradient border via padding-box/border-box layering, so the card keeps its own background. */
-.avatar-ring { border-radius: 99px; padding: 0; transition: padding 0.3s ease; }
+.avatar-ring { flex-shrink: 0; border-radius: 99px; padding: 0; transition: padding 0.3s ease; }
 .avatar-ring.active { padding: 2px; background: var(--ring-bg); background-size: 220% 220%; box-shadow: 0 4px 12px color-mix(in srgb, var(--text-primary) 8%, transparent); }
 .avatar-ring.animated { animation: ring-flow 4s linear infinite; }
 .rank-name.gradient-text { background: var(--frame); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; background-size: 220% 220%; }
