@@ -53,9 +53,8 @@
 	let snoozeMenu: string | null = null;
 
 	/* ---------------- derived groups ---------------- */
-	const now = new Date();
-	const today = todayKey();
-	const weekEnd = addDaysKey(today, 6);
+	let today = todayKey();
+	let weekEnd = addDaysKey(today, 6);
 
 	let revCards: ReminderCard[] = [];
 	let hwCards: ReminderCard[] = [];
@@ -67,6 +66,9 @@
 	let dismissedIds = new Set<string>();
 
 	$: {
+		today = todayKey();
+		weekEnd = addDaysKey(today, 6);
+
 		revCards = $allRevisionReminders
 			.filter((item) => !dismissedIds.has(item.id))
 			.map((item) => {
@@ -93,7 +95,7 @@
 			});
 
 		hwCards = [...$tracker.h, ...$tracker.hd]
-			.filter((t) => !t.done && t.due)
+			.filter((t) => !t.done && t.due && !t.keep && !dismissedIds.has(`hw-${t.id}`))
 			.map((t) => {
 				const due = t.due!;
 				const overdue_ = due < today;
@@ -270,6 +272,7 @@
 					found.keep = true;
 				}
 			});
+			dismissedIds = new Set([...dismissedIds, id]);
 			triggerToast({
 				text: 'Task reminder dismissed',
 				actionLabel: 'Undo',
@@ -278,6 +281,9 @@
 						const found = s.h.find((h) => h.id === hwId) || s.hd.find((h) => h.id === hwId);
 						if (found) found.keep = wasKeep;
 					});
+					const next = new Set(dismissedIds);
+					next.delete(id);
+					dismissedIds = next;
 				}
 			});
 			return;
@@ -518,6 +524,8 @@
 	}
 </script>
 
+<svelte:window on:click={() => (snoozeMenu = null)} on:keydown={(e) => { if (e.key === 'Escape') snoozeMenu = null; }} />
+
 <section class="reminders">
 	<header class="page-header page-head">
 		<div class="page-header-copy titles">
@@ -608,7 +616,7 @@
 							</div>
 							<div class="r-actions">
 								<div class="snooze-wrap" role="presentation" on:click|stopPropagation={() => {}} on:keydown|stopPropagation={() => {}}>
-									<button type="button" class="link snooze-btn" on:click={() => (snoozeMenu = snoozeMenu === card.id ? null : card.id)}>
+									<button type="button" class="link snooze-btn" on:click|stopPropagation={() => (snoozeMenu = snoozeMenu === card.id ? null : card.id)}>
 										<NavIcon name="clock" size={13} />
 										Snooze
 										<NavIcon name="chevron-down" size={12} />

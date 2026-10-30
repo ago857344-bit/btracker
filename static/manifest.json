@@ -26,5 +26,35 @@
       "sizes": "512x512",
       "type": "image/png"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start Focus Session",
+      "short_name": "Focus",
+      "description": "Start a timed deep focus study sprint",
+      "url": "/focus",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Question Log",
+      "short_name": "Log",
+      "description": "Log attempted and solved questions",
+      "url": "/log",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Daily Planner",
+      "short_name": "Plan",
+      "description": "Manage daily time-blocks and schedule",
+      "url": "/plan",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Active Recall & Revise",
+      "short_name": "Revise",
+      "description": "Spaced repetition and active recall review",
+      "url": "/revise",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
   ]
 }

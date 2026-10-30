@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { goto } from '$app/navigation';
 	import { isMobileDevice } from '$lib/state/themes';
 	import { uiSuccess, uiPop } from '$lib/utils/feedback';
 	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
+	import { globalTimer } from '$lib/stores/timerState';
 	import { fade, slide } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
@@ -142,6 +144,15 @@ async function runAiTriage() {
 			if (grid?.data?.[chNo]?.[i] === '✓') count++;
 		}
 		return count;
+	}
+
+	function handleToggleChecklistCell(sub: string, chNo: number, colIdx: number, chName: string) {
+		const wasUnchecked = clGrid?.data?.[chNo]?.[colIdx] !== '✓';
+		toggleChecklistCell(sub, chNo, colIdx);
+		if (wasUnchecked && chName) {
+			boostChapterFromPractice(`${sub}-${chName}`);
+			celebration.set(`Boosted ${chName} in Active Recall! 🧠`);
+		}
 	}
 
 	$: displayedChapters = clChapters.filter((ch) => {
@@ -449,6 +460,20 @@ async function runAiTriage() {
 						{/if}
 						{#if item.source === 'btest'}<span class="tag">btest</span>{/if}
 						{#if item.source === 'brain-dump'}<span class="tag brain-dump"><NavIcon name="brain" size={10} /> Brain dump</span>{/if}
+						{#if !item.done}
+							<button
+								type="button"
+								class="focus-btn"
+								title="Start 25m Focus session for this task"
+								aria-label="Start Focus session"
+								on:click|stopPropagation={() => {
+									$globalTimer.start((item.sub as any) || 'P', 25 * 60, item.ch ? String(item.ch) : item.title, 'timer');
+									void goto('/focus');
+								}}
+							>
+								<NavIcon name="focus" size={13} />
+							</button>
+						{/if}
 						<button type="button" class="expand-btn" on:click={() => expandedTodo = expandedTodo === item.id ? null : item.id}>
 							<NavIcon name={expandedTodo === item.id ? 'chevron-down' : 'chevron'} size={14} />
 						</button>
@@ -659,7 +684,7 @@ async function runAiTriage() {
 												type="button"
 												class="step-chip"
 												class:step-chip-done={isDone}
-												on:click={() => toggleChecklistCell(clSub, ch.no, i)}
+												on:click={() => handleToggleChecklistCell(clSub, ch.no, i, ch.name)}
 											>
 												<span class="chip-check">{isDone ? '✓' : '○'}</span>
 												<span class="chip-label">{colName}</span>
@@ -723,7 +748,7 @@ async function runAiTriage() {
 												class="tick"
 												class:on={clGrid?.data[ch.no]?.[i] === '✓'}
 												aria-label="{clCols[i]} — {ch.name}"
-												on:click={() => toggleChecklistCell(clSub, ch.no, i)}
+												on:click={() => handleToggleChecklistCell(clSub, ch.no, i, ch.name)}
 											>✓</button>
 										</td>
 									{/each}
@@ -1616,6 +1641,24 @@ async function runAiTriage() {
 	.sub-progress .pct { font-size: 0.65rem; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
 	.expand-btn { background: none; border: none; padding: 4px; color: var(--text-secondary); cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
 	.expand-btn:hover { background: var(--surface-subtle); color: var(--text-primary); }
+
+	.focus-btn {
+		background: none;
+		border: 1px solid transparent;
+		padding: 4px 6px;
+		color: var(--text-secondary);
+		cursor: pointer;
+		border-radius: 6px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		transition: all 0.15s ease;
+	}
+	.focus-btn:hover {
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		color: var(--accent);
+		border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+	}
 	
 	.subtasks-container { padding: 8px 12px 8px 48px; background: var(--surface-panel); border-bottom: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 6px; }
 	.sub-row { display: flex; align-items: center; gap: 12px; padding: 4px 0; }

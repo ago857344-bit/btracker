@@ -61,10 +61,28 @@
 		{ id: 'easy', label: '5 · Easy', desc: 'Instant mastery (Score: 95%, τ ×2.0)', score: 95, color: 'var(--accent)' }
 	];
 
+	function stopCountdown() {
+		if (timerInterval) {
+			clearInterval(timerInterval);
+			timerInterval = undefined;
+		}
+	}
+
+	function startCountdown() {
+		stopCountdown();
+		secondsLeft = timerMinutes * 60;
+		isPaused = false;
+		timerInterval = setInterval(() => {
+			if (!isPaused) {
+				if (secondsLeft > 0) secondsLeft--;
+				else finishTimer();
+			}
+		}, 1000);
+	}
+
 	function setTimerPreset(m: number) {
 		timerMinutes = m;
-		secondsLeft = m * 60;
-		isPaused = false;
+		startCountdown();
 	}
 
 	function togglePause() {
@@ -82,16 +100,14 @@
 	}
 
 	function handleClose() {
-		clearInterval(timerInterval);
-		timerInterval = undefined;
+		stopCountdown();
 		isPaused = false;
 		open = false;
 		dispatch('close');
 	}
 
 	function finishTimer() {
-		clearInterval(timerInterval);
-		timerInterval = undefined;
+		stopCountdown();
 		isPaused = false;
 		timeSpentMinutes = Math.max(1, timerMinutes - Math.floor(secondsLeft / 60));
 		mode = 'evaluate';
@@ -121,30 +137,21 @@
 		handleClose();
 	}
 
-	$: if (!open) {
-		if (timerInterval) {
-			clearInterval(timerInterval);
-			timerInterval = undefined;
-		}
-		isPaused = false;
+	let wasOpen = false;
+	$: if (open && !wasOpen) {
+		wasOpen = true;
 		mode = 'timer';
 		recallNotes = '';
 		showScratchpadPreview = false;
 		saveAsFlashcard = true;
-	}
-
-	$: if (open && mode === 'timer' && !timerInterval) {
-		secondsLeft = timerMinutes * 60;
+		startCountdown();
+	} else if (!open && wasOpen) {
+		wasOpen = false;
+		stopCountdown();
 		isPaused = false;
-		timerInterval = setInterval(() => {
-			if (!isPaused) {
-				if (secondsLeft > 0) secondsLeft--;
-				else finishTimer();
-			}
-		}, 1000);
 	}
 
-	onDestroy(() => clearInterval(timerInterval));
+	onDestroy(() => stopCountdown());
 </script>
 
 <Modal open={open} title={mode === 'timer' ? "BRAIN DUMP: FOCUS MODE" : "ACTIVE RECALL EVALUATION"} width={mode === 'timer' ? "660px" : "620px"} on:close={handleClose}>

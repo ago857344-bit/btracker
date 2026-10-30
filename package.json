@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "test:core": "node scripts/verify-core.ts",
     "tauri": "tauri"
   },
   "devDependencies": {

@@ -233,8 +233,8 @@
 	<!-- ========================================================================= -->
 	<!-- REPLICATED CENTERED LIQUID GLASS FLOATING PILL MENU BAR -->
 	<!-- ========================================================================= -->
-	<header class="fixed top-4 left-0 right-0 z-50 flex justify-center pointer-events-none px-4">
-		<div class="pointer-events-auto flex items-center gap-6 sm:gap-7 px-3 py-1.5 rounded-full bg-[#0e0e12]/75 backdrop-blur-2xl border border-white/[0.14] shadow-[0_20px_48px_-10px_rgba(0,0,0,0.75),inset_0_1px_1px_rgba(255,255,255,0.4),inset_0_-1px_1px_rgba(0,0,0,0.5)] transition-all hover:border-white/25">
+	<header class="fixed left-0 right-0 z-50 flex justify-center pointer-events-none px-4" style="top: max(env(safe-area-inset-top, 0px) + 8px, 1rem);">
+		<div class="pointer-events-auto flex items-center gap-6 sm:gap-7 px-3 py-1.5 rounded-full bg-[#0e0e12]/95 md:bg-[#0e0e12]/75 backdrop-blur-none md:backdrop-blur-2xl border border-white/[0.14] shadow-[0_20px_48px_-10px_rgba(0,0,0,0.75),inset_0_1px_1px_rgba(255,255,255,0.4),inset_0_-1px_1px_rgba(0,0,0,0.5)] transition-all hover:border-white/25" style="-webkit-transform: translateZ(0); transform: translateZ(0); -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
 			
 			<!-- Brand: Site's Signature Bold B Logo -->
 			<a href="/" class="flex items-center gap-2.5 pl-1 group focus:outline-none" aria-label="BTracker — home">

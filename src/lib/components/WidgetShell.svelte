@@ -62,15 +62,19 @@
 		-webkit-backdrop-filter: var(--vision-glass-blur, blur(20px));
 		box-shadow: var(--shadow-card), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.08));
 		overflow: hidden;
-		transform: perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(var(--lift-y, 0px));
-		transform-style: preserve-3d;
-		will-change: transform;
+		transform: perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translateY(var(--card-lift, 0px));
 		transition: box-shadow .25s ease, border-color .25s ease, transform .22s var(--ease-ios-spring);
 		container-type: inline-size;
 	}
+	@media (hover: hover) and (pointer: fine) {
+		.widget:not(.no-tilt) {
+			transform-style: preserve-3d;
+			will-change: transform;
+		}
+	}
 	.widget:hover {
 		border-color: color-mix(in srgb, var(--accent), var(--border-subtle) 50%);
-		--lift-y: -2px;
+		--card-lift: -2px;
 		box-shadow: 0 16px 44px -6px rgba(0, 0, 0, 0.38), var(--vision-bevel-inner, inset 0 1px 0 rgba(255, 255, 255, 0.12));
 	}
 	.widget.editing {

@@ -84,7 +84,7 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-{#if isSessionActive && !isFocusPage && cutoutStyle !== 'pip' && !$pipIslandOpen}
+{#if !isFocusPage && cutoutStyle !== 'pip' && !$pipIslandOpen && (isSessionActive || cutoutStyle === 'island')}
 	<!-- Backdrop scrim when expanded -->
 	{#if expanded}
 		<div

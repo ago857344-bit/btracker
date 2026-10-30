@@ -353,7 +353,7 @@ pre { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 }
 
 body[data-deep-work="true"] aside { display: none !important; }
-body[data-deep-work="true"] .layout-shell { grid-template-columns: 1fr !important; }
+body[data-deep-work="true"] .app-shell { padding-left: 0 !important; }
 body[data-deep-work="true"] .page-head,
 body[data-deep-work="true"] .toolbar,
 body[data-deep-work="true"] .tabs,
@@ -361,7 +361,8 @@ body[data-deep-work="true"] .layout,
 body[data-deep-work="true"] .topbar,
 body[data-deep-work="true"] .mentor-wrapper,
 body[data-deep-work="true"] .dynamic-island-anchor,
-body[data-deep-work="true"] .mobile-bottom-nav {
+body[data-deep-work="true"] .mobile-bottom-nav,
+body[data-deep-work="true"] .bottom-nav {
 	opacity: 0 !important;
 	visibility: hidden !important;
 	pointer-events: none !important;
@@ -390,11 +391,11 @@ body[data-deep-work="true"] .mobile-bottom-nav {
 }
 
 /* Glass inputs and inner elements without destructive !important */
-select:not(.search select):not(.cell-input),
-input[type="text"]:not(.search input):not(.search-box input):not(.cmd-input):not(.inline-edit):not(.qrow input):not(.cell-input):not(.c-note input),
-input[type="number"]:not(.search input):not(.cell-input):not(.qrow input),
+select:not(.search select):not(.funnel select):not(.cell-input),
+input[type="text"]:not(.search input):not(.search-box input):not(.search-wrap input):not(.cl-search-box input):not(.add input):not(.funnel input):not(.cmd-input):not(.inline-edit):not(.qrow input):not(.cell-input):not(.c-note input),
+input[type="number"]:not(.search input):not(.search-wrap input):not(.add input):not(.cell-input):not(.qrow input),
 input[type="date"],
-input[type="search"]:not(.search input):not(.search-box input),
+input[type="search"]:not(.search input):not(.search-box input):not(.search-wrap input):not(.cl-search-box input),
 textarea:not(.cell-input),
 .method,
 .glass-element {
@@ -404,6 +405,15 @@ textarea:not(.cell-input),
 	border: 1px solid color-mix(in srgb, var(--border-subtle), transparent 30%);
 	box-shadow: inset 0 1px 2px rgba(255,255,255,0.05);
 	transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+/* Composite search wrapper input reset: keep inputs transparent inside styled parent pill wrappers */
+:is(.search-wrap, .cl-search-box, .add, .funnel) :is(input, select) {
+	background: transparent !important;
+	border: none !important;
+	box-shadow: none !important;
+	backdrop-filter: none !important;
+	-webkit-backdrop-filter: none !important;
 }
 
 select:hover:not(:disabled),
@@ -1934,6 +1944,26 @@ aside.glass:not(.mobile-open) {
 	background: rgba(255, 255, 255, 0.90) !important;
 	border-bottom: 1px solid color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08)) !important;
 	box-shadow: 0 12px 32px -4px rgba(44, 37, 92, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.95) !important;
+}
+
+@media (max-width: 768px) {
+	.topbar.scrolled {
+		backdrop-filter: none !important;
+		-webkit-backdrop-filter: none !important;
+		background: color-mix(in srgb, var(--surface-1, var(--surface-panel)) 98%, transparent) !important;
+		box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.45) !important;
+	}
+	:root[data-theme='light'] .topbar.scrolled,
+	:root[data-theme='notion'] .topbar.scrolled,
+	:root[data-theme='duolingo'] .topbar.scrolled,
+	:root[data-theme='anki'] .topbar.scrolled,
+	:root[data-theme='master'] .topbar.scrolled {
+		backdrop-filter: none !important;
+		-webkit-backdrop-filter: none !important;
+		background: rgba(255, 255, 255, 0.98) !important;
+		border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+		box-shadow: 0 4px 18px -4px rgba(0, 0, 0, 0.08) !important;
+	}
 }
 
 :root[data-clear-glass="true"] :is(.modal-backdrop, .vault-backdrop, .gm-backdrop, .island-scrim, .overlay .backdrop, .tour-backdrop, .scrim, .duck-backdrop, .wrapped-backdrop, .preview-modal-backdrop, .sheet-modal-backdrop, .reader-overlay),

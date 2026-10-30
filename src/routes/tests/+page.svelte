@@ -400,7 +400,7 @@
 				id: makeTestId('fc'),
 				front,
 				back,
-				subject: m.subject.charAt(0).toUpperCase(),
+				subject: (m.subject?.charAt(0).toUpperCase() === 'C' ? 'C' : m.subject?.charAt(0).toUpperCase() === 'M' ? 'M' : 'P') as any,
 				chapter: m.testName || 'Mistake Book',
 				interval: 1,
 				repetition: 0,

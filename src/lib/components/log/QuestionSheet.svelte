@@ -121,7 +121,7 @@
 						id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `fc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
 						front,
 						back,
-						subject: subName,
+						subject: (loc.sc as any) || 'P',
 						chapter: chName,
 						interval: 1,
 						repetition: 0,
@@ -135,7 +135,7 @@
 					t.mistakes.push({
 						id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `m_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
 						date: Date.now(),
-						subject: subName,
+						subject: (loc.sc as any) || 'P',
 						errorType: determineErrorType(reasons),
 						description: desc,
 						testName
@@ -856,11 +856,20 @@
 	@media (max-width: 768px) {
 		.sheet { margin-bottom: 4rem; }
 		.selbar {
-			bottom: calc(max(env(safe-area-inset-bottom, 0px), 12px) + 74px);
+			bottom: calc(88px + env(safe-area-inset-bottom, 0px));
 			width: calc(100% - 1.5rem);
 			max-width: 440px;
 			justify-content: center;
 			box-shadow: 0 8px 30px rgba(0, 0, 0, 0.28);
+		}
+		.qrow:not(.head) {
+			grid-template-columns: 42px 36px 80px 1fr auto;
+			row-gap: 0.35rem;
+		}
+		.qrow:not(.head) .c-note {
+			display: block;
+			grid-column: 1 / -1;
+			width: 100%;
 		}
 		.rangebar {
 			flex-direction: column;

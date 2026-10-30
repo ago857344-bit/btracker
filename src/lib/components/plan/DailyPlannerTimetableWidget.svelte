@@ -50,10 +50,12 @@
 	})();
 
 	// Check if a period has already been added to that day's planner tasks (pending or completed)
-	$: dayTasks = [...($tracker.h || []), ...($tracker.hd || [])].filter((t) => t.due === dayKey);
+	$: dayTasks = [...($tracker.h || []), ...($tracker.hd || [])].filter((t) => t.due === dayKey || (t as any).date === dayKey);
 	function isPeriodPlanned(p: TimetablePeriod): boolean {
 		return dayTasks.some(
-			(t) => t.st === p.startTime && (t.title?.includes(p.topic) || t.title?.includes(p.subject))
+			(t) =>
+				((t as any).date === dayKey || !(t as any).date || t.due === dayKey) &&
+				((t as any).periodId === p.id || (t.st === p.startTime && (t.title?.includes(p.topic) || t.title?.includes(p.subject))))
 		);
 	}
 
@@ -153,11 +155,16 @@
 		rawTextDraft = '';
 	}
 
+	let confirmingClear = false;
+
 	function handleClearTimetable() {
-		if (confirm('Clear your coaching timetable? You can upload a new one anytime.')) {
+		if (confirmingClear) {
 			clearCoachingTimetable();
+			confirmingClear = false;
 			uploadModalOpen = false;
 			celebration.set('Timetable cleared.');
+		} else {
+			confirmingClear = true;
 		}
 	}
 
@@ -454,10 +461,25 @@
 
 			{#if hasTimetable}
 				<div class="clear-zone">
-					<button type="button" class="btn-clear-danger" on:click={handleClearTimetable}>
-						<NavIcon name="trash" size={12} />
-						<span>Remove Timetable</span>
-					</button>
+					{#if confirmingClear}
+						<div class="confirm-clear-box">
+							<span class="confirm-text">Clear all coaching classes?</span>
+							<div class="confirm-btns">
+								<button type="button" class="btn-clear-danger" on:click={handleClearTimetable}>
+									<NavIcon name="trash" size={12} />
+									<span>Confirm Clear</span>
+								</button>
+								<button type="button" class="btn-cancel-clear" on:click={() => (confirmingClear = false)}>
+									<span>Cancel</span>
+								</button>
+							</div>
+						</div>
+					{:else}
+						<button type="button" class="btn-clear-danger" on:click={handleClearTimetable}>
+							<NavIcon name="trash" size={12} />
+							<span>Remove Timetable</span>
+						</button>
+					{/if}
 				</div>
 			{/if}
 		{/if}
@@ -1122,6 +1144,46 @@
 	.btn-clear-danger:hover {
 		background: color-mix(in srgb, #ef4444 12%, transparent);
 		border-color: #ef4444;
+	}
+
+	.confirm-clear-box {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		width: 100%;
+		padding: 0.4rem 0.6rem;
+		background: color-mix(in srgb, #ef4444 10%, transparent);
+		border: 1px solid color-mix(in srgb, #ef4444 30%, transparent);
+		border-radius: 8px;
+	}
+	.confirm-text {
+		font-size: 0.74rem;
+		font-weight: 700;
+		color: #ef4444;
+	}
+	.confirm-btns {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+	.btn-cancel-clear {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.35rem 0.65rem;
+		border-radius: 7px;
+		background: transparent;
+		border: 1px solid var(--border-subtle);
+		color: var(--text-secondary);
+		font-size: 0.68rem;
+		font-weight: 700;
+		cursor: pointer;
+		font-family: inherit;
+		transition: all 0.15s ease;
+	}
+	.btn-cancel-clear:hover {
+		background: var(--surface-subtle);
+		color: var(--text-primary);
 	}
 
 	@media (max-width: 540px) {

@@ -171,7 +171,7 @@
 					<h3 class="card-title">Core Subject Distribution</h3>
 				</div>
 				<span class="coverage-subhead font-mono">
-					{isGeneric ? 'Accuracy' : 'Progress'}: <b class="text-white">{aggregatePct}% {isGeneric ? 'Overall' : 'Complete'}</b>
+					{isGeneric ? 'Accuracy' : 'Progress'}: <b style="color: var(--text-primary);">{aggregatePct}% {isGeneric ? 'Overall' : 'Complete'}</b>
 				</span>
 			</div>
 
@@ -266,7 +266,7 @@
 							stroke-linecap="round" 
 						/>
 						<!-- Glowing High-Point Marker Node -->
-						<circle cx={spline.peakCoords.x} cy={spline.peakCoords.y} r="5" fill="#ffffff" />
+						<circle cx={spline.peakCoords.x} cy={spline.peakCoords.y} r="5" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="2" />
 						<circle cx={spline.peakCoords.x} cy={spline.peakCoords.y} r="11" fill="var(--accent)" opacity="0.4" class="pulse-marker" />
 					{/if}
 				</svg>
@@ -430,7 +430,7 @@
 				{/if}
 				<div class="telemetry-item">
 					<span class="k">TOTAL ACTIVE DAYS:</span>
-					<b class="v text-white">{activeDaysCount} / 360</b>
+					<b class="v" style="color: var(--text-primary);">{activeDaysCount} / 360</b>
 				</div>
 				<div class="telemetry-item">
 					<span class="k">CURRENT STREAK:</span>
@@ -982,7 +982,7 @@
 		letter-spacing: 0.04em;
 	}
 
-	.inspect-badge.lvl-0 { background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); }
+	.inspect-badge.lvl-0 { background: var(--surface-subtle); color: var(--text-secondary); }
 	.inspect-badge.lvl-1 { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
 	.inspect-badge.lvl-2 { background: rgba(16, 185, 129, 0.2); color: #34d399; }
 	.inspect-badge.lvl-3 { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }

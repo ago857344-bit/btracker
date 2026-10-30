@@ -236,6 +236,48 @@
 	</svelte:fragment>
 </Modal>
 
+<Modal open={unlockBatch.length > 0} title="New Unlock!" width="440px" on:close={() => { unlockBatch = []; }}>
+	{#if primaryUnlock}
+		<div class="unlock-ceremony-box">
+			<div class="unlock-swatch-ring" style="--swatch-accent: {primaryUnlock.accent}; background: {primaryUnlock.swatch.startsWith('radial') || primaryUnlock.swatch.startsWith('linear') ? primaryUnlock.swatch : primaryUnlock.accent}">
+				<span class="unlock-icon"><NavIcon name="sparkles" size={32} /></span>
+			</div>
+			<span class="unlock-kind-pill">{primaryUnlock.kindLabel}</span>
+			<h2>{primaryUnlock.title || primaryUnlock.label}</h2>
+			{#if primaryUnlock.description}
+				<p class="unlock-desc">{primaryUnlock.description}</p>
+			{/if}
+
+			{#if unlockBatch.length > 1}
+				<div class="unlock-extras">
+					<span class="extras-head">Also unlocked ({unlockBatch.length - 1}):</span>
+					<div class="extras-list">
+						{#each unlockBatch.slice(1) as extra}
+							<div class="extra-item">
+								<span class="extra-dot" style="background: {extra.accent}"></span>
+								<b>{extra.title || extra.label}</b>
+								<small>{extra.kindLabel}</small>
+							</div>
+						{/each}
+					</div>
+				</div>
+			{/if}
+		</div>
+	{/if}
+	<svelte:fragment slot="footer">
+		<button type="button" class="btn ghost" on:click={() => { unlockBatch = []; }}>Dismiss</button>
+		{#if primaryTheme}
+			<button type="button" class="btn solid" on:click={applyUnlock}>
+				Equip Now
+			</button>
+		{:else}
+			<button type="button" class="btn solid" on:click={applyUnlock}>
+				Equip Now
+			</button>
+		{/if}
+	</svelte:fragment>
+</Modal>
+
 <style>
 	.celebration { position: fixed; z-index: 150; top: max(env(safe-area-inset-top, 0px) + 0.6rem, 1.1rem); left: 50%; display: flex; align-items: center; gap: .7rem; padding: .75rem 1.15rem; border-radius: 16px; background: #0f2e1c; border: 1px solid #245c3a; color: #d8ffe7; box-shadow: 0 18px 44px rgb(4 20 10 / 45%); transform: translateX(-50%); width: max-content; max-width: calc(100vw - 2rem); box-sizing: border-box; }
 	.celebration .check { display: grid; place-items: center; color: #4ade80; flex-shrink: 0; }
@@ -295,4 +337,16 @@
 	.ftext { display: grid; gap: .25rem; }
 	.ftext b { color: var(--text-primary); font-size: .88rem; font-weight: 800; letter-spacing: -.01em; }
 	.ftext span { color: var(--text-secondary); font-size: .78rem; line-height: 1.4; }
+
+	.unlock-ceremony-box { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0.5rem 0.25rem 0.75rem; gap: 0.5rem; }
+	.unlock-swatch-ring { width: 72px; height: 72px; border-radius: 50%; display: grid; place-items: center; margin-bottom: 0.25rem; box-shadow: 0 0 24px var(--swatch-accent, var(--accent)); border: 2px solid rgba(255, 255, 255, 0.3); color: #fff; }
+	.unlock-kind-pill { font-size: 0.68rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.2rem 0.6rem; border-radius: 999px; background: var(--surface-subtle); color: var(--accent); border: 1px solid var(--border-subtle); }
+	.unlock-ceremony-box h2 { margin: 0; font-size: 1.35rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.02em; }
+	.unlock-desc { margin: 0; font-size: 0.85rem; color: var(--text-secondary); max-width: 340px; line-height: 1.45; }
+	.unlock-extras { width: 100%; margin-top: 0.75rem; padding: 0.6rem 0.75rem; background: var(--surface-subtle); border-radius: 12px; border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 0.4rem; text-align: left; }
+	.extras-head { font-size: 0.7rem; font-weight: 750; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; }
+	.extras-list { display: flex; flex-direction: column; gap: 0.3rem; }
+	.extra-item { display: flex; align-items: center; gap: 0.45rem; font-size: 0.78rem; color: var(--text-primary); }
+	.extra-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+	.extra-item small { margin-left: auto; color: var(--text-secondary); font-size: 0.68rem; }
 </style>

@@ -1,6 +1,14 @@
 import { derived, get, writable } from 'svelte/store';
 import { createInitialTrackerState, getWidgetsForStudyFlow, getDefaultNavForMode } from '$lib/state/defaults';
-import { saveTrackerState } from '$lib/services/persistence';
+import {
+	saveTrackerState,
+	consumeStorageNotice,
+	captureRecoverySnapshot as persistRecoverySnapshot,
+	loadRecoverySnapshot as persistLoadRecoverySnapshot,
+	getRecoverySnapshotMeta,
+	clearRecoverySnapshot,
+	type RecoverySnapshotMeta
+} from '$lib/services/persistence';
 import { addDaysKey, focusMinutesOn, dayKeyOf, lastNDays, sessionDayKey, startOfWeek, todayKey } from '$lib/state/dates';
 import { SUBJECTS, dayPartOf, intervalFor, subjectColor, subjectName } from '$lib/state/subjects';
 import { cellKey, questionCount, questionKey, syllabusChapter } from '$lib/state/syllabus';
@@ -25,6 +33,12 @@ let pendingSave: ReturnType<typeof setTimeout> | undefined;
 let cloudSink: ((state: TrackerState) => void) | null = null;
 export function setCloudSink(fn: ((state: TrackerState) => void) | null) { cloudSink = fn; }
 export function replaceTracker(next: TrackerState, persist = true) {
+	if (next.flashcards) {
+		for (const fc of next.flashcards) {
+			const raw = String(fc.subject || '').trim().toLowerCase();
+			fc.subject = (raw === 'c' || raw === 'chem' || raw === 'chemistry') ? 'C' : (raw === 'm' || raw === 'math' || raw === 'maths' || raw === 'mathematics') ? 'M' : 'P';
+		}
+	}
 	tracker.set(structuredClone(next));
 	if (persist) scheduleSave();
 }
@@ -69,6 +83,8 @@ export function updateTracker(mutator: (draft: TrackerState) => void) {
 			} : ({} as any)
 		};
 		mutator(draft);
+		// Every mutation is stamped so sync and cross-tab merges can pick a winner.
+		draft.meta.updatedAt = Date.now();
 		draft.savedAt = new Date().toISOString();
 		return draft;
 	});
@@ -87,10 +103,19 @@ export async function flushSave(): Promise<void> {
 	pendingSave = undefined;
 	saveStatus.set('saving');
 	const state = get(tracker);
+	// Streak is derived, so keep the monotonic best in sync whenever we persist.
+	const bestStreak = Math.max(state.meta?.bestStreak ?? 0, calculateStreakDays(state));
+	if (bestStreak !== (state.meta?.bestStreak ?? 0)) {
+		tracker.update((current) => ({ ...current, meta: { ...current.meta, bestStreak } }));
+	}
+	const snapshot = get(tracker);
 	try {
-		await saveTrackerState(state);
+		await saveTrackerState(snapshot);
 		saveStatus.set('saved');
-		cloudSink?.(state);
+		signalLocalWrite(snapshot.meta?.updatedAt ?? Date.now());
+		const notice = consumeStorageNotice();
+		if (notice) triggerToast(notice);
+		cloudSink?.(snapshot);
 	} catch (e) {
 		console.error("Local Save Error:", e);
 		saveStatus.set('error');
@@ -123,7 +148,49 @@ export async function autoBalancePlannerTasks(dayMap: Record<string, string>): P
 	return count;
 }
 
+/**
+ * Cross-tab signal. The full state lives in IndexedDB, so we only broadcast a
+ * tiny version marker over localStorage — writing the whole document here would
+ * burn the quota this module is trying to protect.
+ */
+const CROSS_TAB_SIGNAL_KEY = 'btracker_state_signal_v1';
+
+function signalLocalWrite(updatedAt: number) {
+	if (typeof window === 'undefined') return;
+	try {
+		localStorage.setItem(CROSS_TAB_SIGNAL_KEY, JSON.stringify({ updatedAt, at: Date.now() }));
+	} catch {}
+}
+
+async function adoptCrossTabState(incomingUpdatedAt: number) {
+	if (incomingUpdatedAt <= (get(tracker).meta?.updatedAt ?? 0)) return;
+	const { loadTrackerState } = await import('$lib/services/persistence');
+	const incoming = await loadTrackerState();
+	if (!incoming) return;
+	const current = get(tracker);
+	if ((incoming.meta?.updatedAt ?? 0) <= (current.meta?.updatedAt ?? 0)) return;
+	// Imported lazily: sync.ts imports this module, so a static edge would be circular.
+	const { mergeTrackerStates } = await import('$lib/services/sync');
+	const merged = mergeTrackerStates(current, incoming);
+	// Direct set, never updateTracker: persisting through the mutation path would
+	// emit another signal and bounce the merge back and forth between tabs.
+	tracker.set(merged);
+	await saveTrackerState(merged);
+}
+
 if (typeof window !== 'undefined') {
+	const onStorage = (event: StorageEvent) => {
+		if (event.key !== CROSS_TAB_SIGNAL_KEY || !event.newValue) return;
+		let incomingUpdatedAt = 0;
+		try {
+			incomingUpdatedAt = Number(JSON.parse(event.newValue)?.updatedAt) || 0;
+		} catch {
+			return;
+		}
+		void adoptCrossTabState(incomingUpdatedAt);
+	};
+	window.addEventListener('storage', onStorage);
+
 	const onUnload = () => {
 		if (pendingSave) {
 			clearTimeout(pendingSave);
@@ -266,10 +333,38 @@ export function setSessionBoostHandler(fn: (sub: string, ch: string, duration: n
 	sessionBoostHandler = fn;
 }
 
+/**
+ * Splits a session that runs past midnight so each calendar day keeps its true
+ * minutes (heatmap, streak and daily totals all read the session start).
+ * The tuple has no end field, so the second slice is re-anchored at 00:00.
+ */
+export function splitSessionAtMidnight(session: StudySession): StudySession[] {
+	const [startMin, duration] = session;
+	if (!Number.isFinite(startMin) || duration <= 0) return [session];
+	const start = new Date(startMin * 60000);
+	const end = new Date(start.getTime() + duration * 60000);
+	if (dayKeyOf(start) === dayKeyOf(end)) return [session];
+
+	const nextMidnight = new Date(start);
+	nextMidnight.setHours(24, 0, 0, 0);
+	const firstMinutes = Math.round((nextMidnight.getTime() - start.getTime()) / 60000);
+	const secondMinutes = duration - firstMinutes;
+	const midnightMin = Math.floor(nextMidnight.getTime() / 60000);
+	const tail = session.slice(2);
+
+	if (firstMinutes < 1) return [[midnightMin, duration, ...tail] as StudySession];
+	if (secondMinutes < 1) return [[startMin, firstMinutes, ...tail] as StudySession];
+	return [
+		[startMin, firstMinutes, ...tail] as StudySession,
+		[midnightMin, secondMinutes, ...tail] as StudySession
+	];
+}
+
 /** Append a completed focus session to the study log. */
 export function logStudySession(session: StudySession) {
+	const parts = splitSessionAtMidnight(session);
 	updateTracker((state) => {
-		state.log.push(session);
+		for (const part of parts) state.log.push(part);
 		if (!state.gamification) state.gamification = { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } };
 		state.gamification.xp += session[1] * 10;
 		// Level calculation will be derived dynamically, or we can update it here.
@@ -299,6 +394,120 @@ export function recordFocus(opts: { startedEpochMinutes: number; durationMinutes
 }
 
 export const sessionsToday = derived(tracker, ($tracker) => $tracker.log.filter((session) => sessionDayKey(session) === todayKey()));
+
+/* ------------------------------------------------------------------ *
+ * Midnight rollover
+ * ------------------------------------------------------------------ */
+
+const ROLLOVER_INTERVAL_MS = 60_000;
+let rolloverInterval: ReturnType<typeof setInterval> | null = null;
+
+/** A running — or partially elapsed — focus session must never be disturbed by a day change. */
+async function focusSessionBlocksRollover(): Promise<boolean> {
+	const { timerSession } = await import('$lib/stores/timerState');
+	const session = get(timerSession);
+	if (session.running || session.elapsed > 0) return true;
+	return session.tab !== 'stopwatch' && session.remaining < session.activeLen * 60;
+}
+
+function applyDayRollover(today: string) {
+	const yesterday = addDaysKey(today, -1);
+	let carried = 0;
+	const previousDue = new Map<string, string>();
+
+	updateTracker((s) => {
+		if (s.meta.lastActiveDay === today) return;
+		// First run just records the day — there is no prior day to roll over.
+		if (!s.meta.lastActiveDay) {
+			s.meta.lastActiveDay = today;
+			return;
+		}
+		const now = Date.now();
+		for (const task of s.h) {
+			if (task.due !== yesterday) continue;
+			if (task.done || task.locked || task.isClass || task.kind === 'class') continue;
+			if (task.title && task.title.toLowerCase().startsWith('[class]')) continue;
+			previousDue.set(task.id, task.due);
+			task.due = today;
+			task.updated = now;
+			carried++;
+		}
+		s.meta.lastActiveDay = today;
+	});
+
+	if (carried === 0) return;
+	triggerToast({
+		text: `${carried} unfinished task${carried === 1 ? '' : 's'} carried over to today`,
+		actionLabel: 'Undo',
+		onAction: () => {
+			updateTracker((s) => {
+				for (const task of s.h) {
+					const due = previousDue.get(task.id);
+					if (!due) continue;
+					task.due = due;
+					task.updated = Date.now();
+				}
+			});
+			triggerToast('Carry-over undone');
+		}
+	});
+}
+
+/**
+ * Runs the daily archiving exactly once per day. While a focus session is
+ * active the rollover is skipped, so the in-progress task is never yanked out
+ * of the planner; the 60s watcher retries as soon as the timer stops.
+ */
+export async function checkDayRollover(): Promise<'none' | 'deferred' | 'rolled'> {
+	if (typeof window === 'undefined') return 'none';
+	// Writing before the persisted state is loaded would overwrite it with defaults.
+	if (get(hydration) !== 'ready') return 'none';
+	const today = todayKey();
+	if (get(tracker).meta?.lastActiveDay === today) return 'none';
+	if (await focusSessionBlocksRollover()) return 'deferred';
+	applyDayRollover(today);
+	return 'rolled';
+}
+
+/** Starts the midnight watcher. Safe to call once from the root layout. */
+export function startDayRolloverWatch(): () => void {
+	if (typeof window === 'undefined') return () => {};
+	if (rolloverInterval) clearInterval(rolloverInterval);
+	const tick = () => { void checkDayRollover(); };
+	rolloverInterval = setInterval(tick, ROLLOVER_INTERVAL_MS);
+	const onFocus = () => tick();
+	const onVisibility = () => { if (document.visibilityState === 'visible') tick(); };
+	window.addEventListener('focus', onFocus);
+	document.addEventListener('visibilitychange', onVisibility);
+	void checkDayRollover();
+	return () => {
+		if (rolloverInterval) clearInterval(rolloverInterval);
+		rolloverInterval = null;
+		window.removeEventListener('focus', onFocus);
+		document.removeEventListener('visibilitychange', onVisibility);
+	};
+}
+
+/* ------------------------------------------------------------------ *
+ * Recovery snapshots — reversible destructive actions
+ * ------------------------------------------------------------------ */
+
+/** Saves the live state before an import/reset so the action can be undone. */
+export function captureRecoverySnapshot(reason: string): Promise<boolean> {
+	return persistRecoverySnapshot(get(tracker), reason);
+}
+
+export async function restoreRecoverySnapshot(): Promise<boolean> {
+	const snapshot = await persistLoadRecoverySnapshot();
+	if (!snapshot) return false;
+	// Keep the current state recoverable too, in case the snapshot is the wrong one.
+	await persistRecoverySnapshot(get(tracker), 'Before recovery restore');
+	replaceTracker(snapshot);
+	return true;
+}
+
+export { getRecoverySnapshotMeta, clearRecoverySnapshot };
+export type { RecoverySnapshotMeta };
 
 /* ------------------------------------------------------------------ *
  * BTracker feature set — profile, planner, goals, reflection, sessions,
@@ -364,16 +573,33 @@ export function closeWrappedStory() {
 	wrappedStoryOpen.set(false);
 }
 
+export const recapModalOpen = writable(false);
+export function openRecapModal() {
+	recapModalOpen.set(true);
+}
+export function closeRecapModal() {
+	recapModalOpen.set(false);
+}
+
 export { testDaySheetOpen, openTestDaySheet, closeTestDaySheet } from '$lib/stores/testDaySheet';
 
 export function addFlashcard(card: { front: string; back: string; subject: string; chapter: string }) {
 	updateTracker((s) => {
 		if (!s.flashcards) s.flashcards = [];
+		const rawSub = (card.subject || '').trim().toLowerCase();
+		let normSub: 'P' | 'C' | 'M' = 'P';
+		if (rawSub === 'p' || rawSub === 'phy' || rawSub === 'physics') {
+			normSub = 'P';
+		} else if (rawSub === 'c' || rawSub === 'chem' || rawSub === 'chemistry') {
+			normSub = 'C';
+		} else if (rawSub === 'm' || rawSub === 'math' || rawSub === 'maths' || rawSub === 'mathematics') {
+			normSub = 'M';
+		}
 		s.flashcards.push({
 			id: crypto.randomUUID ? crypto.randomUUID() : `fc_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
 			front: card.front,
 			back: card.back,
-			subject: card.subject || 'P',
+			subject: normSub,
 			chapter: card.chapter || 'General',
 			interval: 1,
 			repetition: 0,
@@ -1324,13 +1550,18 @@ export function useStreakFreeze(targetDateKey?: string) {
 	});
 }
 
-export function earnStreakFreeze() {
+export function earnStreakFreeze(): boolean {
+	let claimed = false;
 	updateTracker((state) => {
 		if (!state.streakFreezes) state.streakFreezes = { available: 2, usedDates: [] };
-		if (state.streakFreezes.available < 4) {
+		if (!state.gamification) state.gamification = { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } };
+		if (state.streakFreezes.available < 4 && (state.gamification.xp ?? 0) >= 500) {
+			state.gamification.xp -= 500;
 			state.streakFreezes.available += 1;
+			claimed = true;
 		}
 	});
+	return claimed;
 }
 
 export const peakProductivity = derived(tracker, ($t) => {
@@ -1899,7 +2130,8 @@ export function clearCoachingTimetable() {
 export function addPeriodToPlanner(period: TimetablePeriod, targetDayKey: string) {
 	updateTracker((s) => {
 		const existing = [...(s.h || []), ...(s.hd || [])].some(
-			(t) => t.due === targetDayKey && t.st === period.startTime && (t.title?.includes(period.topic) || t.title?.includes(period.subject))
+			(t) => (t.due === targetDayKey || (t as any).date === targetDayKey) &&
+				((t as any).periodId === period.id || (t.st === period.startTime && (t.title?.includes(period.topic) || t.title?.includes(period.subject))))
 		);
 		if (existing) return;
 		s.h.push({
@@ -1907,15 +2139,17 @@ export function addPeriodToPlanner(period: TimetablePeriod, targetDayKey: string
 			kind: 'class',
 			isClass: true,
 			locked: true,
+			periodId: period.id,
 			title: `[Class] ${period.topic || period.subject}`,
 			due: targetDayKey,
+			date: targetDayKey,
 			done: false,
 			s: (['P', 'C', 'M'].includes(period.subject) ? period.subject : undefined) as any,
 			st: period.startTime,
 			en: period.endTime,
 			subs: [],
 			updated: Date.now()
-		});
+		} as any);
 	});
 }
 

@@ -33,7 +33,7 @@
 	import { startSync } from '$lib/services/sync';
 	import { THEME_PRESETS, isDarkTheme, wallpaperCss, resolveLiveWallpaper, resolveEcoMode, isMobileDevice, isBuiltinWallpaper, EXTRA_WALLPAPERS, getActiveWallpaper, isVideoWallpaper } from '$lib/state/themes';
 	import { authReady, authConfigured, currentUser, hasSkippedLogin, sessionResolved, syncStatus } from '$lib/stores/auth';
-	import { saveStatus, tracker, formulaVaultOpen, testDaySheetOpen, targetsModalOpen, autoCheckStreakFreeze, feynmanDuckOpen, wrappedStoryOpen, commandPaletteOpen } from '$lib/stores/tracker';
+	import { saveStatus, tracker, formulaVaultOpen, testDaySheetOpen, targetsModalOpen, autoCheckStreakFreeze, feynmanDuckOpen, wrappedStoryOpen, recapModalOpen, commandPaletteOpen, startDayRolloverWatch } from '$lib/stores/tracker';
 	import BTrackerWrappedModal from '$lib/components/stats/BTrackerWrappedModal.svelte';
 	import { loadout } from '$lib/stores/cosmetics';
 	import { sidebarDragWidth } from '$lib/stores/sidebar';
@@ -400,6 +400,8 @@
 		});
 	}
 
+	let stopDayRolloverWatch: (() => void) | undefined;
+
 	onMount(() => {
 		if (isPreview) {
 			document.documentElement.classList.add('btracker-preview');
@@ -417,6 +419,8 @@
 			void hydrateTracker().then(() => {
 				startSync();
 				autoCheckStreakFreeze();
+				// Only after hydration: writing before the disk read lands could persist defaults.
+				stopDayRolloverWatch = startDayRolloverWatch();
 			});
 		}
 		isMobile = isMobileDevice();
@@ -443,6 +447,7 @@
 			window.removeEventListener('click', unlockVideo);
 			window.removeEventListener('touchstart', unlockVideo);
 			window.removeEventListener('message', handlePreviewMessage);
+			stopDayRolloverWatch?.();
 			document.documentElement.classList.remove('btracker-preview');
 			if (pointerRaf) cancelAnimationFrame(pointerRaf);
 			stopFx();
@@ -492,6 +497,16 @@
 
 	$: showOnboarding = !isPreview && (((!isAuthRoute && $authReady && $syncStatus !== 'pulling' && !!$currentUser && !$tracker.onboarded)) || $targetsModalOpen);
 
+	$: anyOverlayOpen = Boolean(hotkeyModalOpen || $formulaVaultOpen || $testDaySheetOpen || $feynmanDuckOpen || $wrappedStoryOpen || $recapModalOpen || $commandPaletteOpen || $targetsModalOpen);
+
+	$: if (typeof document !== 'undefined') {
+		if (anyOverlayOpen) {
+			document.body.dataset.sheetOpen = 'true';
+		} else if (document.body.dataset.sheetOpen && !document.querySelector('.modal-backdrop, .gm-backdrop, .vault-backdrop, .overlay, .island-scrim')) {
+			delete document.body.dataset.sheetOpen;
+		}
+	}
+
 	const LIGHT_THEMES = new Set(['light', 'notion', 'duolingo', 'anki', 'master']);
 	$: defaultThemeColor = LIGHT_THEMES.has(effectiveTheme) ? '#f7f7fb' : '#11101b';
 	$: hasActiveWallpaper = Boolean((currentWallpaperStr || activeVideoUrl) && !isFirstTimeOrUnauth);
@@ -527,11 +542,11 @@
 			mobileOpen = false;
 			hotkeyModalOpen = false;
 		}
-		if (event.defaultPrevented) return;
+		if (event.defaultPrevented || $wrappedStoryOpen || $recapModalOpen) return;
 		const target = event.target as HTMLElement | null;
 		const tag = target?.tagName?.toLowerCase();
 		const isEditable = target?.isContentEditable || tag === 'input' || tag === 'textarea' || tag === 'select';
-		const isModalOpen = Boolean(hotkeyModalOpen || (typeof document !== 'undefined' && document.body?.dataset?.sheetOpen));
+		const isModalOpen = Boolean(anyOverlayOpen || (typeof document !== 'undefined' && (document.body?.dataset?.sheetOpen || document.querySelector('.modal-backdrop, .gm-backdrop, .vault-backdrop, .overlay'))));
 		if (!isEditable && !isModalOpen && !event.ctrlKey && !event.metaKey && !event.altKey && !event.defaultPrevented) {
 			if (event.key === '?' || (event.key === '/' && event.shiftKey)) {
 				event.preventDefault();
@@ -540,6 +555,7 @@
 				event.preventDefault();
 				formulaVaultOpen.update((v) => !v);
 			} else if (event.key === ' ') {
+				if ($wrappedStoryOpen || $recapModalOpen) return;
 				event.preventDefault();
 				$globalTimer.toggle();
 			} else if (event.key === '+' || event.key === '=') {
@@ -923,16 +939,46 @@
 		.app-shell.sidebar-collapsed { padding-left: 0; }
 		.topbar-center { display: contents; }
 		.topbar {
-			min-height: calc(max(env(safe-area-inset-top), 14px) + 56px);
-			padding: max(env(safe-area-inset-top), 14px) 1.15rem 0.8rem;
+			min-height: calc(max(env(safe-area-inset-top), 14px) + 54px) !important;
+			padding-top: max(env(safe-area-inset-top), 14px) !important;
+			padding-left: 1.15rem;
+			padding-right: 1.15rem;
+			padding-bottom: 0.75rem;
+			position: sticky;
+			top: 0;
+			z-index: 30;
+			-webkit-transform: translateZ(0);
+			transform: translateZ(0);
+			-webkit-font-smoothing: antialiased;
+			-moz-osx-font-smoothing: grayscale;
+		}
+		.topbar:not(.scrolled) {
 			background: transparent !important;
 			backdrop-filter: none !important;
 			-webkit-backdrop-filter: none !important;
-			position: sticky;
-			top: 0;
-			z-index: 15;
 			border-bottom: 1px solid transparent !important;
 			box-shadow: none !important;
+		}
+		.topbar.scrolled {
+			min-height: calc(max(env(safe-area-inset-top), 14px) + 52px) !important;
+			padding-top: max(env(safe-area-inset-top), 14px) !important;
+			padding-bottom: 0.65rem !important;
+			background: color-mix(in srgb, var(--surface-1, #12101e) 98%, transparent) !important;
+			backdrop-filter: none !important;
+			-webkit-backdrop-filter: none !important;
+			border-bottom: 1px solid var(--border-subtle) !important;
+			box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.45) !important;
+		}
+		:global(:root[data-theme='light']) .topbar.scrolled,
+		:global(:root[data-theme='notion']) .topbar.scrolled,
+		:global(:root[data-theme='duolingo']) .topbar.scrolled,
+		:global(:root[data-theme='anki']) .topbar.scrolled,
+		:global(:root[data-theme='master']) .topbar.scrolled {
+			background: rgba(255, 255, 255, 0.98) !important;
+			backdrop-filter: none !important;
+			-webkit-backdrop-filter: none !important;
+			border-bottom: 1px solid rgba(0, 0, 0, 0.1) !important;
+			box-shadow: 0 4px 18px -4px rgba(0, 0, 0, 0.08) !important;
 		}
 		.breadcrumb { display: none; }
 		.page-heading { gap: 0.6rem; min-width: 0; flex: 1; }
@@ -940,7 +986,7 @@
 		.page-heading h2 { font-size: 1.05rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: clamp(80px, 22vw, 150px); }
 		@media (max-width: 380px) {
 			.page-heading h2 { max-width: 85px; }
-			.topbar { padding: max(env(safe-area-inset-top), 14px) 0.65rem 0.8rem; }
+			.topbar { padding-left: 0.65rem; padding-right: 0.65rem; }
 		}
 		@media (max-width: 340px) {
 			.page-heading h2 { display: none; }
@@ -952,9 +998,9 @@
 			height: 38px;
 			border-radius: 50%;
 			border: 1.5px solid color-mix(in srgb, var(--accent) 65%, rgba(255, 255, 255, 0.35));
-			background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 28%, rgba(20, 16, 38, 0.65)), color-mix(in srgb, var(--accent) 18%, rgba(12, 10, 24, 0.78)));
-			backdrop-filter: blur(16px);
-			-webkit-backdrop-filter: blur(16px);
+			background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 35%, rgba(20, 16, 38, 0.92)), color-mix(in srgb, var(--accent) 22%, rgba(12, 10, 24, 0.95)));
+			backdrop-filter: none !important;
+			-webkit-backdrop-filter: none !important;
 			color: var(--accent-contrast, #ffffff);
 			box-shadow: 0 4px 18px -2px color-mix(in srgb, var(--accent) 45%, transparent), 0 0 14px -2px color-mix(in srgb, var(--accent) 30%, transparent);
 		}
@@ -974,7 +1020,7 @@
 		.quick-add:active {
 			transform: scale(0.92);
 		}
-		main { padding: 1rem .85rem calc(max(env(safe-area-inset-bottom), 18px) + 84px); }
+		main { padding: 1rem .85rem calc(96px + env(safe-area-inset-bottom, 0px)); }
 		.scrim {
 			display: block;
 			position: fixed;

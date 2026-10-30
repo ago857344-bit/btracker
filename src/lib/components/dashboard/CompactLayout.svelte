@@ -251,9 +251,21 @@
 
 	// Exam Countdown
 	let now = Date.now();
+	function getUpcomingExamTarget(): number {
+		const currentYear = new Date().getFullYear();
+		const candidates = [
+			new Date(`${currentYear}-01-24T09:00:00`).getTime(),
+			new Date(`${currentYear}-04-06T09:00:00`).getTime(),
+			new Date(`${currentYear}-05-24T09:00:00`).getTime(),
+			new Date(`${currentYear + 1}-01-24T09:00:00`).getTime(),
+			new Date(`${currentYear + 1}-05-24T09:00:00`).getTime()
+		];
+		const upcoming = candidates.find((t) => t > Date.now());
+		return upcoming ?? new Date(`${currentYear + 1}-01-24T09:00:00`).getTime();
+	}
 	$: examTarget = $tracker.meta.exam
 		? new Date($tracker.meta.exam.includes('T') ? $tracker.meta.exam : $tracker.meta.exam + 'T09:00:00').getTime()
-		: new Date('2026-05-24T09:00:00').getTime();
+		: getUpcomingExamTarget();
 	$: diffDays = Math.max(0, Math.floor((examTarget - now) / (1000 * 60 * 60 * 24)));
 
 	// 14-Day Mini Cadence Dots & Interactive Inspector

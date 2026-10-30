@@ -154,6 +154,12 @@ export interface MetaState {
 	dailyQuestions?: number;
 	dailyRevisionGoal?: number;
 	dreamCollege?: string;
+	/** Epoch ms of the last local mutation; drives cross-tab and sync conflict resolution. */
+	updatedAt?: number;
+	/** Last calendar day the daily rollover maintenance ran. */
+	lastActiveDay?: DayKey;
+	/** All-time best streak, kept as a monotonic counter across devices. */
+	bestStreak?: number;
 }
 
 /** [started-at in epoch minutes, duration minutes, activity/topic, deadline id, speedrun flag?, target?, completed?, subject?, chapter?] */
@@ -453,6 +459,7 @@ export interface TrackerState {
 	streakFreezes?: {
 		available: number;
 		usedDates: string[];
+		lastFreezeClaimStreak?: number;
 	};
 	studyDump?: StudyDumpState;
 	onboarded?: boolean;

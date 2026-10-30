@@ -18,10 +18,18 @@
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { extractTextFromPdfBlob } from '$lib/services/pdfText';
 	import { sendToAiMentor, triggerOrbFlight } from '$lib/stores/aiMentor';
+	import { page } from '$app/stores';
 
 	// Active tab
 	let activeTab: 'all' | DumpSection = 'all';
 	let searchQuery = '';
+
+	$: {
+		const urlQ = $page.url.searchParams.get('q');
+		if (urlQ) {
+			searchQuery = urlQ;
+		}
+	}
 
 	// Upload Modal State
 	let uploadModalOpen = false;
@@ -296,6 +304,8 @@
 		try {
 			const res = await deleteFileFromSection(userId, file.section, file.name, allFiles);
 			updateTracker((t) => {
+				t.deletedIds ??= {};
+				t.deletedIds[file.id] = Date.now();
 				if (!t.studyDump) t.studyDump = { files: [] };
 				t.studyDump.files = res.remainingMetas;
 				if (!t.studyDump.sectionZipSizes) t.studyDump.sectionZipSizes = {};
@@ -468,8 +478,30 @@
 			if (res.files.length > 0) {
 				updateTracker((t) => {
 					if (!t.studyDump) t.studyDump = { files: [] };
-					t.studyDump.files = res.files;
-					t.studyDump.sectionZipSizes = res.sectionSizes;
+					const deletedMap = t.deletedIds || {};
+					const fileMap = new Map<string, DumpFileMeta>();
+
+					// 1. Existing local files, skipping deleted tombstones
+					for (const f of t.studyDump.files || []) {
+						if (deletedMap[f.id]) continue;
+						fileMap.set(`${f.section}::${f.name}`, f);
+					}
+
+					// 2. Remote files, skipping deleted tombstones & taking newer uploadedAt
+					for (const rf of res.files || []) {
+						if (deletedMap[rf.id]) continue;
+						const key = `${rf.section}::${rf.name}`;
+						const existing = fileMap.get(key);
+						if (!existing || (rf.uploadedAt || 0) >= (existing.uploadedAt || 0)) {
+							fileMap.set(key, rf);
+						}
+					}
+
+					t.studyDump.files = Array.from(fileMap.values());
+					t.studyDump.sectionZipSizes = {
+						...(t.studyDump.sectionZipSizes || {}),
+						...(res.sectionSizes || {})
+					};
 					t.studyDump.lastSyncAt = Date.now();
 				});
 				celebration.set(`Retrieved ${res.files.length} study files across ${res.syncedSections.length} sections!`);

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
-	import { addSubtask, deleteTask, patchTask, removeSubtask, togglePlannerSubtask } from '$lib/stores/tracker';
+	import { addSubtask, deleteTask, patchTask, removeSubtask, togglePlannerSubtask, tracker } from '$lib/stores/tracker';
 	import { globalTimer } from '$lib/stores/timerState';
 	import { goto } from '$app/navigation';
 	import { TASK_COLORS, SUBJECTS, subjectColor, subjectName } from '$lib/state/subjects';
@@ -11,13 +11,24 @@
 	export let open = false;
 	export let task: HomeworkItem | null = null;
 
+	$: liveTask = [...($tracker.h || []), ...($tracker.hd || [])].find((t) => t.id === task?.id) ?? task;
+
 	let editing = false;
-	let draft = { title: '', due: '', st: '', en: '', s: '', col: 0, hrs: 0 };
+	let draft = { title: '', due: '', st: '', en: '', s: '', col: 0, hrs: 0, test: false };
 	let subtaskText = '';
-	$: if (open && task) {
+	$: if (open && liveTask) {
 		editing = false;
 		subtaskText = '';
-		draft = { title: task.title ?? '', due: task.due ?? '', st: task.st ?? '', en: task.en ?? '', s: task.s ?? '', col: task.col ?? 0, hrs: task.hrs ?? 0 };
+		draft = {
+			title: liveTask.title ?? '',
+			due: liveTask.due ?? '',
+			st: liveTask.st ?? '',
+			en: liveTask.en ?? '',
+			s: liveTask.s ?? '',
+			col: liveTask.col ?? 0,
+			hrs: liveTask.hrs ?? 0,
+			test: Boolean(liveTask.test)
+		};
 	}
 
 	const fmtTime = (v?: string) => {
@@ -29,68 +40,69 @@
 	};
 
 	function save() {
-		if (!task) return;
+		if (!liveTask) return;
 		const updated = {
-			title: draft.title.trim() || task.title,
-			due: draft.due || task.due,
+			title: draft.title.trim() || liveTask.title,
+			due: draft.due || liveTask.due,
 			st: draft.st,
 			en: draft.en,
 			s: draft.s || undefined,
 			col: draft.col,
-			hrs: draft.hrs
+			hrs: Number(draft.hrs) || 0,
+			test: Boolean(draft.test)
 		};
-		patchTask(task.id, updated);
-		task = { ...task, ...updated };
+		patchTask(liveTask.id, updated);
+		if (task) task = { ...task, ...updated };
 		editing = false;
 	}
 
 	function quickMove(daysToAdd: number) {
-		if (!task) return;
+		if (!liveTask) return;
 		const targetDay = addDaysKey(todayKey(), daysToAdd);
-		patchTask(task.id, { due: targetDay });
-		task = { ...task, due: targetDay };
+		patchTask(liveTask.id, { due: targetDay });
+		if (task) task = { ...task, due: targetDay };
 		draft.due = targetDay;
 	}
 
 	function remove() {
-		if (!task) return;
-		deleteTask(task.id);
+		if (!liveTask) return;
+		deleteTask(liveTask.id);
 		open = false;
 	}
 
 	function addSub() {
-		if (!task || !subtaskText.trim()) return;
+		if (!liveTask || !subtaskText.trim()) return;
 		const text = subtaskText.trim();
 		const newSub = { id: `st_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, title: text, done: false };
-		addSubtask(task.id, newSub);
-		task = { ...task, subs: [...(task.subs || []), newSub] };
+		addSubtask(liveTask.id, newSub);
+		if (task) task = { ...task, subs: [...(task.subs || []), newSub] };
 		subtaskText = '';
 	}
 
 	function deleteSub(idx: number) {
-		if (!task) return;
-		removeSubtask(task.id, idx);
-		task = { ...task, subs: (task.subs || []).filter((_, i) => i !== idx) };
+		if (!liveTask) return;
+		removeSubtask(liveTask.id, idx);
+		if (task) task = { ...task, subs: (task.subs || []).filter((_, i) => i !== idx) };
 	}
 
 	function startFocus() {
-		if (!task) return;
-		const durationSecs = Math.max(15, Math.round((task.hrs || 0.75) * 60)) * 60;
-		globalTimer.start(task.s || 'P', durationSecs, task.title || 'Planned Task', 'timer');
+		if (!liveTask) return;
+		const durationSecs = Math.max(15, Math.round((liveTask.hrs || 0.75) * 60)) * 60;
+		globalTimer.start(liveTask.s || 'P', durationSecs, liveTask.title || 'Planned Task', 'timer');
 		open = false;
 		goto('/focus');
 	}
 </script>
 
 <Modal bind:open title="Task details" width="480px">
-	{#if task}
+	{#if liveTask}
 		<div class="detail">
 			<div class="head">
-				<span class="ring" style="border-color: {TASK_COLORS[(task.col ?? 0) % TASK_COLORS.length]}"></span>
+				<span class="ring" style="border-color: {TASK_COLORS[(liveTask.col ?? 0) % TASK_COLORS.length]}"></span>
 				{#if editing}
 					<input class="title-edit" type="text" bind:value={draft.title} aria-label="Task title" />
 				{:else}
-					<b class="title">{task.title}</b>
+					<b class="title" class:strike={liveTask.done}>{liveTask.title}</b>
 				{/if}
 			</div>
 
@@ -106,6 +118,12 @@
 							{#each SUBJECTS as s}<option value={s.code}>{s.name}</option>{/each}
 						</select>
 					</label>
+					<label class="row"><span>Est. Hours</span>
+						<input type="number" step="0.5" min="0" max="16" bind:value={draft.hrs} />
+					</label>
+					<label class="row" style="cursor: pointer;"><span>Test Mode</span>
+						<input type="checkbox" bind:checked={draft.test} style="width: auto; margin-right: auto;" />
+					</label>
 					<div class="row"><span>Color</span>
 						<span class="swatches">
 							{#each TASK_COLORS as color, i}
@@ -114,29 +132,29 @@
 						</span>
 					</div>
 				{:else}
-					<p class="row"><span>Date</span>{task.due ? longDateKey(task.due) : 'No specific date'}</p>
+					<p class="row"><span>Date</span>{liveTask.due ? longDateKey(liveTask.due) : 'No specific date'}</p>
 					<div class="row quick-reschedule">
 						<span>Move</span>
 						<div class="pill-group">
-							<button type="button" class="move-pill" class:active={task.due === todayKey()} on:click={() => quickMove(0)}>Today</button>
-							<button type="button" class="move-pill" class:active={task.due === addDaysKey(todayKey(), 1)} on:click={() => quickMove(1)}>Tomorrow</button>
+							<button type="button" class="move-pill" class:active={liveTask.due === todayKey()} on:click={() => quickMove(0)}>Today</button>
+							<button type="button" class="move-pill" class:active={liveTask.due === addDaysKey(todayKey(), 1)} on:click={() => quickMove(1)}>Tomorrow</button>
 							<button type="button" class="move-pill" on:click={() => quickMove(2)}>+2d</button>
 							<button type="button" class="move-pill" on:click={() => quickMove(7)}>+7d</button>
 						</div>
 					</div>
-					<p class="row"><span>Time</span>{task.st || task.en ? `${fmtTime(task.st)}${task.st && task.en ? ' – ' + fmtTime(task.en) : ''}` : 'No specific time set'}</p>
+					<p class="row"><span>Time</span>{liveTask.st || liveTask.en ? `${fmtTime(liveTask.st)}${liveTask.st && liveTask.en ? ' – ' + fmtTime(liveTask.en) : ''}` : 'No specific time set'}</p>
 					<p class="row"><span>Subject</span>
-						{#if task.s}<i class="dot" style="background: {subjectColor(task.s)}"></i>{subjectName(task.s)}{:else}No Subject{/if}
+						{#if liveTask.s}<i class="dot" style="background: {subjectColor(liveTask.s)}"></i>{subjectName(liveTask.s)}{:else}No Subject{/if}
 					</p>
-					{#if task.hrs}<p class="row"><span>Est.</span>{task.hrs} hrs</p>{/if}
-					{#if task.test}<p class="row"><span>Tag</span><i class="test-pill">Scheduled test</i></p>{/if}
-					{#if task.rec && task.rec !== 'once'}<p class="row"><span>Repeat</span>{task.rec}</p>{/if}
+					{#if liveTask.hrs}<p class="row"><span>Est.</span>{liveTask.hrs} hrs</p>{/if}
+					{#if liveTask.test}<p class="row"><span>Tag</span><i class="test-pill">Scheduled test</i></p>{/if}
+					{#if liveTask.rec && liveTask.rec !== 'once'}<p class="row"><span>Repeat</span>{liveTask.rec}</p>{/if}
 				{/if}
 			</div>
 
 			<div class="subtasks">
 				<p class="label">Subtasks</p>
-				{#each task.subs ?? [] as sub, idx}
+				{#each liveTask.subs ?? [] as sub, idx}
 					{@const isDone = typeof sub === 'object' && sub !== null ? Boolean(sub.done) : false}
 					{@const subTitle = typeof sub === 'object' && sub !== null ? sub.title : String(sub)}
 					<div class="sub-item" class:done={isDone}>
@@ -145,15 +163,15 @@
 							class="sub-chk-btn"
 							aria-label="Toggle subtask"
 							on:click={() => {
-								if (task && task.subs) {
-									togglePlannerSubtask(task.id, idx);
-									const current = task.subs[idx];
+								if (liveTask && liveTask.subs) {
+									togglePlannerSubtask(liveTask.id, idx);
+									const current = liveTask.subs[idx];
 									if (typeof current === 'object' && current !== null) {
 										current.done = !current.done;
 									} else if (typeof current === 'string') {
-										task.subs[idx] = { id: String(idx), title: current, done: true };
+										liveTask.subs[idx] = { id: String(idx), title: current, done: true };
 									}
-									task = { ...task };
+									if (task) task = { ...task };
 								}
 							}}
 						>

@@ -85,14 +85,9 @@
 			text: `Q${q.number} marked solved & correct`,
 			actionLabel: 'Undo',
 			onAction: () => {
-				const currentResult = resultOf($tracker.d?.[key]?.[q.index] || 0);
-				if (currentResult !== resultOf(prevVal)) {
-					setQuestionResult(loc, q.index, resultOf(prevVal) as 0 | 1 | 2 | 3);
-				}
-				const now = $tracker.d?.[key]?.[q.index] || 0;
-				if (isDone(now) !== isDone(prevVal)) toggleQuestionDone(loc, q.index);
-				const after = $tracker.d?.[key]?.[q.index] || 0;
-				if (isFlag(after) !== isFlag(prevVal)) toggleQuestionFlag(loc, q.index);
+				updateTracker((s) => {
+					if (s.d?.[key]) s.d[key][q.index] = prevVal;
+				});
 			}
 		});
 	}

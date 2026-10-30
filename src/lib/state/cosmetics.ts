@@ -176,6 +176,8 @@ export interface Unlockable {
 	kind: 'theme' | Slot | 'aurora';
 	id: string;
 	label: string;
+	title?: string;
+	description?: string;
 	kindLabel: string;
 	unlock: Req;
 	swatch: string;
@@ -185,7 +187,7 @@ export interface Unlockable {
 /** Everything with an unlock requirement, used by the unlock ceremony. */
 export function allUnlockables(): Unlockable[] {
 	const out: Unlockable[] = THEME_PRESETS.filter((t) => t.unlock).map((t) => ({
-		key: `theme:${t.id}`, kind: 'theme', id: t.id, label: t.label, kindLabel: 'Theme', unlock: t.unlock!, swatch: t.wallpaper ?? t.accent, accent: t.accent
+		key: `theme:${t.id}`, kind: 'theme', id: t.id, label: t.label, title: t.label, description: t.blurb || reqLabel(t.unlock!), kindLabel: 'Theme', unlock: t.unlock!, swatch: t.wallpaper ?? t.accent, accent: t.accent
 	}));
 	for (const { slot, label, items } of COSMETIC_SLOTS) {
 		// Theme-derived wallpapers/confetti arrive with their theme; listing them again is noise.
@@ -195,11 +197,11 @@ export function allUnlockables(): Unlockable[] {
 		}
 		items.filter((item) => item.unlock).forEach((item) => out.push(toUnlockable(slot, label, item)));
 	}
-	out.push({ key: 'aurora:aurora', kind: 'aurora', id: 'aurora', label: 'Aurora Backdrop', kindLabel: 'Live effect', unlock: AURORA_REQ, swatch: grad(['#69db7c', '#4dabf7', '#b197fc']), accent: '#69db7c' });
+	out.push({ key: 'aurora:aurora', kind: 'aurora', id: 'aurora', label: 'Aurora Backdrop', title: 'Aurora Backdrop', description: reqLabel(AURORA_REQ), kindLabel: 'Live effect', unlock: AURORA_REQ, swatch: grad(['#69db7c', '#4dabf7', '#b197fc']), accent: '#69db7c' });
 	return out;
 }
 
 const toUnlockable = (slot: Slot, slotLabel: string, item: CosmeticItem): Unlockable => ({
-	key: `${slot}:${item.id}`, kind: slot, id: item.id, label: item.label, kindLabel: slotLabel, unlock: item.unlock!, swatch: item.swatch,
+	key: `${slot}:${item.id}`, kind: slot, id: item.id, label: item.label, title: item.label, description: reqLabel(item.unlock!), kindLabel: slotLabel, unlock: item.unlock!, swatch: item.swatch,
 	accent: item.colors?.[1] ?? item.colors?.[0] ?? '#b197fc'
 });

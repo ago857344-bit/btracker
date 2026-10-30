@@ -70,16 +70,25 @@
 	function scheduleMilestoneToday(goal: TrackerGoal) {
 		const uncompleted = goal.milestones?.find((m) => !m.done);
 		const title = uncompleted ? `${goal.title}: ${uncompleted.t}` : goal.title;
+		const today = todayKey();
+		const alreadyScheduled = [...($tracker.h || []), ...($tracker.hd || [])].some(
+			(item) => ((item as any).date === today || item.due === today) && item.title === `🎯 ${title}`
+		);
+		if (alreadyScheduled) {
+			triggerToast('Already scheduled for today');
+			return;
+		}
 		updateTracker((t) => {
 			if (!t.h) t.h = [];
 			t.h.push({
 				id: 'g-hw-' + Date.now(),
 				title: `🎯 ${title}`,
 				s: (goal.sub as any) || undefined,
-				due: todayKey(),
+				due: today,
+				date: today,
 				hrs: 1,
 				done: false
-			});
+			} as any);
 		});
 		triggerToast(`Scheduled "${title}" into today's planner! 🎯`);
 	}

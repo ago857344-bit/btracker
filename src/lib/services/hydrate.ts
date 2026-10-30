@@ -97,9 +97,24 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 	if (cleanCosmetics.wallpaper === 'none' || cleanCosmetics.wallpaper === '') {
 		delete cleanCosmetics.wallpaper;
 	}
-	let cleanWallpaper = saved.ui?.wallpaper;
-	if (cleanWallpaper === 'none' || cleanWallpaper === '' || cleanWallpaper === 'builtin:none') {
-		cleanWallpaper = null;
+
+	function normalizeVideoWallpaperPath(path: unknown): string | null | undefined {
+		if (typeof path !== 'string') return path as any;
+		if (path === 'none' || path === '' || path === 'builtin:none') return null;
+		if (path.includes('/videos/')) {
+			return path
+				.replace('/videos/god mode.mp4', '/videos/god-mode.mp4')
+				.replace('/videos/aurora borealis.mp4', '/videos/aurora-borealis.mp4')
+				.replace('/videos/catalyst lab.mp4', '/videos/catalyst-lab.mp4')
+				.replace('/videos/neon initiate.mp4', '/videos/neon-initiate.mp4')
+				.replace('/videos/sapphire master.mp4', '/videos/sapphire-master.mp4');
+		}
+		return path;
+	}
+
+	let cleanWallpaper = normalizeVideoWallpaperPath(saved.ui?.wallpaper);
+	if (cleanCosmetics.wallpaper) {
+		cleanCosmetics.wallpaper = normalizeVideoWallpaperPath(cleanCosmetics.wallpaper) as any;
 	}
 
 	const merged: TrackerState = {

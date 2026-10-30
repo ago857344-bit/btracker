@@ -9,7 +9,9 @@
 	import {
 		tracker, updateTracker, replaceTracker, celebration, targetsModalOpen,
 		setProfileName, setExamDate, setWeeklyGoalHours, setStreakGoalHours, applyStudyFlowMode,
-		updateCoachingProfile, triggerAscend
+		updateCoachingProfile, triggerAscend,
+		captureRecoverySnapshot, restoreRecoverySnapshot, getRecoverySnapshotMeta, clearRecoverySnapshot,
+		type RecoverySnapshotMeta
 	} from '$lib/stores/tracker';
 	import { COACHING_PRESETS, DEFAULT_BT_NAME, coachingTypeOf } from '$lib/state/coaching';
 	import { createInitialTrackerState } from '$lib/state/defaults';
@@ -460,7 +462,8 @@
 			try {
 				const parsed = JSON.parse(String(reader.result)) as Partial<TrackerState>;
 				await takeSnapshot($tracker, undefined, 'Pre-Import Backup');
-				await loadSnapshots();
+				await captureRecoverySnapshot('Before importing a JSON backup');
+				await Promise.all([loadSnapshots(), loadRecoveryMeta()]);
 				replaceTracker({ ...createInitialTrackerState(), ...parsed });
 				celebration.set('Backup restored! (Safety snapshot created)');
 			} catch { celebration.set('Invalid backup file'); }
@@ -472,6 +475,30 @@
 	let snapshots: Omit<StateSnapshot, 'state'>[] = [];
 	let snapshotLoading = false;
 	let restoreConfirmSnap: Omit<StateSnapshot, 'state'> | null = null;
+
+	let recoveryMeta: RecoverySnapshotMeta | null = null;
+	let recoveryLoading = false;
+
+	async function loadRecoveryMeta() {
+		if (browser) recoveryMeta = await getRecoverySnapshotMeta();
+	}
+
+	async function handleRestoreRecovery() {
+		recoveryLoading = true;
+		try {
+			const restored = await restoreRecoverySnapshot();
+			celebration.set(restored ? 'Previous snapshot restored!' : 'No recovery snapshot found');
+			await Promise.all([loadRecoveryMeta(), loadSnapshots()]);
+		} finally {
+			recoveryLoading = false;
+		}
+	}
+
+	async function handleDismissRecovery() {
+		await clearRecoverySnapshot();
+		await loadRecoveryMeta();
+		celebration.set('Recovery snapshot cleared');
+	}
 
 	async function loadSnapshots() {
 		if (browser) snapshots = await listSnapshots();
@@ -510,6 +537,7 @@
 
 	onMount(() => {
 		void loadSnapshots();
+		void loadRecoveryMeta();
 	});
 
 	let legacyCode = '';
@@ -556,7 +584,8 @@
 				next = mergeImportedProgress(parseImportedProgress<Partial<TrackerState>>(input), $tracker);
 			}
 			await takeSnapshot($tracker, undefined, 'Pre-Import Backup');
-			await loadSnapshots();
+			await captureRecoverySnapshot('Before importing old tracker progress');
+			await Promise.all([loadSnapshots(), loadRecoveryMeta()]);
 			replaceTracker(next);
 			legacyCode = '';
 			celebration.set('Progress imported from old tracker! (Safety snapshot created)');
@@ -568,7 +597,8 @@
 	async function clearAll() {
 		try {
 			await takeSnapshot($tracker, undefined, 'Pre-Reset Backup');
-			await loadSnapshots();
+			await captureRecoverySnapshot('Before clearing all data');
+			await Promise.all([loadSnapshots(), loadRecoveryMeta()]);
 		} catch (e) {
 			console.warn('Safety snapshot failed before clearAll:', e);
 		}
@@ -1119,6 +1149,23 @@
 				<button type="button" class="btn danger" on:click={() => (confirmClear = true)}><NavIcon name="trash" size={14} /> Clear all data</button>
 			</div>
 
+			{#if recoveryMeta}
+				<div class="recovery-row">
+					<div class="recovery-copy">
+						<span class="recovery-label font-mono">PREVIOUS SNAPSHOT</span>
+						<small class="muted">
+							{recoveryMeta.reason} · {new Date(recoveryMeta.timestamp).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
+						</small>
+					</div>
+					<div class="recovery-actions">
+						<button type="button" class="btn" disabled={recoveryLoading} on:click={handleRestoreRecovery}>
+							<NavIcon name="history" size={14} /> {recoveryLoading ? 'Restoring...' : 'Restore Previous Snapshot'}
+						</button>
+						<button type="button" class="btn subtle" on:click={handleDismissRecovery}>Dismiss</button>
+					</div>
+				</div>
+			{/if}
+
 			<!-- Local Snapshot Vault -->
 			<div class="snapshot-vault">
 				<div class="vault-head">
@@ -1417,6 +1464,13 @@
 	.cos span { display: inline-flex; align-items: center; gap: 0.3rem; }
 
 	.snapshot-vault { margin: 1.1rem 0 1.2rem; padding: 0.95rem 1rem; border-radius: 14px; background: var(--surface-subtle); border: 1px solid var(--border-subtle); display: flex; flex-direction: column; gap: 0.75rem; }
+	.recovery-row { margin-top: 0.85rem; padding: 0.7rem 0.85rem; border-radius: 12px; border: 1px dashed color-mix(in srgb, var(--accent) 45%, var(--border-subtle)); background: color-mix(in srgb, var(--accent) 6%, var(--surface-subtle)); display: flex; align-items: center; justify-content: space-between; gap: 0.85rem; flex-wrap: wrap; }
+	.recovery-copy { display: flex; flex-direction: column; gap: 0.15rem; min-width: 0; }
+	.recovery-label { font-size: 0.62rem; letter-spacing: 0.08em; font-weight: 800; color: var(--accent); }
+	.recovery-copy small { font-size: 0.74rem; }
+	.recovery-actions { display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap; }
+	.btn.subtle { background: transparent; border-color: transparent; color: var(--text-secondary); }
+	.btn.subtle:hover { color: var(--text-primary); border-color: var(--border-subtle); }
 	.vault-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; flex-wrap: wrap; }
 	.btn-snap-create { display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.38rem 0.75rem; border-radius: 8px; border: none; background: var(--accent); color: var(--accent-contrast, white); font-size: 0.75rem; font-weight: 750; cursor: pointer; }
 	.btn-snap-create:disabled { opacity: 0.6; cursor: wait; }

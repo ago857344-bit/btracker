@@ -5,11 +5,17 @@ const CACHE = `btracker-cache-v3-${version}`;
 
 const ASSETS = [
   ...build,
-  ...files.filter((f: string) => !f.endsWith('.mp4'))
+  ...files.filter((f: string) => {
+    const lower = f.toLowerCase();
+    if (lower.endsWith('.mp4') || lower.endsWith('.webm')) return false;
+    if (lower.includes('/downloads/') || lower.endsWith('.zip') || lower.endsWith('install.sh')) return false;
+    if (lower.includes('/landing/') || lower.startsWith('/landing/')) return false;
+    return true;
+  })
 ];
 
 const ROUTES = [
-  '/', '/log', '/plan', '/focus', '/review', '/revise', '/dump', '/stats', '/todo', '/tests', '/settings', '/reminders'
+  '/', '/log', '/plan', '/focus', '/revise', '/todo', '/tests', '/stats', '/settings'
 ];
 
 self.addEventListener('install', (event: any) => {
@@ -48,14 +54,19 @@ self.addEventListener('fetch', (event: any) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
 
-  // Skip Chrome extensions, api calls, range requests, and media streams (mp4/webm require native range requests)
+  // Never intercept cross-origin requests (Supabase / Groq / Analytics)
+  if (url.origin !== self.location.origin) return;
+
+  // Skip Chrome extensions, api calls, range requests, downloads, and media streams (mp4/webm require native range requests)
   if (
     event.request.headers.get('range') ||
     url.protocol.startsWith('chrome-extension') ||
     url.pathname.startsWith('/api/') ||
     url.pathname.endsWith('.mp4') ||
     url.pathname.endsWith('.webm') ||
-    url.pathname.startsWith('/videos/')
+    url.pathname.startsWith('/videos/') ||
+    url.pathname.startsWith('/downloads/') ||
+    url.pathname.endsWith('.zip')
   ) {
     return;
   }

@@ -70,15 +70,30 @@
 	function triggerSpeedBurst() {
 		animState = 'accelerating';
 		stateStartTime = performance.now();
+		lastFrameTime = performance.now();
+		lastIdleUpdateTime = performance.now();
 		isSpinning = true;
 	}
 
 	let lastFrameTime = 0;
+	let lastIdleUpdateTime = 0;
 
 	function orbLoop(now: number) {
 		if (!lastFrameTime) lastFrameTime = now;
 		const dt = Math.min((now - lastFrameTime) / 1000, 0.1); // seconds
 		lastFrameTime = now;
+
+		const isInactive = typeof document !== 'undefined' && (
+			document.hidden ||
+			Boolean($tracker.ui?.ecoMode) ||
+			Boolean($tracker.ui?.reducedMotion)
+		);
+
+		if (animState === 'idle' && isInactive) {
+			// Skip DOM style mutations and idle rotation while hidden or in eco/reduced-motion mode
+			rafId = requestAnimationFrame(orbLoop);
+			return;
+		}
 
 		if (animState === 'accelerating') {
 			const elapsed = now - stateStartTime;
@@ -110,6 +125,14 @@
 		} else {
 			speedMult = 1.0;
 		}
+
+		// When animState === 'idle' in normal mode, throttle idle ring rotation updates to ~20fps (dt >= 0.048s)
+		const isBurst = animState !== 'idle';
+		if (!isBurst && (now - lastIdleUpdateTime) < 48) {
+			rafId = requestAnimationFrame(orbLoop);
+			return;
+		}
+		lastIdleUpdateTime = now;
 
 		// Update continuous rotation angles
 		// Normal rates: r1 (360/7 = 51.43 deg/s), r2 (-40 deg/s), r3 (30 deg/s), r4 (-20 deg/s)
@@ -279,8 +302,17 @@
 			triggerMessage("I'm here. Let's conquer JEE.", 'idle', 4000);
 		}, 1000);
 
+		const handleVisibilityChange = () => {
+			if (!document.hidden) {
+				lastFrameTime = performance.now();
+				lastIdleUpdateTime = performance.now();
+			}
+		};
+		document.addEventListener('visibilitychange', handleVisibilityChange);
+
 		rafId = requestAnimationFrame(orbLoop);
 		return () => {
+			document.removeEventListener('visibilitychange', handleVisibilityChange);
 			if (rafId) cancelAnimationFrame(rafId);
 			if (initTimer) clearTimeout(initTimer);
 			if (timeout) clearTimeout(timeout);
@@ -419,7 +451,7 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 					if (chunk) {
 						text += chunk;
 						// Clean command tag fragments while streaming so raw commands don't flash
-						chatHistory[aiIndex].text = text.replace(/<cmd>.*?<\/cmd>/g, '').replace(/<cmd>.*$/g, '');
+						chatHistory[aiIndex].text = text.replace(/<cmd>[\s\S]*?<\/cmd>/g, '').replace(/<cmd>[\s\S]*$/g, '');
 						scrollToBottom();
 					}
 				}
@@ -431,11 +463,15 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 			if (text) {
 				
 				// Parse and execute commands
-				const cmdRegex = /<cmd>(.*?)<\/cmd>/g;
+				const cmdRegex = /<cmd>([\s\S]*?)<\/cmd>/g;
 				let match;
 				while ((match = cmdRegex.exec(text)) !== null) {
 					try {
-						const cmd = JSON.parse(match[1]);
+						let rawPayload = match[1].trim();
+						if (rawPayload.startsWith('```')) {
+							rawPayload = rawPayload.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+						}
+						const cmd = JSON.parse(rawPayload);
 						if (cmd.action === 'startTimer') {
 							$globalTimer.start(cmd.subject, (cmd.minutes || 25) * 60, String(cmd.chapter || ''), cmd.mode || 'timer');
 						} else if (cmd.action === 'logQuestions') {
@@ -508,7 +544,7 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 				}
 				
 				// Remove commands from visible text
-				chatHistory[aiIndex].text = text.replace(/<cmd>.*?<\/cmd>/g, '').trim();
+				chatHistory[aiIndex].text = text.replace(/<cmd>[\s\S]*?<\/cmd>/g, '').trim();
 			} else {
 				chatHistory[aiIndex].text = "I'm sorry, I couldn't process that right now.";
 			}

@@ -59,10 +59,10 @@
 	.error-content {
 		max-width: 400px;
 		padding: 2rem;
-		border: 1px solid rgb(255 255 255 / 8%);
+		border: 1px solid var(--border-subtle);
 		border-radius: 22px;
-		background: #131318;
-		color: #ececf1;
+		background: var(--surface-panel);
+		color: var(--text-primary);
 		text-align: center;
 	}
 
@@ -74,7 +74,7 @@
 
 	.error-content p {
 		margin: 0 0 1.5rem;
-		color: #9d9dab;
+		color: var(--text-secondary);
 		font-size: 0.9rem;
 		line-height: 1.5;
 	}

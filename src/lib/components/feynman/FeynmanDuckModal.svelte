@@ -11,6 +11,7 @@
 		celebration,
 		completeRevision
 	} from '$lib/stores/tracker';
+	import { boostChapterFromPractice } from '$lib/stores/recall-actions';
 	import {
 		askFeynmanDuck,
 		evaluateFeynmanSession,
@@ -273,6 +274,7 @@ Explain what happens from **first principles**—avoid reciting formulas without
 		if (!chapter) return;
 		const key = `${subject}:${chapter}`;
 		completeRevision(key);
+		boostChapterFromPractice(`${subject}-${chapter}`);
 		revisionCompleted = true;
 		celebration.set(`🎉 ${chapter} marked revised with boosted retention!`);
 	}

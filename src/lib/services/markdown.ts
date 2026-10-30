@@ -30,14 +30,34 @@ export function preprocessMath(text: string): string {
     return processed;
 }
 
-export const renderMarkdown = async (text: string) => {
+export function sanitizeHtml(html: string): string {
+    if (!html) return '';
+    let clean = html;
+
+    // 1. Remove dangerous tag blocks and elements
+    clean = clean.replace(/<\s*(?:script|iframe|object|embed|form|meta|link)\b[\s\S]*?(?:<\/\s*(?:script|iframe|object|embed|form|meta|link)\s*>|\/?>)/gi, '');
+    clean = clean.replace(/<\/\s*(?:script|iframe|object|embed|form|meta|link)\s*>/gi, '');
+
+    // 2. Remove inline event handler attributes (e.g., onclick="...", onerror=...)
+    clean = clean.replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+
+    // 3. Neutralize javascript: pseudo-protocol in href and src
+    clean = clean.replace(/\s(href|src)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, ' $1="#"');
+    clean = clean.replace(/\s(href|src)\s*=\s*javascript:[^\s>]+/gi, ' $1="#"');
+
+    return clean;
+}
+
+export const renderMarkdown = async (text: string): Promise<string> => {
     if (!text) return '';
-    return await marked.parse(preprocessMath(text));
+    const parsed = await marked.parse(preprocessMath(text));
+    return sanitizeHtml(parsed as string);
 };
 
 export const renderMarkdownSync = (text: string): string => {
     if (!text) return '';
-    return marked.parse(preprocessMath(text)) as string;
+    const parsed = marked.parse(preprocessMath(text)) as string;
+    return sanitizeHtml(parsed);
 };
 
 export { marked };

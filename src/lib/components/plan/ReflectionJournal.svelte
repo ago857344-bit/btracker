@@ -33,7 +33,7 @@
 			currentLoadedDay = day;
 			currentLoadedTab = tab;
 			text = (tab === 'post' ? entry?.post : entry?.mistakes) ?? '';
-		} else if (document.activeElement !== textarea) {
+		} else if (typeof document !== 'undefined' && document.activeElement !== textarea) {
 			// External store update
 			text = (tab === 'post' ? entry?.post : entry?.mistakes) ?? '';
 		}
@@ -93,14 +93,44 @@
 			if (!s.mistakes) s.mistakes = [];
 			const existingDescs = new Set(s.mistakes.map(m => m.description.trim().toLowerCase()));
 
-			for (const line of lines) {
-				if (!existingDescs.has(line.toLowerCase())) {
+			for (const rawLine of lines) {
+				let line = rawLine;
+				let subject: 'Physics' | 'Chemistry' | 'Maths' = 'Physics';
+
+				// Match and strip optional subject prefixes: [Chem] or Chem: or C: etc.
+				const chemMatch = line.match(/^\[?(?:chem|chemistry|c)\]?:?\s*/i);
+				const mathMatch = line.match(/^\[?(?:math|maths|m)\]?:?\s*/i);
+				const phyMatch = line.match(/^\[?(?:phy|physics|p)\]?:?\s*/i);
+
+				if (chemMatch) {
+					subject = 'Chemistry';
+					line = line.slice(chemMatch[0].length).trim();
+				} else if (mathMatch) {
+					subject = 'Maths';
+					line = line.slice(mathMatch[0].length).trim();
+				} else if (phyMatch) {
+					subject = 'Physics';
+					line = line.slice(phyMatch[0].length).trim();
+				}
+
+				// Match error-type tags: silly -> 'Silly', formula -> 'Formula', time -> 'Time', default 'Conceptual'
+				let errorType: 'Conceptual' | 'Silly' | 'Formula' | 'Time' = 'Conceptual';
+				if (/\b(?:silly|calculation)\b|\[?(?:silly|calculation)\]?/i.test(line)) {
+					errorType = 'Silly';
+				} else if (/\bformula\b|\[?formula\]?/i.test(line)) {
+					errorType = 'Formula';
+				} else if (/\b(?:time|speed)\b|\[?(?:time|speed)\]?/i.test(line)) {
+					errorType = 'Time';
+				}
+
+				const finalDesc = line || rawLine;
+				if (!existingDescs.has(finalDesc.toLowerCase())) {
 					s.mistakes.push({
 						id: crypto.randomUUID ? crypto.randomUUID() : `mst_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
 						date: Date.now(),
-						subject: 'Physics',
-						errorType: 'Conceptual',
-						description: line,
+						subject,
+						errorType,
+						description: finalDesc,
 						testName: `Journal ${day}`,
 						resolved: false
 					});

@@ -205,7 +205,9 @@ function streamGeminiCompatible(response: Response): Response {
 	});
 }
 
-export async function POST({ request, getClientAddress }) {
+import type { RequestHandler } from './$types';
+
+export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	try {
 		// 1. IP Rate Limiting Guard
 		let clientIp = 'unknown';

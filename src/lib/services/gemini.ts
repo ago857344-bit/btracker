@@ -22,11 +22,6 @@ export async function askGeminiChat(
 		return data.error || "Failed to communicate with AI server.";
 	}
 
-	if (!skipDelay) {
-		// Artificial delay to let the user enjoy the cool loading animations!
-		await new Promise(resolve => setTimeout(resolve, 3000));
-	}
-
 	return data.text;
 }
 

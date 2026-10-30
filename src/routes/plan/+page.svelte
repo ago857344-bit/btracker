@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { page } from '$app/stores';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
@@ -197,6 +197,16 @@
 
 		return () => window.removeEventListener('resize', onResize);
 	});
+
+	async function handleAddBlock() {
+		tab = 'planner';
+		await tick();
+		const input = plannerRoot?.querySelector<HTMLInputElement>('.task-form input[type="text"], .task-form input');
+		if (input) {
+			input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			input.focus();
+		}
+	}
 </script>
 
 <svelte:head><title>Plan · BTracker</title></svelte:head>
@@ -213,7 +223,7 @@
 				<button type="button" role="tab" aria-selected={tab === 'planner'} class:active={tab === 'planner'} on:click={() => tab = 'planner'}>Daily Planner</button>
 				<button type="button" role="tab" aria-selected={tab === 'goals'} class:active={tab === 'goals'} on:click={() => tab = 'goals'}>Goals Tracker</button>
 			</div>
-			<button type="button" class="tool btn-primary" on:click={() => { detailTask = null; detailOpen = true; }}>
+			<button type="button" class="tool btn-primary" on:click={handleAddBlock}>
 				<NavIcon name="plus" size={14} /> Add Block
 			</button>
 		</div>

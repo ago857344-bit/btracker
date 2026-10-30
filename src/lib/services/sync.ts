@@ -43,8 +43,32 @@ export function sanitizeWallpaperBloat(state: TrackerState): TrackerState {
 	};
 }
 
+/**
+ * Pulls the cloud row, unions it with the local snapshot, then pushes the
+ * result. A stale tab therefore can never shrink a newer cloud document.
+ */
+async function pushMerged(userId: string, local: TrackerState): Promise<TrackerState> {
+	let outgoing = local;
+	try {
+		const cloud = await pullState(userId);
+		if (cloud) {
+			const merged = mergeTrackerStates(local, cloud);
+			outgoing = merged;
+			if (hasMeaningfulStateDiff(merged, local)) {
+				// Adopt cloud-only records without scheduling another save (no echo).
+				replaceTracker(merged, false);
+				await saveTrackerState(merged);
+			}
+		}
+	} catch (e) {
+		console.warn('Pre-push merge failed, pushing local snapshot:', e);
+	}
+	await pushState(userId, sanitizeWallpaperBloat(outgoing));
+	return outgoing;
+}
+
 /** Debounced mirror of a local save up to the cloud, only while signed in. */
-function schedulePush(state: TrackerState) {
+function schedulePush(state: TrackerState, alreadyMerged = false) {
 	if (!activeUserId) return;
 	clearTimeout(pushTimer);
 	pushTimer = setTimeout(async () => {
@@ -52,8 +76,13 @@ function schedulePush(state: TrackerState) {
 		if (!userId) return;
 		syncStatus.set('pushing');
 		try {
-			await pushState(userId, sanitizeWallpaperBloat(state));
-			lastSyncedSavedAt = state.savedAt ?? new Date().toISOString();
+			if (alreadyMerged) {
+				await pushState(userId, sanitizeWallpaperBloat(state));
+				lastSyncedSavedAt = state.savedAt ?? new Date().toISOString();
+			} else {
+				const pushed = await pushMerged(userId, state);
+				lastSyncedSavedAt = pushed.savedAt ?? new Date().toISOString();
+			}
 			syncStatus.set('synced');
 		} catch (e) {
 			console.error("Cloud push failed:", e);
@@ -400,11 +429,12 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		}
 	}
 
-	// 4. Log: Union sessions (dedup by epoch and subject)
+	// 4. Log: Union sessions (dedup by start minute, duration and subject)
 	const mergedLog = [...(base.log || [])];
-	const seenSessions = new Set(mergedLog.map((s) => `${s[0]}-${s[7]}`));
+	const sessionKey = (s: (typeof mergedLog)[number]) => `${s[0]}-${s[1]}-${s[7] ?? ''}`;
+	const seenSessions = new Set(mergedLog.map(sessionKey));
 	for (const sess of remote.log || []) {
-		const k = `${sess[0]}-${sess[7]}`;
+		const k = sessionKey(sess);
 		if (!seenSessions.has(k)) {
 			mergedLog.push(sess);
 			seenSessions.add(k);
@@ -868,6 +898,17 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		d: mergedD,
 		n: mergedN,
 		r: mergedR,
+		meta: {
+			...prefSource.meta,
+			updatedAt: Math.max(base.meta?.updatedAt ?? 0, remote.meta?.updatedAt ?? 0),
+			// Monotonic counters: a device that never saw the better streak must
+			// not be allowed to lower it.
+			bestStreak: Math.max(base.meta?.bestStreak ?? 0, remote.meta?.bestStreak ?? 0),
+			lastActiveDay: [base.meta?.lastActiveDay, remote.meta?.lastActiveDay]
+				.filter((day): day is string => Boolean(day))
+				.sort()
+				.pop() ?? prefSource.meta?.lastActiveDay
+		},
 		mistakes: mergedMistakes,
 		lectureNotes: mergedLectureNotes,
 		x: {
@@ -907,8 +948,8 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		},
 		starredFormulas: Array.from(new Set([...(base.starredFormulas || []), ...(remote.starredFormulas || [])])),
 		customFormulas: (() => {
-			const map = new Map((base.customFormulas || []).map((f) => [f.id, f]));
-			for (const f of remote.customFormulas || []) {
+			const map = new Map((base.customFormulas || []).filter((f) => !deletedIdSet.has(f.id)).map((f) => [f.id, f]));
+			for (const f of (remote.customFormulas || []).filter((f) => !deletedIdSet.has(f.id))) {
 				map.set(f.id, f);
 			}
 			return Array.from(map.values());
@@ -1001,7 +1042,8 @@ export async function pullAndSync() {
 		}
 
 		if (cloudChanged) {
-			schedulePush(merged);
+			// The merged payload already contains the cloud copy — skip a second pull.
+			schedulePush(merged, true);
 		} else {
 			lastSyncedSavedAt = merged.savedAt ?? new Date().toISOString();
 			syncStatus.set('synced');
@@ -1039,8 +1081,8 @@ export async function flushPush(): Promise<void> {
 	pushTimer = undefined;
 	const state = get(tracker);
 	try {
-		await pushState(activeUserId, sanitizeWallpaperBloat(state));
-		lastSyncedSavedAt = state.savedAt ?? new Date().toISOString();
+		const pushed = await pushMerged(activeUserId, state);
+		lastSyncedSavedAt = pushed.savedAt ?? new Date().toISOString();
 		syncStatus.set('synced');
 	} catch (e) {
 		console.error("Flush push to cloud failed:", e);

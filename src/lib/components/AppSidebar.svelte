@@ -556,7 +556,7 @@
 			inset 0 1px 0 rgba(255, 255, 255, 0.14),
 			inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 		transition: all 0.2s var(--ease-ios-spring, cubic-bezier(0.32, 0.72, 0, 1));
-		overflow: hidden;
+		overflow: visible;
 	}
 	.profile-container:hover {
 		border-color: color-mix(in srgb, var(--accent) 40%, var(--border-subtle));

@@ -162,28 +162,41 @@
 
 	let locked = false; 
 	let touchStartX = 0;
+	let touchStartY = 0;
 	let touchEndX = 0;
+	let touchEndY = 0;
+	let isTouchSwiping = false;
 	let slideDirection = 1;
 
 	function handleTouchStart(e: TouchEvent) {
+		const target = e.target as HTMLElement | null;
+		if (target?.closest('input, select, textarea, button, [role="slider"], .slider')) {
+			isTouchSwiping = false;
+			return;
+		}
+		isTouchSwiping = true;
 		touchStartX = e.changedTouches[0].screenX;
+		touchStartY = e.changedTouches[0].screenY;
 	}
 
 	function handleTouchEnd(e: TouchEvent) {
+		if (!isTouchSwiping) return;
+		isTouchSwiping = false;
 		touchEndX = e.changedTouches[0].screenX;
+		touchEndY = e.changedTouches[0].screenY;
 		handleSwipe();
 	}
 
 	function handleSwipe() {
-		const threshold = 50;
-		const diff = touchEndX - touchStartX;
-		if (Math.abs(diff) < threshold) return;
+		const diffX = touchEndX - touchStartX;
+		const diffY = touchEndY - touchStartY;
+		if (Math.abs(diffX) < 60 || Math.abs(diffX) <= Math.abs(diffY) * 1.8) return;
 		
 		const currentIndex = TABS.findIndex(t => t.id === tab);
-		if (diff < 0 && currentIndex < TABS.length - 1) {
+		if (diffX < 0 && currentIndex < TABS.length - 1) {
 			// Swipe left -> next tab
 			switchTab(TABS[currentIndex + 1].id);
-		} else if (diff > 0 && currentIndex > 0) {
+		} else if (diffX > 0 && currentIndex > 0) {
 			// Swipe right -> prev tab
 			switchTab(TABS[currentIndex - 1].id);
 		}
@@ -579,7 +592,7 @@
 					<div class="kinds">
 						<button type="button" class="kind amber" class:on={swKind === 'questions'} disabled={locked} on:click={() => setSwKind('questions')}>QUESTIONS</button>
 						<button type="button" class="kind" class:on={swKind === 'theory'} disabled={locked} on:click={() => setSwKind('theory')}>THEORY</button>
-							<button type="button" class="kind green" class:on={swKind === 'revision'} disabled={locked} style="background: var(--success); color: var(--accent-contrast, #fff);" on:click={() => setSwKind('revision')}>REVISION</button>
+						<button type="button" class="kind green" class:on={swKind === 'revision'} disabled={locked} on:click={() => setSwKind('revision')}>REVISION</button>
 					</div>
 					<p class="label">SELECT SUBJECT</p>
 					<div class="chips">
@@ -619,7 +632,7 @@
 						<div class="kinds">
 							<button type="button" class="kind amber" class:on={focusKind === 'questions'} on:click={() => setFocusKind('questions')}>QUESTIONS</button>
 							<button type="button" class="kind" class:on={focusKind === 'theory'} on:click={() => setFocusKind('theory')}>THEORY</button>
-							<button type="button" class="kind green" class:on={focusKind === 'revision'} style="background: var(--success); color: var(--accent-contrast, #fff);" on:click={() => setFocusKind('revision')}>REVISION</button>
+							<button type="button" class="kind green" class:on={focusKind === 'revision'} on:click={() => setFocusKind('revision')}>REVISION</button>
 						</div>
 						<p class="label">SELECT SUBJECT</p>
 						<div class="chips">
@@ -1007,6 +1020,7 @@
 	.kind { padding: .5rem 1.1rem; border: 1px solid var(--border-subtle); border-radius: 11px; background: var(--surface-panel); color: var(--text-secondary); font-size: .72rem; font-weight: 800; letter-spacing: .06em; }
 	.kind.on { color: var(--accent-contrast, #fff); border-color: var(--accent); background: var(--accent); }
 	.kind.amber.on { border-color: #d99a2b; background: #d99a2b; color: #fff; }
+	.kind.green.on { background: var(--success, #2f9e6e); color: var(--accent-contrast, #fff); border-color: var(--success, #2f9e6e); }
 	.hint { margin: 0; color: var(--danger, #e0455a); font-size: .72rem; font-weight: 700; }
 	.policy { display: flex; gap: .6rem; align-items: flex-start; padding: .75rem .9rem; border: 1px dashed color-mix(in srgb, var(--danger, #e0455a), transparent 55%); border-radius: 12px; background: color-mix(in srgb, var(--danger, #e0455a), transparent 94%); color: var(--text-secondary); font-size: .7rem; line-height: 1.5; text-align: left; }
 	.policy :global(svg) { flex: 0 0 15px; margin-top: 2px; color: var(--danger, #e0455a); }

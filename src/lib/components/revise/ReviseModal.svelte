@@ -67,6 +67,7 @@
 		const startHHMM = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
 		const endHHMM = `${pad(dEnd.getHours())}:${pad(dEnd.getMinutes())}`;
 
+		const todayStr = todayKey();
 		updateTracker(t => {
 			if (!t.rev.studyBlocks) t.rev.studyBlocks = [];
 			t.rev.studyBlocks.push({
@@ -82,16 +83,24 @@
 				}]
 			});
 			if (!t.h) t.h = [];
-			t.h.push({
-				id: 'rev-hw-' + Date.now(),
-				title: 'Revise: ' + chapterTitle,
-				s: subject as any,
-				due: todayKey(),
-				st: startHHMM,
-				en: endHHMM,
-				hrs: 0.75,
-				done: false
-			});
+			const alreadyExists = [...t.h, ...(t.hd || [])].some(
+				(item) => ((item as any).date === todayStr || item.due === todayStr) &&
+					item.st === startHHMM &&
+					(item.title === 'Revise: ' + chapterTitle || item.title === `Revision: ${chapterTitle}`)
+			);
+			if (!alreadyExists) {
+				t.h.push({
+					id: 'rev-hw-' + Date.now(),
+					title: 'Revise: ' + chapterTitle,
+					s: subject as any,
+					due: todayStr,
+					date: todayStr,
+					st: startHHMM,
+					en: endHHMM,
+					hrs: 0.75,
+					done: false
+				} as any);
+			}
 		});
 		celebration.set('Scheduled revision in Daily Planner! 📅');
 		handleClose();
@@ -180,11 +189,21 @@
 	.sec-label { font-size: 0.7rem; font-weight: 800; color: var(--text-secondary); letter-spacing: 0.08em; margin-bottom: 0.4rem; }
 	.help { font-size: 0.75rem; color: var(--text-secondary); margin: 0 0 0.8rem; }
 	
-	.actions { display: flex; justify-content: flex-end; gap: 0.6rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle); }
+	.actions { display: flex; justify-content: flex-end; gap: 0.6rem; padding-top: 1rem; border-top: 1px solid var(--border-subtle); flex-wrap: wrap; }
 	.btn { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.65rem 1.2rem; border-radius: 10px; font-size: 0.85rem; font-weight: 750; cursor: pointer; border: 0; }
 	.btn.ghost { background: transparent; color: var(--text-secondary); }
 	.btn.ghost:hover { color: var(--text-primary); background: var(--surface-subtle); }
 	.btn.secondary { background: color-mix(in srgb, var(--accent) 15%, transparent); color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); }
 	.btn.secondary:hover { background: color-mix(in srgb, var(--accent) 25%, transparent); }
 	.btn.solid { background: var(--accent); color: var(--accent-contrast, #fff); box-shadow: 0 4px 12px color-mix(in srgb, var(--accent), transparent 60%); }
+
+	@media (max-width: 640px) {
+		.actions {
+			justify-content: stretch;
+		}
+		.actions .btn {
+			flex: 1 1 auto;
+			justify-content: center;
+		}
+	}
 </style>

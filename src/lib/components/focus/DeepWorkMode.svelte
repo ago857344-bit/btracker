@@ -500,6 +500,12 @@
 
 <style>
 	.overlay {
+		--surface-panel: rgba(22, 20, 36, 0.92);
+		--surface-subtle: rgba(255, 255, 255, 0.08);
+		--text-primary: #f7f5ff;
+		--text-secondary: #bbb5d0;
+		--border-subtle: rgba(255, 255, 255, 0.12);
+		color: #f7f5ff;
 		position: fixed;
 		inset: 0;
 		z-index: 10005;

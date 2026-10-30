@@ -2,7 +2,7 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { celebrateConfetti } from '$lib/utils/confetti';
-	import { celebration, hydration, intelligence, streakDays, tracker, useStreakFreeze, earnStreakFreeze, isStreakDayMet } from '$lib/stores/tracker';
+	import { celebration, hydration, intelligence, streakDays, tracker, updateTracker, triggerToast, useStreakFreeze, earnStreakFreeze, isStreakDayMet } from '$lib/stores/tracker';
 	import { todayKey, addDaysKey, focusMinutesOn } from '$lib/state/dates';
 
 	interface Badge { id: string; icon: string; name: string; need: number; unit: 'day' | 'hour'; label: string }
@@ -56,6 +56,43 @@
 	}
 
 	const close = () => { open = false; };
+
+	$: currentStreak = $streakDays;
+	$: lastClaimStreak = $tracker.streakFreezes?.lastFreezeClaimStreak ?? 0;
+	$: nextMilestoneStreak = Math.floor(lastClaimStreak / 7) * 7 + 7;
+	$: canClaimFree = currentStreak >= 7 && currentStreak >= nextMilestoneStreak;
+	$: userXp = $tracker.gamification?.xp || 0;
+	$: canBuyWithXp = userXp >= 500;
+
+	function handleClaimFreeze() {
+		if (($tracker.streakFreezes?.available ?? 2) >= 4) {
+			triggerToast('Freeze inventory full (max 4 shields).');
+			return;
+		}
+
+		if (canClaimFree) {
+			updateTracker((state) => {
+				if (!state.streakFreezes) state.streakFreezes = { available: 2, usedDates: [] };
+				state.streakFreezes.available = Math.min(4, state.streakFreezes.available + 1);
+				state.streakFreezes.lastFreezeClaimStreak = currentStreak;
+			});
+			celebration.set(`🎉 Milestone reached! Claimed 1 free Streak Freeze for your ${currentStreak}-day streak!`);
+			celebrateConfetti({ count: 60 });
+		} else if (canBuyWithXp) {
+			updateTracker((state) => {
+				if (!state.streakFreezes) state.streakFreezes = { available: 2, usedDates: [] };
+				if (!state.gamification) state.gamification = { xp: 0, level: 1, elo: { P: 300, C: 300, M: 300 } };
+				if (state.gamification) {
+					state.gamification.xp = Math.max(0, state.gamification.xp - 500);
+				}
+				state.streakFreezes.available = Math.min(4, state.streakFreezes.available + 1);
+			});
+			celebration.set('🛡️ Claimed 1 Streak Freeze (spent 500 XP)!');
+			celebrateConfetti({ count: 40 });
+		} else {
+			triggerToast(`Need 500 XP or a 7-day streak milestone to claim a freeze (Current: ${currentStreak}d streak, ${userXp} XP).`);
+		}
+	}
 </script>
 
 <button class="streak-button" class:lost={$streakDays === 0} class:frozen={$streakDays > 0 && (yesterdayFrozen || (!yesterdayMet && dayBeforeMet))} type="button" aria-label="Streak and badges" on:click={() => (open = true)}>
@@ -135,8 +172,19 @@
 		</div>
 		<div class="freeze-actions">
 			{#if ($tracker.streakFreezes?.available ?? 2) < 4}
-				<button type="button" class="btn-freeze" on:click={() => { earnStreakFreeze(); celebration.set('Claimed 1 Streak Freeze shield!'); celebrateConfetti({ count: 60 }); }}>
-					+ Claim 1 Freeze
+				<button
+					type="button"
+					class="btn-freeze"
+					on:click={handleClaimFreeze}
+					title={canClaimFree ? `Free claim at ${currentStreak}-day milestone!` : canBuyWithXp ? `Spend 500 XP to claim a freeze` : `Requires 500 XP or a 7-day streak milestone`}
+				>
+					{#if canClaimFree}
+						+ Claim Free (7d Milestone)
+					{:else if canBuyWithXp}
+						+ Claim Freeze (500 XP)
+					{:else}
+						+ Claim (500 XP or 7d)
+					{/if}
 				</button>
 			{/if}
 			{#if canShieldYesterday}
