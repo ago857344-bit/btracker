@@ -69,15 +69,20 @@ export function matchChapters(text: string, threshold = 0.72): ChapterMatch[] {
 /** Downscales an image via canvas so the request body stays well under Vercel's ~4.5MB limit. */
 async function downscaleImage(file: File, maxDim = 1600, quality = 0.85): Promise<Blob> {
 	const bitmap = await createImageBitmap(file);
-	const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
-	const canvas = document.createElement('canvas');
-	canvas.width = Math.round(bitmap.width * scale);
-	canvas.height = Math.round(bitmap.height * scale);
-	canvas.getContext('2d')!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-	bitmap.close();
-	return new Promise((resolve, reject) => {
-		canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Image resize failed'))), 'image/jpeg', quality);
-	});
+	try {
+		const scale = Math.min(1, maxDim / Math.max(bitmap.width, bitmap.height));
+		const canvas = document.createElement('canvas');
+		canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+		canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+		const ctx = canvas.getContext('2d');
+		if (!ctx) throw new Error('Could not get 2D canvas context');
+		ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+		return await new Promise((resolve, reject) => {
+			canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Image resize failed'))), 'image/jpeg', quality);
+		});
+	} finally {
+		bitmap.close();
+	}
 }
 
 /** Extracts text from a JPEG or PNG syllabus image using vision API (OpenAI or Gemini). */
@@ -100,7 +105,7 @@ export async function extractImageText(file: File): Promise<string> {
 				parts: [
 					{
 						inlineData: {
-							mimeType: 'image/jpeg',
+							mimeType: small.type || 'image/jpeg',
 							data: base64
 						}
 					},
@@ -131,28 +136,35 @@ export async function extractPdfText(file: File): Promise<string> {
 	pdfjs.GlobalWorkerOptions.workerSrc = workerUrl;
 	const data = await file.arrayBuffer();
 	const doc = await pdfjs.getDocument({ data }).promise;
-	let text = '';
-	for (let page = 1; page <= doc.numPages; page += 1) {
-		const content = await doc.getPage(page);
-		const chunk = await content.getTextContent();
-		let lastY: number | null = null;
-		let line = '';
-		for (const item of chunk.items as { str: string; transform: number[] }[]) {
-			const y = item.transform?.[5] ?? 0;
-			if (lastY !== null && Math.abs(y - lastY) > 3) { text += `${line}\n`; line = ''; }
-			line += item.str;
-			lastY = y;
+	try {
+		let text = '';
+		for (let page = 1; page <= doc.numPages; page += 1) {
+			const content = await doc.getPage(page);
+			const chunk = await content.getTextContent();
+			let lastY: number | null = null;
+			let line = '';
+			for (const item of chunk.items as { str?: string; transform?: number[] }[]) {
+				if (typeof item.str !== 'string') continue;
+				const y = item.transform?.[5] ?? 0;
+				if (lastY !== null && Math.abs(y - lastY) > 3) { text += `${line}\n`; line = ''; }
+				line += item.str;
+				lastY = y;
+			}
+			text += `${line}\n`;
 		}
-		text += `${line}\n`;
+		
+		// If extracted text is too sparse, PDF might be scanned (image-based)
+		if (text.trim().length < 50) {
+			console.warn(`PDF text extraction returned only ${text.trim().length} chars, PDF may be scanned`);
+			throw new Error('This PDF appears to be scanned/image-based. Please convert it to images and upload as JPG/PNG instead, or use a text-based PDF.');
+		}
+		
+		return text;
+	} finally {
+		try {
+			await doc.destroy();
+		} catch {}
 	}
-	
-	// If extracted text is too sparse, PDF might be scanned (image-based)
-	if (text.trim().length < 50) {
-		console.warn(`PDF text extraction returned only ${text.trim().length} chars, PDF may be scanned`);
-		throw new Error('This PDF appears to be scanned/image-based. Please convert it to images and upload as JPG/PNG instead, or use a text-based PDF.');
-	}
-	
-	return text;
 }
 
 /**

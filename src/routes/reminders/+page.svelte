@@ -42,9 +42,9 @@
 
 	onMount(() => {
 		notifGranted = hasNotificationPermission();
-		checkDueReminders($tracker.customReminders);
+		checkDueReminders($tracker?.customReminders || []);
 		const interval = setInterval(() => {
-			checkDueReminders($tracker.customReminders);
+			checkDueReminders($tracker?.customReminders || []);
 		}, 30000);
 		return () => clearInterval(interval);
 	});
@@ -94,7 +94,7 @@
 				} as ReminderCard;
 			});
 
-		hwCards = [...$tracker.h, ...$tracker.hd]
+		hwCards = [...($tracker?.h || []), ...($tracker?.hd || [])]
 			.filter((t) => !t.done && t.due && !t.keep && !dismissedIds.has(`hw-${t.id}`))
 			.map((t) => {
 				const due = t.due!;
@@ -120,7 +120,7 @@
 			})
 			.filter((c) => c.group !== null) as ReminderCard[];
 
-		dlCards = $tracker.dl
+		dlCards = ($tracker?.dl || [])
 			.filter((d) => !d.hidden)
 			.map((d) => {
 				const due = d.date;

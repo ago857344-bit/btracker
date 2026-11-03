@@ -30,11 +30,11 @@
 
 	// Today's completed focus minutes + currently ticking session
 	$: activeElapsedMin = Math.max(0, activeSessionSeconds / 60);
-	$: completedTodayMin = focusMinutesOn($tracker.log, todayKey());
+	$: completedTodayMin = focusMinutesOn($tracker?.log || [], todayKey());
 	$: todayTotalMin = Math.round(completedTodayMin + activeElapsedMin);
 
 	// Daily goal minutes
-	$: goalHours = $tracker.goals?.day?.h || 6;
+	$: goalHours = $tracker?.goals?.day?.h || 6;
 	$: goalMinutes = Math.max(60, goalHours * 60);
 
 	// Helper to calculate paced minutes logged on a specific day key up to currentMinOfDay
@@ -66,7 +66,7 @@
 
 	// Compute Ghost targets
 	$: yesterdayKey = addDaysKey(todayKey(), -1);
-	$: yesterdayStats = calculatePacedMinutesForDay(yesterdayKey, $tracker.log, currentMinOfDay);
+	$: yesterdayStats = calculatePacedMinutesForDay(yesterdayKey, $tracker?.log || [], currentMinOfDay);
 
 	// 7-day best day (excluding today)
 	$: recentDays = lastNDays(8).filter((k) => k !== todayKey());
@@ -74,25 +74,25 @@
 		let maxKey = yesterdayKey;
 		let maxTotal = -1;
 		for (const k of recentDays) {
-			const total = focusMinutesOn($tracker.log, k);
+			const total = focusMinutesOn($tracker?.log || [], k);
 			if (total > maxTotal) {
 				maxTotal = total;
 				maxKey = k;
 			}
 		}
-		const stats = calculatePacedMinutesForDay(maxKey, $tracker.log, currentMinOfDay);
+		const stats = calculatePacedMinutesForDay(maxKey, $tracker?.log || [], currentMinOfDay);
 		const dayName = new Date(maxKey + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short' });
 		return { key: maxKey, dayName, ...stats };
 	})();
 
 	// 7-day average pace
 	$: avgData = (() => {
-		const validDays = recentDays.filter((k) => focusMinutesOn($tracker.log, k) > 0);
+		const validDays = recentDays.filter((k) => focusMinutesOn($tracker?.log || [], k) > 0);
 		if (validDays.length === 0) return { paced: 0, fullDay: 0 };
 		let sumPaced = 0;
 		let sumFull = 0;
 		for (const k of validDays) {
-			const st = calculatePacedMinutesForDay(k, $tracker.log, currentMinOfDay);
+			const st = calculatePacedMinutesForDay(k, $tracker?.log || [], currentMinOfDay);
 			sumPaced += st.paced;
 			sumFull += st.fullDay;
 		}

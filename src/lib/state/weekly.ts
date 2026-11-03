@@ -106,21 +106,21 @@ export function buildWeekReport(state: TrackerState): WeekReport {
 
 	let minutes = 0;
 	let sessions = 0;
-	for (const session of state.log) {
+	for (const session of state.log || []) {
 		if (!inRange(sessionDayKey(session), startKey, until)) continue;
 		minutes += Number(session[1]) || 0;
 		sessions += 1;
 	}
 
 	let solved = 0;
-	for (const [key, bucket] of Object.entries(state.stat)) {
+	for (const [key, bucket] of Object.entries(state.stat || {})) {
 		if (!inRange(key, startKey, until)) continue;
 		for (const value of Object.values(bucket ?? {})) solved += Number(value) || 0;
 	}
 
-	const revisions = Object.values(state.rev.items).filter((item) => item.last && inRange(dayKeyOf(new Date(item.last)), startKey, until)).length;
-	const tests = state.mocks.filter((mock) => inRange(dayKeyOf(new Date(mock.date)), startKey, until)).length;
-	const mistakes = state.mistakes.filter((entry) => inRange(dayKeyOf(new Date(entry.date)), startKey, until)).length;
+	const revisions = Object.values(state.rev?.items || {}).filter((item) => item.last && inRange(dayKeyOf(new Date(item.last)), startKey, until)).length;
+	const tests = (state.mocks || []).filter((mock) => inRange(dayKeyOf(new Date(mock.date)), startKey, until)).length;
+	const mistakes = (state.mistakes || []).filter((entry) => inRange(dayKeyOf(new Date(entry.date)), startKey, until)).length;
 
 	const elo = g?.elo ?? { P: 300, C: 300, M: 300 };
 	const avgElo = Math.round(tierEloOf(g));
@@ -141,14 +141,14 @@ export function buildWeekReport(state: TrackerState): WeekReport {
 		const isFuture = key > today;
 
 		let dayMins = 0;
-		for (const session of state.log) {
+		for (const session of state.log || []) {
 			if (sessionDayKey(session) === key) {
 				dayMins += Number(session[1]) || 0;
 			}
 		}
 
 		let dayQs = 0;
-		const bucket = state.stat[key];
+		const bucket = state.stat?.[key];
 		if (bucket) {
 			for (const val of Object.values(bucket)) {
 				dayQs += Number(val) || 0;

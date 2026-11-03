@@ -38,7 +38,7 @@
 
 	function isCardSaved(q: ReviewQuestion) {
 		const target = cardFront(q);
-		return ($tracker.flashcards || []).some(c => c.front === target);
+		return ($tracker?.flashcards || []).some(c => c.front === target);
 	}
 
 	function convertToFlashcard(q: ReviewQuestion) {
@@ -72,10 +72,9 @@
 		const loc = { sc: q.subject, ch: q.chapterNo, ex: q.exerciseCode };
 		const key = cellKey(q.subject, q.chapterNo, q.exerciseCode);
 		const prevVal = $tracker.d?.[key]?.[q.index] || 0;
+		const hadFlag = isFlag(prevVal);
 
 		setQuestionResult(loc, q.index, 1);
-		const cells = $tracker.d?.[key] ?? [];
-		const hadFlag = isFlag(cells[q.index] || 0);
 		if (hadFlag) {
 			toggleQuestionFlag(loc, q.index);
 		}
@@ -131,7 +130,7 @@
 
 	$: questions = (() => {
 		const next: ReviewQuestion[] = [];
-		const tagMap = new Map(($tracker.x?.tags ?? []).map(t => [t.id, t.n]));
+		const tagMap = new Map(($tracker?.x?.tags ?? []).map(t => [t.id, t.n]));
 
 		for (const subject of ['P', 'C', 'M']) {
 			for (const chapter of allChaptersWithCustom($tracker, subject)) {
@@ -178,7 +177,7 @@
 
 <svelte:head><title>Review · BTracker</title></svelte:head>
 
-{#if $tracker.coaching_type === 'GENERIC'}
+{#if $tracker?.coaching_type === 'GENERIC'}
 	<section class="review">
 		<header class="page-header">
 			<div class="page-header-copy">

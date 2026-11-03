@@ -9,9 +9,9 @@
 	$: dist = hourDistribution($tracker, day);
 	$: total = dist.reduce((sum, m) => sum + m, 0);
 	$: max = Math.max(1, ...dist);
-	$: daySessions = $tracker.log
+	$: daySessions = ($tracker?.log || [])
 		.filter((session) => sessionDayKey(session) === day)
-		.sort((a, b) => b[0] - a[0]);
+		.sort((a, b) => (Number(b?.[0]) || 0) - (Number(a?.[0]) || 0));
 	$: dateLabel = longDateKey(day).toUpperCase();
 
 	function shift(n: number) { day = addDaysKey(day, n); }

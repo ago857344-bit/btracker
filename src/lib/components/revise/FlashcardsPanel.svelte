@@ -10,17 +10,22 @@
 	let panelTab: 'review' | 'manage' = 'review';
 
 	let dueCards: Flashcard[] = [];
-	$: dueCards = ($tracker.flashcards || []).filter(c => c.nextReviewAt <= Date.now());
+	$: dueCards = ($tracker.flashcards || []).filter(c => Boolean(c && (c.nextReviewAt == null || c.nextReviewAt <= Date.now())));
+	let sessionQueue: Flashcard[] = [];
+	$: activeReviewList = reviewing ? sessionQueue : dueCards;
 
 	let reviewing = false;
 	let currentCardIndex = 0;
 	let flipped = false;
 	let frontHtml = '';
 	let backHtml = '';
+	let renderSeq = 0;
 
-	$: if (dueCards.length > 0 && currentCardIndex < dueCards.length) {
-		renderMarkdown(dueCards[currentCardIndex].front).then(h => frontHtml = h);
-		renderMarkdown(dueCards[currentCardIndex].back).then(h => backHtml = h);
+	$: if (activeReviewList.length > 0 && currentCardIndex < activeReviewList.length) {
+		const seq = ++renderSeq;
+		const currentCard = activeReviewList[currentCardIndex];
+		renderMarkdown(currentCard.front).then(h => { if (seq === renderSeq) frontHtml = h; });
+		renderMarkdown(currentCard.back).then(h => { if (seq === renderSeq) backHtml = h; });
 	}
 
 	$: academicContext = getUserAcademicContext($tracker);
@@ -119,6 +124,7 @@
 			actionLabel: 'Undo',
 			onAction: () => {
 				updateTracker((s) => {
+					if (s.deletedIds) delete s.deletedIds[backup.id];
 					if (!s.flashcards) s.flashcards = [];
 					if (!s.flashcards.some((c) => c.id === backup.id)) {
 						s.flashcards.push(backup);
@@ -130,6 +136,7 @@
 
 	function startReview() {
 		if (dueCards.length === 0) return;
+		sessionQueue = dueCards.map(c => ({ ...c }));
 		reviewing = true;
 		currentCardIndex = 0;
 		flipped = false;
@@ -140,7 +147,7 @@
 	}
 
 	function scoreCard(quality: number) {
-		const card = dueCards[currentCardIndex];
+		const card = sessionQueue[currentCardIndex];
 		if (!card) return;
 
 		let efactor = (card.efactor || 2.5) + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
@@ -177,13 +184,13 @@
 		});
 
 		if (quality === 1) {
-			dueCards.push({ ...card, efactor, interval, repetition, nextReviewAt });
+			sessionQueue = [...sessionQueue, { ...card, efactor, interval, repetition, nextReviewAt }];
 		}
 
 		currentCardIndex++;
 		flipped = false;
 
-		if (currentCardIndex >= dueCards.length) {
+		if (currentCardIndex >= sessionQueue.length) {
 			reviewing = false;
 		}
 	}
@@ -262,7 +269,8 @@ ${academicConstraints}`;
 			const data = await res.json();
 			let cards = [];
 			try {
-				const parsed = JSON.parse(data.text);
+				const cleanJson = String(data.text || '').replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+				const parsed = JSON.parse(cleanJson);
 				cards = Array.isArray(parsed) ? parsed : (parsed?.cards || []);
 			} catch (e) {
 				throw new Error('Invalid JSON received from AI.');
@@ -365,15 +373,15 @@ ${academicConstraints}`;
 		{:else}
 			<div class="review-area">
 				<div class="progress">
-					Reviewing {currentCardIndex + 1} of {dueCards.length}
+					Reviewing {currentCardIndex + 1} of {activeReviewList.length}
 				</div>
 
 				<div class="flashcard-stack-wrap">
 					<div class="flashcard glass" class:is-flipped={flipped} on:click={flipCard} role="button" tabindex="0" on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && flipCard()}>
 						<div class="card-inner">
 							<div class="card-front">
-								<div class="card-subject" data-sub={dueCards[currentCardIndex].subject}>
-									{subjectName(dueCards[currentCardIndex].subject)} • {dueCards[currentCardIndex].chapter}
+								<div class="card-subject" data-sub={activeReviewList[currentCardIndex].subject}>
+									{subjectName(activeReviewList[currentCardIndex].subject)} • {activeReviewList[currentCardIndex].chapter}
 								</div>
 								<div class="card-content">
 									{@html frontHtml}
@@ -400,17 +408,17 @@ ${academicConstraints}`;
 						<button class="score-btn hard" on:click={() => scoreCard(3)}>
 							<span class="key-badge">2</span>
 							<span>Hard</span>
-							<small>{Math.max(1, Math.round((dueCards[currentCardIndex].interval || 1) * 1.2))}d</small>
+							<small>{Math.max(1, Math.round((activeReviewList[currentCardIndex].interval || 1) * 1.2))}d</small>
 						</button>
 						<button class="score-btn good" on:click={() => scoreCard(4)}>
 							<span class="key-badge">3</span>
 							<span>Good</span>
-							<small>{dueCards[currentCardIndex].repetition === 0 ? 1 : (dueCards[currentCardIndex].repetition === 1 ? 6 : Math.round((dueCards[currentCardIndex].interval || 1) * (dueCards[currentCardIndex].efactor || 2.5)))}d</small>
+							<small>{activeReviewList[currentCardIndex].repetition === 0 ? 1 : (activeReviewList[currentCardIndex].repetition === 1 ? 6 : Math.round((activeReviewList[currentCardIndex].interval || 1) * (activeReviewList[currentCardIndex].efactor || 2.5)))}d</small>
 						</button>
 						<button class="score-btn easy" on:click={() => scoreCard(5)}>
 							<span class="key-badge">4</span>
 							<span>Easy</span>
-							<small>{dueCards[currentCardIndex].repetition === 0 ? 2 : (dueCards[currentCardIndex].repetition === 1 ? 7 : Math.round((dueCards[currentCardIndex].interval || 1) * (dueCards[currentCardIndex].efactor || 2.5) * 1.3))}d</small>
+							<small>{activeReviewList[currentCardIndex].repetition === 0 ? 2 : (activeReviewList[currentCardIndex].repetition === 1 ? 7 : Math.round((activeReviewList[currentCardIndex].interval || 1) * (activeReviewList[currentCardIndex].efactor || 2.5) * 1.3))}d</small>
 						</button>
 					{/if}
 				</div>

@@ -2,7 +2,7 @@ import { dayKeyOf, focusMinutesOn, parseKey, sessionDayKey, todayKey, weekdaySho
 import { getLevelData, tierEloOf } from './gamification';
 import { SUBJECTS } from './subjects';
 import { eloTier } from './weekly';
-import { hourDistribution } from '$lib/stores/tracker';
+import { hourDistribution, calculateStreakDays } from '$lib/stores/tracker';
 import type { TrackerState } from '$lib/types/tracker';
 
 export interface DailySubjectStat {
@@ -104,16 +104,8 @@ export function buildDailyReport(state: TrackerState, targetKey: string = todayK
 		};
 	});
 
-	// Streak calculation
-	const need = (state.meta?.streakGoalH || 1) * 60;
-	let streak = 0;
-	let cursor = today;
-	while (focusMinutesOn(state.log, cursor) >= need) {
-		streak++;
-		const prev = parseKey(cursor);
-		prev.setDate(prev.getDate() - 1);
-		cursor = dayKeyOf(prev);
-	}
+	// Streak calculation (delegated to core tracker engine with goal & freeze support)
+	const streak = calculateStreakDays(state);
 
 	const xp = g?.xp ?? 0;
 	const avgElo = Math.round(tierEloOf(g));

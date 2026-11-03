@@ -108,7 +108,7 @@
 		for (let i = 0; i < 42; i++) days.push(dayKeyOf(addDays(start, i)));
 		return days;
 	})();
-	$: dayTasks = tasksOn(selectedDay)
+	$: dayTasks = tasksOn(selectedDay || today)
 		.filter((t) => {
 			const q = query.trim().toLowerCase();
 			if (q && !(t.title ?? '').toLowerCase().includes(q)) return false;
@@ -123,11 +123,16 @@
 		});
 	$: tickableTasks = dayTasks.filter((t) => !isClassItem(t));
 	$: dayDone = tickableTasks.filter((t) => t.done).length;
-	$: sel = parseKey(selectedDay);
+	$: sel = parseKey(selectedDay || today);
 	$: selMonth = sel.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
 	$: selWeekday = sel.toLocaleDateString('en-US', { weekday: 'long' });
 
-	function addDays(date: Date, n: number) { const d = new Date(date); d.setDate(d.getDate() + n); return d; }
+	function addDays(date: Date, n: number) {
+		const d = new Date(date);
+		d.setHours(12, 0, 0, 0);
+		d.setDate(d.getDate() + n);
+		return d;
+	}
 
 	function step(dir: -1 | 1) {
 		if (view === 'week') cursor = addDays(cursor, dir * 7);
@@ -168,8 +173,9 @@
 	}
 
 	const fmtTime = (v?: string) => {
-		if (!v) return '';
+		if (!v || typeof v !== 'string' || !v.includes(':')) return v || '';
 		const [h, m] = v.split(':').map(Number);
+		if (!Number.isFinite(h) || !Number.isFinite(m)) return v;
 		return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 	};
 	const isMissed = (t: HomeworkItem) => !isClassItem(t) && !t.done && (t.due ?? '') < today;

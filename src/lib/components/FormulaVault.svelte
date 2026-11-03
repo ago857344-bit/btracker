@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { createEventDispatcher, onMount } from 'svelte';
+	import { createEventDispatcher, onDestroy, onMount } from 'svelte';
 	import { fly, fade, slide } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { JEE_FORMULAS, type FormulaItem } from '$lib/data/formulas';
@@ -66,16 +66,34 @@
 
 	function deleteCustomFormula(item: FormulaItem) {
 		uiClick();
-		const prev = [...($tracker.customFormulas || [])];
+		const prevFormulas = [...($tracker.customFormulas || [])];
+		const prevStarred = [...($tracker.starredFormulas || [])];
 		updateTracker((st) => {
 			st.customFormulas = (st.customFormulas || []).filter((f) => f.id !== item.id);
+			st.starredFormulas = (st.starredFormulas || []).filter((id) => id !== item.id);
+			st.deletedIds ??= {};
+			st.deletedIds[item.id] = Date.now();
+			try {
+				localStorage.setItem('btracker_starred_formulas', JSON.stringify(st.starredFormulas || []));
+			} catch {}
 		});
 		celebration.set({
 			text: `Deleted "${item.title}"`,
 			actionLabel: 'Undo',
 			onAction: () => {
 				updateTracker((st) => {
-					st.customFormulas = prev;
+					st.customFormulas = prevFormulas;
+					st.starredFormulas = prevStarred;
+					if (st.deletedIds) {
+						const rest: Record<string, number> = {};
+						for (const [key, ts] of Object.entries(st.deletedIds)) {
+							if (key !== item.id) rest[key] = ts;
+						}
+						st.deletedIds = Object.keys(rest).length ? rest : undefined;
+					}
+					try {
+						localStorage.setItem('btracker_starred_formulas', JSON.stringify(st.starredFormulas || []));
+					} catch {}
 				});
 			}
 		});
@@ -118,6 +136,10 @@
 		}
 	});
 
+	onDestroy(() => {
+		clearTimeout(copyTimeout);
+	});
+
 	function toggleStar(id: string) {
 		uiClick();
 		updateTracker((st) => {
@@ -127,10 +149,11 @@
 			} else {
 				st.starredFormulas = [...list, id];
 			}
+			// Mirror the mutated draft, not the stale pre-update store value.
+			try {
+				localStorage.setItem('btracker_starred_formulas', JSON.stringify(st.starredFormulas));
+			} catch {}
 		});
-		try {
-			localStorage.setItem('btracker_starred_formulas', JSON.stringify($tracker.starredFormulas || []));
-		} catch {}
 	}
 
 	function copyLatex(formula: FormulaItem) {
@@ -143,6 +166,14 @@
 		}, 1800);
 	}
 
+	function escapeHtml(str: string): string {
+		return str
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;');
+	}
+
 	function renderMath(tex: string, _tick = 0): string {
 		if (katexModule) {
 			try {
@@ -151,10 +182,10 @@
 					throwOnError: false
 				});
 			} catch {
-				return `<code class="math-fallback">${tex}</code>`;
+				return `<code class="math-fallback">${escapeHtml(tex)}</code>`;
 			}
 		}
-		return `<code class="math-fallback">${tex}</code>`;
+		return `<code class="math-fallback">${escapeHtml(tex)}</code>`;
 	}
 
 	$: allFormulas = [...JEE_FORMULAS, ...($tracker.customFormulas || [])] as FormulaItem[];

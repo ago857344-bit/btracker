@@ -36,14 +36,15 @@ export function addSubtopicToChapter(
 	subtopicId: string,
 	subtopicName: string
 ): ChapterRecallData {
-	if (chapterData.subtopics[subtopicId]) {
+	const subtopics = chapterData.subtopics || {};
+	if (subtopics[subtopicId]) {
 		return chapterData; // Already exists
 	}
 
 	return {
 		...chapterData,
 		subtopics: {
-			...chapterData.subtopics,
+			...subtopics,
 			[subtopicId]: createSubtopicProgress(subtopicId, subtopicName)
 		}
 	};
@@ -64,7 +65,8 @@ export function recordSubtopicRevision(
 	modalities: ModalityTag[],
 	confidence: ConfidenceRating
 ): ChapterRecallData {
-	const subtopic = chapterData.subtopics[subtopicId];
+	const subtopics = chapterData.subtopics || {};
+	const subtopic = subtopics[subtopicId];
 	if (!subtopic) {
 		// Auto-create if doesn't exist
 		return recordSubtopicRevision(
@@ -79,19 +81,19 @@ export function recordSubtopicRevision(
 	const updatedSubtopic: SubtopicProgress = {
 		...subtopic,
 		lastRevisedAt: Date.now(),
-		modalities: [...new Set([...subtopic.modalities, ...modalities])], // Deduplicate
+		modalities: [...new Set([...(subtopic.modalities || []), ...modalities])], // Deduplicate
 		decay: updateDecayAfterRevision(subtopic.decay, confidence)
 	};
 
 	// Also update chapter-level modalities
 	const updatedChapterModalities = [
-		...new Set([...chapterData.modalities, ...modalities])
+		...new Set([...(chapterData.modalities || []), ...modalities])
 	] as ModalityTag[];
 
 	return {
 		...chapterData,
 		subtopics: {
-			...chapterData.subtopics,
+			...subtopics,
 			[subtopicId]: updatedSubtopic
 		},
 		modalities: updatedChapterModalities

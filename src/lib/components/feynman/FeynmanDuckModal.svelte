@@ -77,6 +77,19 @@
 
 	$: hasTickedChapters = (academicContext.tickmarkedChapters[subject as 'P' | 'C' | 'M'] || []).length > 0;
 
+	// Single shared AudioContext: browsers cap concurrent contexts, so creating one
+	// per quack leaks a hardware voice until GC and eventually silences new sounds.
+	let sharedAudioCtx: AudioContext | null = null;
+
+	function getAudioCtx(): AudioContext | null {
+		if (typeof window === 'undefined') return null;
+		const AudioCtor = window.AudioContext || (window as any).webkitAudioContext;
+		if (!AudioCtor) return null;
+		if (!sharedAudioCtx) sharedAudioCtx = new AudioCtor();
+		if (sharedAudioCtx.state === 'suspended') void sharedAudioCtx.resume();
+		return sharedAudioCtx;
+	}
+
 	// Check speech recognition capability
 	onMount(() => {
 		voiceSupported = VoiceDictation.isSupported();
@@ -84,6 +97,10 @@
 
 	onDestroy(() => {
 		voiceDictation.stop();
+		if (sharedAudioCtx) {
+			void sharedAudioCtx.close();
+			sharedAudioCtx = null;
+		}
 	});
 
 	// Subscribe to initial topic passed via store
@@ -189,8 +206,10 @@ Explain what happens from **first principles**—avoid reciting formulas without
 		await tick();
 		scrollToBottom();
 
-		// Convert conversation to Gemini ChatMessage format
-		const history: ChatMessage[] = conversation.map((t) => ({
+		// Convert conversation to Gemini ChatMessage format, dropping leading model greeting turns
+		const firstUserIdx = conversation.findIndex((t) => t.role === 'user');
+		const validTurns = firstUserIdx >= 0 ? conversation.slice(firstUserIdx) : conversation;
+		const history: ChatMessage[] = validTurns.map((t) => ({
 			role: t.role === 'user' ? 'user' : 'model',
 			parts: [{ text: t.text }]
 		}));
@@ -259,10 +278,10 @@ Explain what happens from **first principles**—avoid reciting formulas without
 	}
 
 	function saveAsFlashcard() {
-		if (!scorecard) return;
+		if (!scorecard?.suggestedFlashcard?.front) return;
 		addFlashcard({
 			front: scorecard.suggestedFlashcard.front,
-			back: scorecard.suggestedFlashcard.back,
+			back: scorecard.suggestedFlashcard.back || 'Key takeaways from Feynman explanation.',
 			subject,
 			chapter
 		});
@@ -272,9 +291,12 @@ Explain what happens from **first principles**—avoid reciting formulas without
 
 	function markChapterRevised() {
 		if (!chapter) return;
-		const key = `${subject}:${chapter}`;
-		completeRevision(key);
-		boostChapterFromPractice(`${subject}-${chapter}`);
+		// Revision items and chapter keys exist in both `sub:chapter` and `sub-chapter`
+		// forms depending on the entry point, so credit both.
+		const hyphenKey = `${subject}-${chapter}`;
+		completeRevision(`${subject}:${chapter}`);
+		completeRevision(hyphenKey);
+		boostChapterFromPractice(hyphenKey);
 		revisionCompleted = true;
 		celebration.set(`🎉 ${chapter} marked revised with boosted retention!`);
 	}
@@ -305,9 +327,8 @@ Explain what happens from **first principles**—avoid reciting formulas without
 	function playQuack(type: 'happy' | 'skeptical' | 'enlightened' | 'curious') {
 		if (!soundEnabled || typeof window === 'undefined') return;
 		try {
-			const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-			if (!AudioCtx) return;
-			const ctx = new AudioCtx();
+			const ctx = getAudioCtx();
+			if (!ctx) return;
 			const now = ctx.currentTime;
 
 			if (type === 'enlightened') {
@@ -359,9 +380,8 @@ Explain what happens from **first principles**—avoid reciting formulas without
 	function playFanfare() {
 		if (!soundEnabled || typeof window === 'undefined') return;
 		try {
-			const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-			if (!AudioCtx) return;
-			const ctx = new AudioCtx();
+			const ctx = getAudioCtx();
+			if (!ctx) return;
 			const now = ctx.currentTime;
 			const chords = [523.25, 659.25, 783.99, 1046.5]; // C5, E5, G5, C6
 			chords.forEach((freq, idx) => {

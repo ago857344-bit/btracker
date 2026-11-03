@@ -44,7 +44,8 @@ export function getUserAcademicContext(tracker: TrackerState): UserAcademicConte
 
 		for (const ch of chapters) {
 			const isStarted = Boolean(grid?.started?.[ch.no]);
-			const hasCheckedCell = Boolean(grid?.data?.[ch.no]?.some((v: string) => v === '✓'));
+			const dataRow = grid?.data?.[ch.no];
+			const hasCheckedCell = Array.isArray(dataRow) && dataRow.some((v: string) => v === '✓');
 			if (isStarted || hasCheckedCell) {
 				tickmarkedChapters[sub].push(ch.name);
 			}

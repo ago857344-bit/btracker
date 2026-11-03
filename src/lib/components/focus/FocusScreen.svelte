@@ -158,7 +158,7 @@
 
 	let logChapter = '';
 	$: focusValid = Boolean(subject) && Boolean(focusChapter);
-	let milestoneOpen = false; let milestoneHours = $tracker.meta.weekGoalH;
+	let milestoneOpen = false; let milestoneHours = $tracker?.meta?.weekGoalH ?? 25;
 
 	let locked = false; 
 	let touchStartX = 0;
@@ -216,14 +216,15 @@
 	$: if (logChapter && !logChapters.includes(logChapter)) logChapter = '';
 	$: swValid = Boolean(subject) && Boolean(swChapter);
 	$: weekKeys = new Set(lastNDays(7));
-	$: weekSessions = $tracker.log.filter((session) => weekKeys.has(sessionDayKey(session))).length;
+	$: weekSessions = ($tracker?.log || []).filter((session) => weekKeys.has(sessionDayKey(session))).length;
 	$: hourStreak = (() => {
 		let n = 0; let key = todayKey();
-		if (focusMinutesOn($tracker.log, key) < 60) key = addDaysKey(key, -1);
-		while (focusMinutesOn($tracker.log, key) >= 60) { n += 1; key = addDaysKey(key, -1); }
+		const log = $tracker?.log || [];
+		if (focusMinutesOn(log, key) < 60) key = addDaysKey(key, -1);
+		while (focusMinutesOn(log, key) >= 60 && n < 366) { n += 1; key = addDaysKey(key, -1); }
 		return n;
 	})();
-	$: weekGoalH = $tracker.meta.weekGoalH;
+	$: weekGoalH = $tracker?.meta?.weekGoalH ?? 25;
 	$: goalPct = weekGoalH > 0 ? Math.min(100, Math.round(($weeklyFocusMinutes / (weekGoalH * 60)) * 100)) : 0;
 	$: clockTime = clock.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
 	$: clockDate = clock.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -319,7 +320,7 @@
 		const weekHours = $weeklyFocusMinutes / 60;
 		const totalQ = (() => {
 			let n = 0;
-			for (const day of Object.values($tracker.stat)) for (const v of Object.values(day ?? {})) n += Number(v) || 0;
+			for (const day of Object.values($tracker?.stat || {})) for (const v of Object.values(day ?? {})) n += Number(v) || 0;
 			return n;
 		})();
 

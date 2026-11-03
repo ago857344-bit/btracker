@@ -50,7 +50,7 @@ export function universalTotals(entries: UniversalEntry[]): UniversalTotals {
 		const cor = Math.min(att, Math.max(0, Number(entry.cor) || 0));
 		attempts += att;
 		solved += cor;
-		doubts += Math.min(cor, Math.max(0, Number(entry.doubt) || 0));
+		doubts += Math.min(att, Math.max(0, Number(entry.doubt) || 0));
 	}
 	return { sessions: entries.length, attempts, solved, doubts, accuracy: accuracyOf(solved, attempts) };
 }
@@ -74,7 +74,7 @@ export function universalChapters(entries: UniversalEntry[]): UniversalChapterTo
 		current.sessions += 1;
 		current.attempts += att;
 		current.solved += cor;
-		current.doubts += Math.min(cor, Math.max(0, Number(entry.doubt) || 0));
+		current.doubts += Math.min(att, Math.max(0, Number(entry.doubt) || 0));
 		current.lastAt = Math.max(current.lastAt, entry.at);
 		current.accuracy = accuracyOf(current.solved, current.attempts);
 		map.set(key, current);

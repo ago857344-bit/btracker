@@ -37,6 +37,7 @@
 	import BTrackerWrappedModal from '$lib/components/stats/BTrackerWrappedModal.svelte';
 	import { loadout } from '$lib/stores/cosmetics';
 	import { sidebarDragWidth } from '$lib/stores/sidebar';
+	import { themePreview } from '$lib/stores/themePreview';
 	import { globalTimer } from '$lib/stores/timerState';
 	import HotkeyCheatsheetModal from '$lib/components/ui/HotkeyCheatsheetModal.svelte';
 	import { sampleVideoFrame, analyzeWallpaperLuminance, clearWallpaperContrast, activeWallpaperColors } from '$lib/utils/wallpaperContrast';
@@ -259,7 +260,9 @@
 	function applyTheme(state: { theme: string; ui: { accent: string, wallpaper?: string | null } }) {
 		const root = document.documentElement;
 		root.setAttribute('data-theme', state.theme);
-		try { localStorage.setItem('btracker_theme', state.theme); } catch {}
+		if (!$themePreview.active) {
+			try { localStorage.setItem('btracker_theme', state.theme); } catch {}
+		}
 		root.style.setProperty('--accent', state.ui.accent);
 		root.style.setProperty('--accent-strong', `color-mix(in srgb, ${state.ui.accent}, black 14%)`);
 		root.style.setProperty('--accent-soft', `color-mix(in srgb, ${state.ui.accent}, transparent ${isDarkTheme(state.theme) ? '82%' : '88%'})`);
@@ -306,10 +309,12 @@
 		}
 
 		const effectiveWallpaper = isFirstTimeOrUnauth ? null : getActiveWallpaper(state.theme, state.ui.wallpaper);
+		// @ts-ignore
+		const eco = resolveEcoMode(state.ui.ecoMode);
 		
 		if (effectiveWallpaper) {
 			root.setAttribute('data-wallpaper', 'true');
-			if (isVideoWallpaper(effectiveWallpaper)) {
+			if (isVideoWallpaper(effectiveWallpaper) && !eco) {
 				root.setAttribute('data-live-wallpaper', 'true');
 			}
 			root.style.setProperty('--user-wallpaper', wallpaperCss(effectiveWallpaper));
@@ -359,12 +364,7 @@
 			root.removeAttribute('data-reduced-motion');
 		}
 
-		// @ts-ignore
-		const liveWpExplicit = state.ui.liveWallpaper === true;
-		const themeHasVideo = Boolean(THEME_PRESETS.find(t => t.id === state.theme)?.wallpaper?.endsWith('.mp4'));
-		// @ts-ignore
-		const eco = resolveEcoMode(state.ui.ecoMode);
-		if (eco && !liveWpExplicit && !themeHasVideo) {
+		if (eco) {
 			root.setAttribute('data-eco', 'true');
 		} else {
 			root.removeAttribute('data-eco');
@@ -373,11 +373,22 @@
 	}
 
 	$: isFirstTimeOrUnauth = isAuthRoute || isMarketingLanding || isPreview;
-	$: effectiveTheme = isPreview ? 'light' : (isFirstTimeOrUnauth ? 'light' : ($tracker.theme || 'dark'));
+	$: previewTheme = $themePreview.active ? $themePreview.theme : null;
+	$: effectiveTheme = isPreview ? 'light' : (isFirstTimeOrUnauth ? 'light' : (previewTheme?.id ?? ($tracker.theme || 'dark')));
+	// Preview is a pure visual override — persisted appearance is never mutated.
+	$: effectiveUi = previewTheme
+		? {
+			...$tracker.ui,
+			accent: previewTheme.accent,
+			wallpaper: previewTheme.wallpaper ? `builtin:${previewTheme.id}` : ($tracker.ui.wallpaper ?? null),
+			liveWallpaper: previewTheme.wallpaper ? isVideoWallpaper(previewTheme.wallpaper) : $tracker.ui.liveWallpaper,
+			ecoMode: previewTheme.wallpaper ? false : $tracker.ui.ecoMode
+		}
+		: $tracker.ui;
 	$: if (browser) {
 		applyTheme({
 			theme: effectiveTheme,
-			ui: isPreview ? { ...$tracker.ui, accent: '#6d5dfc', wallpaper: null } : $tracker.ui
+			ui: isPreview ? { ...effectiveUi, accent: '#6d5dfc', wallpaper: null } : effectiveUi
 		});
 		if (isPreview) {
 			document.documentElement.setAttribute('data-fx', 'none');
@@ -454,9 +465,9 @@
 		};
 	});
 	$: currentThemePreset = THEME_PRESETS.find(t => t.id === effectiveTheme);
-	$: currentWallpaperStr = isFirstTimeOrUnauth ? null : getActiveWallpaper(effectiveTheme, $tracker.ui.wallpaper);
+	$: currentWallpaperStr = isFirstTimeOrUnauth ? null : getActiveWallpaper(effectiveTheme, effectiveUi.wallpaper);
 	$: isVideoWp = Boolean(currentWallpaperStr && isVideoWallpaper(currentWallpaperStr));
-	$: activeVideoUrl = (isVideoWp && $tracker.ui.ecoMode !== true) ? encodeURI(currentWallpaperStr!) : null;
+	$: activeVideoUrl = (isVideoWp && effectiveUi.ecoMode !== true) ? encodeURI(currentWallpaperStr!) : null;
 
 	$: if (typeof document !== 'undefined') {
 		if (activeVideoUrl) {
@@ -526,9 +537,7 @@
 		<link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
 		<link rel="preload" href="/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
 	{/if}
-	{#if activeVideoUrl}
-		<link rel="preload" as="video" href={activeVideoUrl} type="video/mp4" fetchpriority="high" />
-	{/if}
+	<!-- Video wallpapers stream on demand; browsers reject preload hints for `as="video"`. -->
 </svelte:head>
 
 <svelte:window

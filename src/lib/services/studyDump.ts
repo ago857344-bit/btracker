@@ -239,7 +239,8 @@ export async function uploadFilesToSection(
 				const cloudManifest = await readManifestFromZip(cloudData);
 				if (cloudManifest?.files?.length) {
 					for (const cFile of cloudManifest.files) {
-						const existsLocally = currentManifest.files.some((f) => f.name.toLowerCase() === cFile.name.toLowerCase());
+						if (!cFile?.name) continue;
+						const existsLocally = currentManifest.files.some((f) => (f?.name || '').toLowerCase() === (cFile?.name || '').toLowerCase());
 						if (!existsLocally) {
 							const zipFile = cloudZip.file(cFile.name);
 							if (zipFile) {
@@ -265,7 +266,7 @@ export async function uploadFilesToSection(
 
 		// Clean filename and handle collision
 		let safeName = file.name.trim();
-		const nameCollides = currentManifest.files.some((f) => f.name.toLowerCase() === safeName.toLowerCase());
+		const nameCollides = currentManifest.files.some((f) => (f?.name || '').toLowerCase() === safeName.toLowerCase());
 		if (nameCollides) {
 			const dotIdx = safeName.lastIndexOf('.');
 			if (dotIdx > 0) {
@@ -380,7 +381,15 @@ export async function deleteFileFromSection(
 	}
 
 	const zip = await JSZip.loadAsync(zipBlob);
-	zip.remove(fileName);
+	const lowerName = fileName.toLowerCase().trim();
+	const match = Object.keys(zip.files).find(
+		(k) => !zip.files[k].dir && (k === fileName || k.toLowerCase().trim() === lowerName)
+	);
+	if (match) {
+		zip.remove(match);
+	} else {
+		zip.remove(fileName);
+	}
 
 	const remainingMetas = currentMetas.filter((f) => !(f.section === section && f.name === fileName));
 	const manifest: SectionManifest = {

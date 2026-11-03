@@ -68,11 +68,11 @@ export function checkDueReminders(
 		if (notifiedReminderIds.has(reminder.id)) continue;
 
 		let dueEpoch = 0;
-		if (reminder.when.includes('T')) {
+		if (typeof reminder?.when === 'string' && reminder.when.includes('T')) {
 			dueEpoch = new Date(reminder.when).getTime();
-		} else {
+		} else if (typeof reminder?.when === 'string' && reminder.when.trim()) {
 			// Date only (YYYY-MM-DD): treat as 9:00 AM on that date
-			dueEpoch = new Date(`${reminder.when}T09:00:00`).getTime();
+			dueEpoch = new Date(`${reminder.when.trim()}T09:00:00`).getTime();
 		}
 
 		if (!isNaN(dueEpoch) && now >= dueEpoch && now - dueEpoch < 24 * 60 * 60 * 1000) {

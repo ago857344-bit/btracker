@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte';
+	import { onDestroy, onMount, tick } from 'svelte';
 	import { fade, fly } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { tracker, updateTracker, celebration } from '$lib/stores/tracker';
@@ -25,6 +25,10 @@
 	let copyTimeout: ReturnType<typeof setTimeout> | undefined;
 	let excludeResolved = true;
 
+	onDestroy(() => {
+		clearTimeout(copyTimeout);
+	});
+
 	$: starredIds = $tracker.starredFormulas || [];
 
 	async function ensureKatex() {
@@ -46,6 +50,14 @@
 		}
 	}
 
+	function escapeHtml(str: string): string {
+		return str
+			.replace(/&/g, '&amp;')
+			.replace(/</g, '&lt;')
+			.replace(/>/g, '&gt;')
+			.replace(/"/g, '&quot;');
+	}
+
 	function renderMath(tex: string, _tick = 0): string {
 		if (katexModule) {
 			try {
@@ -54,10 +66,10 @@
 					throwOnError: false
 				});
 			} catch {
-				return `<code class="math-fallback">${tex}</code>`;
+				return `<code class="math-fallback">${escapeHtml(tex)}</code>`;
 			}
 		}
-		return `<code class="math-fallback">${tex}</code>`;
+		return `<code class="math-fallback">${escapeHtml(tex)}</code>`;
 	}
 
 	function toggleStar(id: string) {
@@ -69,10 +81,11 @@
 			} else {
 				st.starredFormulas = [...list, id];
 			}
+			// Mirror the mutated draft, not the stale pre-update store value.
+			try {
+				localStorage.setItem('btracker_starred_formulas', JSON.stringify(st.starredFormulas));
+			} catch {}
 		});
-		try {
-			localStorage.setItem('btracker_starred_formulas', JSON.stringify($tracker.starredFormulas || []));
-		} catch {}
 	}
 
 	// Curated exam traps if student has 0 logged mistakes
@@ -120,30 +133,30 @@
 	];
 
 	// Filter mistakes based on user options
-	$: allMistakes = ($tracker.mistakes && $tracker.mistakes.length > 0) ? $tracker.mistakes : CURATED_EXAM_TRAPS;
-	$: isUsingCuratedMistakes = !($tracker.mistakes && $tracker.mistakes.length > 0);
+	$: allMistakes = ($tracker?.mistakes && $tracker.mistakes.length > 0) ? $tracker.mistakes : CURATED_EXAM_TRAPS;
+	$: isUsingCuratedMistakes = !($tracker?.mistakes && $tracker.mistakes.length > 0);
 
 	$: filteredMistakes = allMistakes.filter((m) => {
-		if (excludeResolved && m.resolved) {
+		if (excludeResolved && m?.resolved) {
 			return false;
 		}
 		// Subject match
 		if ($testDaySheetOptions.subject !== 'ALL') {
-			const sub = m.subject.toLowerCase();
+			const sub = (m?.subject || '').toLowerCase();
 			const target = $testDaySheetOptions.subject.toLowerCase();
 			if (!sub.includes(target) && !(target === 'physics' && sub === 'p') && !(target === 'chemistry' && sub === 'c') && !(target === 'maths' && sub === 'm')) {
 				return false;
 			}
 		}
 		// Error type match
-		if (!$testDaySheetOptions.errorTypes.includes(m.errorType)) {
+		if (!$testDaySheetOptions?.errorTypes || !$testDaySheetOptions.errorTypes.includes(m?.errorType as any)) {
 			return false;
 		}
 		return true;
 	});
 
 	// Filter formulas based on user options (including custom formulas)
-	$: allFormulasList = [...JEE_FORMULAS, ...($tracker.customFormulas || [])];
+	$: allFormulasList = [...JEE_FORMULAS, ...($tracker?.customFormulas || [])];
 
 	$: filteredFormulas = allFormulasList.filter((f) => {
 		// Subject match

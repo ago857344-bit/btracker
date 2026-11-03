@@ -5,7 +5,7 @@
  * 2. Canvas-to-Video Stream PiP with MediaSession API fallback (Safari, Firefox)
  */
 
-import { writable } from 'svelte/store';
+import { get, writable } from 'svelte/store';
 import { globalTimer } from '$lib/stores/timerState';
 import { subjectColor, subjectName } from '$lib/state/subjects';
 import { celebration } from '$lib/stores/tracker';
@@ -87,8 +87,17 @@ export function closeNativePip() {
 		pipWindow = null;
 	}
 
-	if (fallbackVideo && document.pictureInPictureElement === fallbackVideo) {
-		try { document.exitPictureInPicture(); } catch {}
+	if (fallbackVideo) {
+		if (document.pictureInPictureElement === fallbackVideo) {
+			try { document.exitPictureInPicture(); } catch {}
+		}
+		try {
+			fallbackVideo.pause();
+			if (fallbackVideo.srcObject instanceof MediaStream) {
+				fallbackVideo.srcObject.getTracks().forEach((track) => track.stop());
+			}
+			fallbackVideo.srcObject = null;
+		} catch {}
 	}
 
 	if (fallbackAnimFrame) {
@@ -257,24 +266,15 @@ function setupDocumentPip(win: Window) {
 
 	// Wire buttons
 	toggleBtn?.addEventListener('click', () => {
-		let current: any;
-		const unsub = globalTimer.subscribe((v) => (current = v));
-		unsub();
-		if (current) current.toggle();
+		get(globalTimer)?.toggle();
 	});
 
 	addFiveBtn?.addEventListener('click', () => {
-		let current: any;
-		const unsub = globalTimer.subscribe((v) => (current = v));
-		unsub();
-		if (current) current.addFive();
+		get(globalTimer)?.addFive();
 	});
 
 	endBtn?.addEventListener('click', () => {
-		let current: any;
-		const unsub = globalTimer.subscribe((v) => (current = v));
-		unsub();
-		if (current) current.stop();
+		get(globalTimer)?.stop();
 		closeNativePip();
 	});
 
@@ -345,9 +345,7 @@ async function setupCanvasPip(): Promise<boolean> {
 
 	// Render canvas loop
 	function drawFrame() {
-		let state: any;
-		const unsub = globalTimer.subscribe((v) => (state = v));
-		unsub();
+		const state = get(globalTimer);
 
 		if (!ctx || !fallbackCanvas) return;
 		const w = fallbackCanvas.width;
@@ -414,9 +412,11 @@ async function setupCanvasPip(): Promise<boolean> {
 	await fallbackVideo.play();
 	await fallbackVideo.requestPictureInPicture();
 
-	fallbackVideo.addEventListener('leavepictureinpicture', () => {
-		closeNativePip();
-	});
+	if (!fallbackVideo.onleavepictureinpicture) {
+		fallbackVideo.onleavepictureinpicture = () => {
+			closeNativePip();
+		};
+	}
 
 	// Hook media session for lockscreen / PiP controls
 	if ('mediaSession' in navigator) {
@@ -427,17 +427,17 @@ async function setupCanvasPip(): Promise<boolean> {
 		});
 
 		navigator.mediaSession.setActionHandler('play', () => {
-			let cur: any;
-			const u = globalTimer.subscribe((v) => (cur = v));
-			u();
-			if (cur) cur.start(cur.subject || 'P', 25 * 60, cur.chapter || '');
+			const cur = get(globalTimer);
+			if (cur && !cur.running) {
+				cur.toggle();
+			}
 		});
 
 		navigator.mediaSession.setActionHandler('pause', () => {
-			let cur: any;
-			const u = globalTimer.subscribe((v) => (cur = v));
-			u();
-			if (cur) cur.toggle();
+			const cur = get(globalTimer);
+			if (cur && cur.running) {
+				cur.toggle();
+			}
 		});
 	}
 

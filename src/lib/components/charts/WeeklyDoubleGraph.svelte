@@ -7,21 +7,23 @@
 	export let showSummary: boolean = true;
 
 	// Scale bounds (so small numbers don't blow up to 100% height inappropriately)
-	$: maxHours = Math.max(4, ...daily.map((d) => d.hours));
-	$: maxQuestions = Math.max(30, ...daily.map((d) => d.questions));
+	$: maxHours = Math.max(4, ...(daily || []).map((d) => Number(d?.hours) || 0));
+	$: maxQuestions = Math.max(30, ...(daily || []).map((d) => Number(d?.questions) || 0));
 
 	let hoveredIndex: number | null = null;
 
-	$: totalMinutes = daily.reduce((sum, d) => sum + d.minutes, 0);
-	$: totalQuestions = daily.reduce((sum, d) => sum + d.questions, 0);
-	$: activeDays = daily.filter((d) => d.minutes > 0 || d.questions > 0).length;
+	$: totalMinutes = (daily || []).reduce((sum, d) => sum + (Number(d?.minutes) || 0), 0);
+	$: totalQuestions = (daily || []).reduce((sum, d) => sum + (Number(d?.questions) || 0), 0);
+	$: activeDays = (daily || []).filter((d) => (Number(d?.minutes) || 0) > 0 || (Number(d?.questions) || 0) > 0).length;
 
 	$: peakDay = (() => {
 		let best: DailyBreakdownItem | null = null;
 		let bestScore = -1;
-		for (const d of daily) {
-			const score = d.hours * 20 + d.questions;
-			if (score > bestScore && (d.hours > 0 || d.questions > 0)) {
+		for (const d of daily || []) {
+			const h = Number(d?.hours) || 0;
+			const q = Number(d?.questions) || 0;
+			const score = h * 20 + q;
+			if (score > bestScore && (h > 0 || q > 0)) {
 				bestScore = score;
 				best = d;
 			}
@@ -60,9 +62,11 @@
 		</div>
 
 		<div class="days-columns" role="list">
-			{#each daily as day, i (day.key)}
-				{@const hoursHeightPct = day.hours > 0 ? Math.max(8, Math.min(100, (day.hours / maxHours) * 100)) : 0}
-				{@const qHeightPct = day.questions > 0 ? Math.max(8, Math.min(100, (day.questions / maxQuestions) * 100)) : 0}
+			{#each daily || [] as day, i (day?.key ?? i)}
+				{@const dHours = Number(day?.hours) || 0}
+				{@const dQuestions = Number(day?.questions) || 0}
+				{@const hoursHeightPct = dHours > 0 && maxHours > 0 ? Math.max(8, Math.min(100, (dHours / maxHours) * 100)) : 0}
+				{@const qHeightPct = dQuestions > 0 && maxQuestions > 0 ? Math.max(8, Math.min(100, (dQuestions / maxQuestions) * 100)) : 0}
 				{@const isHovered = hoveredIndex === i}
 
 				<div

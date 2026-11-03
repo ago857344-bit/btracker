@@ -41,7 +41,7 @@
 
 	// Chapter memory decay tracking
 	$: chapterKey = chapterName.trim() ? `${selectedSubject}-${chapterName.trim()}` : '';
-	$: chapterDecay = chapterKey ? $tracker.rev.chapters[chapterKey]?.decay ?? null : null;
+	$: chapterDecay = chapterKey ? $tracker?.rev?.chapters?.[chapterKey]?.decay ?? null : null;
 	$: chapterMemoryScore = chapterDecay ? Math.round(calculateCurrentScore(chapterDecay)) : null;
 	$: chapterHalfLife = chapterDecay?.halfLife ?? null;
 	$: chapterNextRevision = chapterDecay?.lastRevisionAt ? chapterDecay.lastRevisionAt : null;
@@ -81,7 +81,10 @@
 	function loadRecentLectures() {
 		try {
 			const saved = localStorage.getItem('btracker_recent_lectures');
-			if (saved) recentLectures = JSON.parse(saved);
+			if (saved) {
+				const parsed = JSON.parse(saved);
+				if (Array.isArray(parsed)) recentLectures = parsed;
+			}
 		} catch {}
 	}
 
@@ -97,7 +100,7 @@
 
 	function loadVideoNotes(id: string) {
 		try {
-			const saved = $tracker.lectureNotes?.[id]?.content || localStorage.getItem(`btracker_lecture_notes_${id}`);
+			const saved = $tracker?.lectureNotes?.[id]?.content || localStorage.getItem(`btracker_lecture_notes_${id}`);
 			notesText = saved || `## Key Derivations & Takeaways\n[00:00] Lecture began — setup & core definitions.\n`;
 		} catch {
 			notesText = '';
@@ -148,7 +151,7 @@
 		}
 		sendToAiMentor({
 			prompt: `Extract 5 high-yield conceptual and formula flashcards from these ${selectedSubject} lecture notes (${chapterName || videoTitle}):\n\n${notesText}`,
-			initialMessage: `Generating 5 flashcards from lecture notes for ${chapterName || videoTitle}...`,
+			typingStatus: `Generating 5 flashcards from lecture notes for ${chapterName || videoTitle}...`,
 			autoSend: true
 		});
 		celebration.set('Sent notes to AI Mentor to extract flashcards! ✨');
@@ -402,7 +405,7 @@
 		loadRecentLectures();
 
 		// Load YouTube IFrame API script if not present
-		if (typeof window !== 'undefined' && !(window as any).YT) {
+		if (typeof window !== 'undefined' && !(window as any).YT && !document.querySelector('script[src*="youtube.com/iframe_api"]')) {
 			const tag = document.createElement('script');
 			tag.src = 'https://www.youtube.com/iframe_api';
 			document.body.appendChild(tag);

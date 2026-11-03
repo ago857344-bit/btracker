@@ -1,7 +1,14 @@
-import { tracker, updateTracker, setSessionBoostHandler } from "./tracker";
+import { tracker, updateTracker, markDeleted } from "./tracker";
+import { setSessionBoostHandler } from "./timer-bridge";
 
 function _updateAndSave(updater: (state: TrackerState) => TrackerState | void) {
 	updateTracker((draft) => {
+		if (!draft.rev) draft.rev = createRevision();
+		if (!draft.rev.chapters) draft.rev.chapters = {};
+		if (!draft.rev.items) draft.rev.items = {};
+		if (!draft.rev.dailyHeatmap) draft.rev.dailyHeatmap = {};
+		if (!draft.rev.studyBlocks) draft.rev.studyBlocks = [];
+		if (!draft.rev.focusSessions) draft.rev.focusSessions = [];
 		const res = updater(draft);
 		if (res && res !== draft) {
 			Object.assign(draft, res);
@@ -15,11 +22,12 @@ import type { TrackerState,
 	StudyBlock,
 	FocusSession
 } from '$lib/types/tracker';
-import { createChapterRecallData } from '$lib/state/defaults';
+import { createChapterRecallData, createRevision } from '$lib/state/defaults';
 import { updateDecayAfterRevision, daysUntilThreshold } from '$lib/state/decay';
 import { recordSubtopicRevision, addSubtopicToChapter } from '$lib/state/subtopics';
 import { todayKey, dayKeyOf, addDaysKey } from '$lib/state/dates';
 import { intervalFor } from '$lib/state/subjects';
+import { applyEloResult } from '$lib/state/gamification';
 
 /**
  * Actions for managing the Active Recall Hub state
@@ -50,6 +58,13 @@ export function addChapterToRecall(
 		const [sub, ...rest] = chapterKey.split(/[-:]/);
 		const chName = rest.join('-').trim();
 		const colonKey = `${sub}:${chName}`;
+		const hyphenKey = `${sub}-${chName}`;
+
+		if ($tracker.deletedIds) {
+			delete $tracker.deletedIds[chapterKey];
+			delete $tracker.deletedIds[colonKey];
+			delete $tracker.deletedIds[hyphenKey];
+		}
 
 		return {
 			...$tracker,
@@ -114,8 +129,6 @@ export function updateChapterWeightage(chapterKey: string, weightage: 1 | 2 | 3)
  * @param modalities - Modalities used
  * @param timeSpentMinutes - Time spent in minutes
  */
-import { applyEloResult } from '$lib/state/gamification';
-
 export function recordChapterRevision(
 	chapterKey: string,
 	confidence: ConfidenceRating,
@@ -463,7 +476,8 @@ export function completeFocusSession(
 				...chapter,
 				decay: newDecay,
 				subtopics: updatedSubtopics,
-				nextRevisionDate: nextDate
+				nextRevisionDate: nextDate,
+				userAdded: true
 			};
 
 			const [sub, ...rest] = session.chapterKey.split(/[-:]/);
@@ -553,6 +567,10 @@ export function removeChapterFromRecall(chapterKey: string) {
 		const colonKey = `${sub}:${chName}`;
 		const hyphenKey = `${sub}-${chName}`;
 
+		markDeleted($tracker, chapterKey);
+		markDeleted($tracker, colonKey);
+		markDeleted($tracker, hyphenKey);
+
 		const remainingItems = { ...$tracker.rev.items };
 		delete remainingItems[colonKey];
 		delete remainingItems[hyphenKey];
@@ -560,6 +578,7 @@ export function removeChapterFromRecall(chapterKey: string) {
 
 		return {
 			...$tracker,
+			deletedIds: { ...$tracker.deletedIds },
 			rev: {
 				...$tracker.rev,
 				chapters: remainingChapters,
@@ -581,7 +600,9 @@ export function bulkAddChaptersToRecall(chapterKeys: string[], defaultWeightage:
 
 		chapterKeys.forEach((key) => {
 			if (!$tracker.rev.chapters[key]) {
-				newChapters[key] = createChapterRecallData(key, defaultWeightage);
+				const ch = createChapterRecallData(key, defaultWeightage);
+				ch.userAdded = true;
+				newChapters[key] = ch;
 			}
 		});
 
@@ -613,6 +634,7 @@ export function boostChapterFromPractice(chapterKey: string, durationMinutes: nu
 		if (!chapter) {
 			// Doesn't exist, so add it fresh with 100% initial retention
 			const newCh = createChapterRecallData(chapterKey, 2);
+			newCh.userAdded = true;
 			newCh.decay = {
 				r0: 100,
 				halfLife: 7,
@@ -638,7 +660,8 @@ export function boostChapterFromPractice(chapterKey: string, durationMinutes: nu
 			updatedChapter = {
 				...chapter,
 				decay: newDecay,
-				nextRevisionDate: nextDate
+				nextRevisionDate: nextDate,
+				userAdded: true
 			};
 			updatedChapters[chapterKey] = updatedChapter;
 		}
@@ -647,7 +670,7 @@ export function boostChapterFromPractice(chapterKey: string, durationMinutes: nu
 		const [sub, ...rest] = chapterKey.split(/[-:]/);
 		const chName = rest.join('-').trim();
 		const colonKey = `${sub}:${chName}`;
-		const existingItem = $tracker.rev.items[colonKey];
+		const existingItem = $tracker.rev.items[colonKey] || $tracker.rev.items[chapterKey];
 		const nextStep = existingItem ? (existingItem.step ?? 1) + 1 : 1;
 		const nextInterval = intervalFor(existingItem?.method ?? 'steady', nextStep, existingItem?.ef ?? 2.5);
 		const remindDate = addDaysKey(today, nextInterval);
@@ -655,15 +678,16 @@ export function boostChapterFromPractice(chapterKey: string, durationMinutes: nu
 		const updatedItems = {
 			...$tracker.rev.items,
 			[colonKey]: {
-				weight: 2,
+				weight: updatedChapter.weightage ?? 2,
 				last: Date.now(),
-				method: existingItem?.method ?? 'steady',
+				method: existingItem?.method ?? updatedChapter.method ?? 'steady',
 				step: nextStep,
 				sub,
 				ch: chName,
 				ef: existingItem?.ef ?? 2.5,
 				remindDate,
-				remindDone: false
+				remindDone: false,
+				userAdded: true
 			}
 		};
 
@@ -699,13 +723,8 @@ export function boostChapterFromTheory(chapterKey: string, durationMinutes: numb
 }
 
 // Register with the tracker store so logStudySession can boost recall.
-// Deferred: tracker -> timerState -> recall-actions -> tracker is circular, so
-// touching tracker's module bindings during evaluation hits their TDZ on SSR.
-queueMicrotask(() => {
-	if (typeof setSessionBoostHandler === 'function') {
-		setSessionBoostHandler((sub, ch, duration) => {
-			boostChapterFromPractice(`${sub}-${ch}`, duration);
-		});
-	}
+// `timer-bridge` is a leaf module, so it is fully initialized even when this
+// module is evaluated in the middle of the tracker ↔ timerState cycle on SSR.
+setSessionBoostHandler((sub, ch, duration) => {
+	boostChapterFromPractice(`${sub}-${ch}`, duration);
 });
-

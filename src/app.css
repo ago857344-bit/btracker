@@ -253,7 +253,7 @@
   --surface-popup-solid: #ffffff;
   --surface-popup-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08));
   --text-primary: #37352f;
-  --text-secondary: #7b7a75;
+  --text-secondary: #75746e;
   --border-subtle: #e9e8e3;
   --accent: #2383e2;
   --accent-strong: #1a6ec4;
@@ -270,7 +270,7 @@
   --surface-popup-solid: #ffffff;
   --surface-popup-border: color-mix(in srgb, var(--border-subtle) 80%, rgba(0, 0, 0, 0.08));
   --text-primary: #3c3c3c;
-  --text-secondary: #787d72;
+  --text-secondary: #72786c;
   --border-subtle: #e4e8dd;
   --accent: #46a302;
   --accent-strong: #3a8a02;

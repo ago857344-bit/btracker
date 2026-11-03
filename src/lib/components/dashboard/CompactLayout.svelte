@@ -1945,6 +1945,47 @@
 		cursor: pointer;
 	}
 
+	/* Device-preview overrides (.mode-mobile mirrors the phone media query) */
+	.pocket-dashboard.mode-mobile {
+		gap: 0.85rem;
+	}
+	.pocket-dashboard.mode-mobile .kpi-hero-card {
+		grid-template-columns: 88px 1fr;
+		gap: 0.95rem;
+		padding: 1.05rem 1rem;
+	}
+	.pocket-dashboard.mode-mobile .progress-ring-wrap {
+		width: 82px;
+		height: 82px;
+	}
+	.pocket-dashboard.mode-mobile .ring-val {
+		font-size: 1.2rem;
+	}
+	.pocket-dashboard.mode-mobile .action-dock {
+		gap: 0.4rem;
+	}
+	.pocket-dashboard.mode-mobile .dock-btn {
+		padding: 0.7rem 0.25rem;
+		font-size: 0.7rem;
+	}
+	.pocket-dashboard.mode-mobile .dock-icon-wrap {
+		width: 32px;
+		height: 32px;
+	}
+	.pocket-dashboard.mode-mobile .segment-pill {
+		font-size: 0.72rem;
+		padding: 0.52rem 0.2rem;
+	}
+	.pocket-dashboard.mode-mobile .dots-row {
+		gap: 0.18rem;
+	}
+	.pocket-dashboard.mode-mobile .dot-col-btn {
+		padding: 2px 0;
+	}
+	.pocket-dashboard.mode-mobile .dot-day {
+		font-size: 0.54rem;
+	}
+
 	@media (max-width: 480px) {
 		.pocket-dashboard {
 			gap: 0.85rem;

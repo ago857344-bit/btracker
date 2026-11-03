@@ -101,15 +101,26 @@ export const getActiveWallpaper = (themeId: string, userWp?: string | null): str
 };
 
 /** Resolve a stored wallpaper value to a CSS background-image value (builtin ids → preset gradient, URLs wrapped). */
-export const wallpaperCss = (wp: string) => {
-	if (isVideoWallpaper(wp)) return "none";
-	if (!wp.startsWith(BUILTIN)) return `url(${wp})`;
-	const id = wp.slice(BUILTIN.length);
-	const themeWp = THEME_PRESETS.find((t) => t.id === id)?.wallpaper ?? EXTRA_WALLPAPERS.find((w) => w.id === id)?.css ?? '';
-	if (themeWp && isVideoWallpaper(themeWp)) {
-		return STATIC_THEME_GRADIENTS[id] ?? 'none';
+export const wallpaperCss = (wp: string | null | undefined): string => {
+	if (!wp || wp === 'none') return 'none';
+	if (isVideoWallpaper(wp)) {
+		const id = wp.startsWith(BUILTIN) ? wp.slice(BUILTIN.length) : '';
+		if (id && STATIC_THEME_GRADIENTS[id]) return STATIC_THEME_GRADIENTS[id];
+		// Raw theme video URLs (e.g. the preset's own .mp4) still deserve a static poster.
+		const owner = THEME_PRESETS.find((t) => t.wallpaper === wp);
+		return (owner && STATIC_THEME_GRADIENTS[owner.id]) ? STATIC_THEME_GRADIENTS[owner.id] : 'none';
 	}
-	return themeWp;
+	if (wp.startsWith(BUILTIN)) {
+		const id = wp.slice(BUILTIN.length);
+		const themeWp = THEME_PRESETS.find((t) => t.id === id)?.wallpaper ?? EXTRA_WALLPAPERS.find((w) => w.id === id)?.css ?? '';
+		if (themeWp && isVideoWallpaper(themeWp)) {
+			return STATIC_THEME_GRADIENTS[id] ?? 'none';
+		}
+		if (themeWp.includes('gradient(')) return themeWp;
+		return themeWp ? (themeWp.startsWith('url(') ? themeWp : `url("${themeWp}")`) : 'none';
+	}
+	if (wp.includes('gradient(') || wp.startsWith('url(')) return wp;
+	return `url("${wp}")`;
 };
 
 /**

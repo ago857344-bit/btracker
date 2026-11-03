@@ -275,7 +275,7 @@
 	$: todayStr = todayKey();
 
 	// Open planner tasks due today
-	$: openPlannerTasks = ($tracker.h || []).filter((item) => {
+	$: openPlannerTasks = ($tracker?.h || []).filter((item) => {
 		if (item.done) return false;
 		if (item.due && item.due !== todayStr) return false;
 		if (activeSubCode && item.s && item.s !== activeSubCode) return false;
@@ -283,7 +283,7 @@
 	});
 
 	// Open To-dos
-	$: openTodos = ($tracker.todos || []).filter((item) => {
+	$: openTodos = ($tracker?.todos || []).filter((item) => {
 		if (item.done) return false;
 		if (activeSubCode && item.sub && item.sub !== activeSubCode) return false;
 		return true;

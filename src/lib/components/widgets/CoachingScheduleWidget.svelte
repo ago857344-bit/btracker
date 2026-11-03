@@ -3,7 +3,8 @@
 	import { tracker, addPeriodToPlanner, celebration } from '$lib/stores/tracker';
 	import { globalTimer } from '$lib/stores/timerState';
 	import { goto } from '$app/navigation';
-	import { todayKey, addDaysKey } from '$lib/state/dates';
+	import { onMount } from 'svelte';
+	import { addDaysKey, dayKeyOf } from '$lib/state/dates';
 	import type { TimetableDay, TimetablePeriod } from '$lib/types/tracker';
 
 	const WEEKDAYS: TimetableDay[] = [
@@ -16,15 +17,21 @@
 		'Saturday'
 	];
 
-	const now = new Date();
-	const currentDayIndex = now.getDay();
-	const todayDay: TimetableDay = WEEKDAYS[currentDayIndex];
-	const tomorrowDay: TimetableDay = WEEKDAYS[(currentDayIndex + 1) % 7];
+	let nowMs = Date.now();
+	onMount(() => {
+		const tick = setInterval(() => (nowMs = Date.now()), 30_000);
+		return () => clearInterval(tick);
+	});
+
+	$: now = new Date(nowMs);
+	$: currentDayIndex = now.getDay();
+	$: todayDay = WEEKDAYS[currentDayIndex] as TimetableDay;
+	$: tomorrowDay = WEEKDAYS[(currentDayIndex + 1) % 7] as TimetableDay;
 
 	$: timetable = $tracker.timetable ?? { batchName: '', periods: [] };
 	$: allPeriods = timetable.periods ?? [];
 
-	$: todayKeyStr = todayKey();
+	$: todayKeyStr = dayKeyOf(now);
 	$: tomorrowKeyStr = addDaysKey(todayKeyStr, 1);
 	$: hasDatedPeriods = allPeriods.some((p) => !!p.date);
 

@@ -5,14 +5,30 @@ export const LEVEL_THRESHOLDS = [
 	25000, 31000, 38000, 46000, 55000, 65000, 76000, 88000, 100000
 ];
 
+export const XP_PER_LEVEL_BEYOND = 10000;
+
 export const getLevelData = (xp: number) => {
+	const maxExplicitLevel = LEVEL_THRESHOLDS.length; // 20
+	const maxExplicitXp = LEVEL_THRESHOLDS[maxExplicitLevel - 1]; // 100,000
+
 	let level = 1;
-	for (let i = 0; i < LEVEL_THRESHOLDS.length; i++) {
-		if (xp >= LEVEL_THRESHOLDS[i]) level = i + 1;
-		else break;
+	let currentTierXp = 0;
+	let nextTierXp = LEVEL_THRESHOLDS[1] ?? 500;
+
+	if (xp >= maxExplicitXp) {
+		const extraLevels = Math.floor((xp - maxExplicitXp) / XP_PER_LEVEL_BEYOND);
+		level = maxExplicitLevel + extraLevels;
+		currentTierXp = maxExplicitXp + extraLevels * XP_PER_LEVEL_BEYOND;
+		nextTierXp = currentTierXp + XP_PER_LEVEL_BEYOND;
+	} else {
+		for (let i = 0; i < LEVEL_THRESHOLDS.length; i++) {
+			if (xp >= LEVEL_THRESHOLDS[i]) level = i + 1;
+			else break;
+		}
+		currentTierXp = LEVEL_THRESHOLDS[level - 1];
+		nextTierXp = LEVEL_THRESHOLDS[level] ?? currentTierXp + XP_PER_LEVEL_BEYOND;
 	}
-	const currentTierXp = LEVEL_THRESHOLDS[level - 1];
-	const nextTierXp = LEVEL_THRESHOLDS[level] ?? currentTierXp + 10000;
+
 	const progress = Math.max(0, Math.min(100, ((xp - currentTierXp) / (nextTierXp - currentTierXp)) * 100));
 
 	let title = 'Aspirant';
@@ -71,8 +87,9 @@ export function applyEloResult(g: Gamification, sub: string, accuracy: number, f
 	const current = elo[sub] ?? SEASON_START_ELO;
 	elo[sub] = Math.max(floor, current + calculateEloChange(current, accuracy, weight));
 	if (g.prestige?.count) {
-		const season = g.prestige.seasonElo[sub] ?? SEASON_START_ELO;
-		g.prestige.seasonElo[sub] = Math.max(floor, season + calculateEloChange(season, accuracy, weight));
+		const seasonElo = (g.prestige.seasonElo ??= {});
+		const season = seasonElo[sub] ?? SEASON_START_ELO;
+		seasonElo[sub] = Math.max(floor, season + calculateEloChange(season, accuracy, weight));
 	}
 	recordPeaks(g);
 }

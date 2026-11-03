@@ -41,7 +41,7 @@
 	let focusedRowIndex: number | null = null;
 
 	$: n = questionCount($tracker, loc.sc, loc.ch, loc.ex);
-	$: cells = $tracker.d[cellKey(loc.sc, loc.ch, loc.ex)] ?? [];
+	$: cells = $tracker?.d?.[cellKey(loc.sc, loc.ch, loc.ex)] ?? [];
 	$: stats = exerciseStats($tracker, loc.sc, loc.ch, loc.ex);
 	$: acc = accuracyOf(stats);
 
@@ -65,7 +65,7 @@
 		return idx;
 	})();
 
-	const reasonsOf = (i: number) => $tracker.r[questionKey(loc.sc, loc.ch, loc.ex, i)]?.t ?? [];
+	const reasonsOf = (i: number) => $tracker?.r?.[questionKey(loc.sc, loc.ch, loc.ex, i)]?.t ?? [];
 
 	function determineErrorType(reasons: string[]): MistakeLog['errorType'] {
 		const lower = reasons.join(' ').toLowerCase();
@@ -135,10 +135,12 @@
 					t.mistakes.push({
 						id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `m_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
 						date: Date.now(),
-						subject: (loc.sc as any) || 'P',
+						subject: subName || 'Physics',
+						chapter: chName,
 						errorType: determineErrorType(reasons),
 						description: desc,
-						testName
+						testName,
+						updated: Date.now()
 					});
 					addedMistakes++;
 				}
@@ -462,8 +464,8 @@
 		{@const v = cells[i] || 0}
 		{@const r = resultOf(v)}
 		{@const qk = questionKey(loc.sc, loc.ch, loc.ex, i)}
-		{@const reasons = $tracker.r[qk]?.t ?? []}
-		{@const note = $tracker.n[qk] ?? ''}
+		{@const reasons = $tracker?.r?.[qk]?.t ?? []}
+		{@const note = $tracker?.n?.[qk] ?? ''}
 		<div
 			class="qrow"
 			role="group"

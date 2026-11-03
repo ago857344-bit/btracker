@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onMount } from 'svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import { setExamDate, tracker } from '$lib/stores/tracker';
 	import { longDateKey } from '$lib/state/dates';
@@ -9,8 +9,10 @@
 	let examInput = '';
 	let showCustomInput = false;
 	let now = Date.now();
-	const tick = setInterval(() => (now = Date.now()), 1000);
-	onDestroy(() => clearInterval(tick));
+	onMount(() => {
+		const tick = setInterval(() => (now = Date.now()), 1000);
+		return () => clearInterval(tick);
+	});
 
 	const presets = getExamPresets();
 

@@ -2,7 +2,7 @@ import { loadTrackerState } from '$lib/services/persistence';
 import { createInitialTrackerState, DEFAULT_WIDGETS } from '$lib/state/defaults';
 import { getLevelData, recordPeaks } from '$lib/state/gamification';
 import { rolloverWeekSnapshot } from '$lib/state/weekly';
-import { todayKey } from '$lib/state/dates';
+import { dayKeyOf, todayKey } from '$lib/state/dates';
 import { hydration, replaceTracker } from '$lib/stores/tracker';
 import { isChapterStudied } from '$lib/state/decay';
 import { isMobileDevice } from '$lib/state/themes';
@@ -17,30 +17,31 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 	let retroXp = saved.gamification?.xp ?? base.gamification!.xp;
 	let retroElo = saved.gamification?.elo ? { ...base.gamification!.elo, ...saved.gamification.elo } : { ...base.gamification!.elo };
 
-		// Retroactive XP & ELO bump (ensures previous mock tests and revisions count)
-	let minCalculatedXp = 0;
-	if (saved.log && Array.isArray(saved.log)) {
-		minCalculatedXp += saved.log.reduce((acc, session) => acc + ((session?.[1] || 0) * 10), 0);
-	}
-	if (saved.mocks && Array.isArray(saved.mocks)) {
-		minCalculatedXp += saved.mocks.length * 200;
-	}
-	if (saved.rev?.items) {
-		minCalculatedXp += Object.keys(saved.rev.items).length * 50;
-	}
-	
 	let statQuestions = { P: 0, C: 0, M: 0 };
 	if (saved.stat) {
 		for (const day of Object.values(saved.stat)) {
 			if (!day) continue;
 			for (const code of Object.keys(day)) {
 				statQuestions[code as 'P' | 'C' | 'M'] = (statQuestions[code as 'P' | 'C' | 'M'] || 0) + (day[code] || 0);
-				minCalculatedXp += (day[code] || 0) * 10;
 			}
 		}
 	}
-	
-	if (retroXp < minCalculatedXp) {
+
+	// Retroactive XP & ELO bump (only for legacy accounts that did not have gamification initialized)
+	if (saved.gamification?.xp == null) {
+		let minCalculatedXp = 0;
+		if (saved.log && Array.isArray(saved.log)) {
+			minCalculatedXp += saved.log.reduce((acc, session) => acc + ((session?.[1] || 0) * 10), 0);
+		}
+		if (saved.mocks && Array.isArray(saved.mocks)) {
+			minCalculatedXp += saved.mocks.length * 200;
+		}
+		if (saved.rev?.items) {
+			minCalculatedXp += Object.keys(saved.rev.items).length * 50;
+		}
+		for (const code of ['P', 'C', 'M'] as const) {
+			minCalculatedXp += (statQuestions[code] || 0) * 10;
+		}
 		retroXp = minCalculatedXp;
 	}
 	
@@ -87,8 +88,6 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 				}
 			}
 		}
-	} else {
-		// Already migrated with v3_elo: respect saved Elo as-is without overriding with 300 + count * 0.3
 	}
 
 	// Clean theme and sanitize any corrupted wallpaper data from previous versions
@@ -117,6 +116,8 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 		cleanCosmetics.wallpaper = normalizeVideoWallpaperPath(cleanCosmetics.wallpaper) as any;
 	}
 
+	const delIdMap = saved.deletedIds || base.deletedIds || {};
+
 	const merged: TrackerState = {
 		...base,
 		...saved,
@@ -141,6 +142,7 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 				const raw = saved.rev?.items || base.rev.items;
 				const clean: Record<string, any> = {};
 				for (const [k, v] of Object.entries(raw)) {
+					if (delIdMap[k]) continue;
 					if (v && (v.userAdded || v.last || v.remindDate || isChapterStudied(saved, k))) {
 						clean[k] = v;
 					}
@@ -151,6 +153,7 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 				const raw = saved.rev?.chapters || base.rev.chapters;
 				const clean: Record<string, any> = {};
 				for (const [k, v] of Object.entries(raw)) {
+					if (delIdMap[k]) continue;
 					if (v && (v.userAdded || v.decay?.lastRevisionAt || isChapterStudied(saved, k))) {
 						clean[k] = v;
 					}
@@ -192,13 +195,26 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 			const delMap = saved.deletedTodos || base.deletedTodos || {};
 			return raw.filter((t) => !delMap[t.id]);
 		})(),
+		mistakes: (() => {
+			const raw = saved.mistakes || base.mistakes || [];
+			return raw
+				.filter((m) => !delIdMap[m.id])
+				.map((m) => {
+					const s = String(m.subject || '').trim();
+					const normSub = s === 'P' || s.toLowerCase().startsWith('phy') ? 'Physics'
+						: s === 'C' || s.toLowerCase().startsWith('chem') ? 'Chemistry'
+						: s === 'M' || s.toLowerCase().startsWith('math') ? 'Maths'
+						: (s || 'Physics');
+					return m.subject === normSub ? m : { ...m, subject: normSub };
+				});
+		})(),
 		meta: {
 			...base.meta,
 			...(saved.meta || {})
 		},
 		coaching_type: saved.coaching_type === 'GENERIC' ? 'GENERIC' : 'BT',
-		coaching_name: saved.coaching_name?.trim()
-			|| (saved.coaching_type === 'GENERIC' ? 'Other' : 'Baktiwal Tutorials'),
+		coaching_name: (saved.coaching_name?.trim() === 'Baktiwal Tutorials' ? 'Bakliwal Tutorials' : saved.coaching_name?.trim())
+			|| (saved.coaching_type === 'GENERIC' ? 'Other' : 'Bakliwal Tutorials'),
 		starredFormulas: (() => {
 			let list = saved.starredFormulas;
 			if ((!list || !list.length) && typeof window !== 'undefined') {
@@ -305,7 +321,8 @@ export function normalizeState(saved: Partial<TrackerState>): TrackerState {
 		const loggedInStat = statQuestions[sc] || 0;
 		const diff = solvedInD - loggedInStat;
 		if (diff > 0) {
-			const baselineDay = '2026-10-01';
+			const parsedSaved = saved.savedAt ? new Date(saved.savedAt) : null;
+			const baselineDay = parsedSaved && !isNaN(parsedSaved.getTime()) ? dayKeyOf(parsedSaved) : todayKey();
 			const baseBucket = merged.stat[baselineDay] ?? (merged.stat[baselineDay] = {});
 			baseBucket[sc] = (Number(baseBucket[sc]) || 0) + diff;
 		}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { fade, fly } from 'svelte/transition';
 	import { quintOut } from 'svelte/easing';
-	import { updateTracker, targetsModalOpen, celebration } from '$lib/stores/tracker';
+	import { tracker, updateTracker, targetsModalOpen, celebration } from '$lib/stores/tracker';
 	import { createGoals, getWidgetsForStudyFlow } from '$lib/state/defaults';
 	import { currentUser } from '$lib/stores/auth';
 	import NavIcon from '$lib/components/NavIcon.svelte';
@@ -14,17 +14,24 @@
 	let direction = 1; // 1 = forward, -1 = backward
 	const focusInput = (node: HTMLElement) => { node.focus(); };
 
+	// Every field below is seeded from the saved tracker so reopening the wizard
+	// from Settings edits the current configuration instead of resetting it.
+	const savedMeta = $tracker.meta;
+	const savedUi = $tracker.ui;
+
 	// Step 1: Name
-	let userName = $currentUser?.name?.split(' ')[0] || '';
+	let userName = savedMeta?.name?.trim() || $currentUser?.name?.split(' ')[0] || '';
 
 	// Step 2: Coaching / institute
-	let coachingChoice: 'BT' | 'GENERIC' = 'BT';
 	const INSTITUTE_PRESETS = ['Allen', 'Resonance', 'PW (Physics Wallah)', 'FIITJEE', 'Self-Study'];
-	let selectedInstitute = INSTITUTE_PRESETS[0];
-	let customInstitute = '';
+	const savedCoachingName = ($tracker.coaching_name || '').trim();
+	let coachingChoice: 'BT' | 'GENERIC' = $tracker.coaching_type === 'GENERIC' ? 'GENERIC' : 'BT';
+	let selectedInstitute = INSTITUTE_PRESETS.includes(savedCoachingName) ? savedCoachingName : INSTITUTE_PRESETS[0];
+	let customInstitute =
+		savedCoachingName && !INSTITUTE_PRESETS.includes(savedCoachingName) ? savedCoachingName : '';
 
 	$: coachingName = coachingChoice === 'BT'
-		? 'Baktiwal Tutorials'
+		? 'Bakliwal Tutorials'
 		: customInstitute.trim() || selectedInstitute || 'Other';
 
 	function selectInstitute(preset: string) {
@@ -33,13 +40,15 @@
 	}
 
 	// Step 3: Year
-	let year: '11' | '12' | 'dropper' | '' = '';
+	let year: '11' | '12' | 'dropper' | '' = savedMeta?.year ?? '';
 
 	// Step 4: Board
-	let board: 'cbse' | 'icse' | 'ib' | 'state' | '' = '';
+	let board: 'cbse' | 'icse' | 'ib' | 'state' | '' = savedMeta?.board ?? '';
 
 	// Step 5: Target Exams (multi-select)
-	let targetExams: string[] = ['jee-mains', 'jee-advanced'];
+	let targetExams: string[] = savedMeta?.targetExams?.length
+		? [...savedMeta.targetExams]
+		: ['jee-mains', 'jee-advanced'];
 	const EXAMS = [
 		{ id: 'jee-mains', label: 'JEE Mains', emoji: '🎯' },
 		{ id: 'jee-advanced', label: 'JEE Advanced', emoji: '🚀' },
@@ -62,7 +71,7 @@
 	}
 
 	// Step 6: How do you want to use BTracker?
-	let selectedStudyFlow: StudyFlowMode = 'all-features';
+	let selectedStudyFlow: StudyFlowMode = savedUi?.studyFlowMode ?? 'all-features';
 
 	const STUDY_FLOW_OPTIONS: Array<{
 		id: StudyFlowMode;
@@ -116,9 +125,9 @@
 	}
 
 	// Step 7: Study Hours & Daily Questions
-	let weekdayHours = 6;
-	let weekendHours = 8;
-	let dailyQuestions = 50;
+	let weekdayHours = savedMeta?.weekdayHours ?? 6;
+	let weekendHours = savedMeta?.weekendHours ?? 8;
+	let dailyQuestions = savedMeta?.dailyQuestions ?? 50;
 
 	// Step 8: Interactive Streak Simulation & Single-Day Freeze Demo
 	const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -202,9 +211,11 @@
 	})();
 
 	// Step 9: Choose Your Dashboard Structure
-	let selectedLayout: DashboardLayout = isMobileDevice() ? 'compact' : 'default';
+	const defaultLayout: DashboardLayout = savedUi?.dashboardLayout
+		?? (isMobileDevice() ? 'compact' : 'default');
+	let selectedLayout: DashboardLayout = defaultLayout;
 	let previewModalOpen = false;
-	let previewLayout: DashboardLayout = isMobileDevice() ? 'compact' : 'default';
+	let previewLayout: DashboardLayout = defaultLayout;
 
 	function openLayoutPreview(layoutId: DashboardLayout) {
 		previewLayout = layoutId;
@@ -233,11 +244,16 @@
 			label: 'Focus',
 			desc: '70/30 asymmetric split prioritizing timer & active tasks.',
 			badge: 'Deep Work'
+		},
+		{
+			id: 'compact',
+			label: 'Pocket Flow',
+			desc: 'Mobile-first glanceable dashboard with segmented tabs and ring KPIs.',
+			badge: 'Mobile First'
 		}
 	];
 
 	// Step 10: Dream Destination & Mission Dossier (Original replacement for commitment)
-	let dreamCollege = 'IIT Bombay (CSE)';
 	const DREAM_OPTIONS = [
 		'IIT Bombay (CSE)',
 		'IIT Delhi',
@@ -248,8 +264,10 @@
 		'Top 500 AIR',
 		'Top 1000 AIR'
 	];
-	let isCustomDream = false;
-	let customDreamInput = '';
+	const savedDream = savedMeta?.dreamCollege?.trim() || '';
+	let dreamCollege = savedDream || DREAM_OPTIONS[0];
+	let isCustomDream = Boolean(savedDream) && !DREAM_OPTIONS.includes(savedDream);
+	let customDreamInput = isCustomDream ? savedDream : '';
 
 	function selectDream(college: string) {
 		isCustomDream = false;
@@ -437,7 +455,7 @@
 									<span class="coach-logo bt">BT</span>
 									<span class="coach-badge">Native Module Sync</span>
 								</div>
-								<strong>Baktiwal Tutorials</strong>
+								<strong>Bakliwal Tutorials</strong>
 								<p>Exact BT study log: modules, exercises and question-level bitmasks, synced to your batch.</p>
 								{#if coachingChoice === 'BT'}
 									<span class="coach-selected"><NavIcon name="check" size={12} /> Selected</span>
@@ -488,7 +506,7 @@
 						{/if}
 
 						<div class="step-action-bar">
-							<span class="selection-count">{coachingChoice === 'BT' ? 'Baktiwal Tutorials · Native sync' : `${coachingName} · Universal log`}</span>
+							<span class="selection-count">{coachingChoice === 'BT' ? 'Bakliwal Tutorials · Native sync' : `${coachingName} · Universal log`}</span>
 							<button type="button" class="btn-step-continue" on:click={next}>
 								Continue <NavIcon name="chevron-right" size={14} />
 							</button>
@@ -908,6 +926,14 @@
 													<div></div>
 												</div>
 											</div>
+										{:else if opt.id === 'compact'}
+											<div class="wf-pill"></div>
+											<div class="wf-ring-row">
+												<div class="wf-ring"></div>
+												<div class="wf-ring"></div>
+												<div class="wf-ring"></div>
+											</div>
+											<div class="wf-tabbar"></div>
 										{/if}
 									</div>
 									<div class="layout-wizard-meta">
@@ -2262,7 +2288,7 @@
 	/* Step 8 Layout Picker */
 	.layouts-wizard-grid {
 		display: grid;
-		grid-template-columns: repeat(3, 1fr);
+		grid-template-columns: repeat(2, 1fr);
 		gap: 0.85rem;
 		margin-top: 0.5rem;
 	}
@@ -2369,6 +2395,35 @@
 		flex: 1;
 		background: var(--surface-subtle);
 		border-radius: 3px;
+	}
+	/* Compact (Pocket Flow) wireframe */
+	.wireframe-compact {
+		align-items: center;
+	}
+	.wf-pill {
+		width: 42%;
+		height: 7px;
+		border-radius: 99px;
+		background: color-mix(in srgb, var(--accent) 40%, var(--surface-subtle));
+	}
+	.wf-ring-row {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 5px;
+		flex: 1;
+	}
+	.wf-ring {
+		width: 17px;
+		height: 17px;
+		border-radius: 50%;
+		border: 2px solid color-mix(in srgb, var(--accent) 55%, var(--surface-subtle));
+	}
+	.wf-tabbar {
+		width: 100%;
+		height: 8px;
+		border-radius: 3px;
+		background: var(--surface-subtle);
 	}
 	.layout-wizard-meta {
 		display: flex;

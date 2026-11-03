@@ -37,16 +37,18 @@ export const DECAY_CONSTANTS = {
  * @returns Current decayed score (0-100)
  */
 export function calculateCurrentScore(decay: DecayMetrics): number {
-	if (!decay.lastRevisionAt) return 0;
+	if (!decay?.lastRevisionAt) return 0;
 
 	const now = Date.now();
 	const timeSinceRevision = now - decay.lastRevisionAt;
-	const daysSinceRevision = timeSinceRevision / (1000 * 60 * 60 * 24);
+	const daysSinceRevision = Math.max(0, timeSinceRevision / (1000 * 60 * 60 * 24));
+	const halfLife = Math.max(0.1, decay.halfLife || DECAY_CONSTANTS.DEFAULT_HALF_LIFE);
+	const r0 = Math.max(0, Math.min(DECAY_CONSTANTS.MAX_SCORE, decay.r0 ?? DECAY_CONSTANTS.MAX_SCORE));
 
 	// Apply exponential decay formula: r(t) = r0 * 2^(-t/τ)
-	const decayedScore = decay.r0 * Math.pow(2, -daysSinceRevision / decay.halfLife);
+	const decayedScore = r0 * Math.pow(2, -daysSinceRevision / halfLife);
 
-	return Math.max(0, Math.min(DECAY_CONSTANTS.MAX_SCORE, decayedScore));
+	return isNaN(decayedScore) ? 0 : Math.max(0, Math.min(DECAY_CONSTANTS.MAX_SCORE, decayedScore));
 }
 
 /**
@@ -68,10 +70,10 @@ export function updateDecayAfterRevision(
 	const initialScore = DECAY_CONSTANTS.INITIAL_SCORE_MULTIPLIERS[confidence];
 
 	// Calculate new half-life (τ)
-	const newHalfLife = Math.max(1, (currentDecay.halfLife || DECAY_CONSTANTS.DEFAULT_HALF_LIFE) * halfLifeMultiplier);
+	const newHalfLife = Math.max(1, (currentDecay?.halfLife || DECAY_CONSTANTS.DEFAULT_HALF_LIFE) * halfLifeMultiplier);
 
 	// Update history for sparkline visualization
-	const newHistory = [...currentDecay.history, { date: today, score: currentDecay.currentScore }];
+	const newHistory = [...(currentDecay?.history || []), { date: today, score: currentDecay?.currentScore ?? initialScore }];
 	// Keep only last 30 data points for sparkline
 	if (newHistory.length > 30) {
 		newHistory.shift();
@@ -209,8 +211,13 @@ export function daysUntilThreshold(
 	threshold: number = DECAY_CONSTANTS.CRITICAL_THRESHOLD
 ): number {
 	const currentScore = calculateCurrentScore(decay);
-	if (currentScore <= threshold) return 0;
-	return Math.max(0, -decay.halfLife * Math.log2(threshold / currentScore));
+	if (currentScore <= threshold || currentScore <= 0) return 0;
+	const safeThreshold = Math.max(0.1, threshold);
+	const halfLife = Math.max(0.1, decay?.halfLife || DECAY_CONSTANTS.DEFAULT_HALF_LIFE);
+	const ratio = safeThreshold / currentScore;
+	if (ratio >= 1) return 0;
+	const days = -halfLife * Math.log2(ratio);
+	return isNaN(days) ? 0 : Math.max(0, days);
 }
 
 /**

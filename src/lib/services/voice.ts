@@ -83,11 +83,11 @@ export class VoiceDictation {
 
 			rec.onerror = (event: any) => {
 				console.warn('SpeechRecognition error:', event.error);
-				this.active = false;
 				if (event.error === 'no-speech') {
 					// Benign pause in continuous mode, don't abort or notify
 					return;
 				}
+				this.active = false;
 				if (event.error === 'not-allowed') {
 					options.onError?.('Microphone permission blocked. Please enable microphone access in your browser.');
 				} else if (event.error === 'network') {

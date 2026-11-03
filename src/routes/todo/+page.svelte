@@ -48,7 +48,7 @@ async function runAiTriage() {
         const result = await triageTodos(openTodos, $tracker.gamification?.elo || { P: 300, C: 300, M: 300 }, constraint);
         
         updateTracker(s => {
-            s.todos = s.todos.map(t => {
+            s.todos = (s.todos || []).map(t => {
                 if (result[t.id]) {
                     return { ...t, roiTag: result[t.id], updated: Date.now() };
                 }
@@ -66,7 +66,7 @@ async function runAiTriage() {
 
 	let taskFilter: 'all' | 'open' | 'done' = 'all';
 
-	$: todos = $tracker.todos;
+	$: todos = $tracker?.todos || [];
 	$: open = todos.filter((t) => !t.done);
 	$: done = todos.filter((t) => t.done);
 	$: displayedTodos = taskFilter === 'open' ? open : taskFilter === 'done' ? done : todos;
@@ -118,20 +118,20 @@ async function runAiTriage() {
 	let clSub = SYLLABUS[0]?.code ?? 'P';
 	let clFilter: 'all' | 'started' | 'done' | 'unstarted' = 'all';
 
-	$: grids = $tracker.chapterGrids;
+	$: grids = $tracker?.chapterGrids;
 	$: clGrid = grids?.[clSub];
 	$: clCols = clGrid?.cols ?? CHECKLIST_DEFAULT_COLS;
 	$: clChapters = allChaptersWithCustom($tracker, clSub);
 
 	$: isChStarted = (chNo: number) => {
 		const hasManualStart = Boolean(clGrid?.started?.[chNo]);
-		const hasCheckedCell = Boolean(clGrid?.data[chNo]?.some((v: string) => v === '✓'));
+		const hasCheckedCell = Boolean(Array.isArray(clGrid?.data?.[chNo]) && clGrid?.data?.[chNo]?.some((v: string) => v === '✓'));
 		return hasManualStart || hasCheckedCell;
 	};
 
 	$: isChDone = (chNo: number) => {
 		if (!clCols.length) return false;
-		return clCols.every((_, i) => clGrid?.data[chNo]?.[i] === '✓');
+		return clCols.every((_, i) => clGrid?.data?.[chNo]?.[i] === '✓');
 	};
 
 	$: ongoingCount = clChapters.filter((ch) => isChStarted(ch.no) && !isChDone(ch.no)).length;

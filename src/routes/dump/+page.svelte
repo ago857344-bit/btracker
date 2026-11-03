@@ -77,12 +77,12 @@
 			if (!searchQuery.trim()) return true;
 			const q = searchQuery.toLowerCase();
 			return (
-				f.name.toLowerCase().includes(q) ||
-				(f.notes && f.notes.toLowerCase().includes(q)) ||
-				(f.tags && f.tags.some((t) => t.toLowerCase().includes(q)))
+				(f.name || '').toLowerCase().includes(q) ||
+				(Boolean(f.notes) && (f.notes || '').toLowerCase().includes(q)) ||
+				(Array.isArray(f.tags) && f.tags.some((t) => typeof t === 'string' && t.toLowerCase().includes(q)))
 			);
 		})
-		.sort((a, b) => b.uploadedAt - a.uploadedAt);
+		.sort((a, b) => (Number(b.uploadedAt) || 0) - (Number(a.uploadedAt) || 0));
 
 	// Count per section
 	$: pCount = allFiles.filter((f) => f.section === 'P').length;
@@ -944,12 +944,13 @@
 <Modal open={uploadModalOpen} title="Upload Study Files to ZIP Vault" width="580px" on:close={() => (uploadModalOpen = false)}>
 	<div class="modal-body-upload">
 		<div class="field-group">
-			<label for="sec-select">Target Section:</label>
-			<div class="section-radio-grid">
+			<span id="sec-select-label" class="field-label" style="font-size: 0.78rem; font-weight: 700; color: var(--text-secondary);">Target Section:</span>
+			<div class="section-radio-grid" role="radiogroup" aria-labelledby="sec-select-label">
 				{#each (['P', 'C', 'M', 'others'] as const) as sec}
 					<button
 						type="button"
-						id="sec-select"
+						role="radio"
+						aria-checked={selectedUploadSection === sec}
 						class="sec-choice-btn"
 						class:selected={selectedUploadSection === sec}
 						style="--choice-color: {SECTION_CONFIG[sec].color}"

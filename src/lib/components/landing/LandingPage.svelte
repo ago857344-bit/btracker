@@ -329,7 +329,7 @@
 					<div class="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-zinc-400">
 						<span class="inline-flex items-center gap-1.5"><NavIcon name="check-circle" size={14} /> 100% free, no credit card</span>
 						<span class="inline-flex items-center gap-1.5"><NavIcon name="shield" size={14} /> Cloud & local offline cache</span>
-						<span class="inline-flex items-center gap-1.5"><NavIcon name="sparkles" size={14} /> Native Baktiwal Tutorials sync</span>
+						<span class="inline-flex items-center gap-1.5"><NavIcon name="sparkles" size={14} /> Native Bakliwal Tutorials sync</span>
 					</div>
 				</div>
 
@@ -406,7 +406,7 @@
 				<div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3 font-mono text-xs">
 					<span class="px-3 py-1.5 rounded-lg bg-zinc-900 border border-emerald-500/40 text-emerald-400 font-bold flex items-center gap-1.5 shadow-sm">
 						<span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-						Baktiwal Tutorials [Native Sync]
+						Bakliwal Tutorials [Native Sync]
 					</span>
 					<span class="px-3 py-1.5 rounded-lg bg-zinc-900/80 border border-zinc-800 text-zinc-300">Allen</span>
 					<span class="px-3 py-1.5 rounded-lg bg-zinc-900/80 border border-zinc-800 text-zinc-300">Resonance</span>
@@ -843,7 +843,7 @@
 								<!-- Bar 1: Coaching Module (BT) (delay-0) -->
 								<div>
 									<div class="flex justify-between text-[11px] mb-1">
-										<span class="text-zinc-300 font-medium">Baktiwal Tutorials Modules</span>
+										<span class="text-zinc-300 font-medium">Bakliwal Tutorials Modules</span>
 										<span class="text-emerald-400 font-bold">{modulePct}%</span>
 									</div>
 									<div class="h-2 rounded-full bg-zinc-950 border border-zinc-800 overflow-hidden">
@@ -906,7 +906,7 @@
 
 
 					<!-- ============================================================= -->
-					<!-- BENTO CARD 2: NATIVE MODULE SYNC (BAKTIWAL TUTORIALS) -->
+					<!-- BENTO CARD 2: NATIVE MODULE SYNC (BAKLIWAL TUTORIALS) -->
 					<!-- ============================================================= -->
 					<div 
 						role="region"
@@ -926,7 +926,7 @@
 								<NavIcon name="layers" size={16} />
 							</div>
 							<span class="text-xs font-mono text-indigo-400 font-bold uppercase tracking-wider">NATIVE SYNC</span>
-							<h3 class="text-xl font-bold text-white tracking-tight mt-1 mb-2">Baktiwal Tutorials Wired In</h3>
+							<h3 class="text-xl font-bold text-white tracking-tight mt-1 mb-2">Bakliwal Tutorials Wired In</h3>
 							<p class="text-xs text-zinc-400 leading-relaxed mb-6">
 								Chapter numbers, exercise tables, and question counts come pre-indexed. Tick questions once — review queues update in unison.
 							</p>
@@ -1113,7 +1113,7 @@
 						<span class="text-3xl font-black text-emerald-400">01</span>
 						<h3 class="text-lg font-bold text-white mt-3 mb-2 font-sans">Pick Your Coaching</h3>
 						<p class="text-xs text-zinc-400 font-sans leading-relaxed">
-							Choose Baktiwal Tutorials for automated native exercise mapping, or select any institute for the universal log.
+							Choose Bakliwal Tutorials for automated native exercise mapping, or select any institute for the universal log.
 						</p>
 					</div>
 

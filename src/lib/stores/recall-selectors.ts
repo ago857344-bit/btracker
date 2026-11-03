@@ -15,13 +15,13 @@ import { todayKey, addDaysKey } from '$lib/state/dates';
 /**
  * Derived store: All chapter recall data
  */
-export const chaptersRecallData = derived(tracker, ($tracker) => $tracker.rev.chapters);
+export const chaptersRecallData = derived(tracker, ($tracker) => $tracker?.rev?.chapters || {});
 
 /**
  * Derived store: Chapters sorted by priority (highest priority first)
  */
 export const chaptersByPriority = derived(tracker, ($tracker) => {
-	const chapters = Object.values($tracker.rev.chapters);
+	const chapters = Object.values($tracker?.rev?.chapters || {});
 	const priorities = chapters
 		.filter((ch) => isChapterStudied($tracker, ch.chapterKey))
 		.map((ch) =>
@@ -36,7 +36,7 @@ export const chaptersByPriority = derived(tracker, ($tracker) => {
  */
 export const chaptersDueToday = derived(tracker, ($tracker) => {
 	const today = todayKey();
-	const chapters = Object.values($tracker.rev.chapters);
+	const chapters = Object.values($tracker?.rev?.chapters || {});
 	return chapters
 		.filter((ch) => {
 			if (!isChapterStudied($tracker, ch.chapterKey)) return false;
@@ -54,7 +54,7 @@ export const chaptersDueToday = derived(tracker, ($tracker) => {
  */
 export const criticalChapters = derived(tracker, ($tracker) => {
 	const today = todayKey();
-	const chapters = Object.values($tracker.rev.chapters);
+	const chapters = Object.values($tracker?.rev?.chapters || {});
 	return chapters
 		.filter((ch) => {
 			if (!isChapterStudied($tracker, ch.chapterKey)) return false;
@@ -91,7 +91,7 @@ export const allRevisionReminders = derived(tracker, ($tracker) => {
 	const itemsMap = new Map<string, RevisionReminderItem>();
 
 	// 1. Process studied chapters from Active Recall ($tracker.rev.chapters)
-	for (const ch of Object.values($tracker.rev.chapters)) {
+	for (const ch of Object.values($tracker?.rev?.chapters || {})) {
 		if (!isChapterStudied($tracker, ch.chapterKey)) continue;
 
 		const [s, ...rest] = ch.chapterKey.split(/[-:]/);
@@ -136,7 +136,7 @@ export const allRevisionReminders = derived(tracker, ($tracker) => {
 	}
 
 	// 2. Process spaced revision items ($tracker.rev.items)
-	for (const [key, item] of Object.entries($tracker.rev.items)) {
+	for (const [key, item] of Object.entries($tracker?.rev?.items || {})) {
 		if (item.remindDone) continue;
 		if (!item.last && !item.userAdded && !item.remindDate) continue;
 
@@ -182,7 +182,7 @@ export const allRevisionReminders = derived(tracker, ($tracker) => {
  * @returns Derived store with chapter data or undefined
  */
 export function getChapterRecallData(chapterKey: string) {
-	return derived(tracker, ($tracker) => $tracker.rev.chapters[chapterKey]);
+	return derived(tracker, ($tracker) => $tracker?.rev?.chapters?.[chapterKey]);
 }
 
 /**
@@ -193,7 +193,7 @@ export function getChapterRecallData(chapterKey: string) {
  */
 export function getChapterPriority(chapterKey: string) {
 	return derived(tracker, ($tracker) => {
-		const chapter = $tracker.rev.chapters[chapterKey];
+		const chapter = $tracker?.rev?.chapters?.[chapterKey];
 		if (!chapter) return undefined;
 		return calculateChapterPriority(chapter.chapterKey, chapter.weightage, chapter.decay);
 	});
@@ -207,7 +207,7 @@ export function getChapterPriority(chapterKey: string) {
  */
 export function getChapterSubtopics(chapterKey: string) {
 	return derived(tracker, ($tracker) => {
-		const chapter = $tracker.rev.chapters[chapterKey];
+		const chapter = $tracker?.rev?.chapters?.[chapterKey];
 		if (!chapter) return [];
 		return getSubtopicsSorted(chapter);
 	});
@@ -222,7 +222,7 @@ export function getChapterSubtopics(chapterKey: string) {
  */
 export function getChapterStaleSubtopics(chapterKey: string, daysThreshold: number = 7) {
 	return derived(tracker, ($tracker) => {
-		const chapter = $tracker.rev.chapters[chapterKey];
+		const chapter = $tracker?.rev?.chapters?.[chapterKey];
 		if (!chapter) return [];
 		return getStaleSubtopics(chapter, daysThreshold);
 	});
@@ -236,7 +236,7 @@ export const heatmapData = derived(tracker, ($tracker) => {
 	const heatmap: Record<string, { revisedCount: number; totalTimeMinutes: number }> = {};
 
 	// Initialize with actual data
-	Object.entries($tracker.rev.dailyHeatmap).forEach(([date, data]) => {
+	Object.entries($tracker?.rev?.dailyHeatmap || {}).forEach(([date, data]) => {
 		heatmap[date] = data;
 	});
 
@@ -248,7 +248,7 @@ export const heatmapData = derived(tracker, ($tracker) => {
  */
 export const todayRevisionStats = derived(tracker, ($tracker) => {
 	const today = todayKey();
-	const todayData = $tracker.rev.dailyHeatmap[today];
+	const todayData = $tracker?.rev?.dailyHeatmap?.[today];
 
 	return {
 		revisedCount: todayData?.revisedCount ?? 0,
@@ -260,7 +260,7 @@ export const todayRevisionStats = derived(tracker, ($tracker) => {
  * Derived store: Active focus sessions (currently running)
  */
 export const activeFocusSessions = derived(tracker, ($tracker) => {
-	return $tracker.rev.focusSessions.filter((session) => session.isRunning);
+	return ($tracker?.rev?.focusSessions || []).filter((session) => session.isRunning);
 });
 
 /**
@@ -271,7 +271,7 @@ export const activeFocusSessions = derived(tracker, ($tracker) => {
  */
 export function getChapterHealth(chapterKey: string) {
 	return derived(tracker, ($tracker) => {
-		const chapter = $tracker.rev.chapters[chapterKey];
+		const chapter = $tracker?.rev?.chapters?.[chapterKey];
 		if (!chapter) return 'critical';
 		const score = calculateCurrentScore(chapter.decay);
 		return calculateHealthStatus(score);
@@ -286,7 +286,7 @@ export function getChapterHealth(chapterKey: string) {
  */
 export function getChapterScore(chapterKey: string) {
 	return derived(tracker, ($tracker) => {
-		const chapter = $tracker.rev.chapters[chapterKey];
+		const chapter = $tracker?.rev?.chapters?.[chapterKey];
 		if (!chapter) return 0;
 		return calculateCurrentScore(chapter.decay);
 	});
@@ -300,7 +300,7 @@ export function getChapterScore(chapterKey: string) {
  */
 export function getDaysUntilCritical(chapterKey: string) {
 	return derived(tracker, ($tracker) => {
-		const chapter = $tracker.rev.chapters[chapterKey];
+		const chapter = $tracker?.rev?.chapters?.[chapterKey];
 		if (!chapter) return 0;
 		return daysUntilThreshold(chapter.decay);
 	});
@@ -314,7 +314,7 @@ export function getDaysUntilCritical(chapterKey: string) {
  */
 export function getSubjectChapters(subjectCode: string) {
 	return derived(tracker, ($tracker) => {
-		return Object.values($tracker.rev.chapters).filter((ch) =>
+		return Object.values($tracker?.rev?.chapters || {}).filter((ch) =>
 			ch.chapterKey.startsWith(`${subjectCode}-`)
 		);
 	});
@@ -324,7 +324,7 @@ export function getSubjectChapters(subjectCode: string) {
  * Get total number of chapters tracked
  */
 export const totalChaptersTracked = derived(tracker, ($tracker) => {
-	return Object.keys($tracker.rev.chapters).length;
+	return Object.keys($tracker?.rev?.chapters || {}).length;
 });
 
 /**
@@ -333,7 +333,7 @@ export const totalChaptersTracked = derived(tracker, ($tracker) => {
 export const healthStatusCounts = derived(tracker, ($tracker) => {
 	const counts = { fresh: 0, fading: 0, critical: 0 };
 
-	Object.values($tracker.rev.chapters).forEach((ch) => {
+	Object.values($tracker?.rev?.chapters || {}).forEach((ch) => {
 		const score = calculateCurrentScore(ch.decay);
 		const health = calculateHealthStatus(score);
 		counts[health]++;
@@ -346,7 +346,7 @@ export const healthStatusCounts = derived(tracker, ($tracker) => {
  * Get average memory score across all chapters
  */
 export const averageMemoryScore = derived(tracker, ($tracker) => {
-	const chapters = Object.values($tracker.rev.chapters);
+	const chapters = Object.values($tracker?.rev?.chapters || {});
 	if (chapters.length === 0) return 0;
 
 	const totalScore = chapters.reduce((sum, ch) => sum + calculateCurrentScore(ch.decay), 0);
@@ -361,7 +361,7 @@ export const averageMemoryScore = derived(tracker, ($tracker) => {
  */
 export function getChapterRecallDataSync(chapterKey: string): ChapterRecallData | undefined {
 	const $tracker = get(tracker);
-	return $tracker.rev.chapters[chapterKey];
+	return $tracker?.rev?.chapters?.[chapterKey];
 }
 
 /**
@@ -371,5 +371,5 @@ export function getChapterRecallDataSync(chapterKey: string): ChapterRecallData 
  */
 export function getAllChaptersRecallDataSync(): Record<string, ChapterRecallData> {
 	const $tracker = get(tracker);
-	return $tracker.rev.chapters;
+	return $tracker?.rev?.chapters || {};
 }

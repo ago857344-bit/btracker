@@ -19,7 +19,10 @@ export const RECOVERY_KEY = 'btracker_recovery_snapshot';
 
 const tauriAvailable = () => browser && '__TAURI_INTERNALS__' in window;
 
+let cachedPrimaryDb: IDBDatabase | null = null;
+
 async function browserDb(): Promise<IDBDatabase> {
+	if (cachedPrimaryDb) return cachedPrimaryDb;
 	return new Promise((resolve, reject) => {
 		const request = indexedDB.open(DB_NAME, DB_VERSION);
 		request.onupgradeneeded = () => {
@@ -28,7 +31,18 @@ async function browserDb(): Promise<IDBDatabase> {
 			if (!db.objectStoreNames.contains(SNAPSHOT_STORE)) db.createObjectStore(SNAPSHOT_STORE, { keyPath: 'id' });
 			if (!db.objectStoreNames.contains(RECOVERY_STORE)) db.createObjectStore(RECOVERY_STORE);
 		};
-		request.onsuccess = () => resolve(request.result);
+		request.onsuccess = () => {
+			const db = request.result;
+			db.onclose = () => {
+				if (cachedPrimaryDb === db) cachedPrimaryDb = null;
+			};
+			db.onversionchange = () => {
+				db.close();
+				if (cachedPrimaryDb === db) cachedPrimaryDb = null;
+			};
+			cachedPrimaryDb = db;
+			resolve(db);
+		};
 		request.onerror = () => reject(request.error);
 	});
 }

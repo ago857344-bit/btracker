@@ -7,7 +7,7 @@
 	import { buildWeekReport } from '$lib/state/weekly';
 	import { isChapterStudied } from '$lib/state/decay';
 
-	$: log = $tracker.log;
+	$: log = $tracker?.log || [];
 	$: report = buildWeekReport($tracker);
 	
 	$: thisWeekKeys = (() => {
@@ -15,6 +15,7 @@
 		const keys = [];
 		for (let i = 0; i < 7; i++) {
 			const d = new Date(start);
+			d.setHours(12, 0, 0, 0);
 			d.setDate(d.getDate() + i);
 			keys.push(dayKeyOf(d));
 		}
@@ -26,7 +27,7 @@
 		for (const session of log) {
 			const key = dayKeyOf(new Date(session[0] * 60000));
 			if (thisWeekKeys.includes(key)) {
-				sum += session[1];
+				sum += Number(session[1]) || 0;
 			}
 		}
 		return sum;
@@ -37,7 +38,7 @@
 	$: questionsDone = (() => {
 		let sum = 0;
 		for (const key of thisWeekKeys) {
-			const dayStat = $tracker.stat[key];
+			const dayStat = $tracker?.stat?.[key];
 			if (dayStat) {
 				sum += Object.values(dayStat).reduce((acc: number, v: number | undefined) => acc + (v || 0), 0);
 			}

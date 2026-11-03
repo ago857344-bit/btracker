@@ -1,12 +1,13 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { browser } from '$app/environment';
-	import { fly } from 'svelte/transition';
+	import { fly, fade } from 'svelte/transition';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import RevisionDueModal from '$lib/components/RevisionDueModal.svelte';
 	import { addPlannerTask, celebration, hydration, plannerPrompt, tracker, updateTracker, targetsModalOpen } from '$lib/stores/tracker';
 	import { loadout, unlockCtx } from '$lib/stores/cosmetics';
+	import { themePreview, endThemePreview } from '$lib/stores/themePreview';
 	import { todayKey } from '$lib/state/dates';
 	import { getLevelData } from '$lib/state/gamification';
 	import { allUnlockables, reqLabel, reqMet, type Unlockable, type UnlockCtx } from '$lib/state/cosmetics';
@@ -278,7 +279,71 @@
 	</svelte:fragment>
 </Modal>
 
+{#if $themePreview.active && $themePreview.theme}
+	<div class="global-preview-banner" in:fly={{ y: -50, duration: 250 }} out:fade={{ duration: 150 }}>
+		<div class="banner-content">
+			<span class="banner-icon"><NavIcon name="tv" size={15} /></span>
+			<span>Previewing <b>{$themePreview.theme.label}</b> — Reverting in <b>{$themePreview.timeLeft}s</b></span>
+		</div>
+		<button type="button" class="btn-end-preview" on:click={() => endThemePreview()}>
+			End Preview
+		</button>
+	</div>
+{/if}
+
 <style>
+	.global-preview-banner {
+		position: fixed;
+		top: max(env(safe-area-inset-top, 0px) + 0.8rem, 1rem);
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 100000;
+		background: var(--surface-popup-solid, var(--surface-panel, #121020));
+		border: 1.5px solid var(--accent);
+		backdrop-filter: blur(28px) saturate(190%);
+		-webkit-backdrop-filter: blur(28px) saturate(190%);
+		border-radius: 99px;
+		padding: 0.35rem 0.5rem 0.35rem 1.1rem;
+		display: flex;
+		align-items: center;
+		gap: 1.2rem;
+		box-shadow: 0 16px 40px -4px rgba(0, 0, 0, 0.5), 0 0 20px -2px color-mix(in srgb, var(--accent) 30%, transparent);
+		color: var(--text-primary);
+		font-size: 0.85rem;
+		white-space: nowrap;
+	}
+	.global-preview-banner .banner-content {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+	.global-preview-banner .banner-icon {
+		color: var(--accent);
+		display: grid;
+		place-items: center;
+	}
+	.global-preview-banner .btn-end-preview {
+		background: color-mix(in srgb, var(--accent) 20%, transparent);
+		color: var(--accent);
+		border: 1px solid var(--accent);
+		border-radius: 99px;
+		font-size: 0.72rem;
+		font-weight: 750;
+		padding: 0.35rem 0.8rem;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+	.global-preview-banner .btn-end-preview:hover {
+		background: var(--accent);
+		color: var(--accent-contrast, #fff);
+	}
+	@media (max-width: 480px) {
+		.global-preview-banner {
+			padding: 0.3rem 0.45rem 0.3rem 0.85rem;
+			gap: 0.8rem;
+			font-size: 0.76rem;
+		}
+	}
 	.celebration { position: fixed; z-index: 150; top: max(env(safe-area-inset-top, 0px) + 0.6rem, 1.1rem); left: 50%; display: flex; align-items: center; gap: .7rem; padding: .75rem 1.15rem; border-radius: 16px; background: #0f2e1c; border: 1px solid #245c3a; color: #d8ffe7; box-shadow: 0 18px 44px rgb(4 20 10 / 45%); transform: translateX(-50%); width: max-content; max-width: calc(100vw - 2rem); box-sizing: border-box; }
 	.celebration .check { display: grid; place-items: center; color: #4ade80; flex-shrink: 0; }
 	.celebration b { display: block; font-size: .88rem; letter-spacing: -.01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

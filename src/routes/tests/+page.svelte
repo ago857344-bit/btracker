@@ -3,6 +3,7 @@
 	import { tracker, updateTracker, celebration, triggerToast, openFeynmanDuck, openTestDaySheet } from '$lib/stores/tracker';
 	import type { MockTest, MistakeLog, Flashcard } from '$lib/types/tracker';
 	import { applyEloResult } from '$lib/state/gamification';
+	import { dayKeyOf, parseKey, todayKey } from '$lib/state/dates';
 	import { SYLLABUS } from '$lib/state/syllabus';
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
@@ -28,7 +29,7 @@
 	let showModal = false;
 	let editingTestId: string | null = null;
 	let name = '';
-	let dateStr = new Date().toISOString().split('T')[0];
+	let dateStr = todayKey();
 	let totalMarks = 300;
 	
 	let p = { score: 0, correct: 0, incorrect: 0 };
@@ -42,7 +43,7 @@
 	function openNewTestModal() {
 		editingTestId = null;
 		name = '';
-		dateStr = new Date().toISOString().split('T')[0];
+		dateStr = todayKey();
 		totalMarks = 300;
 		p = { score: 0, correct: 0, incorrect: 0 };
 		c = { score: 0, correct: 0, incorrect: 0 };
@@ -53,7 +54,7 @@
 	function startEditTest(test: MockTest) {
 		editingTestId = test.id;
 		name = test.name;
-		dateStr = new Date(test.date).toISOString().split('T')[0];
+		dateStr = dayKeyOf(new Date(test.date));
 		totalMarks = test.totalMarks || 300;
 		
 		const phys = test.subjects?.Physics || test.subjects?.P || { score: 0, correct: 0, incorrect: 0 };
@@ -68,6 +69,8 @@
 	}
 
 	function saveTest() {
+		const safeTotalMarks = Math.max(1, Number(totalMarks) || 300);
+		const parsedDateMs = dateStr ? parseKey(dateStr).getTime() : Date.now();
 		if (editingTestId) {
 			updateTracker(t => {
 				if (!t.mocks) t.mocks = [];
@@ -76,10 +79,10 @@
 					t.mocks[idx] = {
 						...t.mocks[idx],
 						name,
-						date: new Date(dateStr).getTime(),
+						date: parsedDateMs,
 						category: tab,
 						score: p.score + c.score + m.score,
-						totalMarks,
+						totalMarks: safeTotalMarks,
 						correct: p.correct + c.correct + m.correct,
 						incorrect: p.incorrect + c.incorrect + m.incorrect,
 						updated: Date.now(),
@@ -105,10 +108,10 @@
 		const newTest: MockTest = {
 			id: makeTestId('test'),
 			name,
-			date: new Date(dateStr).getTime(),
+			date: parsedDateMs,
 			category: tab,
 			score: p.score + c.score + m.score,
-			totalMarks,
+			totalMarks: safeTotalMarks,
 			correct: p.correct + c.correct + m.correct,
 			incorrect: p.incorrect + c.incorrect + m.incorrect,
 			unattempted: 0,
@@ -157,7 +160,7 @@
 		const target = ($tracker.mocks || []).find(m => m.id === id);
 		if (!target) return;
 		updateTracker(t => {
-			t.mocks = t.mocks.filter(m => m.id !== id);
+			t.mocks = (t.mocks || []).filter(m => m.id !== id);
 			t.deletedIds ??= {};
 			t.deletedIds[id] = Date.now();
 			if (t.gamification) {
@@ -224,24 +227,30 @@
 	}
 
 	function getChartY(percent: number) {
-		const clamped = Math.max(0, Math.min(100, percent));
+		const safePct = Number.isFinite(percent) ? percent : 0;
+		const clamped = Math.max(0, Math.min(100, safePct));
 		return padT + (1 - clamped / 100) * plotH;
 	}
 
 	function testSubjectPct(t: MockTest, sub: 'P' | 'C' | 'M') {
 		const fullName = sub === 'P' ? 'Physics' : sub === 'C' ? 'Chemistry' : 'Maths';
-		const s = (t.subjects as any)?.[fullName] || (t.subjects as any)?.[sub];
-		const score = s?.score ?? 0;
-		const maxMarks = (t.totalMarks || 300) / 3;
-		return Math.round((score / (maxMarks || 100)) * 100);
+		const s = (t?.subjects as any)?.[fullName] || (t?.subjects as any)?.[sub];
+		const score = Number(s?.score) || 0;
+		const maxMarks = Math.max(1, (Number(t?.totalMarks) || 300) / 3);
+		return Math.round((score / maxMarks) * 100);
 	}
 
 	function testTotalPct(t: MockTest) {
-		return Math.round((t.score / (t.totalMarks || 300)) * 100);
+		const totalMarks = Math.max(1, Number(t?.totalMarks) || 300);
+		const score = Number(t?.score) || 0;
+		return Math.round((score / totalMarks) * 100);
 	}
 
 	function testPotentialPct(t: MockTest) {
-		return Math.min(100, Math.round(((t.score + (t.incorrect || 0)) / (t.totalMarks || 300)) * 100));
+		const totalMarks = Math.max(1, Number(t?.totalMarks) || 300);
+		const score = Number(t?.score) || 0;
+		const incorrect = Math.max(0, Number(t?.incorrect) || 0);
+		return Math.min(100, Math.round(((score + incorrect) / totalMarks) * 100));
 	}
 
 	function buildSvgLine(tests: MockTest[], getPct: (t: MockTest) => number) {
@@ -299,7 +308,7 @@
 		const target = ($tracker.mistakes || []).find(m => m.id === id);
 		if (!target) return;
 		updateTracker(t => {
-			t.mistakes = t.mistakes.filter(m => m.id !== id);
+			t.mistakes = (t.mistakes || []).filter(m => m.id !== id);
 			t.deletedIds ??= {};
 			t.deletedIds[id] = Date.now();
 			return t;
@@ -322,8 +331,17 @@
 	let filterType = 'All';
 	let filterStatus: 'active' | 'mastered' | 'all' = 'active';
 
+	function displayMistakeSub(sub: string): string {
+		const s = (sub || '').trim();
+		if (s === 'P' || s.toLowerCase().startsWith('phy')) return 'Physics';
+		if (s === 'C' || s.toLowerCase().startsWith('chem')) return 'Chemistry';
+		if (s === 'M' || s.toLowerCase().startsWith('math')) return 'Maths';
+		return s || 'Physics';
+	}
+
 	$: filteredMistakes = mistakes.filter(m => {
-		const matchesSubject = filterSubject === 'All' || m.subject === filterSubject;
+		const normSub = displayMistakeSub(m.subject);
+		const matchesSubject = filterSubject === 'All' || normSub === filterSubject;
 		const matchesType = filterType === 'All' || m.errorType === filterType;
 		const matchesStatus =
 			filterStatus === 'all' ? true :

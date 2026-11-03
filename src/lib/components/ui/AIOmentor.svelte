@@ -1,6 +1,20 @@
 <script lang="ts">
 	import { renderMarkdownSync } from '$lib/services/markdown';
-	import { tracker, logBulkQuestions, logMockTestScore, addFlashcard, celebration, addTodoSubsteps, transferTodosToPlanner, autoBalancePlannerTasks } from '$lib/stores/tracker';
+	import {
+		tracker,
+		logBulkQuestions,
+		logMockTestScore,
+		addFlashcard,
+		celebration,
+		addTodoSubsteps,
+		transferTodosToPlanner,
+		autoBalancePlannerTasks,
+		saveAiMentorSession,
+		deleteAiMentorSession,
+		clearAiMentorSessions
+	} from '$lib/stores/tracker';
+	import { currentUser } from '$lib/stores/auth';
+	import type { AiMentorSession, AiMentorMessage } from '$lib/types/tracker';
 	import { aiMentorRequest, aiOrbFlowEvent, type DocumentContext } from '$lib/stores/aiMentor';
 	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
@@ -18,15 +32,203 @@
 	let showMessage = false;
 	let timeout: any;
 	
+	const DEFAULT_WELCOME_MSG = "I'm your AI Mentor. I have access to your Elo stats, study logs, and mock test data. Ask me anything!";
+
 	// Chat State
 	let chatOpen = false;
 	let chatInput = '';
 	let chatHistory: { role: 'user' | 'ai', text: string }[] = [
-		{ role: 'ai', text: "I'm your AI Mentor. I have access to your Elo stats, study logs, and mock test data. Ask me anything!" }
+		{ role: 'ai', text: DEFAULT_WELCOME_MSG }
 	];
 	let isTyping = false;
 	let typingStatus = '';
 	let chatContainer: HTMLElement;
+	let streamAbort: AbortController | null = null;
+
+	// Chat History & Session State (Scoped specifically to the active user)
+	let historyOpen = false;
+	let currentSessionId: string | null = null;
+	let historySearchQuery = '';
+	let showClearConfirm = false;
+
+	$: activeUserId = $currentUser?.id || 'guest';
+	$: userDisplayName = $currentUser?.name || ($currentUser?.email ? $currentUser.email.split('@')[0] : 'Guest Student');
+	$: userEmail = $currentUser?.email || '';
+
+	// Isolate conversations specifically to this active user
+	$: userSessions = ($tracker.aiMentorSessions || []).filter((s) => {
+		if (activeUserId === 'guest') {
+			return !s.userId || s.userId === 'guest';
+		}
+		return s.userId === activeUserId;
+	});
+
+	$: filteredSessions = historySearchQuery.trim()
+		? userSessions.filter((s) => {
+				const q = historySearchQuery.toLowerCase();
+				return (
+					(s.title || '').toLowerCase().includes(q) ||
+					(Boolean(s.docName) && (s.docName || '').toLowerCase().includes(q)) ||
+					(Array.isArray(s.messages) && s.messages.some((m) => m?.text && m.text.toLowerCase().includes(q)))
+				);
+		  })
+		: userSessions;
+
+	let previousUserId: string | null = null;
+	$: if (activeUserId !== previousUserId) {
+		if (previousUserId !== null) {
+			startNewChat();
+		}
+		previousUserId = activeUserId;
+	}
+
+	function ensureCurrentSession(initialUserMsg: string, docName?: string, docSubject?: string): string {
+		if (currentSessionId) return currentSessionId;
+		const newId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+		currentSessionId = newId;
+
+		let title = '';
+		if (docName) {
+			title = docName.replace(/\.[^/.]+$/, '');
+		} else {
+			const clean = initialUserMsg.replace(/^[\s#*_-]+/, '').split('\n')[0].trim();
+			title = clean.length > 36 ? clean.slice(0, 36).trim() + '...' : clean;
+			if (!title) title = 'New Conversation';
+		}
+
+		const newSession: AiMentorSession = {
+			id: newId,
+			userId: activeUserId,
+			title,
+			createdAt: Date.now(),
+			updatedAt: Date.now(),
+			messages: chatHistory.map((m, idx) => ({
+				id: `m_${idx}_${Date.now()}`,
+				role: m.role,
+				text: m.text,
+				timestamp: Date.now()
+			})),
+			docName,
+			subject: docSubject
+		};
+		saveAiMentorSession(newSession);
+		return newId;
+	}
+
+	function persistCurrentSession() {
+		if (!currentSessionId) return;
+		const existing = ($tracker.aiMentorSessions || []).find((s) => s.id === currentSessionId);
+		const title = existing?.title || (activeDoc?.fileName ? activeDoc.fileName.replace(/\.[^/.]+$/, '') : 'Conversation');
+		const updatedSession: AiMentorSession = {
+			id: currentSessionId,
+			userId: activeUserId,
+			title,
+			createdAt: existing?.createdAt || Date.now(),
+			updatedAt: Date.now(),
+			messages: chatHistory.map((m, idx) => ({
+				id: existing?.messages?.[idx]?.id || `m_${idx}_${Date.now()}`,
+				role: m.role,
+				text: m.text,
+				timestamp: existing?.messages?.[idx]?.timestamp || Date.now()
+			})),
+			docName: activeDoc?.fileName || existing?.docName,
+			subject: activeDoc?.subject || existing?.subject
+		};
+		saveAiMentorSession(updatedSession);
+	}
+
+	function startNewChat() {
+		streamAbort?.abort();
+		streamAbort = null;
+		isTyping = false;
+		typingStatus = '';
+		currentSessionId = null;
+		activeDoc = null;
+		chatInput = '';
+		chatHistory = [{ role: 'ai', text: DEFAULT_WELCOME_MSG }];
+		historyOpen = false;
+		showClearConfirm = false;
+		scrollToBottom();
+	}
+
+	function loadSession(session: AiMentorSession) {
+		streamAbort?.abort();
+		streamAbort = null;
+		isTyping = false;
+		typingStatus = '';
+		currentSessionId = session.id;
+		chatHistory = session.messages.map((m) => ({ role: m.role, text: m.text }));
+		if (session.docName) {
+			activeDoc = {
+				fileName: session.docName,
+				subject: session.subject || 'P',
+				text: '',
+				status: 'ready'
+			};
+		} else {
+			activeDoc = null;
+		}
+		historyOpen = false;
+		showClearConfirm = false;
+		scrollToBottom();
+	}
+
+	function handleDeleteSession(sessionId: string, e?: Event) {
+		if (e) e.stopPropagation();
+		deleteAiMentorSession(sessionId);
+		if (currentSessionId === sessionId) {
+			startNewChat();
+		}
+		celebration.set('Chat removed from history');
+	}
+
+	function handleClearAllHistory() {
+		clearAiMentorSessions(activeUserId);
+		startNewChat();
+		showClearConfirm = false;
+		celebration.set('All chat history cleared');
+	}
+
+	function toggleHistory() {
+		historyOpen = !historyOpen;
+		showClearConfirm = false;
+		historySearchQuery = '';
+	}
+
+	function formatSessionTime(timestamp: number): string {
+		if (!timestamp) return '';
+		const now = Date.now();
+		const diffMs = now - timestamp;
+		const diffMin = Math.floor(diffMs / 60000);
+		const diffHours = Math.floor(diffMin / 60);
+		const diffDays = Math.floor(diffHours / 24);
+
+		if (diffMin < 1) return 'Just now';
+		if (diffMin < 60) return `${diffMin}m ago`;
+		if (diffHours < 24) {
+			const d = new Date(timestamp);
+			return `Today, ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+		}
+		if (diffDays === 1) {
+			const d = new Date(timestamp);
+			return `Yesterday, ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+		}
+		if (diffDays < 7) return `${diffDays}d ago`;
+		const d = new Date(timestamp);
+		return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+	}
+
+	function getSessionSnippet(session: AiMentorSession): string {
+		const lastUser = [...session.messages].reverse().find((m) => m.role === 'user');
+		if (lastUser?.text) {
+			return lastUser.text.slice(0, 60) + (lastUser.text.length > 60 ? '...' : '');
+		}
+		const lastMsg = session.messages[session.messages.length - 1];
+		if (lastMsg?.text) {
+			return lastMsg.text.replace(/<[^>]*>/g, '').replace(/[*_#`$]/g, '').slice(0, 60) + (lastMsg.text.length > 60 ? '...' : '');
+		}
+		return 'Empty conversation';
+	}
 
 	// Active Attached Document State
 	let activeDoc: DocumentContext | null = null;
@@ -71,29 +273,22 @@
 		animState = 'accelerating';
 		stateStartTime = performance.now();
 		lastFrameTime = performance.now();
-		lastIdleUpdateTime = performance.now();
 		isSpinning = true;
+		if (rafId === null) rafId = requestAnimationFrame(orbLoop);
 	}
 
 	let lastFrameTime = 0;
-	let lastIdleUpdateTime = 0;
 
+	function stopOrbLoop() {
+		if (rafId !== null) cancelAnimationFrame(rafId);
+		rafId = null;
+	}
+
+	// Only runs while a burst is in flight; idle ring rotation is handled by CSS
+	// keyframes on the compositor thread, so an idle orb costs zero JS frames.
 	function orbLoop(now: number) {
-		if (!lastFrameTime) lastFrameTime = now;
-		const dt = Math.min((now - lastFrameTime) / 1000, 0.1); // seconds
+		const dt = Math.min((now - (lastFrameTime || now)) / 1000, 0.1); // seconds
 		lastFrameTime = now;
-
-		const isInactive = typeof document !== 'undefined' && (
-			document.hidden ||
-			Boolean($tracker.ui?.ecoMode) ||
-			Boolean($tracker.ui?.reducedMotion)
-		);
-
-		if (animState === 'idle' && isInactive) {
-			// Skip DOM style mutations and idle rotation while hidden or in eco/reduced-motion mode
-			rafId = requestAnimationFrame(orbLoop);
-			return;
-		}
 
 		if (animState === 'accelerating') {
 			const elapsed = now - stateStartTime;
@@ -122,17 +317,7 @@
 				animState = 'idle';
 				isSpinning = false;
 			}
-		} else {
-			speedMult = 1.0;
 		}
-
-		// When animState === 'idle' in normal mode, throttle idle ring rotation updates to ~20fps (dt >= 0.048s)
-		const isBurst = animState !== 'idle';
-		if (!isBurst && (now - lastIdleUpdateTime) < 48) {
-			rafId = requestAnimationFrame(orbLoop);
-			return;
-		}
-		lastIdleUpdateTime = now;
 
 		// Update continuous rotation angles
 		// Normal rates: r1 (360/7 = 51.43 deg/s), r2 (-40 deg/s), r3 (30 deg/s), r4 (-20 deg/s)
@@ -148,6 +333,10 @@
 			orbButtonEl.style.setProperty('--r4-rot', `${rot4.toFixed(2)}deg`);
 		}
 
+		if (animState === 'idle') {
+			rafId = null;
+			return;
+		}
 		rafId = requestAnimationFrame(orbLoop);
 	}
 
@@ -220,6 +409,8 @@
 				if (req.prompt) {
 					if (req.autoSend) {
 						chatHistory = [...chatHistory, { role: 'user', text: req.prompt }];
+						ensureCurrentSession(req.prompt, req.doc?.fileName, req.doc?.subject);
+						persistCurrentSession();
 						isTyping = true;
 						typingStatus = req.typingStatus || 'Reading document...';
 						scrollToBottom();
@@ -255,6 +446,8 @@
 				orbState = 'idle';
 				if (req.autoSend) {
 					chatHistory = [...chatHistory, { role: 'user', text: req.prompt }];
+					ensureCurrentSession(req.prompt);
+					persistCurrentSession();
 					isTyping = true;
 					typingStatus = req.typingStatus || 'Thinking...';
 					scrollToBottom();
@@ -305,15 +498,13 @@
 		const handleVisibilityChange = () => {
 			if (!document.hidden) {
 				lastFrameTime = performance.now();
-				lastIdleUpdateTime = performance.now();
 			}
 		};
 		document.addEventListener('visibilitychange', handleVisibilityChange);
 
-		rafId = requestAnimationFrame(orbLoop);
 		return () => {
 			document.removeEventListener('visibilitychange', handleVisibilityChange);
-			if (rafId) cancelAnimationFrame(rafId);
+			stopOrbLoop();
 			if (initTimer) clearTimeout(initTimer);
 			if (timeout) clearTimeout(timeout);
 			clearTimeout(openChatTimer);
@@ -344,15 +535,22 @@
 			e.preventDefault();
 		}
 		chatOpen = false;
+		historyOpen = false;
+		showClearConfirm = false;
 		orbState = 'idle';
 		isSpinning = false;
 		activeFlow = null;
 		aiOrbFlowEvent.set(null);
+		streamAbort?.abort();
+		streamAbort = null;
+		isTyping = false;
+		typingStatus = '';
 		clearTimeout(openChatTimer);
 		clearTimeout(flowMergeTimer);
 		clearTimeout(flowCleanTimer);
 		animState = 'idle';
 		speedMult = 1.0;
+		stopOrbLoop();
 	}
 
 	function handleOrbClick(e?: Event) {
@@ -381,6 +579,8 @@
 		const userMsg = chatInput.trim();
 		chatHistory = [...chatHistory, { role: 'user', text: userMsg }];
 		chatInput = '';
+		ensureCurrentSession(userMsg, activeDoc?.fileName, activeDoc?.subject);
+		persistCurrentSession();
 		scrollToBottom();
 		await dispatchGeminiQuery();
 	}
@@ -402,7 +602,9 @@ CRITICAL INSTRUCTIONS:
 5. If the user asks to log questions/exercises (e.g. "I did ex 1"), append: <cmd>{"action": "logQuestions", "subject": "P", "chapter": 1, "count": 20, "name": "Ex 1"}</cmd>.
 6. If the user asks to log a mock test (e.g. "scored 180 out of 300"), append: <cmd>{"action": "logMockTest", "score": 180, "total": 300, "subjectScores": {"P": {"c": 15, "w": 5, "s": 60}, "C": {"c": 15, "w": 5, "s": 60}, "M": {"c": 15, "w": 5, "s": 60}}}</cmd>. Estimate subject scores if they don't provide them.
 7. If the user asks to integrate or add substeps (e.g. Ex 1, Ex 2) to their parsed syllabus / btest / to-do items, append EXACTLY this JSON block: <cmd>{"action": "addTodoSubsteps", "source": "btest", "substeps": ["Ex 1", "Ex 2"]}</cmd> (substeps can be customized if they asked for specific ones).
-8. If the user asks to add/transfer to-do list items to planner and/or auto-plan them, append EXACTLY this JSON block: <cmd>{"action": "transferTodosToPlanner", "autoPlan": true}</cmd>.`;
+8. If the user asks to add/transfer to-do list items to planner and/or auto-plan them, append EXACTLY this JSON block: <cmd>{"action": "transferTodosToPlanner", "autoPlan": true}</cmd>.
+9. Whenever the user asks to generate or extract flashcards / active recall cards (from notes, documents, or a topic), append EXACTLY this JSON block at the end of your message:
+<cmd>{"action": "addFlashcards", "cards": [{"front": "Front question or conceptual challenge", "back": "Clear concise answer / formula", "subject": "${activeDoc?.subject || 'P'}", "chapter": "${activeDoc ? activeDoc.fileName.replace(/\.[^/.]+$/, '') : 'Study Notes'}"}]}</cmd>`;
 
 		if (activeDoc && activeDoc.text) {
 			systemInstruction += `\n\nATTACHED STUDY DOCUMENT:
@@ -410,22 +612,26 @@ File: "${activeDoc.fileName}" (Subject: ${activeDoc.subject})
 --- DOCUMENT EXCERPT ---
 ${activeDoc.text.slice(0, 14000)}
 --- END DOCUMENT EXCERPT ---
-
-7. When the user asks to generate flashcards or active recall cards from the attached document, generate 3 to 5 high-yield cards and append EXACTLY this JSON block at the end of your message:
-<cmd>{"action": "addFlashcards", "cards": [{"front": "Front question or conceptual challenge", "back": "Clear concise answer / formula", "subject": "${activeDoc.subject || 'P'}", "chapter": "${activeDoc.fileName.replace(/\.[^/.]+$/, '')}"}]}</cmd>
-Ensure the cards test high-yield definitions, core derivations, equations, and tricky exceptions from this document.`;
+Ensure any generated flashcards test high-yield definitions, core derivations, equations, and tricky exceptions from this document.`;
 		}
 
-		const history = chatHistory.map(msg => ({
-			role: msg.role === 'ai' ? 'model' : 'user',
-			parts: [{ text: msg.text }]
-		}));
+		const history = chatHistory
+			.filter((msg, idx) => !(idx === 0 && msg.role === 'ai') && Boolean(msg.text?.trim()) && !msg.text.startsWith('Attached **'))
+			.map((msg) => ({
+				role: msg.role === 'ai' ? 'model' : 'user',
+				parts: [{ text: msg.text }]
+			}));
+
+		streamAbort?.abort();
+		const controller = new AbortController();
+		streamAbort = controller;
 
 		try {
 			const res = await fetch('/api/gemini', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ history, systemInstruction, stream: true })
+				body: JSON.stringify({ history, systemInstruction, stream: true }),
+				signal: controller.signal
 			});
 			
 			if (!res.ok) {
@@ -452,6 +658,8 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 						text += chunk;
 						// Clean command tag fragments while streaming so raw commands don't flash
 						chatHistory[aiIndex].text = text.replace(/<cmd>[\s\S]*?<\/cmd>/g, '').replace(/<cmd>[\s\S]*$/g, '');
+						// In-place mutation is invisible to Svelte; reassign to flush the stream.
+						chatHistory = chatHistory;
 						scrollToBottom();
 					}
 				}
@@ -518,22 +726,22 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 								);
 								if (pendingTasks.length === 0) {
 									celebration.set(`🎯 Transferred ${transferred} tasks to daily planner!`);
-									return;
+								} else {
+									const taskInput = pendingTasks.map((t) => ({
+										id: t.id,
+										text: (t.title || t.text || '') as string,
+										sub: (t.s || t.sub || '') as string,
+										ch: t.ch,
+										subs: (t.subs || []).map((s) => typeof s === 'string' ? s : (s as any).title)
+									}));
+									const constraint = buildAcademicConstraintPrompt($tracker);
+									getAIPlannerBalance(taskInput, days, elo, constraint, scheduledClasses)
+										.then(async (map) => {
+											await autoBalancePlannerTasks(map);
+											celebration.set(`🎯 Transferred ${transferred} tasks and auto-balanced schedule!`);
+										})
+										.catch((err) => console.error('Auto plan error:', err));
 								}
-								const taskInput = pendingTasks.map((t) => ({
-									id: t.id,
-									text: (t.title || t.text || '') as string,
-									sub: (t.s || t.sub || '') as string,
-									ch: t.ch,
-									subs: (t.subs || []).map((s) => typeof s === 'string' ? s : (s as any).title)
-								}));
-								const constraint = buildAcademicConstraintPrompt($tracker);
-								getAIPlannerBalance(taskInput, days, elo, constraint, scheduledClasses)
-									.then(async (map) => {
-										await autoBalancePlannerTasks(map);
-										celebration.set(`🎯 Transferred ${transferred} tasks and auto-balanced schedule!`);
-									})
-									.catch((err) => console.error('Auto plan error:', err));
 							} else {
 								celebration.set(`🎯 Transferred ${transferred} tasks to daily planner!`);
 							}
@@ -545,15 +753,21 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 				
 				// Remove commands from visible text
 				chatHistory[aiIndex].text = text.replace(/<cmd>[\s\S]*?<\/cmd>/g, '').trim();
+				chatHistory = chatHistory;
 			} else {
 				chatHistory[aiIndex].text = "I'm sorry, I couldn't process that right now.";
+				chatHistory = chatHistory;
 			}
 		} catch (err) {
-			chatHistory = [...chatHistory, { role: 'ai', text: "Network error. Please try again." }];
+			if (!controller.signal.aborted) {
+				chatHistory = [...chatHistory, { role: 'ai', text: "Network error. Please try again." }];
+			}
 		} finally {
+			if (streamAbort === controller) streamAbort = null;
 			isTyping = false;
 			typingStatus = '';
 			orbState = 'idle';
+			persistCurrentSession();
 			scrollToBottom();
 		}
 	};
@@ -562,22 +776,32 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 		if (action === 'pomodoro') {
 			$globalTimer.start('P', 25 * 60, '', 'timer');
 			chatHistory = [...chatHistory, { role: 'ai', text: "Started 25m Pomodoro focus timer. Stay locked in! 🎯" }];
+			ensureCurrentSession('25m Pomodoro Focus');
+			persistCurrentSession();
 			scrollToBottom();
 		} else if (action === 'stopwatch') {
 			$globalTimer.start('P', 0, '', 'stopwatch');
 			chatHistory = [...chatHistory, { role: 'ai', text: "Started stopwatch study session. Keep solving! ⏱️" }];
+			ensureCurrentSession('Stopwatch Study Session');
+			persistCurrentSession();
 			scrollToBottom();
 		} else if (action === 'logP') {
 			logBulkQuestions('P', 1, 25, 'AI Mentor Log');
 			chatHistory = [...chatHistory, { role: 'ai', text: "Logged 25 Physics questions (+250 XP). Momentum is building! ⚡" }];
+			ensureCurrentSession('Log 25 Physics Questions');
+			persistCurrentSession();
 			scrollToBottom();
 		} else if (action === 'logC') {
 			logBulkQuestions('C', 1, 25, 'AI Mentor Log');
 			chatHistory = [...chatHistory, { role: 'ai', text: "Logged 25 Chemistry questions (+250 XP). Strong practice! 🧪" }];
+			ensureCurrentSession('Log 25 Chemistry Questions');
+			persistCurrentSession();
 			scrollToBottom();
 		} else if (action === 'logM') {
 			logBulkQuestions('M', 1, 25, 'AI Mentor Log');
 			chatHistory = [...chatHistory, { role: 'ai', text: "Logged 25 Maths questions (+250 XP). Sharp accuracy! 📐" }];
+			ensureCurrentSession('Log 25 Maths Questions');
+			persistCurrentSession();
 			scrollToBottom();
 		} else if (action === 'weakSpots') {
 			chatInput = "What are my weakest areas based on my Elo and question log, and what should I solve next?";
@@ -666,101 +890,268 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 					<div class="mini-orb"></div>
 					<h3>AI Mentor</h3>
 				</div>
-				<button
-					type="button"
-					class="close-btn"
-					aria-label="Close AI Mentor"
-					on:click|stopPropagation|preventDefault={closeChat}
-				>×</button>
+				<div class="header-actions">
+					<button
+						type="button"
+						class="header-action-btn"
+						title="Start fresh conversation"
+						aria-label="New Chat"
+						on:click={startNewChat}
+					>
+						<NavIcon name="plus" size={12} />
+						<span class="btn-text">New</span>
+					</button>
+					<button
+						type="button"
+						class="header-action-btn history-btn"
+						class:active={historyOpen}
+						title={historyOpen ? 'Back to chat' : 'View chat history'}
+						aria-label="Chat History"
+						on:click={toggleHistory}
+					>
+						<NavIcon name="history" size={13} />
+						<span class="btn-text">History</span>
+						{#if userSessions.length > 0}
+							<span class="history-badge">{userSessions.length}</span>
+						{/if}
+					</button>
+					<button
+						type="button"
+						class="close-btn"
+						aria-label="Close AI Mentor"
+						on:click|stopPropagation|preventDefault={closeChat}
+					>×</button>
+				</div>
 			</div>
 
-			{#if activeDoc}
-				<div class="active-doc-badge" class:extracting={activeDoc.status === 'extracting'}>
-					<div class="doc-info">
-						<NavIcon name="book" size={13} />
-						<span class="doc-sec">{activeDoc.subject}</span>
-						<span class="doc-name" title={activeDoc.fileName}>{activeDoc.fileName}</span>
-						{#if activeDoc.status === 'extracting'}
-							<span class="doc-extract-pill">
-								Reading...
+			{#if historyOpen}
+				<div class="history-panel" in:fly={{ x: 16, duration: 180 }} out:fade={{ duration: 120 }}>
+					<div class="history-header">
+						<button type="button" class="history-back-btn" on:click={() => (historyOpen = false)} title="Back to conversation">
+							<NavIcon name="chevron-left" size={14} />
+							<span>Back to Chat</span>
+						</button>
+						<button type="button" class="history-new-btn" on:click={startNewChat} title="New conversation">
+							<NavIcon name="plus" size={12} />
+							<span>+ New Chat</span>
+						</button>
+					</div>
+
+					<div class="history-user-card">
+						<div class="user-avatar-circle">
+							<NavIcon name="friends" size={13} />
+						</div>
+						<div class="user-meta">
+							<div class="user-name-row">
+								<span class="user-name">{userDisplayName}</span>
+								{#if activeUserId !== 'guest'}
+									<span class="user-status-pill sync">Synced</span>
+								{:else}
+									<span class="user-status-pill guest">Guest / Local</span>
+								{/if}
+							</div>
+							<span class="user-subtext">
+								{activeUserId !== 'guest' ? (userEmail || 'Cloud Synced JEE Account') : 'Conversations saved on this device'}
 							</span>
+						</div>
+					</div>
+
+					<div class="history-search-row">
+						<NavIcon name="search" size={13} />
+						<input
+							type="text"
+							placeholder="Search past conversations..."
+							bind:value={historySearchQuery}
+						/>
+						{#if historySearchQuery}
+							<button type="button" class="search-clear-btn" on:click={() => (historySearchQuery = '')} aria-label="Clear search">
+								<NavIcon name="x" size={11} />
+							</button>
 						{/if}
 					</div>
-					<button type="button" class="doc-detach-btn" on:click={detachDoc} title="Detach document">
-						<NavIcon name="x" size={12} />
+
+					<div class="history-list">
+						{#if filteredSessions.length > 0}
+							{#each filteredSessions as session (session.id)}
+								<!-- svelte-ignore a11y_click_events_have_key_events -->
+								<!-- svelte-ignore a11y_no_static_element_interactions -->
+								<div
+									class="history-item-card"
+									class:active={session.id === currentSessionId}
+									on:click={() => loadSession(session)}
+								>
+									<div class="item-main">
+										<div class="item-title-row">
+											<span class="item-title" title={session.title}>{session.title}</span>
+											<span class="item-time">{formatSessionTime(session.updatedAt || session.createdAt)}</span>
+										</div>
+										<p class="item-snippet">{getSessionSnippet(session)}</p>
+										{#if session.docName}
+											<div class="item-doc-tag">
+												<NavIcon name="book" size={11} />
+												<span>{session.docName}</span>
+											</div>
+										{/if}
+									</div>
+									<div class="item-actions">
+										{#if session.id === currentSessionId}
+											<span class="active-dot-pill" title="Current open chat">Active</span>
+										{/if}
+										<button
+											type="button"
+											class="item-delete-btn"
+											title="Delete conversation"
+											on:click|stopPropagation={(e) => handleDeleteSession(session.id, e)}
+										>
+											<NavIcon name="trash" size={12} />
+										</button>
+									</div>
+								</div>
+							{/each}
+						{:else}
+							<div class="history-empty">
+								<div class="empty-icon-wrap">
+									<NavIcon name="history" size={26} />
+								</div>
+								<h4>{historySearchQuery ? 'No matching chats' : 'No chat history yet'}</h4>
+								<p>
+									{historySearchQuery
+										? 'Try searching for other keywords, chapters, or questions.'
+										: 'Your discussions, formula explanations, and doubt resolutions with your AI Mentor will appear here.'}
+								</p>
+								{#if !historySearchQuery}
+									<button type="button" class="empty-start-btn" on:click={startNewChat}>
+										<NavIcon name="sparkles" size={13} /> Ask AI Mentor
+									</button>
+								{/if}
+							</div>
+						{/if}
+					</div>
+
+					{#if userSessions.length > 0}
+						<div class="history-footer">
+							{#if showClearConfirm}
+								<div class="clear-confirm-bar">
+									<span>Clear all chats for this user?</span>
+									<div class="confirm-actions">
+										<button type="button" class="confirm-yes-btn" on:click={handleClearAllHistory}>
+											Yes, Clear
+										</button>
+										<button type="button" class="confirm-no-btn" on:click={() => (showClearConfirm = false)}>
+											Cancel
+										</button>
+									</div>
+								</div>
+							{:else}
+								<span class="footer-count">{userSessions.length} conversation{userSessions.length === 1 ? '' : 's'}</span>
+								<button type="button" class="footer-clear-btn" on:click={() => (showClearConfirm = true)}>
+									<NavIcon name="trash" size={11} /> Clear All
+								</button>
+							{/if}
+						</div>
+					{/if}
+				</div>
+			{:else}
+				{#if currentSessionId}
+					{@const activeSession = ($tracker.aiMentorSessions || []).find((s) => s.id === currentSessionId)}
+					{#if activeSession}
+						<div class="active-session-bar">
+							<span class="active-session-label">Chat: <strong>{activeSession.title}</strong></span>
+							<button type="button" class="session-new-shortcut" on:click={startNewChat} title="Start fresh conversation">
+								+ New
+							</button>
+						</div>
+					{/if}
+				{/if}
+
+				{#if activeDoc}
+					<div class="active-doc-badge" class:extracting={activeDoc.status === 'extracting'}>
+						<div class="doc-info">
+							<NavIcon name="book" size={13} />
+							<span class="doc-sec">{activeDoc.subject}</span>
+							<span class="doc-name" title={activeDoc.fileName}>{activeDoc.fileName}</span>
+							{#if activeDoc.status === 'extracting'}
+								<span class="doc-extract-pill">
+									Reading...
+								</span>
+							{/if}
+						</div>
+						<button type="button" class="doc-detach-btn" on:click={detachDoc} title="Detach document">
+							<NavIcon name="x" size={12} />
+						</button>
+					</div>
+				{/if}
+				
+				<div class="chat-body" bind:this={chatContainer}>
+					{#each chatHistory as msg}
+						<div class="chat-bubble {msg.role}">
+							{#if msg.role === 'ai'}
+								{@html renderMarkdownSync(msg.text)}
+							{:else}
+								{msg.text}
+							{/if}
+						</div>
+					{/each}
+					{#if isTyping}
+						<div class="chat-bubble ai typing">
+							<div class="typing-dots">
+								<span class="dot"></span><span class="dot"></span><span class="dot"></span>
+							</div>
+							{#if typingStatus}
+								<span class="typing-status-text">{typingStatus}</span>
+							{/if}
+						</div>
+					{/if}
+				</div>
+
+				<div class="shortcuts-row" aria-label="Quick Actions">
+					{#if activeDoc}
+						<button type="button" class="action-pill flashcard-pill" on:click={() => sendDocPrompt('Generate 5 high-yield Active Recall flashcards based on the attached document. Include questions testing core definitions, formulas, and common traps. For each flashcard, format using the addFlashcards command.')}>
+							<NavIcon name="sparkles" size={12} /> ⚡ 5 Flashcards
+						</button>
+						<button type="button" class="action-pill quiz-pill" on:click={() => sendDocPrompt('Give me a quick 3-question conceptual quiz based on this document with multiple choice options (A, B, C, D). Don\'t give answers yet — let me solve them first!')}>
+							<NavIcon name="target" size={12} /> 🎯 Quiz Me (3 Qs)
+						</button>
+						<button type="button" class="action-pill formula-pill" on:click={() => sendDocPrompt('Extract all the key formulas, definitions, and high-yield exam traps from this document into a concise cheatsheet.')}>
+							<NavIcon name="bookmark" size={12} /> 🔖 Key Formulas
+						</button>
+						<button type="button" class="action-pill" on:click={() => sendDocPrompt('Summarize the core takeaways and main concepts of this document in 3-4 bullet points.')}>
+							<NavIcon name="bulb" size={12} /> 💡 Summarize
+						</button>
+					{:else}
+						<button type="button" class="action-pill" on:click={() => runActionShortcut('pomodoro')}>
+							<NavIcon name="clock" size={12} /> 25m Pomodoro
+						</button>
+						<button type="button" class="action-pill" on:click={() => runActionShortcut('stopwatch')}>
+							<NavIcon name="pulse" size={12} /> Stopwatch
+						</button>
+						<button type="button" class="action-pill p" on:click={() => runActionShortcut('logP')}>
+							<NavIcon name="plus" size={12} /> 25 Physics Qs
+						</button>
+						<button type="button" class="action-pill c" on:click={() => runActionShortcut('logC')}>
+							<NavIcon name="plus" size={12} /> 25 Chem Qs
+						</button>
+						<button type="button" class="action-pill m" on:click={() => runActionShortcut('logM')}>
+							<NavIcon name="plus" size={12} /> 25 Math Qs
+						</button>
+						<button type="button" class="action-pill" on:click={() => runActionShortcut('weakSpots')}>
+							<NavIcon name="target" size={12} /> Weak Spots
+						</button>
+					{/if}
+				</div>
+
+				<div class="chat-input-area">
+					<input 
+						type="text" 
+						placeholder={activeDoc ? `Ask doubt or prompt for ${activeDoc.fileName}...` : "Ask a doubt or request analysis..."} 
+						bind:value={chatInput}
+						on:keydown={(e) => e.key === 'Enter' && sendMessage()}
+					/>
+					<button class="send-btn" disabled={!chatInput.trim() || isTyping} on:click={sendMessage}>
+						<NavIcon name="arrow-right" size={14} />
 					</button>
 				</div>
 			{/if}
-			
-			<div class="chat-body" bind:this={chatContainer}>
-				{#each chatHistory as msg}
-					<div class="chat-bubble {msg.role}">
-						{#if msg.role === 'ai'}
-							{@html renderMarkdownSync(msg.text)}
-						{:else}
-							{msg.text}
-						{/if}
-					</div>
-				{/each}
-				{#if isTyping}
-					<div class="chat-bubble ai typing">
-						<div class="typing-dots">
-							<span class="dot"></span><span class="dot"></span><span class="dot"></span>
-						</div>
-						{#if typingStatus}
-							<span class="typing-status-text">{typingStatus}</span>
-						{/if}
-					</div>
-				{/if}
-			</div>
-
-			<div class="shortcuts-row" aria-label="Quick Actions">
-				{#if activeDoc}
-					<button type="button" class="action-pill flashcard-pill" on:click={() => sendDocPrompt('Generate 5 high-yield Active Recall flashcards based on the attached document. Include questions testing core definitions, formulas, and common traps. For each flashcard, format using the addFlashcards command.')}>
-						<NavIcon name="sparkles" size={12} /> ⚡ 5 Flashcards
-					</button>
-					<button type="button" class="action-pill quiz-pill" on:click={() => sendDocPrompt('Give me a quick 3-question conceptual quiz based on this document with multiple choice options (A, B, C, D). Don\'t give answers yet — let me solve them first!')}>
-						<NavIcon name="target" size={12} /> 🎯 Quiz Me (3 Qs)
-					</button>
-					<button type="button" class="action-pill formula-pill" on:click={() => sendDocPrompt('Extract all the key formulas, definitions, and high-yield exam traps from this document into a concise cheatsheet.')}>
-						<NavIcon name="bookmark" size={12} /> 🔖 Key Formulas
-					</button>
-					<button type="button" class="action-pill" on:click={() => sendDocPrompt('Summarize the core takeaways and main concepts of this document in 3-4 bullet points.')}>
-						<NavIcon name="bulb" size={12} /> 💡 Summarize
-					</button>
-				{:else}
-					<button type="button" class="action-pill" on:click={() => runActionShortcut('pomodoro')}>
-						<NavIcon name="clock" size={12} /> 25m Pomodoro
-					</button>
-					<button type="button" class="action-pill" on:click={() => runActionShortcut('stopwatch')}>
-						<NavIcon name="pulse" size={12} /> Stopwatch
-					</button>
-					<button type="button" class="action-pill p" on:click={() => runActionShortcut('logP')}>
-						<NavIcon name="plus" size={12} /> 25 Physics Qs
-					</button>
-					<button type="button" class="action-pill c" on:click={() => runActionShortcut('logC')}>
-						<NavIcon name="plus" size={12} /> 25 Chem Qs
-					</button>
-					<button type="button" class="action-pill m" on:click={() => runActionShortcut('logM')}>
-						<NavIcon name="plus" size={12} /> 25 Math Qs
-					</button>
-					<button type="button" class="action-pill" on:click={() => runActionShortcut('weakSpots')}>
-						<NavIcon name="target" size={12} /> Weak Spots
-					</button>
-				{/if}
-			</div>
-
-			<div class="chat-input-area">
-				<input 
-					type="text" 
-					placeholder={activeDoc ? `Ask doubt or prompt for ${activeDoc.fileName}...` : "Ask a doubt or request analysis..."} 
-					bind:value={chatInput}
-					on:keydown={(e) => e.key === 'Enter' && sendMessage()}
-				/>
-				<button class="send-btn" disabled={!chatInput.trim() || isTyping} on:click={sendMessage}>
-					<NavIcon name="arrow-right" size={14} />
-				</button>
-			</div>
 		</div>
 	{:else if showMessage}
 		<div class="mentor-bubble" transition:fly={{ y: 10, duration: 300 }}>
@@ -907,6 +1298,21 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 	:global(:root[data-theme='duolingo']) .chat-header,
 	:global(:root[data-theme='anki']) .chat-header,
 	:global(:root[data-theme='master']) .chat-header,
+	:global(:root[data-theme='light']) .history-header,
+	:global(:root[data-theme='notion']) .history-header,
+	:global(:root[data-theme='duolingo']) .history-header,
+	:global(:root[data-theme='anki']) .history-header,
+	:global(:root[data-theme='master']) .history-header,
+	:global(:root[data-theme='light']) .history-footer,
+	:global(:root[data-theme='notion']) .history-footer,
+	:global(:root[data-theme='duolingo']) .history-footer,
+	:global(:root[data-theme='anki']) .history-footer,
+	:global(:root[data-theme='master']) .history-footer,
+	:global(:root[data-theme='light']) .history-panel,
+	:global(:root[data-theme='notion']) .history-panel,
+	:global(:root[data-theme='duolingo']) .history-panel,
+	:global(:root[data-theme='anki']) .history-panel,
+	:global(:root[data-theme='master']) .history-panel,
 	:global(:root[data-theme='light']) .chat-input-area,
 	:global(:root[data-theme='notion']) .chat-input-area,
 	:global(:root[data-theme='duolingo']) .chat-input-area,
@@ -927,11 +1333,463 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 		color: var(--text-primary) !important;
 	}
 
-	.chat-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border-subtle); background: var(--surface-popup-solid, var(--surface-subtle, rgba(18, 16, 32, 0.98))); }
-	.header-title { display: flex; align-items: center; gap: 10px; }
-	.header-title h3 { margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-primary); }
-	.close-btn { background: transparent; border: none; color: var(--text-secondary); font-size: 1.5rem; line-height: 1; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: all 0.15s ease; display: grid; place-items: center; }
+	.chat-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border-subtle); background: var(--surface-popup-solid, var(--surface-subtle, rgba(18, 16, 32, 0.98))); }
+	.header-title { display: flex; align-items: center; gap: 8px; }
+	.header-title h3 { margin: 0; font-size: 0.92rem; font-weight: 700; color: var(--text-primary); }
+	.header-actions { display: flex; align-items: center; gap: 6px; }
+	.header-action-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+		border: 1px solid var(--border-subtle);
+		color: var(--text-secondary);
+		font-size: 0.72rem;
+		font-weight: 600;
+		padding: 3px 8px;
+		border-radius: 6px;
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+	.header-action-btn:hover {
+		color: var(--text-primary);
+		background: color-mix(in srgb, var(--text-primary) 12%, transparent);
+		border-color: color-mix(in srgb, var(--accent) 40%, var(--border-subtle));
+	}
+	.header-action-btn.active {
+		background: color-mix(in srgb, var(--accent) 18%, transparent);
+		border-color: var(--accent);
+		color: var(--accent);
+	}
+	.header-action-btn .btn-text {
+		display: inline;
+	}
+	@media (max-width: 400px) {
+		.header-action-btn .btn-text { display: none; }
+	}
+	.history-badge {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		background: var(--accent);
+		color: var(--accent-contrast, #fff);
+		font-size: 0.6rem;
+		font-weight: 800;
+		min-width: 14px;
+		height: 14px;
+		padding: 0 3px;
+		border-radius: 99px;
+		line-height: 1;
+		margin-left: 1px;
+	}
+	.close-btn { background: transparent; border: none; color: var(--text-secondary); font-size: 1.4rem; line-height: 1; cursor: pointer; padding: 2px 6px; border-radius: 6px; transition: all 0.15s ease; display: grid; place-items: center; }
 	.close-btn:hover { color: var(--text-primary); background: color-mix(in srgb, var(--text-primary) 12%, transparent); }
+
+	.active-session-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 8px;
+		padding: 5px 14px;
+		background: color-mix(in srgb, var(--accent) 8%, var(--surface-subtle, rgba(0, 0, 0, 0.2)));
+		border-bottom: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border-subtle));
+		font-size: 0.72rem;
+	}
+	.active-session-label {
+		color: var(--text-secondary);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		max-width: 250px;
+	}
+	.active-session-label strong {
+		color: var(--text-primary);
+	}
+	.session-new-shortcut {
+		background: transparent;
+		border: none;
+		color: var(--accent);
+		font-size: 0.7rem;
+		font-weight: 700;
+		cursor: pointer;
+		padding: 2px 4px;
+		border-radius: 4px;
+		white-space: nowrap;
+		transition: all 0.15s;
+	}
+	.session-new-shortcut:hover {
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		text-decoration: underline;
+	}
+
+	/* HISTORY PANEL */
+	.history-panel {
+		flex: 1;
+		min-height: 0;
+		display: flex;
+		flex-direction: column;
+		overflow: hidden;
+		background: var(--surface-popup-solid, var(--surface-popup, rgba(18, 16, 32, 0.98)));
+	}
+	.history-header {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 8px 14px;
+		border-bottom: 1px solid var(--border-subtle);
+		background: color-mix(in srgb, var(--text-primary) 3%, transparent);
+	}
+	.history-back-btn,
+	.history-new-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 5px;
+		background: transparent;
+		border: none;
+		color: var(--text-secondary);
+		font-size: 0.74rem;
+		font-weight: 600;
+		cursor: pointer;
+		padding: 4px 8px;
+		border-radius: 6px;
+		transition: all 0.15s ease;
+	}
+	.history-back-btn:hover {
+		color: var(--text-primary);
+		background: color-mix(in srgb, var(--text-primary) 10%, transparent);
+	}
+	.history-new-btn {
+		color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 10%, transparent);
+	}
+	.history-new-btn:hover {
+		background: color-mix(in srgb, var(--accent) 20%, transparent);
+	}
+	.history-user-card {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin: 8px 14px 6px;
+		padding: 8px 12px;
+		border-radius: 10px;
+		background: color-mix(in srgb, var(--accent) 8%, var(--surface-subtle, rgba(255, 255, 255, 0.03)));
+		border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border-subtle));
+	}
+	.user-avatar-circle {
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--accent) 22%, transparent);
+		color: var(--accent);
+		display: grid;
+		place-items: center;
+		flex-shrink: 0;
+	}
+	.user-meta {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 1px;
+	}
+	.user-name-row {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
+	.user-name {
+		font-size: 0.78rem;
+		font-weight: 700;
+		color: var(--text-primary);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.user-status-pill {
+		font-size: 0.6rem;
+		font-weight: 700;
+		padding: 1px 5px;
+		border-radius: 4px;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+	.user-status-pill.sync {
+		background: color-mix(in srgb, var(--success, #10b981) 18%, transparent);
+		color: var(--success, #10b981);
+	}
+	.user-status-pill.guest {
+		background: color-mix(in srgb, var(--warning, #f59e0b) 18%, transparent);
+		color: var(--warning, #f59e0b);
+	}
+	.user-subtext {
+		font-size: 0.68rem;
+		color: var(--text-secondary);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.history-search-row {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 6px 14px 8px;
+		padding: 6px 10px;
+		background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+		border: 1px solid var(--border-subtle);
+		border-radius: 8px;
+		color: var(--text-secondary);
+	}
+	.history-search-row input {
+		flex: 1;
+		background: transparent;
+		border: none;
+		outline: none;
+		font-size: 0.75rem;
+		color: var(--text-primary);
+	}
+	.history-search-row input::placeholder {
+		color: var(--text-secondary);
+		opacity: 0.7;
+	}
+	.search-clear-btn {
+		background: transparent;
+		border: none;
+		color: var(--text-secondary);
+		cursor: pointer;
+		padding: 2px;
+		display: grid;
+		place-items: center;
+		border-radius: 4px;
+	}
+	.search-clear-btn:hover {
+		color: var(--text-primary);
+	}
+	.history-list {
+		flex: 1;
+		min-height: 0;
+		overflow-y: auto;
+		padding: 4px 14px 10px;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.history-item-card {
+		display: flex;
+		align-items: flex-start;
+		justify-content: space-between;
+		gap: 8px;
+		padding: 9px 11px;
+		border-radius: 10px;
+		background: color-mix(in srgb, var(--text-primary) 3%, transparent);
+		border: 1px solid var(--border-subtle);
+		cursor: pointer;
+		transition: all 0.15s ease;
+	}
+	.history-item-card:hover {
+		background: color-mix(in srgb, var(--accent) 8%, transparent);
+		border-color: color-mix(in srgb, var(--accent) 35%, var(--border-subtle));
+		transform: translateY(-1px);
+	}
+	.history-item-card.active {
+		background: color-mix(in srgb, var(--accent) 12%, transparent);
+		border-color: var(--accent);
+		box-shadow: 0 0 0 1px var(--accent);
+	}
+	.item-main {
+		flex: 1;
+		min-width: 0;
+	}
+	.item-title-row {
+		display: flex;
+		align-items: baseline;
+		justify-content: space-between;
+		gap: 6px;
+	}
+	.item-title {
+		font-size: 0.78rem;
+		font-weight: 700;
+		color: var(--text-primary);
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+		max-width: 200px;
+	}
+	.item-time {
+		font-size: 0.64rem;
+		color: var(--text-secondary);
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
+	.item-snippet {
+		margin: 3px 0 0;
+		font-size: 0.7rem;
+		color: var(--text-secondary);
+		line-height: 1.35;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.item-doc-tag {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		margin-top: 4px;
+		font-size: 0.64rem;
+		color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 12%, transparent);
+		padding: 1px 6px;
+		border-radius: 4px;
+		max-width: 100%;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.item-actions {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		flex-shrink: 0;
+		padding-top: 2px;
+	}
+	.active-dot-pill {
+		font-size: 0.6rem;
+		font-weight: 800;
+		color: var(--accent);
+		background: color-mix(in srgb, var(--accent) 16%, transparent);
+		padding: 1px 5px;
+		border-radius: 4px;
+	}
+	.item-delete-btn {
+		background: transparent;
+		border: none;
+		color: var(--text-secondary);
+		cursor: pointer;
+		padding: 4px;
+		border-radius: 4px;
+		display: grid;
+		place-items: center;
+		opacity: 0.5;
+		transition: all 0.15s;
+	}
+	.history-item-card:hover .item-delete-btn {
+		opacity: 0.9;
+	}
+	.item-delete-btn:hover {
+		opacity: 1 !important;
+		color: var(--danger, #ef4444);
+		background: color-mix(in srgb, var(--danger, #ef4444) 15%, transparent);
+	}
+	.history-empty {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		text-align: center;
+		padding: 30px 20px;
+	}
+	.empty-icon-wrap {
+		width: 44px;
+		height: 44px;
+		border-radius: 50%;
+		background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+		color: var(--text-secondary);
+		display: grid;
+		place-items: center;
+		margin-bottom: 10px;
+	}
+	.history-empty h4 {
+		margin: 0 0 4px;
+		font-size: 0.85rem;
+		font-weight: 700;
+		color: var(--text-primary);
+	}
+	.history-empty p {
+		margin: 0 0 14px;
+		font-size: 0.72rem;
+		color: var(--text-secondary);
+		line-height: 1.45;
+		max-width: 250px;
+	}
+	.empty-start-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		background: var(--accent);
+		color: var(--accent-contrast, #fff);
+		border: none;
+		padding: 6px 12px;
+		border-radius: 7px;
+		font-size: 0.72rem;
+		font-weight: 700;
+		cursor: pointer;
+		transition: transform 0.15s ease, opacity 0.15s ease;
+	}
+	.empty-start-btn:hover {
+		opacity: 0.92;
+		transform: translateY(-1px);
+	}
+	.history-footer {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		padding: 8px 14px;
+		border-top: 1px solid var(--border-subtle);
+		background: color-mix(in srgb, var(--text-primary) 3%, transparent);
+	}
+	.footer-count {
+		font-size: 0.68rem;
+		color: var(--text-secondary);
+	}
+	.footer-clear-btn {
+		display: inline-flex;
+		align-items: center;
+		gap: 4px;
+		background: transparent;
+		border: none;
+		color: var(--text-secondary);
+		font-size: 0.68rem;
+		cursor: pointer;
+		padding: 3px 6px;
+		border-radius: 4px;
+		transition: all 0.15s;
+	}
+	.footer-clear-btn:hover {
+		color: var(--danger, #ef4444);
+		background: color-mix(in srgb, var(--danger, #ef4444) 10%, transparent);
+	}
+	.clear-confirm-bar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		width: 100%;
+		font-size: 0.68rem;
+		color: var(--text-primary);
+	}
+	.confirm-actions {
+		display: flex;
+		gap: 6px;
+	}
+	.confirm-yes-btn {
+		background: var(--danger, #ef4444);
+		color: #fff;
+		border: none;
+		font-size: 0.65rem;
+		font-weight: 700;
+		padding: 2px 7px;
+		border-radius: 4px;
+		cursor: pointer;
+	}
+	.confirm-no-btn {
+		background: color-mix(in srgb, var(--text-primary) 10%, transparent);
+		color: var(--text-primary);
+		border: none;
+		font-size: 0.65rem;
+		font-weight: 600;
+		padding: 2px 7px;
+		border-radius: 4px;
+		cursor: pointer;
+	}
 
 	.active-doc-badge {
 		display: flex;
@@ -1166,10 +2024,35 @@ Ensure the cards test high-yield definitions, core derivations, equations, and t
 		mix-blend-mode: screen; 
 	}
 	
-	.orb .r1 { transform: rotate(var(--r1-rot, 0deg)); animation: morph1 5s ease-in-out infinite; border: 2px solid transparent; border-top-color: var(--accent); border-bottom-color: var(--accent); box-shadow: 0 0 8px var(--accent), inset 0 0 8px var(--accent); }
-	.orb .r2 { transform: rotate(var(--r2-rot, 0deg)) scale(0.9); animation: morph2 6s ease-in-out infinite; border: 2px solid transparent; border-left-color: var(--accent); box-shadow: 0 0 6px var(--accent); }
-	.orb .r3 { transform: rotate(var(--r3-rot, 0deg)) scale(1.15); animation: morph1 7s ease-in-out infinite reverse; border: 1px dashed var(--accent); opacity: 0.6; box-shadow: inset 0 0 6px var(--accent); }
-	.orb .r4 { transform: rotate(var(--r4-rot, 0deg)) scale(0.75); border: 1px dotted var(--accent); opacity: 0.6; }
+	.orb .r1 { transform: rotate(var(--r1-rot, 0deg)); animation: morph1 5s ease-in-out infinite, idle-spin-r1 7s linear infinite; border: 2px solid transparent; border-top-color: var(--accent); border-bottom-color: var(--accent); box-shadow: 0 0 8px var(--accent), inset 0 0 8px var(--accent); }
+	.orb .r2 { transform: rotate(var(--r2-rot, 0deg)) scale(0.9); animation: morph2 6s ease-in-out infinite, idle-spin-r2 9s linear infinite; border: 2px solid transparent; border-left-color: var(--accent); box-shadow: 0 0 6px var(--accent); }
+	.orb .r3 { transform: rotate(var(--r3-rot, 0deg)) scale(1.15); animation: morph1 7s ease-in-out infinite reverse, idle-spin-r3 12s linear infinite; border: 1px dashed var(--accent); opacity: 0.6; box-shadow: inset 0 0 6px var(--accent); }
+	.orb .r4 { transform: rotate(var(--r4-rot, 0deg)) scale(0.75); animation: idle-spin-r4 18s linear infinite; border: 1px dotted var(--accent); opacity: 0.6; }
+
+	/* During a burst the JS loop owns rotation via --rN-rot, so drop the idle
+	   keyframe animation (and keep the morph animation untouched). */
+	.orb.spinning .r1 { animation: morph1 5s ease-in-out infinite; }
+	.orb.spinning .r2 { animation: morph2 6s ease-in-out infinite; }
+	.orb.spinning .r3 { animation: morph1 7s ease-in-out infinite reverse; }
+	.orb.spinning .r4 { animation: none; }
+
+	/* Idle ring rotation lives entirely on the compositor thread. */
+	@keyframes idle-spin-r1 {
+		from { transform: rotate(0deg); }
+		to { transform: rotate(360deg); }
+	}
+	@keyframes idle-spin-r2 {
+		from { transform: rotate(0deg) scale(0.9); }
+		to { transform: rotate(-360deg) scale(0.9); }
+	}
+	@keyframes idle-spin-r3 {
+		from { transform: rotate(0deg) scale(1.15); }
+		to { transform: rotate(360deg) scale(1.15); }
+	}
+	@keyframes idle-spin-r4 {
+		from { transform: rotate(0deg) scale(0.75); }
+		to { transform: rotate(-360deg) scale(0.75); }
+	}
 	
 	.orb.idle .core { box-shadow: 0 0 14px var(--accent), inset 0 0 6px var(--accent); }
 	

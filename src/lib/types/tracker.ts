@@ -471,6 +471,7 @@ export interface TrackerState {
 	examNotes?: string;
 	customReminders?: CustomReminder[];
 	lectureNotes?: Record<string, { videoId: string; title: string; subject: SubjectCode; chapter: string; content: string; updatedAt: number }>;
+	aiMentorSessions?: AiMentorSession[];
 }
 
 export interface StateSnapshot {
@@ -539,4 +540,22 @@ export interface StudyDumpState {
 	files: DumpFileMeta[];
 	lastSyncAt?: number;
 	sectionZipSizes?: Partial<Record<DumpSection, number>>;
+}
+
+export interface AiMentorMessage {
+	id: string;
+	role: 'user' | 'ai';
+	text: string;
+	timestamp: number;
+}
+
+export interface AiMentorSession {
+	id: string;
+	userId?: string;
+	title: string;
+	createdAt: number;
+	updatedAt: number;
+	messages: AiMentorMessage[];
+	docName?: string;
+	subject?: string;
 }

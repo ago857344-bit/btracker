@@ -17,6 +17,7 @@
 	let loading = false;
 	let error = '';
 	let chatBox: HTMLElement;
+	let activeMistakeKey = '';
 
 	$: latestModelReply = [...history].reverse().find((m) => m.role === 'model')?.parts?.[0]?.text || '';
 
@@ -52,10 +53,11 @@
 				if (idx !== -1) {
 					t.mistakes[idx].resolved = true;
 					t.mistakes[idx].resolvedAt = Date.now();
+					t.mistakes[idx].updated = Date.now();
 				}
 			}
 			if (!t.gamification) {
-				t.gamification = { xp: 50, level: 1, elo: { P: 1000, C: 1000, M: 1000 } };
+				t.gamification = { xp: 50, level: 1, elo: { P: 300, C: 300, M: 300 } };
 			} else {
 				t.gamification.xp = (t.gamification.xp || 0) + 50;
 			}
@@ -64,13 +66,21 @@
 		close();
 	}
 
-	$: if (mistake && history.length === 0) {
-		initGrill();
+	$: {
+		const nextKey = mistake ? `${mistake.id}_${mistake.date}_${mistake.description}` : '';
+		if (mistake && nextKey !== activeMistakeKey) {
+			activeMistakeKey = nextKey;
+			initGrill();
+		} else if (!mistake && activeMistakeKey) {
+			activeMistakeKey = '';
+		}
 	}
 
 	async function initGrill() {
 		if (!mistake) return;
 		loading = true;
+		error = '';
+		draft = '';
 		history = [];
 		chatHtml = [];
 		
@@ -88,10 +98,11 @@ Keep your responses concise and format math cleanly with KaTeX. DO NOT answer th
 
 		try {
 			const prompt = "I'm ready. Grill me on this mistake.";
-			history = [{ role: 'user', parts: [{ text: prompt }] }];
-			const reply = await askGeminiChat(history, sysPrompt, false, true);
-			history = [...history, { role: 'model', parts: [{ text: reply }] }];
-			chatHtml = [await renderMarkdown(reply)];
+			const initialHistory: ChatMessage[] = [{ role: 'user', parts: [{ text: prompt }] }];
+			const reply = await askGeminiChat(initialHistory, sysPrompt, false, true);
+			const rendered = await renderMarkdown(reply);
+			history = [...initialHistory, { role: 'model', parts: [{ text: reply }] }];
+			chatHtml = ['', rendered];
 		} catch (e: any) {
 			error = e.message;
 		} finally {
@@ -107,9 +118,10 @@ Keep your responses concise and format math cleanly with KaTeX. DO NOT answer th
 		const msg = draft.trim();
 		draft = '';
 		loading = true;
+		error = '';
 		
 		history = [...history, { role: 'user', parts: [{ text: msg }] }];
-		chatHtml = [...chatHtml, '']; // Placeholder for user message HTML (we just render raw text for user)
+		chatHtml = [...chatHtml, ''];
 		
 		await tick();
 		scrollToBottom();
@@ -119,8 +131,9 @@ Keep your responses concise and format math cleanly with KaTeX. DO NOT answer th
 		
 		try {
 			const reply = await askGeminiChat(history, sysPrompt, false, true);
+			const rendered = await renderMarkdown(reply);
 			history = [...history, { role: 'model', parts: [{ text: reply }] }];
-			chatHtml = [...chatHtml, await renderMarkdown(reply)];
+			chatHtml = [...chatHtml, rendered];
 		} catch (e: any) {
 			error = e.message;
 		} finally {
@@ -135,6 +148,11 @@ Keep your responses concise and format math cleanly with KaTeX. DO NOT answer th
 	}
 
 	function close() {
+		history = [];
+		chatHtml = [];
+		error = '';
+		draft = '';
+		activeMistakeKey = '';
 		dispatch('close');
 	}
 </script>
@@ -171,7 +189,7 @@ Keep your responses concise and format math cleanly with KaTeX. DO NOT answer th
 					<div class="msg {msg.role}">
 						{#if msg.role === 'model'}
 							<span class="avatar"><NavIcon name="sparkles" size={12} /></span>
-							<div class="bubble md">{@html chatHtml[i === 0 ? 0 : i - 1]}</div>
+							<div class="bubble md">{@html chatHtml[i] ?? ''}</div>
 						{:else}
 							<div class="bubble">{msg.parts[0].text}</div>
 						{/if}

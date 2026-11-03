@@ -4,12 +4,13 @@ import { normalizeState } from '$lib/services/hydrate';
 import { supabaseConfigured } from '$lib/services/supabase';
 import { authReady, initAuth, syncStatus, teardownAuth } from '$lib/stores/auth';
 import { replaceTracker, setCloudSink, tracker } from '$lib/stores/tracker';
+import { createInitialTrackerState } from '$lib/state/defaults';
 import { saveTrackerState } from '$lib/services/persistence';
 import { currentWeekStartKey } from '$lib/state/weekly';
 import type {
 	TrackerState, TodoItem, HomeworkItem, ReflectionEntry, TaskRoutine, TrackerGoal,
 	ChapterRecallData, RevisionItem, StudyBlock, FocusSession, Flashcard, DumpFileMeta,
-	StudyDumpState, CustomReminder, MistakeLog, QuestionKey, QuestionReview
+	StudyDumpState, CustomReminder, MistakeLog, QuestionKey, QuestionReview, AiMentorSession
 } from '$lib/types/tracker';
 
 let activeUserId: string | null = null;
@@ -672,13 +673,15 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		mergedWeek = remG?.week || baseG?.week || null;
 	}
 
+	const prefElo = prefSource.gamification?.elo;
+	const fallbackElo = (prefSource === remote ? baseG : remG)?.elo;
 	const mergedGamification = {
 		xp: Math.max(baseG?.xp || 0, remG?.xp || 0),
 		level: Math.max(baseG?.level || 1, remG?.level || 1),
 		elo: {
-			P: Math.max(baseG?.elo?.P || 300, remG?.elo?.P || 300),
-			C: Math.max(baseG?.elo?.C || 300, remG?.elo?.C || 300),
-			M: Math.max(baseG?.elo?.M || 300, remG?.elo?.M || 300)
+			P: prefElo?.P ?? fallbackElo?.P ?? 300,
+			C: prefElo?.C ?? fallbackElo?.C ?? 300,
+			M: prefElo?.M ?? fallbackElo?.M ?? 300
 		},
 		v3_elo: true,
 		prestige: mergedPrestige,
@@ -763,13 +766,22 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		}
 	}
 
-	// 12. Coaching Timetable: Prefer populated timetable
-	const mergedTimetable = (remote.timetable?.periods?.length || 0) > (base.timetable?.periods?.length || 0)
+	// 12. Coaching Timetable: Prefer newer updatedAt timestamp, filter tombstoned periods
+	const baseTtTime = base.timetable?.updatedAt || 0;
+	const remTtTime = remote.timetable?.updatedAt || 0;
+	const candidateTimetable = baseTtTime !== remTtTime
+		? (baseTtTime > remTtTime ? (base.timetable || remote.timetable) : (remote.timetable || base.timetable))
+		: (remote.timetable?.periods?.length || 0) > (base.timetable?.periods?.length || 0)
 		? (remote.timetable || base.timetable)
 		: (base.timetable || remote.timetable);
 
+	const mergedTimetable = candidateTimetable ? {
+		...candidateTimetable,
+		periods: (candidateTimetable.periods || []).filter((p) => !deletedIdSet.has(p.id))
+	} : undefined;
+
 	// 13. Spaced revision & Active Recall (rev):
-	// 13a. Chapters: union by chapterKey, preferring the newer lastRevisionAt or nextRevisionDate
+	// 13a. Chapters: union by chapterKey, deeply merging subtopics, modalities, and slots
 	const mergedChapters: Record<string, ChapterRecallData> = { ...(base.rev?.chapters || {}) };
 	for (const [key, remCh] of Object.entries(remote.rev?.chapters || {})) {
 		const locCh = mergedChapters[key];
@@ -778,23 +790,47 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		} else {
 			const locTime = locCh.decay?.lastRevisionAt || 0;
 			const remTime = remCh.decay?.lastRevisionAt || 0;
-			if (remTime > locTime) {
-				mergedChapters[key] = {
-					...locCh,
-					...remCh,
-					decay: { ...remCh.decay },
-					nextRevisionDate: remCh.nextRevisionDate || locCh.nextRevisionDate,
-					userAdded: Boolean(locCh.userAdded || remCh.userAdded)
-				};
-			} else {
-				mergedChapters[key] = {
-					...remCh,
-					...locCh,
-					decay: { ...locCh.decay },
-					nextRevisionDate: locCh.nextRevisionDate || remCh.nextRevisionDate,
-					userAdded: Boolean(locCh.userAdded || remCh.userAdded)
-				};
+
+			// Deep merge subtopics by id
+			const mergedSubtopics: Record<string, any> = {
+				...(locCh.subtopics || {})
+			};
+			for (const [subId, remSub] of Object.entries(remCh.subtopics || {})) {
+				const locSub = mergedSubtopics[subId];
+				if (!locSub) {
+					mergedSubtopics[subId] = structuredClone(remSub);
+				} else {
+					const locSubTime = locSub.lastRevisedAt || 0;
+					const remSubTime = remSub.lastRevisedAt || 0;
+					mergedSubtopics[subId] = remSubTime > locSubTime
+						? { ...locSub, ...remSub, decay: { ...remSub.decay } }
+						: { ...remSub, ...locSub, decay: { ...locSub.decay } };
+				}
 			}
+
+			// Union modalities and scheduledSlots
+			const mergedModalities = Array.from(new Set([...(locCh.modalities || []), ...(remCh.modalities || [])])) as any[];
+			const slotMap = new Map((locCh.scheduledSlots || []).map((s) => [s.id, s]));
+			for (const s of remCh.scheduledSlots || []) slotMap.set(s.id, s);
+			const mergedSlots = Array.from(slotMap.values());
+
+			const newerDecay = remTime > locTime ? remCh.decay : locCh.decay;
+			const nextRevDate = remTime > locTime
+				? (remCh.nextRevisionDate || locCh.nextRevisionDate)
+				: (locCh.nextRevisionDate || remCh.nextRevisionDate);
+
+			mergedChapters[key] = {
+				chapterKey: key,
+				weightage: (remTime > locTime ? remCh.weightage : locCh.weightage) || locCh.weightage || 2,
+				decay: { ...newerDecay },
+				subtopics: mergedSubtopics,
+				modalities: mergedModalities,
+				scheduledSlots: mergedSlots,
+				nextRevisionDate: nextRevDate,
+				method: remCh.method || locCh.method || 'steady',
+				userAdded: Boolean(locCh.userAdded || remCh.userAdded),
+				crashCourseMd: remCh.crashCourseMd || locCh.crashCourseMd
+			};
 		}
 	}
 
@@ -878,10 +914,11 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		}
 	}
 
-	// 15. Study Dump: union files by id, taking newer lastSyncAt
-	const mergedDumpFiles: DumpFileMeta[] = [...(base.studyDump?.files || [])];
+	// 15. Study Dump: union files by id, taking newer lastSyncAt, filtering tombstones
+	const mergedDumpFiles: DumpFileMeta[] = (base.studyDump?.files || []).filter((f) => !deletedIdSet.has(f.id));
 	const dumpFileIds = new Set(mergedDumpFiles.map((f) => f.id));
 	for (const f of remote.studyDump?.files || []) {
+		if (deletedIdSet.has(f.id)) continue;
 		if (!dumpFileIds.has(f.id)) {
 			mergedDumpFiles.push(f);
 			dumpFileIds.add(f.id);
@@ -942,10 +979,30 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 		flashcards: mergedFlashcards,
 		mocks: mergedMocks,
 		gamification: mergedGamification,
-		streakFreezes: {
-			available: Math.max(base.streakFreezes?.available ?? 2, remote.streakFreezes?.available ?? 2),
-			usedDates: Array.from(new Set([...(base.streakFreezes?.usedDates ?? []), ...(remote.streakFreezes?.usedDates ?? [])]))
-		},
+		streakFreezes: (() => {
+			const baseAvail = base.streakFreezes?.available ?? 2;
+			const remoteAvail = remote.streakFreezes?.available ?? 2;
+			const baseUsed = base.streakFreezes?.usedDates ?? [];
+			const remoteUsed = remote.streakFreezes?.usedDates ?? [];
+
+			const mergedUsedDates = Array.from(new Set([...baseUsed, ...remoteUsed])).sort();
+			// Total earned freezes across devices = available + used
+			const baseTotal = baseAvail + baseUsed.length;
+			const remoteTotal = remoteAvail + remoteUsed.length;
+			const totalEarned = Math.max(baseTotal, remoteTotal, 2);
+			const available = Math.max(0, Math.min(4, totalEarned - mergedUsedDates.length));
+
+			const lastClaim = Math.max(
+				base.streakFreezes?.lastFreezeClaimStreak ?? 0,
+				remote.streakFreezes?.lastFreezeClaimStreak ?? 0
+			);
+
+			return {
+				available,
+				usedDates: mergedUsedDates,
+				...(lastClaim > 0 ? { lastFreezeClaimStreak: lastClaim } : {})
+			};
+		})(),
 		starredFormulas: Array.from(new Set([...(base.starredFormulas || []), ...(remote.starredFormulas || [])])),
 		customFormulas: (() => {
 			const map = new Map((base.customFormulas || []).filter((f) => !deletedIdSet.has(f.id)).map((f) => [f.id, f]));
@@ -979,10 +1036,36 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 			}
 			return res;
 		})(),
+		aiMentorSessions: (() => {
+			const locMap = new Map((base.aiMentorSessions || []).filter((s) => !deletedIdSet.has(s.id)).map((s) => [s.id, s]));
+			const remMap = new Map((remote.aiMentorSessions || []).filter((s) => !deletedIdSet.has(s.id)).map((s) => [s.id, s]));
+			const allIds = new Set([...locMap.keys(), ...remMap.keys()]);
+			const res: AiMentorSession[] = [];
+			for (const id of allIds) {
+				if (deletedIdSet.has(id)) continue;
+				const loc = locMap.get(id);
+				const rem = remMap.get(id);
+				if (loc && rem) {
+					const locTime = loc.updatedAt || loc.createdAt || 0;
+					const remTime = rem.updatedAt || rem.createdAt || 0;
+					if (remTime > locTime || (rem.messages?.length || 0) > (loc.messages?.length || 0)) {
+						res.push(rem);
+					} else {
+						res.push(loc);
+					}
+				} else if (loc) {
+					res.push(loc);
+				} else if (rem) {
+					res.push(rem);
+				}
+			}
+			res.sort((a, b) => (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0));
+			return res.slice(0, 50);
+		})(),
 		ui: {
 			...prefSource.ui,
 			wallpaper: (() => {
-				const wp = base.ui?.wallpaper || remote.ui?.wallpaper || null;
+				const wp = prefSource.ui?.wallpaper ?? null;
 				return isBloatedWallpaper(wp) ? null : wp;
 			})(),
 			wallpaperHistory: Array.from(new Set([...(base.ui?.wallpaperHistory || []), ...(remote.ui?.wallpaperHistory || [])])).filter((h) => !isBloatedWallpaper(h))
@@ -994,12 +1077,28 @@ export function mergeTrackerStates(local: TrackerState, cloud: TrackerState): Tr
 }
 
 async function onSignIn(userId: string) {
+	const lastUserId = typeof window !== 'undefined' ? localStorage.getItem('btracker_last_auth_user_id') : null;
+	const isSwitchingUser = Boolean(lastUserId && lastUserId !== userId);
+	if (typeof window !== 'undefined') {
+		try {
+			localStorage.setItem('btracker_last_auth_user_id', userId);
+		} catch {}
+	}
 	activeUserId = userId;
 	syncStatus.set('pulling');
 	try {
 		const cloud = await pullState(userId);
 		const local = get(tracker);
 		
+		if (isSwitchingUser) {
+			// A different user logged in on this client! DO NOT merge previous user's local state into new user's cloud account.
+			const nextState = cloud ? normalizeState(cloud) : createInitialTrackerState();
+			replaceTracker(nextState, true);
+			lastSyncedSavedAt = nextState.savedAt ?? new Date().toISOString();
+			syncStatus.set('synced');
+			return;
+		}
+
 		if (cloud) {
 			const merged = mergeTrackerStates(local, cloud);
 			replaceTracker(merged, true);

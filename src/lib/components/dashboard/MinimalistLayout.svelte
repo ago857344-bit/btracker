@@ -80,28 +80,30 @@
 
 	// 7-Day Velocity Spline Calculation
 	$: days7 = lastNDays(7);
-	$: dailyMinutes = days7.map(d => focusMinutesOn($tracker.log, d));
-	$: maxMins = Math.max(60, ...dailyMinutes);
-	$: peakIndex = dailyMinutes.indexOf(Math.max(...dailyMinutes));
+	$: dailyMinutes = days7.map(d => focusMinutesOn($tracker?.log || [], d));
+	$: peakMins = dailyMinutes.length ? Math.max(0, ...dailyMinutes.map((m) => (Number.isFinite(m) ? Math.max(0, m) : 0))) : 0;
+	$: maxMins = Math.max(60, peakMins);
+	$: peakIndex = peakMins > 0 ? dailyMinutes.indexOf(peakMins) : -1;
 
 	// Generates smooth SVG Cubic Bezier Spline Path across (500x160)
 	function generateSpline(values: number[], max: number): { linePath: string; areaPath: string; peakCoords: { x: number; y: number } } {
+		if (!Array.isArray(values) || values.length < 2) {
+			return { linePath: '', areaPath: '', peakCoords: { x: 0, y: 0 } };
+		}
 		const width = 500;
 		const height = 150;
 		const bottom = 145;
 		const top = 25;
 		const range = bottom - top;
+		const denom = Math.max(1, values.length - 1);
 
 		const points = values.map((val, i) => {
-			const x = (i / (values.length - 1)) * width;
-			const ratio = max > 0 ? val / max : 0;
+			const x = (i / denom) * width;
+			const safeVal = Number.isFinite(val) ? Math.max(0, val) : 0;
+			const ratio = max > 0 ? safeVal / max : 0;
 			const y = bottom - ratio * range;
 			return { x, y };
 		});
-
-		if (points.length < 2) {
-			return { linePath: '', areaPath: '', peakCoords: { x: 0, y: 0 } };
-		}
 
 		let d = `M ${points[0].x.toFixed(1)},${points[0].y.toFixed(1)}`;
 		for (let i = 0; i < points.length - 1; i++) {
@@ -240,7 +242,7 @@
 					<h3 class="card-title">Effort Trend (Last 7 Days)</h3>
 				</div>
 				<div class="chart-badge font-mono rounded-lg">
-					Peak: {formatMinutes(maxMins)}
+					Peak: {formatMinutes(peakMins)}
 				</div>
 			</div>
 
@@ -266,8 +268,10 @@
 							stroke-linecap="round" 
 						/>
 						<!-- Glowing High-Point Marker Node -->
-						<circle cx={spline.peakCoords.x} cy={spline.peakCoords.y} r="5" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="2" />
-						<circle cx={spline.peakCoords.x} cy={spline.peakCoords.y} r="11" fill="var(--accent)" opacity="0.4" class="pulse-marker" />
+						{#if peakMins > 0}
+							<circle cx={spline.peakCoords.x} cy={spline.peakCoords.y} r="5" fill="var(--surface-panel)" stroke="var(--accent)" stroke-width="2" />
+							<circle cx={spline.peakCoords.x} cy={spline.peakCoords.y} r="11" fill="var(--accent)" opacity="0.4" class="pulse-marker" />
+						{/if}
 					{/if}
 				</svg>
 			</div>

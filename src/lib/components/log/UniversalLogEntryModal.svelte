@@ -34,7 +34,7 @@
 	$: sourceMeta = universalSourceOf(source);
 	$: attemptedCount = Math.max(0, Math.round(Number(attempted) || 0));
 	$: solvedCount = Math.min(attemptedCount, Math.max(0, Math.round(Number(solved) || 0)));
-	$: doubtCount = Math.min(solvedCount, Math.max(0, Math.round(Number(doubts) || 0)));
+	$: doubtCount = Math.min(attemptedCount, Math.max(0, Math.round(Number(doubts) || 0)));
 	$: chapterName = chapterPick === CUSTOM ? customChapter.trim() : chapterPick;
 	$: accuracy = attemptedCount > 0 ? Math.round((solvedCount / attemptedCount) * 100) : 0;
 	$: canSave = attemptedCount > 0 && chapterName.length > 0;

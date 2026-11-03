@@ -407,8 +407,9 @@ export function discoverCustomChapters(state: TrackerState, sc: string): number[
  */
 export function allChaptersWithCustom(state: TrackerState, sc: string): SyllabusChapter[] {
 	const builtin = allChapters(sc);
+	if (!state) return builtin;
 	const customNos = discoverCustomChapters(state, sc);
-	const customDefs = state.x?.chs?.[sc] || [];
+	const customDefs = state?.x?.chs?.[sc] || [];
 	const customChapters: SyllabusChapter[] = customNos.map((no) => {
 		const def = customDefs.find((c) => c.no === no);
 		return {
@@ -424,9 +425,9 @@ export function allChaptersWithCustom(state: TrackerState, sc: string): Syllabus
 /** Question count for an exercise, honouring the user's own override. */
 export function questionCount(state: TrackerState, sc: string, chNo: number, exCode: string): number {
 	const key = cellKey(sc, chNo, exCode);
-	const override = state.x?.cnt?.[key];
+	const override = state?.x?.cnt?.[key];
 	if (override !== undefined && override > 0) return override;
-	const dLen = state.d?.[key]?.length;
+	const dLen = state?.d?.[key]?.length;
 	if (dLen !== undefined && dLen > 0) return dLen;
 	const chapter = syllabusChapter(sc, chNo);
 	return chapter?.exs.find((e) => e.code === exCode)?.base ?? 0;
@@ -436,7 +437,7 @@ export function questionCount(state: TrackerState, sc: string, chNo: number, exC
 export function visibleExercises(state: TrackerState, sc: string, chNo: number): SyllabusExercise[] {
 	const chapter = syllabusChapter(sc, chNo);
 	const all: SyllabusExercise[] = chapter ? [...chapter.exs] : [];
-	const custom = state.x?.exs?.[`${sc}${chNo}`] || [];
+	const custom = state?.x?.exs?.[`${sc}${chNo}`] || [];
 	const customCodes = new Set<string>();
 
 	for (const ce of custom) {
@@ -445,7 +446,7 @@ export function visibleExercises(state: TrackerState, sc: string, chNo: number):
 	}
 
 	// Auto-discover custom exercises that have data in state.d even if metadata was omitted/lost
-	if (state.d) {
+	if (state?.d) {
 		const prefix = `${sc}${chNo}`;
 		const builtInCodes = new Set(chapter?.exs.map((e) => e.code) ?? []);
 		for (const key of Object.keys(state.d)) {

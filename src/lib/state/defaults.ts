@@ -231,10 +231,11 @@ export const createInitialTrackerState = (): TrackerState => ({
 	streakFreezes: { available: 2, usedDates: [] },
 	onboarded: false,
 	coaching_type: 'BT',
-	coaching_name: 'Baktiwal Tutorials',
+	coaching_name: 'Bakliwal Tutorials',
 	starredFormulas: [],
 	customFormulas: [],
 	examNotes: '',
 	customReminders: [],
+	aiMentorSessions: [],
 	theme: 'light', pom: { ...DEFAULT_POMODORO }, ui: createUiPreferences(), savedAt: null
 });

@@ -26,7 +26,7 @@ export const accuracyOf = (st: QuestionStats) => (st.correct + st.wrong ? Math.r
 export function exerciseStats(state: TrackerState, sc: string, chNo: number, exCode: string): QuestionStats {
 	const st = blankStats();
 	st.n = questionCount(state, sc, chNo, exCode);
-	const cells = state.d[cellKey(sc, chNo, exCode)];
+	const cells = state?.d?.[cellKey(sc, chNo, exCode)];
 	if (!cells) return st;
 	for (let i = 0; i < st.n; i++) {
 		const v = cells[i] || 0;

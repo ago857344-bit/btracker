@@ -164,7 +164,7 @@
 <svelte:head>
 	{#if showLanding}
 		<title>BTracker · Track every question, from any coaching</title>
-		<meta name="description" content="BTracker is the study command center for JEE aspirants. Log questions from coaching modules, DPPs, books and tests, with native module sync for Baktiwal Tutorials." />
+		<meta name="description" content="BTracker is the study command center for JEE aspirants. Log questions from coaching modules, DPPs, books and tests, with native module sync for Bakliwal Tutorials." />
 	{:else}
 		<title>Home · BTracker</title>
 	{/if}

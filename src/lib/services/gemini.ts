@@ -1,4 +1,4 @@
-export type ChatMessage = { role: 'user' | 'model', parts: [{ text: string }] };
+export type ChatMessage = { role: 'user' | 'model'; parts: { text?: string; inlineData?: { mimeType: string; data: string } }[] };
 
 export async function askGemini(prompt: string, systemInstruction?: string, jsonMode: boolean = false): Promise<string> {
 	return askGeminiChat([{ role: 'user', parts: [{ text: prompt }] }], systemInstruction, jsonMode);
@@ -8,7 +8,7 @@ export async function askGeminiChat(
 	history: ChatMessage[],
 	systemInstruction?: string,
 	jsonMode: boolean = false,
-	skipDelay: boolean = false
+	_skipDelay: boolean = false
 ): Promise<string> {
 	const res = await fetch('/api/gemini', {
 		method: 'POST',
@@ -16,13 +16,13 @@ export async function askGeminiChat(
 		body: JSON.stringify({ history, systemInstruction, jsonMode })
 	});
 
-	const data = await res.json();
+	const data = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
 
 	if (!res.ok) {
-		return data.error || "Failed to communicate with AI server.";
+		throw new Error(data.error || `Failed to communicate with AI server (HTTP ${res.status}).`);
 	}
 
-	return data.text;
+	return data.text ?? '';
 }
 
 export async function streamGeminiChat(
@@ -49,14 +49,18 @@ export async function streamGeminiChat(
 	const decoder = new TextDecoder();
 	let accumulated = '';
 
-	while (true) {
-		const { done, value } = await reader.read();
-		if (done) break;
-		const chunk = decoder.decode(value, { stream: true });
-		if (chunk) {
-			accumulated += chunk;
-			onChunk(chunk);
+	try {
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			const chunk = decoder.decode(value, { stream: true });
+			if (chunk) {
+				accumulated += chunk;
+				onChunk(chunk);
+			}
 		}
+	} finally {
+		reader.releaseLock();
 	}
 
 	return accumulated;

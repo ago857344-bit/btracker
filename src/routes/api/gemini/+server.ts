@@ -1,5 +1,6 @@
 import { json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import type { RequestHandler } from './$types';
 
 export const config = { maxDuration: 60 };
 
@@ -8,9 +9,17 @@ const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT_MAX = 30; // 30 requests per minute
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const MAX_PAYLOAD_BYTES = 5 * 1024 * 1024; // 5MB
+let lastRateLimitSweep = Date.now();
 
 function checkRateLimit(ip: string): boolean {
 	const now = Date.now();
+	// Lazy sweep every 5 minutes — avoids leaking setInterval timers across HMR reloads
+	if (now - lastRateLimitSweep > 300_000) {
+		lastRateLimitSweep = now;
+		for (const [k, v] of rateLimitMap.entries()) {
+			if (now > v.resetAt) rateLimitMap.delete(k);
+		}
+	}
 	const entry = rateLimitMap.get(ip);
 	if (!entry || now > entry.resetAt) {
 		rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
@@ -22,14 +31,6 @@ function checkRateLimit(ip: string): boolean {
 	entry.count++;
 	return true;
 }
-
-// Clean up stale IPs periodically
-setInterval(() => {
-	const now = Date.now();
-	for (const [ip, entry] of rateLimitMap.entries()) {
-		if (now > entry.resetAt) rateLimitMap.delete(ip);
-	}
-}, 300_000);
 
 // ── Groq Model Cache (10-minute TTL, 3s timeout) ──────────────────────────────
 let cachedGroqModels: { ids: string[]; expiresAt: number } | null = null;
@@ -73,25 +74,29 @@ function toOpenAIMessages(history: any[], systemInstruction?: string, jsonMode?:
 	if (systemInstruction) {
 		messages.push({ role: 'system', content: systemInstruction });
 	}
-	for (const turn of history || []) {
-		const role = turn.role === 'model' ? 'assistant' : 'user';
-		const hasImages = (turn.parts || []).some((p: any) => p.inlineData);
+	const safeHistory = Array.isArray(history) ? history : [];
+	for (const turn of safeHistory) {
+		if (!turn) continue;
+		const role = turn.role === 'model' || turn.role === 'assistant' ? 'assistant' : 'user';
+		const hasImages = Array.isArray(turn.parts) && turn.parts.some((p: any) => p?.inlineData);
 		if (hasImages) {
 			const content: any[] = [];
 			for (const part of turn.parts || []) {
-				if (part.inlineData) {
+				if (part?.inlineData) {
 					content.push({
 						type: 'image_url',
 						image_url: { url: `data:${part.inlineData.mimeType};base64,${part.inlineData.data}` }
 					});
-				} else if (part.text) {
+				} else if (part?.text) {
 					content.push({ type: 'text', text: part.text });
 				}
 			}
 			messages.push({ role, content });
 		} else {
-			const text = (turn.parts || []).map((p: any) => p.text || '').join('');
-			messages.push({ role, content: text });
+			const text = (turn.parts || []).map((p: any) => p?.text || '').join('');
+			if (text.trim()) {
+				messages.push({ role, content: text });
+			}
 		}
 	}
 	// Groq strictly requires the word "json" in prompt/system message when jsonMode is true
@@ -111,9 +116,10 @@ function toOpenAIMessages(history: any[], systemInstruction?: string, jsonMode?:
 }
 
 function streamOpenAICompatible(response: Response): Response {
+	let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
 	const textStream = new ReadableStream({
 		async start(controller) {
-			const reader = response.body?.getReader();
+			reader = response.body?.getReader();
 			if (!reader) {
 				controller.close();
 				return;
@@ -141,11 +147,17 @@ function streamOpenAICompatible(response: Response): Response {
 						} catch {}
 					}
 				}
+				controller.close();
 			} catch (err) {
 				controller.error(err);
 			} finally {
-				controller.close();
+				try { reader?.releaseLock(); } catch {}
 			}
+		},
+		async cancel(reason) {
+			try {
+				await reader?.cancel(reason);
+			} catch {}
 		}
 	});
 
@@ -159,9 +171,10 @@ function streamOpenAICompatible(response: Response): Response {
 }
 
 function streamGeminiCompatible(response: Response): Response {
+	let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
 	const textStream = new ReadableStream({
 		async start(controller) {
-			const reader = response.body?.getReader();
+			reader = response.body?.getReader();
 			if (!reader) {
 				controller.close();
 				return;
@@ -188,11 +201,17 @@ function streamGeminiCompatible(response: Response): Response {
 						} catch {}
 					}
 				}
+				controller.close();
 			} catch (err) {
 				controller.error(err);
 			} finally {
-				controller.close();
+				try { reader?.releaseLock(); } catch {}
 			}
+		},
+		async cancel(reason) {
+			try {
+				await reader?.cancel(reason);
+			} catch {}
 		}
 	});
 
@@ -204,8 +223,6 @@ function streamGeminiCompatible(response: Response): Response {
 		}
 	});
 }
-
-import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	try {
@@ -227,7 +244,15 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			return json({ error: 'Payload too large (max 5MB limit exceeded).' }, { status: 413 });
 		}
 
-		const { history, systemInstruction, jsonMode, stream } = await request.json();
+		let body: any;
+		try {
+			body = await request.json();
+		} catch {
+			return json({ error: 'Malformed JSON payload.' }, { status: 400 });
+		}
+
+		const { history, systemInstruction, jsonMode, stream } = body || {};
+		const safeHistory = Array.isArray(history) ? history : [];
 
 		const groqKey = env.GROQ_API_KEY;
 		const geminiKey = env.GEMINI_API_KEY;
@@ -238,8 +263,8 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 			return json({ error: 'GROQ_API_KEY is not configured on the server. Please set GROQ_API_KEY in your environment variables.' }, { status: 500 });
 		}
 
-		const hasVision = history?.some((turn: any) =>
-			turn.parts?.some((part: any) => part.inlineData)
+		const hasVision = safeHistory.some((turn: any) =>
+			turn?.parts?.some((part: any) => part?.inlineData)
 		);
 
 		const isStreaming = Boolean(stream && !jsonMode);
@@ -269,7 +294,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 				}
 			}
 
-			const messages = toOpenAIMessages(history, systemInstruction, jsonMode);
+			const messages = toOpenAIMessages(safeHistory, systemInstruction, jsonMode);
 
 			for (const model of groqCandidateModels.slice(0, 3)) {
 				try {
@@ -305,9 +330,6 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 					const errData = await groqRes.json().catch(() => ({}));
 					groqErr = errData?.error?.message ?? `Groq returned status ${groqRes.status}`;
-					if (groqRes.status !== 429 && groqRes.status !== 503) {
-						// Don't break immediately, allow fallback model attempt
-					}
 				} catch (e: any) {
 					groqErr = e?.message ?? 'Groq request failed.';
 				}
@@ -322,9 +344,16 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		// ── 2. Fallback: OpenAI ───────────────────────────────────────────────
 		if (openaiKey) {
 			try {
-				const openaiMessages = toOpenAIMessages(history, systemInstruction, jsonMode);
+				const openaiMessages = toOpenAIMessages(safeHistory, systemInstruction, jsonMode);
 				const controller = new AbortController();
 				const timeout = setTimeout(() => controller.abort(), 35_000);
+				const openaiBody: any = {
+					model: hasVision ? 'gpt-4o' : 'gpt-4o-mini',
+					messages: openaiMessages,
+					max_tokens: 4096,
+					stream: isStreaming
+				};
+				if (jsonMode) openaiBody.response_format = { type: 'json_object' };
 
 				const res = await fetch('https://api.openai.com/v1/chat/completions', {
 					method: 'POST',
@@ -332,12 +361,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 						'Content-Type': 'application/json',
 						Authorization: `Bearer ${openaiKey}`
 					},
-					body: JSON.stringify({
-						model: hasVision ? 'gpt-4o' : 'gpt-4o-mini',
-						messages: openaiMessages,
-						max_tokens: 4096,
-						stream: isStreaming
-					}),
+					body: JSON.stringify(openaiBody),
 					signal: controller.signal
 				});
 				clearTimeout(timeout);
@@ -358,9 +382,18 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 		// ── 3. Fallback: OpenRouter ───────────────────────────────────────────
 		if (openrouterKey) {
 			try {
-				const openrouterMessages = toOpenAIMessages(history, systemInstruction, jsonMode);
+				const openrouterMessages = toOpenAIMessages(safeHistory, systemInstruction, jsonMode);
 				const controller = new AbortController();
 				const timeout = setTimeout(() => controller.abort(), 45_000);
+				const primaryModel = hasVision ? 'meta-llama/llama-3.2-11b-vision-instruct:free' : 'meta-llama/llama-3.3-70b-instruct:free';
+				const openrouterBody: any = {
+					model: primaryModel,
+					models: [primaryModel],
+					messages: openrouterMessages,
+					max_tokens: 4096,
+					stream: isStreaming
+				};
+				if (jsonMode) openrouterBody.response_format = { type: 'json_object' };
 
 				const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
 					method: 'POST',
@@ -370,12 +403,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 						'HTTP-Referer': 'https://btracker.app',
 						'X-Title': 'BTracker'
 					},
-					body: JSON.stringify({
-						models: hasVision ? ['meta-llama/llama-3.2-11b-vision-instruct:free'] : ['meta-llama/llama-3.3-70b-instruct:free'],
-						messages: openrouterMessages,
-						max_tokens: 4096,
-						stream: isStreaming
-					}),
+					body: JSON.stringify(openrouterBody),
 					signal: controller.signal
 				});
 				clearTimeout(timeout);
@@ -386,7 +414,7 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 					}
 					const data = await res.json();
 					const text = data.choices?.[0]?.message?.content ?? '';
-					if (text && text.trim().length >= 10) {
+					if (text && text.trim().length >= 2) {
 						return json({ text });
 					}
 				}
@@ -397,7 +425,13 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 
 		// ── 4. Fallback: Gemini ────────────────────────────────────────────────
 		if (geminiKey) {
-			const geminiBody: any = { contents: history };
+			const normalizedContents = safeHistory
+				.map((turn: any) => ({
+					role: turn?.role === 'model' || turn?.role === 'assistant' ? 'model' : 'user',
+					parts: Array.isArray(turn?.parts) ? turn.parts : []
+				}))
+				.filter((turn: any) => turn.parts.length > 0);
+			const geminiBody: any = { contents: normalizedContents };
 			if (systemInstruction) geminiBody.systemInstruction = { parts: [{ text: systemInstruction }] };
 			if (jsonMode) geminiBody.generationConfig = { responseMimeType: 'application/json' };
 
@@ -414,8 +448,8 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 					const controller = new AbortController();
 					const timeout = setTimeout(() => controller.abort(), 35_000);
 					const endpoint = isStreaming
-						? `https://generativelanguage.googleapis.com/v1/models/${model}:streamGenerateContent?alt=sse&key=${geminiKey}`
-						: `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${geminiKey}`;
+						? `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${geminiKey}`
+						: `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiKey}`;
 
 					geminiRes = await fetch(endpoint, {
 						method: 'POST',
@@ -447,4 +481,4 @@ export const POST: RequestHandler = async ({ request, getClientAddress }) => {
 	} catch (e: any) {
 		return json({ error: e.message ?? 'Unknown error occurred.' }, { status: 500 });
 	}
-}
+};

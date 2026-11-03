@@ -9,6 +9,7 @@
 		solved: number;
 		level: number;
 		isToday: boolean;
+		isFuture: boolean;
 		isFrozen: boolean;
 		monthLabel?: string;
 	}
@@ -21,71 +22,71 @@
 		Object.values(bucket ?? {}).reduce<number>((total, value) => total + (Number(value) || 0), 0);
 
 	$: today = todayKey();
-	$: usedFreezes = $tracker.streakFreezes?.usedDates || [];
+	$: usedFreezes = $tracker?.streakFreezes?.usedDates || [];
 
-	// Generate 52 weeks (7 rows x 52 cols = 364 days + remainder)
+	// 52 Monday-aligned calendar weeks ending with the current week
 	$: matrixData = (() => {
 		const cols: DayCell[][] = [];
 		const now = new Date();
-		// Find end of current week (Sunday) or today
-		const daysToGenerate = 52 * 7;
-		const startDate = new Date();
-		startDate.setDate(now.getDate() - daysToGenerate + 1);
+		now.setHours(12, 0, 0, 0);
+
+		// Monday on or before today, then the Sunday that closes this week
+		const monday = new Date(now);
+		monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+		const end = new Date(monday);
+		end.setDate(monday.getDate() + 6);
+		const start = new Date(end);
+		start.setDate(end.getDate() - (52 * 7 - 1));
 
 		let activeDaysCount = 0;
 		let totalMinutesCount = 0;
 		let totalQuestionsCount = 0;
-
-		let currentWeek: DayCell[] = [];
 		let lastMonth = -1;
 
-		for (let i = 0; i < daysToGenerate; i++) {
-			const d = new Date(startDate);
-			d.setDate(startDate.getDate() + i);
-			const key = dayKeyOf(d);
-			const mins = focusMinutesOn($tracker.log, key);
-			const solved = sumSolved($tracker.stat[key]);
-			const isToday = key === today;
-			const isFrozen = usedFreezes.includes(key);
+		for (let w = 0; w < 52; w++) {
+			const week: DayCell[] = [];
+			for (let dIdx = 0; dIdx < 7; dIdx++) {
+				const d = new Date(start);
+				d.setDate(start.getDate() + w * 7 + dIdx);
+				const key = dayKeyOf(d);
+				const isFuture = d.getTime() > now.getTime();
+				const mins = isFuture ? 0 : focusMinutesOn($tracker?.log || [], key);
+				const solved = isFuture ? 0 : sumSolved($tracker?.stat?.[key]);
+				const isToday = key === today;
+				const isFrozen = !isFuture && usedFreezes.includes(key);
 
-			if (mins > 0 || solved > 0) activeDaysCount++;
-			totalMinutesCount += mins;
-			totalQuestionsCount += solved;
+				if (!isFuture) {
+					if (mins > 0 || solved > 0) activeDaysCount++;
+					totalMinutesCount += mins;
+					totalQuestionsCount += solved;
+				}
 
-			let level = 0;
-			if (isFrozen) level = -1; // special frozen state
-			else if (mins >= 180 || solved >= 50) level = 4;
-			else if (mins >= 90 || solved >= 25) level = 3;
-			else if (mins >= 40 || solved >= 10) level = 2;
-			else if (mins > 0 || solved > 0) level = 1;
+				let level = 0;
+				if (isFrozen) level = -1; // special frozen state
+				else if (mins >= 180 || solved >= 50) level = 4;
+				else if (mins >= 90 || solved >= 25) level = 3;
+				else if (mins >= 40 || solved >= 10) level = 2;
+				else if (mins > 0 || solved > 0) level = 1;
 
-			let monthLabel: string | undefined = undefined;
-			if (d.getMonth() !== lastMonth && d.getDate() <= 7) {
-				monthLabel = d.toLocaleString('en-US', { month: 'short' });
-				lastMonth = d.getMonth();
+				week.push({
+					key,
+					date: d,
+					minutes: mins,
+					solved,
+					level,
+					isToday,
+					isFuture,
+					isFrozen
+				});
 			}
 
-			const cell: DayCell = {
-				key,
-				date: d,
-				minutes: mins,
-				solved,
-				level,
-				isToday,
-				isFrozen,
-				monthLabel
-			};
-
-			currentWeek.push(cell);
-
-			if (currentWeek.length === 7) {
-				cols.push(currentWeek);
-				currentWeek = [];
+			const weekMonth = week[0].date.getMonth();
+			if (weekMonth !== lastMonth) {
+				week[0].monthLabel = week[0].date.toLocaleString('en-US', { month: 'short' });
+				lastMonth = weekMonth;
 			}
-		}
 
-		if (currentWeek.length > 0) {
-			cols.push(currentWeek);
+			cols.push(week);
 		}
 
 		return {
@@ -145,8 +146,11 @@
 			<div class="days-area">
 				<div class="weekday-labels">
 					<span>Mon</span>
+					<span></span>
 					<span>Wed</span>
+					<span></span>
 					<span>Fri</span>
+					<span></span>
 					<span>Sun</span>
 				</div>
 
@@ -158,10 +162,11 @@
 									class="day-square lvl-{day.level}"
 									class:today={day.isToday}
 									class:frozen={day.isFrozen}
-									on:mouseenter={(e) => handleMouseEnter(day, e)}
+									class:future={day.isFuture}
+									on:mouseenter={(e) => { if (!day.isFuture) handleMouseEnter(day, e); }}
 									on:mouseleave={handleMouseLeave}
-									role="tooltip"
-									aria-label="{day.key}"
+									role="img"
+									aria-label={day.key}
 								>
 									{#if day.isFrozen}
 										<i class="freeze-dot"></i>
@@ -352,12 +357,12 @@
 
 	.weekday-labels {
 		width: 26px;
-		display: flex;
-		flex-direction: column;
-		justify-content: space-between;
-		padding: 2px 0 4px;
+		display: grid;
+		grid-template-rows: repeat(7, 12px);
+		row-gap: 3px;
 		font-size: 0.62rem;
 		font-weight: 650;
+		line-height: 12px;
 		color: var(--text-secondary);
 		flex-shrink: 0;
 	}
@@ -388,6 +393,16 @@
 		transform: scale(1.3);
 		z-index: 5;
 		border-color: var(--text-primary);
+	}
+
+	.day-square.future {
+		opacity: 0.35;
+		cursor: default;
+	}
+
+	.day-square.future:hover {
+		transform: none;
+		border-color: color-mix(in srgb, var(--border-subtle) 60%, transparent);
 	}
 
 	.day-square.today {

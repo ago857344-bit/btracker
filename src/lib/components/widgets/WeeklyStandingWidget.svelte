@@ -19,7 +19,7 @@
 	<div class="summary">
 		<p class="big">{$weeklyStanding.weekToDate}<small>/ {$weeklyStanding.goal} this week</small></p>
 		<div class="progress"><i style="width:{$weeklyStanding.pct * 100}%"></i></div>
-		<p class="note">{$weeklyStanding.totalSolved} solved in the last 7 days · {$weeklyStanding.peak} best day</p>
+		<p class="note">{$weeklyStanding.totalSolved} solved in the last 7 days · best day {Math.max(0, ...($weeklyStanding.solved || []))}</p>
 	</div>
 </div>
 

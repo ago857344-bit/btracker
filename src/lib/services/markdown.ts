@@ -24,26 +24,50 @@ export function preprocessMath(text: string): string {
     // Replace single-escaped inline math: \( ... \) -> $ ... $
     processed = processed.replace(/\\\(([\s\S]*?)\\\)/g, '$$$1$$');
 
-    // Fix escaped underscores inside math tags: $\int\_0^\pi$ -> $\int_0^\pi$
-    processed = processed.replace(/\$([^$]+)\$/g, (_, math) => `$${math.replace(/\\_/g, '_')}$`);
+    // Fix escaped underscores inside inline math tags non-greedily: $\int\_0^\pi$ -> $\int_0^\pi$
+    processed = processed.replace(/\$([^$\n]+?)\$/g, (_, math) => `$${math.replace(/\\_/g, '_')}$`);
 
     return processed;
+}
+
+const DANGEROUS_TAGS = 'script|iframe|object|embed|form|meta|link|style|base|applet|svg';
+
+function decodeHtmlEntities(str: string): string {
+    return str
+        .replace(/&colon;/gi, ':')
+        .replace(/&#(?:x([0-9a-f]+)|([0-9]+));?/gi, (_, hex, dec) => {
+            return String.fromCharCode(hex ? parseInt(hex, 16) : parseInt(dec, 10));
+        });
+}
+
+function isDangerousUri(val: string): boolean {
+    const normalized = decodeHtmlEntities(val).replace(/[\u0000-\u001f\s\\]/g, '').toLowerCase();
+    return /^(?:javascript:|vbscript:|data:(?!image\/))/i.test(normalized);
 }
 
 export function sanitizeHtml(html: string): string {
     if (!html) return '';
     let clean = html;
 
-    // 1. Remove dangerous tag blocks and elements
-    clean = clean.replace(/<\s*(?:script|iframe|object|embed|form|meta|link)\b[\s\S]*?(?:<\/\s*(?:script|iframe|object|embed|form|meta|link)\s*>|\/?>)/gi, '');
-    clean = clean.replace(/<\/\s*(?:script|iframe|object|embed|form|meta|link)\s*>/gi, '');
+    // 1. Remove dangerous tag blocks and self-closing elements (including svg, style, base, applet)
+    const blockRegex = new RegExp(`<\\s*(?:${DANGEROUS_TAGS})\\b[\\s\\S]*?(?:<\\/\\s*(?:${DANGEROUS_TAGS})\\s*>|\\/>)`, 'gi');
+    const openOrCloseRegex = new RegExp(`<\\/?\\s*(?:${DANGEROUS_TAGS})\\b[^>]*>`, 'gi');
+    clean = clean.replace(blockRegex, '');
+    clean = clean.replace(openOrCloseRegex, '');
 
-    // 2. Remove inline event handler attributes (e.g., onclick="...", onerror=...)
-    clean = clean.replace(/\son[a-z]+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+    // 2. Remove inline event handler attributes (e.g., onclick="...", onerror=...) and srcdoc/formaction
+    // Supports both whitespace and slash delimiters (e.g. <img/onerror=alert(1)>)
+    clean = clean.replace(/[\s/]+(?:on[a-z0-9_-]+|srcdoc|formaction)\s*=\s*(?:"[^"]*"|'[^']*'|[^>\s]+)/gi, ' ');
 
-    // 3. Neutralize javascript: pseudo-protocol in href and src
-    clean = clean.replace(/\s(href|src)\s*=\s*(["'])\s*javascript:[^"']*\2/gi, ' $1="#"');
-    clean = clean.replace(/\s(href|src)\s*=\s*javascript:[^\s>]+/gi, ' $1="#"');
+    // 3. Neutralize dangerous protocols (javascript:, vbscript:, non-image data:) in href, src, xlink:href, action
+    // Accounts for entity encoding, control character injection, and whitespace bypasses
+    clean = clean.replace(/([\s/]+(?:href|src|xlink:href|action)\s*=\s*)(?:"([^"]*)"|'([^']*)'|([^>\s]+))/gi, (match, prefix, q1, q2, bare) => {
+        const rawVal = q1 ?? q2 ?? bare ?? '';
+        if (isDangerousUri(rawVal)) {
+            return `${prefix}"#"`;
+        }
+        return match;
+    });
 
     return clean;
 }

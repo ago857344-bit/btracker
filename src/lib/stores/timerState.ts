@@ -5,7 +5,7 @@ import { playChime } from '$lib/services/chime';
 import { notifyUser } from '$lib/utils/notifications';
 import { formatClock } from '$lib/state/dates';
 import { DEFAULT_POMODORO } from '$lib/state/defaults';
-import { boostChapterFromPractice } from '$lib/stores/recall-actions';
+import { applySessionBoost, setRolloverBlockProbe } from '$lib/stores/timer-bridge';
 
 export type TimerTab = 'focus' | 'stopwatch' | 'short' | 'long';
 export type TimerPhase = 'focus' | 'break';
@@ -97,10 +97,27 @@ function loadSavedSession(): ActiveTimerSession {
 			if (diffSeconds > 0) {
 				s.remaining = diffSeconds;
 			} else {
-				// Expired while tab was closed: complete cleanly
-				s.remaining = 0;
+				// Expired while tab was closed: complete cleanly and log focus session if in focus phase
+				const expiredAt = s.countdownEndsAt;
 				s.running = false;
 				s.countdownEndsAt = null;
+				if (s.tab === 'focus' && s.phase === 'focus') {
+					const completedLen = s.focusLen;
+					const activity = s.focusKind === 'questions' ? 'Focus · Questions' : s.focusKind === 'revision' ? 'Focus · Revision' : 'Focus · Theory';
+					const startedEpochMin = s.sessionStartedEpochMin || Math.floor(expiredAt / 60000) - completedLen;
+					const snap = { ...s, sessionStartedEpochMin: startedEpochMin };
+					s.phase = 'break';
+					s.remaining = s.shortLen * 60;
+					queueMicrotask(() => {
+						logSession(completedLen, activity, snap);
+						saveSession(get(timerSession));
+					});
+				} else if (s.tab === 'focus' && s.phase === 'break') {
+					s.phase = 'focus';
+					s.remaining = s.focusLen * 60;
+				} else {
+					s.remaining = s.activeLen * 60;
+				}
 			}
 		}
 
@@ -112,6 +129,13 @@ function loadSavedSession(): ActiveTimerSession {
 }
 
 export const timerSession = writable<ActiveTimerSession>(loadSavedSession());
+
+// Lets the tracker defer midnight rollover without importing this module.
+setRolloverBlockProbe(() => {
+	const session = get(timerSession);
+	if (session.running || session.elapsed > 0) return true;
+	return session.tab !== 'stopwatch' && session.remaining < session.activeLen * 60;
+});
 
 function saveSession(s: ActiveTimerSession) {
 	if (!browser) return;
@@ -169,7 +193,7 @@ function logSession(minutes: number, activity: string, s: ActiveTimerSession) {
 		chapter: s.focusChapter || undefined
 	});
 	if (s.subject && s.focusChapter && minutes >= 5) {
-		boostChapterFromPractice(`${s.subject}-${s.focusChapter}`, minutes);
+		applySessionBoost(s.subject, s.focusChapter, minutes);
 	}
 	celebration.set(`${minutes} min focus logged!`);
 }
@@ -248,6 +272,10 @@ function tick() {
 			s.remaining = Math.max(0, Math.round((s.countdownEndsAt - nowMs) / 1000));
 			computeDerived(s);
 			if (s.remaining === 0) {
+				s.running = false;
+				s.countdownEndsAt = null;
+				stopTicking();
+				saveSession(s);
 				setTimeout(onCountdownComplete, 10);
 			} else {
 				saveSession(s);
@@ -286,7 +314,7 @@ export function primaryTimerAction() {
 				stopTicking();
 				s.countdownEndsAt = null;
 			} else {
-				s.sessionStartedEpochMin = Math.floor(Date.now() / 60000);
+				s.sessionStartedEpochMin = s.sessionStartedEpochMin || Math.floor(Date.now() / 60000);
 				if (s.remaining <= 0) s.remaining = s.activeLen * 60;
 				s.countdownEndsAt = Date.now() + s.remaining * 1000;
 				s.running = true;

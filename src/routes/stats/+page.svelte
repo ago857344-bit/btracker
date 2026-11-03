@@ -85,20 +85,34 @@
 		for (let i = 0; i <= todayIndex; i++) {
 			const d = new Date(start);
 			d.setDate(start.getDate() + i);
-			sum += focusMinutesOn($tracker.log, dayKeyOf(d));
+			sum += focusMinutesOn($tracker?.log || [], dayKeyOf(d));
 		}
 		return sum;
 	}
 
 	$: hourBuckets = (() => {
 		const out = Array.from({ length: 24 }, () => 0);
-		for (const session of $tracker.log) out[new Date(session[0] * 60000).getHours()] += session[1];
+		for (const session of $tracker?.log || []) {
+			if (!Array.isArray(session)) continue;
+			const ts = Number(session[0]);
+			const mins = Number(session[1]);
+			if (!Number.isFinite(ts) || !Number.isFinite(mins) || mins <= 0) continue;
+			const hour = new Date(ts * 60000).getHours();
+			if (hour >= 0 && hour < 24) out[hour] += mins;
+		}
 		return out;
 	})();
 	$: hourMax = Math.max(1, ...hourBuckets);
 	$: dayBuckets = (() => {
 		const out = Array.from({ length: 7 }, () => 0);
-		for (const session of $tracker.log) out[new Date(session[0] * 60000).getDay()] += session[1];
+		for (const session of $tracker?.log || []) {
+			if (!Array.isArray(session)) continue;
+			const ts = Number(session[0]);
+			const mins = Number(session[1]);
+			if (!Number.isFinite(ts) || !Number.isFinite(mins) || mins <= 0) continue;
+			const day = new Date(ts * 60000).getDay();
+			if (day >= 0 && day < 7) out[day] += mins;
+		}
 		return out;
 	})();
 	$: dayMax = Math.max(1, ...dayBuckets);
@@ -106,7 +120,7 @@
 	$: portfolioMax = Math.max(1, ...portfolio.map((entry) => entry.minutes));
 	$: solvedTotals = (() => {
 		const out: Record<string, number> = {};
-		for (const day of Object.values($tracker.stat)) for (const [code, value] of Object.entries(day ?? {})) out[code] = (out[code] ?? 0) + (Number(value) || 0);
+		for (const day of Object.values($tracker?.stat || {})) for (const [code, value] of Object.entries(day ?? {})) out[code] = (out[code] ?? 0) + (Number(value) || 0);
 		return out;
 	})();
 	$: thisWeek = weekMinutes(0);

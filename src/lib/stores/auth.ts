@@ -69,23 +69,32 @@ export function initAuth(signIn: SignInHandler, signOut: () => void) {
 	onSignIn = signIn;
 	onSignOut = signOut;
 
-	// Restore a persisted session with safety timeout so page never hangs on slow network
-	const sessionPromise = sb.auth.getSession();
-	const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
-		setTimeout(() => resolve({ data: { session: null } }), 1000)
-	);
+	// Restore a persisted session with a generous 4s safety timeout; if getSession()
+	// resolves after the timeout on a slow connection, still apply the restored user.
+	let timedOut = false;
+	const timeoutId = setTimeout(() => {
+		timedOut = true;
+		sessionResolved.set(true);
+	}, 4000);
 
-	void Promise.race([sessionPromise, timeoutPromise])
+	void sb.auth
+		.getSession()
 		.then(({ data }) => {
+			clearTimeout(timeoutId);
 			const user = userFromSession(data?.session);
 			if (user) {
 				hasSkippedLogin.set(false);
+				const prevId = get(currentUser)?.id;
 				currentUser.set(user);
-				void signIn(user.id);
+				if (prevId !== user.id) void signIn(user.id);
 			}
 		})
-		.catch(() => {})
-		.finally(() => sessionResolved.set(true));
+		.catch(() => {
+			clearTimeout(timeoutId);
+		})
+		.finally(() => {
+			if (!timedOut) sessionResolved.set(true);
+		});
 
 	if (!unsubscribeAuthState) {
 		const { data } = sb.auth.onAuthStateChange((event, session) => {

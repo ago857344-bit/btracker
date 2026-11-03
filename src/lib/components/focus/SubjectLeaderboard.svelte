@@ -5,13 +5,14 @@
 	import AnimatedNumber from '$lib/components/ui/AnimatedNumber.svelte';
 	import NavIcon from '$lib/components/NavIcon.svelte';
 
-	$: log = $tracker.log;
+	$: log = $tracker?.log || [];
 
 	$: thisWeekKeys = (() => {
 		const start = startOfWeek();
 		const keys = [];
 		for (let i = 0; i < 7; i++) {
 			const d = new Date(start);
+			d.setHours(12, 0, 0, 0);
 			d.setDate(d.getDate() + i);
 			keys.push(dayKeyOf(d));
 		}
@@ -24,6 +25,7 @@
 		const keys = [];
 		for (let i = 0; i < 7; i++) {
 			const d = new Date(start);
+			d.setHours(12, 0, 0, 0);
 			d.setDate(d.getDate() + i);
 			keys.push(dayKeyOf(d));
 		}
@@ -37,7 +39,7 @@
 			if (keys.includes(key)) {
 				const sc = session[7];
 				if (sc && totals[sc] !== undefined) {
-					totals[sc] += session[1];
+					totals[sc] += Number(session[1]) || 0;
 				}
 			}
 		}

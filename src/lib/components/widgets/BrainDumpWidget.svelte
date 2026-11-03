@@ -119,6 +119,7 @@
 					newMistakes.push({
 						id: `mistake_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
 						date: Date.now(),
+						updated: Date.now(),
 						subject,
 						errorType: 'Conceptual',
 						description: content,

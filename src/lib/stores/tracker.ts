@@ -2,6 +2,7 @@ import { derived, get, writable } from 'svelte/store';
 import { createInitialTrackerState, getWidgetsForStudyFlow, getDefaultNavForMode } from '$lib/state/defaults';
 import {
 	saveTrackerState,
+	loadTrackerState,
 	consumeStorageNotice,
 	captureRecoverySnapshot as persistRecoverySnapshot,
 	loadRecoverySnapshot as persistLoadRecoverySnapshot,
@@ -15,18 +16,18 @@ import { cellKey, questionCount, questionKey, syllabusChapter } from '$lib/state
 import { isDone, isFlag, resultOf, setDone, setFlag, setResult, setStars, starsOf, subjectStats } from '$lib/state/questions';
 import { applyEloResult, ascend, canAscend } from '$lib/state/gamification';
 import { updateDecayAfterRevision } from '$lib/state/decay';
+import { applySessionBoost, isRolloverBlocked } from '$lib/stores/timer-bridge';
 import { DEFAULT_BT_NAME } from '$lib/state/coaching';
 import type {
 	GoalTarget, HomeworkItem, PlannerSubtask, StudySession, TimerState, TrackerGoal, TrackerState, WidgetLayout,
 	ConfidenceRating, CoachingTimetable, TimetablePeriod, StudyFlowMode, CoachingType, UniversalSource,
-	Flashcard
+	Flashcard, AiMentorSession, AiMentorMessage
 } from '$lib/types/tracker';
 
 export const tracker = writable<TrackerState>(createInitialTrackerState());
 export const hydration = writable<'idle' | 'loading' | 'ready' | 'error'>('idle');
 export const saveStatus = writable<'saved' | 'saving' | 'error'>('saved');
 export const targetsModalOpen = writable(false);
-export { timerSession as timer } from '$lib/stores/timerState';
 
 let pendingSave: ReturnType<typeof setTimeout> | undefined;
 // Optional hook so the sync layer can mirror saves to the cloud without tracker importing it.
@@ -58,6 +59,12 @@ export function updateTracker(mutator: (draft: TrackerState) => void) {
 			lib: current.lib ? [...current.lib] : [],
 			customReminders: current.customReminders ? [...current.customReminders] : [],
 			starredFormulas: current.starredFormulas ? [...current.starredFormulas] : [],
+			customFormulas: current.customFormulas ? [...current.customFormulas] : [],
+			dl: current.dl ? [...current.dl] : [],
+			deletedIds: current.deletedIds ? { ...current.deletedIds } : undefined,
+			deletedTodos: current.deletedTodos ? { ...current.deletedTodos } : undefined,
+			lectureNotes: current.lectureNotes ? { ...current.lectureNotes } : undefined,
+			chapterGrids: current.chapterGrids ? { ...current.chapterGrids } : {},
 			d: current.d ? { ...current.d } : {},
 			stat: current.stat ? { ...current.stat } : {},
 			ui: current.ui ? { ...current.ui } : ({} as any),
@@ -102,13 +109,14 @@ export async function flushSave(): Promise<void> {
 	clearTimeout(pendingSave);
 	pendingSave = undefined;
 	saveStatus.set('saving');
-	const state = get(tracker);
+	const current = get(tracker);
 	// Streak is derived, so keep the monotonic best in sync whenever we persist.
-	const bestStreak = Math.max(state.meta?.bestStreak ?? 0, calculateStreakDays(state));
-	if (bestStreak !== (state.meta?.bestStreak ?? 0)) {
-		tracker.update((current) => ({ ...current, meta: { ...current.meta, bestStreak } }));
+	const bestStreak = Math.max(current.meta?.bestStreak ?? 0, calculateStreakDays(current));
+	let snapshot = current;
+	if (bestStreak !== (current.meta?.bestStreak ?? 0)) {
+		snapshot = { ...current, meta: { ...current.meta, bestStreak } };
+		tracker.set(snapshot);
 	}
-	const snapshot = get(tracker);
 	try {
 		await saveTrackerState(snapshot);
 		saveStatus.set('saved');
@@ -164,7 +172,6 @@ function signalLocalWrite(updatedAt: number) {
 
 async function adoptCrossTabState(incomingUpdatedAt: number) {
 	if (incomingUpdatedAt <= (get(tracker).meta?.updatedAt ?? 0)) return;
-	const { loadTrackerState } = await import('$lib/services/persistence');
 	const incoming = await loadTrackerState();
 	if (!incoming) return;
 	const current = get(tracker);
@@ -204,12 +211,12 @@ if (typeof window !== 'undefined') {
 	window.addEventListener('pagehide', onUnload);
 }
 
-export const activeHomework = derived(tracker, ($tracker) => $tracker.h.filter((item) => !item.done));
+export const activeHomework = derived(tracker, ($tracker) => ($tracker?.h || []).filter((item) => !item.done));
 export const dueRevision = derived(tracker, ($tracker) => {
 	const today = todayKey();
-	return Object.entries($tracker.rev.items).filter(([, item]) => item.remindDate && item.remindDate <= today && !item.remindDone);
+	return Object.entries($tracker?.rev?.items || {}).filter(([, item]) => item.remindDate && item.remindDate <= today && !item.remindDone);
 });
-export const dashboardWidgets = derived(tracker, ($tracker) => $tracker.ui.widgets.filter((widget) => widget.enabled).sort((a, b) => a.order - b.order));
+export const dashboardWidgets = derived(tracker, ($tracker) => ($tracker?.ui?.widgets || []).filter((widget) => widget.enabled).sort((a, b) => a.order - b.order));
 export function updateWidget(id: WidgetLayout['id'], patch: Partial<WidgetLayout>) {
 	updateTracker((state) => { const widget = state.ui.widgets.find((candidate) => candidate.id === id); if (widget) Object.assign(widget, patch); });
 }
@@ -328,10 +335,6 @@ export function setAccent(color: string) {
 	updateTracker((state) => { state.ui.accent = color; });
 }
 
-let sessionBoostHandler: ((sub: string, ch: string, duration: number) => void) | null = null;
-export function setSessionBoostHandler(fn: (sub: string, ch: string, duration: number) => void) {
-	sessionBoostHandler = fn;
-}
 
 /**
  * Splits a session that runs past midnight so each calendar day keeps its true
@@ -372,8 +375,8 @@ export function logStudySession(session: StudySession) {
 	const sub = session[7];
 	const ch = session[8];
 	const validSubs = new Set(['P', 'C', 'M']);
-	if (sub && validSubs.has(sub) && ch && ch.trim() && sessionBoostHandler) {
-		sessionBoostHandler(sub, ch.trim(), session[1]);
+	if (sub && validSubs.has(sub) && ch && ch.trim()) {
+		applySessionBoost(sub, ch.trim(), session[1]);
 	}
 }
 
@@ -403,11 +406,8 @@ const ROLLOVER_INTERVAL_MS = 60_000;
 let rolloverInterval: ReturnType<typeof setInterval> | null = null;
 
 /** A running — or partially elapsed — focus session must never be disturbed by a day change. */
-async function focusSessionBlocksRollover(): Promise<boolean> {
-	const { timerSession } = await import('$lib/stores/timerState');
-	const session = get(timerSession);
-	if (session.running || session.elapsed > 0) return true;
-	return session.tab !== 'stopwatch' && session.remaining < session.activeLen * 60;
+function focusSessionBlocksRollover(): boolean {
+	return isRolloverBlocked();
 }
 
 function applyDayRollover(today: string) {
@@ -464,7 +464,7 @@ export async function checkDayRollover(): Promise<'none' | 'deferred' | 'rolled'
 	if (get(hydration) !== 'ready') return 'none';
 	const today = todayKey();
 	if (get(tracker).meta?.lastActiveDay === today) return 'none';
-	if (await focusSessionBlocksRollover()) return 'deferred';
+	if (focusSessionBlocksRollover()) return 'deferred';
 	applyDayRollover(today);
 	return 'rolled';
 }
@@ -629,6 +629,51 @@ export function deleteFlashcard(id: string) {
 		markDeleted(s, id);
 		if (!s.flashcards) return;
 		s.flashcards = s.flashcards.filter((c) => c.id !== id);
+	});
+}
+
+export function saveAiMentorSession(session: AiMentorSession) {
+	updateTracker((s) => {
+		if (!s.aiMentorSessions) s.aiMentorSessions = [];
+		const idx = s.aiMentorSessions.findIndex((item) => item.id === session.id);
+		if (idx !== -1) {
+			s.aiMentorSessions[idx] = { ...session, updatedAt: Date.now() };
+		} else {
+			s.aiMentorSessions.unshift({ ...session, updatedAt: Date.now() });
+		}
+		if (s.aiMentorSessions.length > 50) {
+			s.aiMentorSessions = s.aiMentorSessions.slice(0, 50);
+		}
+	});
+}
+
+export function deleteAiMentorSession(id: string) {
+	updateTracker((s) => {
+		markDeleted(s, id);
+		if (!s.aiMentorSessions) return;
+		s.aiMentorSessions = s.aiMentorSessions.filter((item) => item.id !== id);
+	});
+}
+
+export function clearAiMentorSessions(userId?: string) {
+	updateTracker((s) => {
+		if (!s.aiMentorSessions) return;
+		if (userId) {
+			for (const session of s.aiMentorSessions) {
+				if (session.userId === userId || (!session.userId && userId === 'guest')) {
+					markDeleted(s, session.id);
+				}
+			}
+			s.aiMentorSessions = s.aiMentorSessions.filter((session) => {
+				if (userId === 'guest') return Boolean(session.userId && session.userId !== 'guest');
+				return session.userId !== userId;
+			});
+		} else {
+			for (const session of s.aiMentorSessions) {
+				markDeleted(s, session.id);
+			}
+			s.aiMentorSessions = [];
+		}
 	});
 }
 
@@ -1228,7 +1273,7 @@ export function logUniversalSession(input: UniversalSessionInput): string {
 		const day = todayKey();
 		const att = Math.max(0, Math.round(Number(input.att) || 0));
 		const solved = Math.min(att, Math.max(0, Math.round(Number(input.solved) || 0)));
-		const doubt = Math.min(solved, Math.max(0, Math.round(Number(input.doubt) || 0)));
+		const doubt = Math.min(att, Math.max(0, Math.round(Number(input.doubt) || 0)));
 		s.sess.unshift({
 			id, day, sub: input.sub, ch: input.ch.trim() || 'General', att, cor: solved, at: Date.now(),
 			kind: 'universal', source: input.source,
@@ -1449,6 +1494,10 @@ export function calculateStreakDays(state: TrackerState): number {
 	const yesterday = addDaysKey(today, -1);
 	const dayBeforeYesterday = addDaysKey(today, -2);
 
+	const freezes = state.streakFreezes || { available: 2, usedDates: [] };
+	const usedSet = new Set(freezes.usedDates || []);
+	const canUseYesterdayFreeze = (freezes.available ?? 0) > 0 || usedSet.has(yesterday);
+
 	let cursor: string;
 	if (studied(today)) {
 		cursor = today;
@@ -1459,13 +1508,12 @@ export function calculateStreakDays(state: TrackerState): number {
 			cursor = yesterday;
 		} else {
 			// Yesterday was missed.
-			// Rule: If they miss a single day, they get a streak freeze; if they miss >1 day, they lose their streak!
-			if (studied(dayBeforeYesterday)) {
-				// Single missed day (yesterday)! Gets a streak freeze, streak preserved
+			// Only an isolated missed day with an available or used streak freeze is protected!
+			if (canUseYesterdayFreeze && studied(dayBeforeYesterday)) {
+				// Single missed day (yesterday)! Shielded by streak freeze, streak preserved
 				cursor = yesterday;
 			} else {
-				// 2 or more consecutive missed days (yesterday AND dayBeforeYesterday)!
-				// Streak is lost!
+				// 2 or more consecutive missed days or no freeze protection
 				return 0;
 			}
 		}
@@ -1482,15 +1530,16 @@ export function calculateStreakDays(state: TrackerState): number {
 		} else {
 			// Current cursor was missed.
 			// Can it be bridged by a streak freeze?
-			// Only an ISOLATED single missed day gets a streak freeze!
+			// Only an actual recorded freeze in usedDates (or yesterday with available freeze protection) bridges:
 			const dayBefore = addDaysKey(cursor, -1);
-			if (!lastWasFrozen && studied(dayBefore)) {
-				// Single missed day shielded by Streak Freeze!
+			const isFrozenDay = usedSet.has(cursor) || (cursor === yesterday && canUseYesterdayFreeze);
+			if (!lastWasFrozen && isFrozenDay && studied(dayBefore)) {
+				// Missed day shielded by Streak Freeze!
 				lastWasFrozen = true;
 				count += 1; // Protected day maintains streak count
 				cursor = dayBefore;
 			} else {
-				// 2 or more consecutive missed days -> streak terminates!
+				// 2 or more consecutive missed days or unfrozen missed day -> streak terminates!
 				break;
 			}
 		}
@@ -1517,10 +1566,8 @@ export function autoCheckStreakFreeze() {
 		const dayBeforeStudied = isStreakDayMet(state, dayBeforeYesterday);
 
 		if (dayBeforeStudied) {
-			// Single missed day: "when a person misses a day they get a streak freeze"
-			if (state.streakFreezes.available <= 0) {
-				state.streakFreezes.available = 1;
-			}
+			// Single missed day: apply freeze if available
+			if (state.streakFreezes.available <= 0) return;
 			state.streakFreezes.usedDates.push(yesterday);
 			state.streakFreezes.available = Math.max(0, state.streakFreezes.available - 1);
 			celebration.set('🛡️ Streak Freeze applied! Your streak was saved for yesterday.');
@@ -1542,9 +1589,7 @@ export function useStreakFreeze(targetDateKey?: string) {
 		const dayBefore = addDaysKey(target, -1);
 		if (focusMinutesOn(state.log, dayBefore) < need) return;
 
-		if (state.streakFreezes.available <= 0) {
-			state.streakFreezes.available = 1;
-		}
+		if (state.streakFreezes.available <= 0) return;
 		state.streakFreezes.usedDates.push(target);
 		state.streakFreezes.available = Math.max(0, state.streakFreezes.available - 1);
 	});

@@ -26,11 +26,15 @@ export const startOfWeek = (now = new Date()) => {
 };
 
 /** A StudySession stores its start as epoch *minutes*. */
-export const sessionDayKey = (session: StudySession) => dayKeyOf(new Date(session[0] * 60000));
+export const sessionDayKey = (session: StudySession) => {
+	if (!session || typeof session[0] !== 'number' || isNaN(session[0])) return '';
+	return dayKeyOf(new Date(session[0] * 60000));
+};
 
 /** Total focus minutes logged on a given day. */
 export function focusMinutesOn(log: StudySession[], key: string) {
-	return log.reduce((sum, s) => (sessionDayKey(s) === key ? sum + (Number(s[1]) || 0) : sum), 0);
+	if (!Array.isArray(log)) return 0;
+	return log.reduce((sum, s) => (sessionDayKey(s) === key ? sum + (Number(s?.[1]) || 0) : sum), 0);
 }
 
 export const formatMinutes = (minutes: number) => {
@@ -50,24 +54,24 @@ export const formatClock = (totalSeconds: number) => {
 };
 
 export const weekdayShort = (key: string) => {
-	const [y, m, d] = key.split('-').map(Number);
-	return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(y, m - 1, d).getDay()];
+	const [y, m, d] = (key || '').split('-').map(Number);
+	return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][new Date(y || 1970, (m || 1) - 1, d || 1, 12, 0, 0).getDay()];
+};
+
+export const parseKey = (key: string) => {
+	const [y, m, d] = (key || '').split('-').map(Number);
+	return new Date(y || 1970, (m || 1) - 1, d || 1, 12, 0, 0);
 };
 
 export const relativeDue = (due: string, today = todayKey()) => {
 	if (!due) return '';
-	const diff = (new Date(due).getTime() - new Date(today).getTime()) / 86400000;
+	const diff = (parseKey(due).getTime() - parseKey(today).getTime()) / 86400000;
 	const days = Math.round(diff);
 	if (days === 0) return 'Due today';
 	if (days === 1) return 'Due tomorrow';
 	if (days === -1) return '1 day overdue';
 	if (days < 0) return `${Math.abs(days)} days overdue`;
 	return `In ${days} days`;
-};
-
-export const parseKey = (key: string) => {
-	const [y, m, d] = key.split('-').map(Number);
-	return new Date(y, m - 1, d);
 };
 
 export const addDaysKey = (key: string, n: number) => {

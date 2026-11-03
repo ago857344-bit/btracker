@@ -15,12 +15,14 @@
 	} from '$lib/stores/tracker';
 	import { COACHING_PRESETS, DEFAULT_BT_NAME, coachingTypeOf } from '$lib/state/coaching';
 	import { createInitialTrackerState } from '$lib/state/defaults';
+	import { normalizeState } from '$lib/services/hydrate';
 	import { mergeImportedProgress } from '$lib/state/legacy-progress';
 	import { importLegacyCode } from '$lib/state/legacy-code';
 	import { parseImportedProgress } from '$lib/services/progressImport';
-	import { longDateKey } from '$lib/state/dates';
-	import { onMount, onDestroy } from 'svelte';
-	import { THEME_PRESETS, presetOf, isDarkTheme, syncThemeWallpaper, isBuiltinWallpaper, resolveLiveWallpaper, resolveEcoMode, isMobileDevice, wallpaperCss } from '$lib/state/themes';
+	import { longDateKey, todayKey } from '$lib/state/dates';
+	import { onMount } from 'svelte';
+	import { THEME_PRESETS, presetOf, isDarkTheme, syncThemeWallpaper, isBuiltinWallpaper, resolveLiveWallpaper, resolveEcoMode, isMobileDevice, wallpaperCss, isVideoWallpaper, getActiveWallpaper } from '$lib/state/themes';
+	import { startThemePreview } from '$lib/stores/themePreview';
 	import { tierEloOf, canAscend } from '$lib/state/gamification';
 	import { eloTier } from '$lib/state/weekly';
 	import { celebrateConfetti } from '$lib/utils/confetti';
@@ -194,12 +196,6 @@
 
 	let previewModalOpen = false;
 	let selectedLockedTheme: any = null;
-	
-	let previewActive = false;
-	let previewTimeLeft = 0;
-	let previewInterval: any;
-	let originalTheme = 'light';
-	let originalAccent = '#6d5dfc';
 
 	function handleThemeClick(t: any) {
 		if (canUseTheme(t.id, $unlockCtx)) {
@@ -212,59 +208,10 @@
 
 	function startPreview() {
 		if (!selectedLockedTheme) return;
-		originalTheme = $tracker.theme;
-		originalAccent = $tracker.ui.accent;
-		originalWallpaper = $tracker.ui.wallpaper ?? null;
-
-		updateTracker(s => {
-			s.theme = selectedLockedTheme.id;
-			s.ui.accent = selectedLockedTheme.accent;
-			if (selectedLockedTheme.wallpaper) s.ui.wallpaper = 'builtin:' + selectedLockedTheme.id;
-		});
-
+		startThemePreview(selectedLockedTheme, 60);
 		previewModalOpen = false;
-		previewActive = true;
-		previewTimeLeft = 60;
-
-		clearInterval(previewInterval);
-		previewInterval = setInterval(() => {
-			previewTimeLeft -= 1;
-			if (previewTimeLeft <= 0) {
-				endPreview();
-			}
-		}, 1000);
 	}
 
-	let originalWallpaper: string | null = null;
-
-	function endPreview() {
-		clearInterval(previewInterval);
-		if (previewActive) {
-			updateTracker(s => {
-				s.theme = originalTheme as any;
-				s.ui.accent = originalAccent;
-				s.ui.wallpaper = originalWallpaper;
-			});
-			previewActive = false;
-			// Re-open the modal to show requirements after preview ends
-			previewModalOpen = true;
-		}
-	}
-
-	// Restore the real theme if the page unmounts mid-preview (nav or HMR)
-	onDestroy(() => {
-		if (previewInterval) clearInterval(previewInterval);
-		if (previewActive) {
-			previewActive = false;
-			updateTracker(s => {
-				s.theme = originalTheme as any;
-				s.ui.accent = originalAccent;
-				s.ui.wallpaper = originalWallpaper;
-			});
-		}
-	});
-	
-	$: isSpecialTheme = $tracker.theme === 'god-mode' || $tracker.theme === 'challenger' || $tracker.theme === 'initiate' || $tracker.theme === 'master' || $tracker.theme === 'catalyst' || $tracker.theme === 'celestial';
 
 	function canUseTheme(themeId: string, ctx: UnlockCtx) {
 		return reqMet(presetOf(themeId).unlock, ctx);
@@ -308,10 +255,12 @@
 					s.ui.wallpaper = data; 
 					s.ui.liveWallpaper = true;
 					s.ui.ecoMode = false;
+					if (s.ui.cosmetics?.wallpaper) delete s.ui.cosmetics.wallpaper;
 					if (!s.ui.wallpaperHistory) s.ui.wallpaperHistory = [];
 					if (!s.ui.wallpaperHistory.includes(data)) {
 						s.ui.wallpaperHistory = [data, ...s.ui.wallpaperHistory].slice(0, 10);
 					}
+					syncThemeWallpaper(s);
 				});
 				celebration.set('Live wallpaper applied!');
 			};
@@ -346,10 +295,13 @@
 				const compressed = canvas.toDataURL('image/jpeg', 0.85);
 				updateTracker(s => { 
 					s.ui.wallpaper = compressed; 
+					s.ui.liveWallpaper = false;
+					if (s.ui.cosmetics?.wallpaper) delete s.ui.cosmetics.wallpaper;
 					if (!s.ui.wallpaperHistory) s.ui.wallpaperHistory = [];
 					if (!s.ui.wallpaperHistory.includes(compressed)) {
 						s.ui.wallpaperHistory = [compressed, ...s.ui.wallpaperHistory].slice(0, 10);
 					}
+					syncThemeWallpaper(s);
 				});
 				celebration.set('Wallpaper uploaded and compressed successfully!');
 			};
@@ -378,24 +330,34 @@
 	}
 	function setAccent(color: string) { updateTracker((s) => { s.ui.accent = color; }); }
 	function setWallpaper(url: string | null) {
+		const cleanUrl = url?.trim() || null;
 		updateTracker(s => {
-			if (!url || url === 'none') {
+			if (!cleanUrl || cleanUrl === 'none') {
 				s.ui.wallpaper = null;
 				s.ui.liveWallpaper = false;
 				if (s.ui.cosmetics?.wallpaper) delete s.ui.cosmetics.wallpaper;
+				syncThemeWallpaper(s);
 			} else {
-				s.ui.wallpaper = url;
-				s.ui.liveWallpaper = Boolean(url.endsWith('.mp4') || url.endsWith('.webm') || url.startsWith('data:video'));
+				const isVid = isVideoWallpaper(cleanUrl);
+				s.ui.wallpaper = cleanUrl;
+				s.ui.liveWallpaper = isVid;
 				s.ui.ecoMode = false;
 				if (s.ui.cosmetics?.wallpaper) delete s.ui.cosmetics.wallpaper;
-				if (!url.startsWith('data:')) {
+				if (!cleanUrl.startsWith('data:')) {
 					if (!s.ui.wallpaperHistory) s.ui.wallpaperHistory = [];
-					if (!s.ui.wallpaperHistory.includes(url)) {
-						s.ui.wallpaperHistory = [url, ...s.ui.wallpaperHistory].slice(0, 10);
+					if (!s.ui.wallpaperHistory.includes(cleanUrl)) {
+						s.ui.wallpaperHistory = [cleanUrl, ...s.ui.wallpaperHistory].slice(0, 10);
 					}
 				}
+				syncThemeWallpaper(s);
 			}
 		});
+		if (cleanUrl) {
+			const isVid = isVideoWallpaper(cleanUrl);
+			celebration.set(isVid ? 'Live video wallpaper applied!' : 'Wallpaper applied!');
+		} else {
+			celebration.set('Custom wallpaper cleared. Theme default active.');
+		}
 	}
 	
 	function removeWallpaperFromHistory(url: string) {
@@ -405,6 +367,8 @@
 			}
 			if (s.ui.wallpaper === url) {
 				s.ui.wallpaper = null;
+				s.ui.liveWallpaper = false;
+				syncThemeWallpaper(s);
 			}
 		});
 	}
@@ -413,6 +377,10 @@
 	$: if (typeof document !== 'undefined' && $tracker.ui.wallpaper && !isBuiltinWallpaper($tracker.ui.wallpaper) && !$tracker.ui.wallpaper.startsWith('data:')) {
 		urlDraft = $tracker.ui.wallpaper;
 	}
+
+	$: activeWallpaperUrl = getActiveWallpaper($tracker.theme, $tracker.ui.wallpaper);
+	$: activeIsVideo = isVideoWallpaper(activeWallpaperUrl);
+	$: currentGlassStrength = $tracker.ui.glassStrength ?? 45;
 
 
 	let analysisTimer: ReturnType<typeof setTimeout>;
@@ -446,7 +414,7 @@
 		const url = URL.createObjectURL(blob);
 		const a = document.createElement('a');
 		a.href = url;
-		a.download = `btracker-backup-${new Date().toISOString().slice(0, 10)}.json`;
+		a.download = `btracker-backup-${todayKey()}.json`;
 		a.click();
 		URL.revokeObjectURL(url);
 		celebration.set('Backup exported!');
@@ -460,11 +428,14 @@
 		reader.onload = async () => {
 			input.value = '';
 			try {
-				const parsed = JSON.parse(String(reader.result)) as Partial<TrackerState>;
+				const parsed = JSON.parse(String(reader.result));
+				if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+					throw new Error('Invalid JSON format: expected an object');
+				}
 				await takeSnapshot($tracker, undefined, 'Pre-Import Backup');
 				await captureRecoverySnapshot('Before importing a JSON backup');
 				await Promise.all([loadSnapshots(), loadRecoveryMeta()]);
-				replaceTracker({ ...createInitialTrackerState(), ...parsed });
+				replaceTracker(normalizeState({ ...createInitialTrackerState(), ...(parsed as Partial<TrackerState>) }));
 				celebration.set('Backup restored! (Safety snapshot created)');
 			} catch { celebration.set('Invalid backup file'); }
 		};
@@ -524,7 +495,7 @@
 			} catch (e) {
 				console.warn('Safety snapshot failed before restore:', e);
 			}
-			replaceTracker(restored);
+			replaceTracker(normalizeState(restored));
 			restoreConfirmSnap = null;
 			celebration.set(`Restored snapshot from ${snap.label}!`);
 		}
@@ -586,7 +557,7 @@
 			await takeSnapshot($tracker, undefined, 'Pre-Import Backup');
 			await captureRecoverySnapshot('Before importing old tracker progress');
 			await Promise.all([loadSnapshots(), loadRecoveryMeta()]);
-			replaceTracker(next);
+			replaceTracker(normalizeState(next));
 			legacyCode = '';
 			celebration.set('Progress imported from old tracker! (Safety snapshot created)');
 		} catch (error) {
@@ -665,7 +636,7 @@
 						<span class="coach-dot bt">BT</span>
 						<span class="coach-tag">Native Module Sync</span>
 					</div>
-					<b>Baktiwal Tutorials</b>
+					<b>Bakliwal Tutorials</b>
 					<small>Module → chapter → exercise with question-level tracking.</small>
 				</button>
 				<button type="button" class="coach-choice" class:on={coachingTypeDraft === 'GENERIC'} on:click={() => chooseCoaching('GENERIC')}>
@@ -715,7 +686,7 @@
 					<button type="button" class="swatch" class:on={$tracker.ui.accent === color} style="background: {color}" aria-label="Accent {color}" on:click={() => setAccent(color)}></button>
 				{/each}
 				<label class="swatch custom" title="Custom color">
-					<input type="color" value={$tracker.ui.accent} on:input={(e) => setAccent(e.currentTarget.value)} />
+					<input type="color" value={$tracker.ui.accent || '#6d5dfc'} on:input={(e) => setAccent(e.currentTarget.value)} />
 				</label>
 			</div>
 
@@ -826,7 +797,7 @@
 				/>
 				<span>
 					<strong>Live Video Wallpapers</strong><br/>
-					Enable dynamic animated video wallpapers. Default: On for laptops, off for mobile to ensure fast loading and save battery.
+					Enable dynamic animated video wallpapers. Default: On. Turn this off to keep the app lightweight on slower devices or mobile data.
 				</span>
 			</label>
 
@@ -842,34 +813,116 @@
 				/>
 				<span>
 					<strong>Eco Mode (Battery Saver)</strong><br/>
-					Pauses aurora drift and heavy glass blurs for peak speed and battery efficiency. Default: On for mobile, off for laptops.
+					Pauses aurora drift and heavy glass blurs for peak speed and battery efficiency. Default: Off.
 				</span>
 			</label>
 			
-			<div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
-				<input type="url" placeholder="https://example.com/wallpaper.jpg" class="input" style="margin-bottom: 0;" bind:value={urlDraft} on:change={() => setWallpaper(urlDraft || null)} />
-				
-				<label class="btn solid" style="white-space: nowrap; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; gap: 0.4rem;">
+			<!-- Live Wallpaper & Glass Real-time Preview -->
+			<div class="wallpaper-live-preview-box">
+				<div class="preview-media-layer">
+					{#if activeWallpaperUrl}
+						{#if activeIsVideo}
+							<video class="preview-media" src={activeWallpaperUrl} autoplay loop muted playsinline></video>
+						{:else}
+							<div class="preview-media static-preview" style="background: {wallpaperCss(activeWallpaperUrl)}; background-size: cover; background-position: center;"></div>
+						{/if}
+					{:else}
+						<div class="preview-media default-theme-preview" style="background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 15%, #0d0c15) 0%, #08070d 100%);"></div>
+					{/if}
+				</div>
+				<div class="preview-glass-card" style="background: color-mix(in srgb, var(--surface-panel, #121020), transparent {100 - currentGlassStrength}%); backdrop-filter: blur({Math.max(0, (currentGlassStrength / 45) * 16)}px); -webkit-backdrop-filter: blur({Math.max(0, (currentGlassStrength / 45) * 16)}px);">
+					<div class="preview-glass-header">
+						<span class="preview-glass-dot" style="background: var(--accent);"></span>
+						<b>Live Glass Preview ({currentGlassStrength}%)</b>
+					</div>
+					<div class="preview-glass-badges">
+						{#if activeIsVideo}
+							<span class="preview-badge live"><NavIcon name="play" size={11} /> Live Video</span>
+						{:else if activeWallpaperUrl}
+							<span class="preview-badge static"><NavIcon name="layers" size={11} /> Custom Static</span>
+						{:else}
+							<span class="preview-badge default">Theme Default</span>
+						{/if}
+					</div>
+				</div>
+			</div>
+
+			<div class="wallpaper-input-row">
+				<input
+					type="url"
+					placeholder="https://example.com/wallpaper.jpg or .mp4"
+					class="input"
+					style="margin-bottom: 0; flex: 1;"
+					bind:value={urlDraft}
+					on:keydown={(e) => {
+						if (e.key === 'Enter') {
+							e.preventDefault();
+							if (urlDraft.trim()) setWallpaper(urlDraft.trim());
+						}
+					}}
+				/>
+				{#if urlDraft.trim() && urlDraft.trim() !== ($tracker.ui.wallpaper || '')}
+					<button
+						type="button"
+						class="btn solid wp-action-btn"
+						on:click={() => setWallpaper(urlDraft.trim())}
+					>
+						Apply
+					</button>
+				{/if}
+				<label class="btn solid wp-action-btn" style="white-space: nowrap; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; gap: 0.4rem;">
 					<NavIcon name="plus" size={15} /> Upload
 					<input type="file" accept="image/*, video/mp4, video/webm" style="display: none;" on:change={handleWallpaperUpload} />
 				</label>
-				{#if $tracker.ui.wallpaper}
-					<button type="button" class="btn ghost danger" style="padding: 0 .6rem;" aria-label="Remove wallpaper" on:click={() => setWallpaper(null)}>
+				{#if $tracker.ui.wallpaper && !isBuiltinWallpaper($tracker.ui.wallpaper)}
+					<button
+						type="button"
+						class="btn ghost danger"
+						style="padding: 0 .6rem;"
+						title="Clear custom wallpaper"
+						aria-label="Remove wallpaper"
+						on:click={() => { setWallpaper(null); urlDraft = ''; }}
+					>
 						<NavIcon name="trash" size={15} />
 					</button>
 				{/if}
 			</div>
 
 			{#if $tracker.ui.wallpaperHistory && $tracker.ui.wallpaperHistory.length > 0}
-				<div class="wallpaper-history">
-					{#each $tracker.ui.wallpaperHistory as wp, i (i)}
-						<div class="hist-item" class:active={$tracker.ui.wallpaper === wp} on:click={() => updateTracker(s => { s.ui.wallpaper = wp; })} on:keydown={(e) => e.key === 'Enter' && updateTracker(s => { s.ui.wallpaper = wp; })} tabindex="0" role="button">
-							{#if wp.startsWith('data:video')}<video class="thumb" src={wp} muted loop autoplay style="object-fit: cover; width: 100%; height: 100%; border-radius: 8px;"></video>{:else}<div class="thumb" style="background-image: url({wp})"></div>{/if}
-							<button type="button" class="del-btn" on:click|stopPropagation={() => removeWallpaperFromHistory(wp)}>
-								<NavIcon name="x" size={10} />
-							</button>
-						</div>
-					{/each}
+				<div class="wallpaper-history-wrap">
+					<div class="wallpaper-history-header">
+						<span class="label" style="margin: 0;">SAVED WALLPAPERS</span>
+						<span class="muted" style="font-size: 0.72rem;">{$tracker.ui.wallpaperHistory.length} in history</span>
+					</div>
+					<div class="wallpaper-history">
+						{#each $tracker.ui.wallpaperHistory as wp, i (i)}
+							{@const isVideo = isVideoWallpaper(wp)}
+							<div
+								class="hist-item"
+								class:active={$tracker.ui.wallpaper === wp}
+								on:click={() => setWallpaper(wp)}
+								on:keydown={(e) => e.key === 'Enter' && setWallpaper(wp)}
+								tabindex="0"
+								role="button"
+								title="Click to apply wallpaper"
+							>
+								{#if isVideo}
+									<video class="thumb video-thumb" src={wp} muted loop autoplay playsinline></video>
+									<span class="hist-badge-pill"><NavIcon name="play" size={9} /></span>
+								{:else}
+									<div class="thumb" style="background-image: {wallpaperCss(wp)}; background-size: cover; background-position: center;"></div>
+								{/if}
+								<button
+									type="button"
+									class="del-btn"
+									title="Remove from history"
+									on:click|stopPropagation={() => removeWallpaperFromHistory(wp)}
+								>
+									<NavIcon name="x" size={10} />
+								</button>
+							</div>
+						{/each}
+					</div>
 				</div>
 			{/if}
 
@@ -1290,39 +1343,62 @@
 	</svelte:fragment>
 </Modal>
 
-<Modal bind:open={previewModalOpen} title="THEME LOCKED" width="380px">
+<Modal bind:open={previewModalOpen} title="THEME LOCKED" width="420px">
 	{#if selectedLockedTheme}
-		<div style="text-align: center; padding: 1rem 0;">
-			<NavIcon name="lock" size={48} />
-			<h3 style="margin: 1rem 0 0.5rem; color: var(--text-primary)">{selectedLockedTheme.label}</h3>
-			<p style="color: var(--text-secondary); margin-bottom: 0.75rem;">{selectedLockedTheme.blurb}</p>
-			<p style="color: var(--text-primary); font-size: 0.9rem; margin-bottom: 0.9rem; background: var(--surface-subtle); padding: 0.8rem; border-radius: 8px;">
-				Unlocks at <b>{selectedLockedTheme.unlock ? reqLabel(selectedLockedTheme.unlock) : ''}</b><br>
-				<span style="color: var(--text-secondary); font-size: 0.78rem;">{selectedLockedTheme.unlock ? `You're at ${reqStatus(selectedLockedTheme.unlock, $unlockCtx)}.` : ''}</span>
-			</p>
+		<div class="locked-theme-modal-body">
+			<div class="locked-icon-bubble" style="--t-accent: {selectedLockedTheme.accent}">
+				<NavIcon name="lock" size={30} />
+			</div>
+			<h3 class="locked-theme-name">{selectedLockedTheme.label}</h3>
+			<p class="locked-theme-blurb">{selectedLockedTheme.blurb}</p>
+
+			<div class="locked-req-card">
+				<div class="locked-req-header">
+					<span class="locked-req-badge">UNLOCK REQUIREMENT</span>
+					<b>{selectedLockedTheme.unlock ? reqLabel(selectedLockedTheme.unlock) : 'Special Achievement'}</b>
+				</div>
+				<div class="locked-req-status-row">
+					<span>{selectedLockedTheme.unlock ? `Your progress: ${reqStatus(selectedLockedTheme.unlock, $unlockCtx)}` : ''}</span>
+				</div>
+				{#if selectedLockedTheme.unlock}
+					<div class="locked-req-bar">
+						<div class="locked-req-fill" style="width: {Math.round(reqProgress(selectedLockedTheme.unlock, $unlockCtx) * 100)}%; background: {selectedLockedTheme.accent};"></div>
+					</div>
+				{/if}
+			</div>
+
 			{#if selectedLockedTheme.wallpaper}
-				<div style="height: 84px; border-radius: 10px; margin-bottom: 1.2rem; border: 1px solid var(--border-subtle); background: {wallpaperCss(selectedLockedTheme.wallpaper)}; background-size: cover; background-position: center;"></div>
+				{@const isVideo = isVideoWallpaper(selectedLockedTheme.wallpaper)}
+				<div class="locked-wp-preview-card">
+					{#if isVideo}
+						<video class="locked-wp-video" src={selectedLockedTheme.wallpaper} autoplay loop muted playsinline></video>
+						<span class="locked-wp-pill video-pill">
+							<span class="pill-dot"></span> Live Video Wallpaper
+						</span>
+					{:else}
+						<div class="locked-wp-static" style="background: {wallpaperCss(selectedLockedTheme.wallpaper)}; background-size: cover; background-position: center;"></div>
+						<span class="locked-wp-pill static-pill">Exclusive Background</span>
+					{/if}
+					<div class="locked-accent-indicator" style="background: {selectedLockedTheme.accent};" title="Theme Accent"></div>
+				</div>
 			{/if}
-			<p style="color: var(--text-primary); font-size: 0.9rem; margin-bottom: 1.5rem; background: var(--surface-subtle); padding: 0.8rem; border-radius: 8px;">
-				Want to see what it looks like?<br>You can preview this theme for 60 seconds.
-			</p>
+
+			<div class="locked-preview-banner-box">
+				<span class="sparkle-icon"><NavIcon name="sparkles" size={18} /></span>
+				<div class="sparkle-text">
+					<b>Test Drive for 60 Seconds</b>
+					<span>Experience this theme &amp; wallpaper across the entire app before unlocking.</span>
+				</div>
+			</div>
 		</div>
 	{/if}
 	<svelte:fragment slot="footer">
 		<button type="button" class="btn ghost" on:click={() => previewModalOpen = false}>Close</button>
-		<button type="button" class="btn solid" style="--btn: {selectedLockedTheme?.accent || 'var(--accent)'}" on:click={startPreview}>Preview for 60s</button>
+		<button type="button" class="btn solid btn-start-preview" style="--btn: {selectedLockedTheme?.accent || 'var(--accent)'}" on:click={startPreview}>
+			<NavIcon name="play" size={14} /> Preview for 60s
+		</button>
 	</svelte:fragment>
 </Modal>
-
-{#if previewActive}
-	<div class="preview-banner" in:fly={{ y: -50, duration: 300 }} out:fade={{ duration: 200 }}>
-		<div class="pb-content">
-			<span class="pb-icon"><NavIcon name="clock" size={16} /></span>
-			<span>Previewing <b>{selectedLockedTheme?.label}</b> — Reverting in <b>{previewTimeLeft}s</b></span>
-		</div>
-		<button type="button" class="pb-btn" on:click={endPreview}>End Preview</button>
-	</div>
-{/if}
 
 <style>
 	.settings { display: grid; gap: 1.2rem; }
@@ -1433,26 +1509,357 @@
 	.legacy-error { margin: -.2rem 0 .7rem; color: var(--danger, #e0455a); font-size: .76rem; }
 	.legacy-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .55rem; }
 
-	.wallpaper-history { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 8px; scrollbar-width: thin; }
-	.hist-item { position: relative; width: 80px; height: 50px; flex-shrink: 0; border-radius: 6px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: all 0.2s ease; }
-	.hist-item.active { border-color: var(--accent); transform: scale(1.05); }
-	.hist-item .thumb { width: 100%; height: 100%; background-size: cover; background-position: center; opacity: 0.6; transition: opacity 0.2s ease; }
-	.hist-item:hover .thumb, .hist-item.active .thumb { opacity: 1; }
-	.hist-item .del-btn { position: absolute; top: 2px; right: 2px; background: rgba(0,0,0,0.6); color: var(--accent-contrast, #fff); border: none; border-radius: 4px; padding: 2px; cursor: pointer; opacity: 0; transition: opacity 0.2s ease; display: flex; align-items: center; justify-content: center; }
-	.hist-item:hover .del-btn { opacity: 1; }
-	.hist-item .del-btn:hover { background: var(--danger); }
+	/* Wallpaper Live Preview Card */
+	.wallpaper-live-preview-box {
+		position: relative;
+		height: 124px;
+		border-radius: 14px;
+		overflow: hidden;
+		margin-bottom: 1.1rem;
+		border: 1px solid var(--border-subtle);
+		box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+	}
+	.preview-media-layer {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		z-index: 1;
+	}
+	.preview-media {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.preview-glass-card {
+		position: absolute;
+		inset: 10px;
+		z-index: 2;
+		border-radius: 10px;
+		border: 1px solid var(--vision-bevel-border, var(--border-subtle));
+		display: flex;
+		flex-direction: column;
+		justify-content: space-between;
+		padding: 0.65rem 0.85rem;
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+		transition: background 0.15s ease, backdrop-filter 0.15s ease;
+	}
+	.preview-glass-header {
+		display: flex;
+		align-items: center;
+		gap: 0.45rem;
+		font-size: 0.78rem;
+		color: var(--text-primary);
+	}
+	.preview-glass-dot {
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		box-shadow: 0 0 8px var(--accent);
+	}
+	.preview-glass-badges {
+		display: flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
+	.preview-badge {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.3rem;
+		padding: 0.2rem 0.5rem;
+		border-radius: 99px;
+		font-size: 0.68rem;
+		font-weight: 750;
+		text-transform: uppercase;
+		letter-spacing: 0.04em;
+	}
+	.preview-badge.live {
+		background: rgba(0, 229, 255, 0.18);
+		color: #00e5ff;
+		border: 1px solid rgba(0, 229, 255, 0.35);
+	}
+	.preview-badge.static {
+		background: rgba(255, 255, 255, 0.15);
+		color: var(--text-primary);
+		border: 1px solid var(--border-subtle);
+	}
+	.preview-badge.default {
+		background: color-mix(in srgb, var(--accent) 15%, transparent);
+		color: var(--accent);
+		border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+	}
 
+	.wallpaper-input-row {
+		display: flex;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
+		align-items: center;
+	}
+	.wp-action-btn {
+		white-space: nowrap;
+		flex-shrink: 0;
+	}
 
-.theme.locked { opacity: 0.72; cursor: not-allowed; border-style: dashed; }
+	.wallpaper-history-wrap {
+		margin-bottom: 0.8rem;
+	}
+	.wallpaper-history-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 0.4rem;
+	}
+	.wallpaper-history {
+		display: flex;
+		gap: 8px;
+		overflow-x: auto;
+		padding-bottom: 8px;
+		scrollbar-width: thin;
+	}
+	.hist-item {
+		position: relative;
+		width: 80px;
+		height: 52px;
+		flex-shrink: 0;
+		border-radius: 8px;
+		overflow: hidden;
+		cursor: pointer;
+		border: 2px solid transparent;
+		transition: all 0.2s ease;
+	}
+	.hist-item.active {
+		border-color: var(--accent);
+		transform: scale(1.04);
+		box-shadow: 0 0 10px color-mix(in srgb, var(--accent) 40%, transparent);
+	}
+	.hist-item .thumb {
+		width: 100%;
+		height: 100%;
+		background-size: cover;
+		background-position: center;
+		opacity: 0.7;
+		transition: opacity 0.2s ease;
+	}
+	.hist-item .video-thumb {
+		object-fit: cover;
+	}
+	.hist-item:hover .thumb,
+	.hist-item.active .thumb {
+		opacity: 1;
+	}
+	.hist-badge-pill {
+		position: absolute;
+		bottom: 3px;
+		left: 3px;
+		background: rgba(0, 0, 0, 0.7);
+		color: #00e5ff;
+		padding: 2px 4px;
+		border-radius: 4px;
+		display: flex;
+		align-items: center;
+		pointer-events: none;
+	}
+	.hist-item .del-btn {
+		position: absolute;
+		top: 3px;
+		right: 3px;
+		background: rgba(0, 0, 0, 0.75);
+		color: var(--accent-contrast, #fff);
+		border: none;
+		border-radius: 4px;
+		padding: 3px;
+		cursor: pointer;
+		opacity: 0;
+		transition: opacity 0.2s ease, background 0.15s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.hist-item:hover .del-btn {
+		opacity: 1;
+	}
+	.hist-item .del-btn:hover {
+		background: var(--danger, #e0455a);
+	}
 
+	/* Locked Theme Modal Details */
+	.locked-theme-modal-body {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		padding: 0.5rem 0.25rem 0.75rem;
+		gap: 0.6rem;
+	}
+	.locked-icon-bubble {
+		width: 58px;
+		height: 58px;
+		border-radius: 50%;
+		display: grid;
+		place-items: center;
+		color: var(--t-accent, var(--accent));
+		background: color-mix(in srgb, var(--t-accent, var(--accent)) 15%, transparent);
+		border: 1px solid color-mix(in srgb, var(--t-accent, var(--accent)) 30%, transparent);
+		box-shadow: 0 0 20px color-mix(in srgb, var(--t-accent, var(--accent)) 25%, transparent);
+	}
+	.locked-theme-name {
+		margin: 0;
+		font-size: 1.25rem;
+		font-weight: 800;
+		color: var(--text-primary);
+		letter-spacing: -0.02em;
+	}
+	.locked-theme-blurb {
+		margin: 0;
+		font-size: 0.82rem;
+		color: var(--text-secondary);
+		line-height: 1.4;
+		max-width: 320px;
+	}
+	.locked-req-card {
+		width: 100%;
+		background: var(--surface-subtle);
+		border: 1px solid var(--border-subtle);
+		border-radius: 12px;
+		padding: 0.7rem 0.85rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.35rem;
+		text-align: left;
+		box-sizing: border-box;
+	}
+	.locked-req-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 0.5rem;
+		font-size: 0.76rem;
+		color: var(--text-primary);
+	}
+	.locked-req-badge {
+		font-size: 0.65rem;
+		font-weight: 800;
+		color: var(--text-secondary);
+		letter-spacing: 0.06em;
+		text-transform: uppercase;
+	}
+	.locked-req-status-row {
+		font-size: 0.74rem;
+		color: var(--text-secondary);
+	}
+	.locked-req-bar {
+		height: 6px;
+		background: color-mix(in srgb, var(--text-primary), transparent 88%);
+		border-radius: 99px;
+		overflow: hidden;
+		margin-top: 0.2rem;
+	}
+	.locked-req-fill {
+		height: 100%;
+		border-radius: 99px;
+		transition: width 0.3s ease;
+	}
+	.locked-wp-preview-card {
+		position: relative;
+		width: 100%;
+		height: 110px;
+		border-radius: 12px;
+		overflow: hidden;
+		border: 1px solid var(--border-subtle);
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+		box-sizing: border-box;
+	}
+	.locked-wp-video {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.locked-wp-static {
+		width: 100%;
+		height: 100%;
+	}
+	.locked-wp-pill {
+		position: absolute;
+		top: 8px;
+		left: 8px;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35rem;
+		padding: 0.25rem 0.55rem;
+		border-radius: 99px;
+		font-size: 0.68rem;
+		font-weight: 800;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+	}
+	.locked-wp-pill.video-pill {
+		background: rgba(0, 0, 0, 0.7);
+		color: #00e5ff;
+		border: 1px solid rgba(0, 229, 255, 0.35);
+	}
+	.locked-wp-pill.static-pill {
+		background: rgba(0, 0, 0, 0.7);
+		color: #fff;
+		border: 1px solid rgba(255, 255, 255, 0.2);
+	}
+	.pill-dot {
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: #00e5ff;
+		box-shadow: 0 0 6px #00e5ff;
+	}
+	.locked-accent-indicator {
+		position: absolute;
+		bottom: 8px;
+		right: 8px;
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		border: 2px solid #fff;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+	}
+	.locked-preview-banner-box {
+		width: 100%;
+		display: flex;
+		align-items: center;
+		gap: 0.7rem;
+		padding: 0.65rem 0.8rem;
+		background: color-mix(in srgb, var(--accent) 10%, var(--surface-subtle));
+		border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+		border-radius: 12px;
+		text-align: left;
+		box-sizing: border-box;
+	}
+	.sparkle-icon {
+		color: var(--accent);
+		display: grid;
+		place-items: center;
+		flex-shrink: 0;
+	}
+	.sparkle-text {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15rem;
+	}
+	.sparkle-text b {
+		font-size: 0.8rem;
+		color: var(--text-primary);
+	}
+	.sparkle-text span {
+		font-size: 0.72rem;
+		color: var(--text-secondary);
+		line-height: 1.35;
+	}
+	.btn-start-preview {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4rem;
+	}
 
-
-	.preview-banner { position: fixed; top: 1rem; left: 50%; transform: translateX(-50%); z-index: 9999; background: var(--surface-panel); border: 1px solid var(--accent); backdrop-filter: var(--glass-filter); -webkit-backdrop-filter: var(--glass-filter); border-radius: 99px; padding: 0.4rem 0.4rem 0.4rem 1.2rem; display: flex; align-items: center; gap: 1.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.4); color: var(--text-primary); font-size: 0.9rem; }
-	.pb-content { display: flex; align-items: center; gap: 0.6rem; }
-	.pb-icon { color: var(--accent); display: flex; animation: tick 1s infinite; }
-	.pb-btn { background: var(--accent); color: var(--surface-canvas); border: none; padding: 0.4rem 1rem; border-radius: 99px; font-weight: 700; cursor: pointer; transition: opacity 0.2s; }
-	.pb-btn:hover { opacity: 0.9; }
-	@keyframes tick { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } }
+	.theme.locked { opacity: 0.72; cursor: not-allowed; border-style: dashed; }
 
 
 
@@ -2161,16 +2568,6 @@
 		.snap-btns {
 			width: 100%;
 			justify-content: flex-end;
-		}
-		.preview-banner {
-			width: calc(100% - 1.5rem);
-			gap: 0.5rem;
-			font-size: 0.76rem;
-			padding: 0.35rem 0.35rem 0.35rem 0.75rem;
-		}
-		.pb-btn {
-			padding: 0.35rem 0.75rem;
-			font-size: 0.72rem;
 		}
 	}
 </style>

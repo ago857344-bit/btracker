@@ -1,6 +1,6 @@
 import type { CoachingType, TrackerState, UniversalSource } from '$lib/types/tracker';
 
-export const DEFAULT_BT_NAME = 'Baktiwal Tutorials';
+export const DEFAULT_BT_NAME = 'Bakliwal Tutorials';
 
 export const COACHING_PRESETS = [
 	'Allen',
